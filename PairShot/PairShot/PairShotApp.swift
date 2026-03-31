@@ -5,14 +5,16 @@
 //  Created by KKK on 3/31/26.
 //
 
-import SwiftUI
 import SwiftData
+import SwiftUI
 
 @main
 struct PairShotApp: App {
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
-            Item.self,
+            Project.self,
+            PhotoPair.self,
+            Photo.self,
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 

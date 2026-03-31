@@ -6,56 +6,52 @@
 //
 
 import SwiftUI
-import SwiftData
 
 struct ContentView: View {
-    @Environment(\.modelContext) private var modelContext
-    @Query private var items: [Item]
+    @State private var showCamera: Bool = false
 
     var body: some View {
-        NavigationSplitView {
-            List {
-                ForEach(items) { item in
-                    NavigationLink {
-                        Text("Item at \(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))")
-                    } label: {
-                        Text(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))
-                    }
-                }
-                .onDelete(perform: deleteItems)
-            }
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
-                }
-                ToolbarItem {
-                    Button(action: addItem) {
-                        Label("Add Item", systemImage: "plus")
-                    }
-                }
-            }
-        } detail: {
-            Text("Select an item")
-        }
-    }
+        NavigationStack {
+            ZStack {
+                Color.black.ignoresSafeArea()
 
-    private func addItem() {
-        withAnimation {
-            let newItem = Item(timestamp: Date())
-            modelContext.insert(newItem)
-        }
-    }
+                VStack(spacing: 32) {
+                    // 앱 아이콘 영역
+                    Image(systemName: "camera.aperture")
+                        .font(.system(size: 72, weight: .thin))
+                        .foregroundStyle(.white)
 
-    private func deleteItems(offsets: IndexSet) {
-        withAnimation {
-            for index in offsets {
-                modelContext.delete(items[index])
+                    Text("Pair Shot")
+                        .font(.system(size: 34, weight: .bold))
+                        .foregroundStyle(.white)
+
+                    Text("현장 Before·After 촬영")
+                        .font(.subheadline)
+                        .foregroundStyle(.white.opacity(0.6))
+
+                    Spacer().frame(height: 16)
+
+                    // 촬영 시작 버튼
+                    NavigationLink(destination: CameraView()) {
+                        HStack(spacing: 10) {
+                            Image(systemName: "camera.fill")
+                                .font(.system(size: 17, weight: .semibold))
+                            Text("촬영 시작")
+                                .font(.system(size: 17, weight: .semibold))
+                        }
+                        .foregroundStyle(.black)
+                        .frame(minWidth: 200, minHeight: 54)
+                        .background(Color.white, in: Capsule())
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding()
             }
+            .navigationBarHidden(true)
         }
     }
 }
 
 #Preview {
     ContentView()
-        .modelContainer(for: Item.self, inMemory: true)
 }
