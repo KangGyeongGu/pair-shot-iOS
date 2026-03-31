@@ -21,7 +21,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "cd \"$CLAUDE_PROJECT_DIR\" && xcodebuild build -scheme PairShot -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 16 Pro' -quiet 2>&1 | tail -5 || true",
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && xcodebuild build -project PairShot/PairShot.xcodeproj -scheme PairShot -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 15 Pro' SWIFT_TREAT_WARNINGS_AS_ERRORS=YES SWIFT_STRICT_CONCURRENCY=complete -quiet 2>&1 | tail -10 || true",
             "statusMessage": "빌드 검증 중..."
           }
         ]

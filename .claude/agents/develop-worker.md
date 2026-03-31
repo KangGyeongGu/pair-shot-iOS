@@ -17,9 +17,9 @@ On first turn:
 Workflow:
 1. Read the work item specification
 2. Implement the feature following the spec (requirements, edge cases, implementation hints)
-3. Run `xcodebuild build -scheme PairShot -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 16 Pro' -quiet` to verify compilation
-4. Run `swiftlint lint --strict` for code quality
-5. Run `swiftformat --lint .` for format consistency
+3. Run `xcodebuild build -project PairShot/PairShot.xcodeproj -scheme PairShot -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 15 Pro' SWIFT_TREAT_WARNINGS_AS_ERRORS=YES SWIFT_STRICT_CONCURRENCY=complete -quiet` to verify compilation (0 errors AND 0 warnings required)
+4. Run `swiftlint lint PairShot/PairShot --config .swiftlint.yml --strict` for code quality
+5. Run `swiftformat --lint PairShot/PairShot --config .swiftformat` for format consistency
 6. If any step fails, fix before completing
 
 Rules:

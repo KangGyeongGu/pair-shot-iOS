@@ -1,0 +1,174 @@
+{
+  "phase": "P1",
+  "phase_name": "Camera Basic",
+  "features": ["F02", "F08", "F09"],
+  "current_state": {
+    "existing_files": [
+      "PairShot/PairShot/PairShotApp.swift",
+      "PairShot/PairShot/ContentView.swift",
+      "PairShot/PairShot/Item.swift",
+      "PairShot/PairShot/Assets.xcassets/",
+      "PairShot/PairShotTests/PairShotTests.swift",
+      "PairShot/PairShotUITests/PairShotUITests.swift"
+    ],
+    "existing_models": [
+      {
+        "name": "Item",
+        "file": "PairShot/PairShot/Item.swift",
+        "note": "Xcode 기본 템플릿 모델. timestamp: Date 하나만 있음. PairShot 도메인 모델로 교체 필요."
+      }
+    ],
+    "existing_views": [
+      {
+        "name": "ContentView",
+        "file": "PairShot/PairShot/ContentView.swift",
+        "note": "Xcode 기본 템플릿 뷰. NavigationSplitView + List 구조. PairShot 용으로 전면 교체 필요."
+      }
+    ]
+  },
+  "work_items_needed": [
+    {
+      "id": "W1",
+      "title": "SwiftData 도메인 모델 구축",
+      "description": "PhotoPair, Photo 등 핵심 도메인 모델을 SwiftData @Model로 작성. Item.swift 를 삭제하고 실제 앱 모델로 교체. SensorSnapshot(pitch/roll/yaw/heading/GPS 등 capture 시점 센서값) 포함.",
+      "files_to_create": [
+        "PairShot/PairShot/Models/PhotoPair.swift",
+        "PairShot/PairShot/Models/Photo.swift",
+        "PairShot/PairShot/Models/SensorSnapshot.swift"
+      ],
+      "files_to_modify": [
+        "PairShot/PairShot/PairShotApp.swift"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "W2",
+      "title": "AVFoundation 카메라 세션 매니저 구현",
+      "description": "AVCaptureSession, AVCapturePhotoOutput 을 관리하는 CameraManager (ObservableObject 또는 @Observable). 카메라 권한 요청, 세션 시작/중지, 사진 캡처, 사진 파일 저장, 섬네일 생성(300x300 CGImageSource)을 담당. 백그라운드 진입 시 세션 일시정지 및 복귀 시 자동 재개.",
+      "files_to_create": [
+        "PairShot/PairShot/Camera/CameraManager.swift"
+      ],
+      "files_to_modify": [],
+      "dependencies": ["W1"]
+    },
+    {
+      "id": "W3",
+      "title": "센서 데이터 수집 구현 (CMMotionManager + CLLocationManager)",
+      "description": "CMMotionManager를 1/60Hz로 구동하여 pitch/roll/yaw 실시간 수집. CLLocationManager로 GPS 수집. 셔터 시점에 SensorSnapshot 생성하여 Photo와 함께 저장.",
+      "files_to_create": [
+        "PairShot/PairShot/Sensors/SensorManager.swift"
+      ],
+      "files_to_modify": [],
+      "dependencies": ["W1"]
+    },
+    {
+      "id": "W4",
+      "title": "저조도 자동 보정 구현 (F08)",
+      "description": "AVCaptureDevice.iso를 모니터링하여 800 초과 시 저조도로 판단. exposureTargetBias +1~2 EV 자동 적용. 매우 어두울 경우 torch level 0.4로 자동 활성화. 캡처 후 CIHighlightShadowAdjust(shadowAmount: 1.5) + CINoiseReduction 후처리. photoQualityPrioritization = .quality 설정으로 Deep Fusion/Smart HDR 활성화. torch 활성 시 상단에 아이콘 표시 및 수동 끄기 지원. 배터리 잔량 낮으면 torch 자동 비활성화.",
+      "files_to_create": [
+        "PairShot/PairShot/Camera/LowLightManager.swift"
+      ],
+      "files_to_modify": [
+        "PairShot/PairShot/Camera/CameraManager.swift"
+      ],
+      "dependencies": ["W2"]
+    },
+    {
+      "id": "W5",
+      "title": "표준 카메라 기능 구현 (F09)",
+      "description": "화면비 전환(4:3 기본, 16:9, 1:1 — 센서는 항상 4:3 캡처, CGRect crop), 줌(0.5x/1x/2x/5x, videoZoomFactor + rampToVideoZoomFactor + pinch 제스처 + virtualDeviceSwitchOverVideoZoomFactors), 플래시(Auto/On/Off, AVCapturePhotoSettings.flashMode), 그리드선(3분할 UIView 오버레이), 타이머(Off/3초/10초), 전후면 카메라 전환.",
+      "files_to_create": [
+        "PairShot/PairShot/Camera/CameraSettings.swift"
+      ],
+      "files_to_modify": [
+        "PairShot/PairShot/Camera/CameraManager.swift"
+      ],
+      "dependencies": ["W2"]
+    },
+    {
+      "id": "W6",
+      "title": "카메라 UI 뷰 구현 (F02 UI)",
+      "description": "전체 화면 AVCaptureVideoPreviewLayer 기반 카메라 프리뷰(UIViewRepresentable). 하단 대형 셔터 버튼(장갑 착용 가능), 하단 좌측 최근 섬네일 스택, 상단 플래시/화면비/그리드 토글 버튼, 하단 줌 버튼(0.5x, 1x, 2x), 하단 우측 전후면 전환 버튼, 촬영 횟수 표시('N장 촬영'), torch 활성 표시 아이콘, 그리드선 오버레이, 저조도 시 수동 밝기 슬라이더(길게 누르기).",
+      "files_to_create": [
+        "PairShot/PairShot/Views/Camera/CameraView.swift",
+        "PairShot/PairShot/Views/Camera/CameraPreviewView.swift",
+        "PairShot/PairShot/Views/Camera/GridOverlayView.swift",
+        "PairShot/PairShot/Views/Camera/ZoomControlView.swift",
+        "PairShot/PairShot/Views/Camera/ShutterButton.swift"
+      ],
+      "files_to_modify": [
+        "PairShot/PairShot/ContentView.swift"
+      ],
+      "dependencies": ["W2", "W4", "W5"]
+    },
+    {
+      "id": "W7",
+      "title": "카메라 권한 거부 안내 화면 구현",
+      "description": "카메라 권한이 거부된 경우 Settings 앱으로 유도하는 안내 화면(PermissionDeniedView). ContentView 또는 CameraView 진입 시 권한 상태를 확인하고 분기.",
+      "files_to_create": [
+        "PairShot/PairShot/Views/Camera/PermissionDeniedView.swift"
+      ],
+      "files_to_modify": [
+        "PairShot/PairShot/Views/Camera/CameraView.swift"
+      ],
+      "dependencies": ["W6"]
+    },
+    {
+      "id": "W8",
+      "title": "저장공간 부족 경고 처리",
+      "description": "사진 저장 전 디바이스 여유 공간 확인. 부족할 경우 경고 다이얼로그 표시. CameraManager 또는 Photo 저장 로직에서 처리.",
+      "files_to_create": [],
+      "files_to_modify": [
+        "PairShot/PairShot/Camera/CameraManager.swift"
+      ],
+      "dependencies": ["W2"]
+    },
+    {
+      "id": "W9",
+      "title": "ARWorldMap 백그라운드 저장 (선택적)",
+      "description": "ARKit 세션을 함께 운용하여 캡처 시점에 arSession.getCurrentWorldMap → NSKeyedArchiver → 파일 저장. LiDAR 없는 기기에서도 ARKit 카메라 트래킹 기반으로 동작. ARWorldMap 저장 실패(환경 특징점 부족)는 무시하고 센서 데이터만 저장.",
+      "files_to_create": [
+        "PairShot/PairShot/AR/ARSessionManager.swift"
+      ],
+      "files_to_modify": [
+        "PairShot/PairShot/Camera/CameraManager.swift"
+      ],
+      "dependencies": ["W1", "W2"]
+    }
+  ],
+  "risks": [
+    {
+      "id": "R1",
+      "severity": "high",
+      "description": "Swift 6 concurrency(Strict Concurrency) 환경에서 AVFoundation 델리게이트 콜백은 non-isolated 컨텍스트에서 호출됨. CameraManager를 @MainActor 로 선언할 경우 AVCapturePhotoCaptureDelegate 메서드에서 actor isolation 컴파일 오류 발생 가능. Sendable, nonisolated 처리를 명확히 설계해야 함."
+    },
+    {
+      "id": "R2",
+      "severity": "medium",
+      "description": "연속 촬영 시 메모리 200MB 제한. 48MP RAW 또는 고해상도 HEIF를 처리하는 경우 단일 이미지가 50MB 이상일 수 있음. 파일 저장과 섬네일 생성을 백그라운드 큐에서 처리하고 메모리 압박 알림(didReceiveMemoryWarning)에 대응하는 설계 필요."
+    },
+    {
+      "id": "R3",
+      "severity": "medium",
+      "description": "저조도 torch 자동 활성화 시 flash와 동시 사용하면 과노출 발생. 플래시 On 상태에서 torch를 비활성화하거나, 캡처 직전 torch를 끄고 플래시를 사용하는 타이밍 제어 로직이 필요."
+    },
+    {
+      "id": "R4",
+      "severity": "medium",
+      "description": "ARKit과 AVCaptureSession을 동시에 운용할 때 카메라 리소스 충돌 가능성. ARSession이 AVCaptureSession을 내부적으로 소유하므로, CameraManager 내 독립 AVCaptureSession과 ARSession을 함께 사용할 경우 멀티캠 세션(AVCaptureMultiCamSession) 또는 ARSession에서 capturedImage를 추출하는 방식으로 충돌 회피 필요."
+    },
+    {
+      "id": "R5",
+      "severity": "low",
+      "description": "화면비 전환 시 센서는 항상 4:3으로 캡처하고 CGRect crop만 적용하므로, 16:9 또는 1:1 before 사진과 after 사진 간 crop 일관성을 PhotoPair 수준에서 관리해야 함."
+    }
+  ],
+  "notes": [
+    "현재 프로젝트는 Xcode 기본 템플릿 수준. Item.swift와 ContentView.swift는 PairShot 전용 코드로 전면 교체 대상.",
+    "PairShotApp.swift의 ModelContainer 스키마를 Item.self에서 PhotoPair.self, Photo.self 로 교체해야 함.",
+    "작업 순서 권장: W1(모델) → W2(카메라) + W3(센서) 병렬 → W4(저조도) + W5(표준 기능) 병렬 → W6(UI) → W7(권한) + W8(저장공간) + W9(AR) 병렬.",
+    "W9(ARWorldMap)은 F02 요구사항이지만 구현 복잡도가 높으므로, 나머지 작업 완료 후 마지막에 추가하는 것을 권장.",
+    "Info.plist에 NSCameraUsageDescription, NSLocationWhenInUseUsageDescription, NSMotionUsageDescription 항목 추가 필요.",
+    "F02 요구사항 중 '아카이브(프로젝트 갤러리)로 복귀' 기능은 F01(프로젝트 관리) 의존. P1 범위에서는 임시 뒤로 가기 버튼만 구현하고, F01 구현 시 연결."
+  ]
+}
