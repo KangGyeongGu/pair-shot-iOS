@@ -1,0 +1,36 @@
+# Project documentation (local only, not pushed)
+pre-settings.md
+project.md
+research.md
+architecture.md
+research-appstore-review.md
+
+# Xcode
+*.xcodeproj/project.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+DerivedData/
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Swift Package Manager
+.build/
+Packages/
+
+# macOS
+.DS_Store
+*.swp
+*~
+
+# CocoaPods (not used but just in case)
+Pods/
+
+# Xcode playground
+timeline.xctimeline
+playground.xcworkspace
+
+# Claude Code local settings
+.claude/settings.local.json

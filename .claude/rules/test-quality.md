@@ -1,0 +1,13 @@
+---
+paths:
+  - "PairShotTests/**/*.swift"
+  - "PairShotUITests/**/*.swift"
+---
+- 4 categories per public function: happy path, boundary, negative, error
+- Swift Testing (@Test, #expect) for new unit tests
+- XCTest for UI tests only (Swift Testing does not support UI testing)
+- XCTAssertEqual with concrete expected values (no XCTAssertNotNil alone)
+- No tautological tests (oracle from same code path)
+- Tests must be falsifiable (would fail if one production line changed)
+- Hardware services: test via protocol mock, never real hardware
+- Test naming: test_{functionName}_{scenario}_{expectedResult}

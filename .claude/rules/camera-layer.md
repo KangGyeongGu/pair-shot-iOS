@@ -1,0 +1,13 @@
+---
+paths:
+  - "PairShot/Services/Camera*.swift"
+  - "PairShot/Services/LowLight*.swift"
+  - "PairShot/Services/AR*.swift"
+---
+- AVCaptureSession must only be created/managed in CameraService
+- All camera configuration changes must run on sessionQueue (background serial queue)
+- Preview layer manipulation must run on MainActor
+- ARKit session must only be managed in ARService, separated from camera session
+- Permission requests must be just-in-time (never at app launch — App Store rejection cause)
+- Permission denial must never crash or show blank screen → show fallback UI + Settings button
+- LiDAR/ARKit availability must be checked at runtime (never in UIRequiredDeviceCapabilities)
