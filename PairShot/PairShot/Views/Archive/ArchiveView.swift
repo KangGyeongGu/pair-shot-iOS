@@ -13,6 +13,7 @@ struct ArchiveView: View {
     @State private var renameText: String = ""
     @State private var showRenameAlert = false
     @State private var navigationPath = NavigationPath()
+    @State private var cameraDestination: CameraDestination?
 
     private let storage = PhotoStorageService()
 
@@ -38,25 +39,29 @@ struct ArchiveView: View {
             .navigationDestination(for: Project.self) { project in
                 PairGalleryView(project: project)
             }
-            .navigationDestination(for: CameraDestination.self) { destination in
-                switch destination {
-                    case let .beforeCamera(project):
-                        CameraView(project: project)
-                    case let .afterCamera(project, pair):
-                        CameraView(project: project, existingPair: pair)
+        }
+        .fullScreenCover(item: $cameraDestination) { destination in
+            switch destination {
+                case let .beforeCamera(project):
+                    CameraView(project: project)
+                case let .afterCamera(project, pair):
+                    CameraView(project: project, existingPair: pair)
+            }
+        }
+        .sheet(
+            isPresented: $showNewProjectSheet,
+            onDismiss: {
+                if let project = pendingProject {
+                    cameraDestination = .beforeCamera(project: project)
+                    pendingProject = nil
+                }
+            },
+            content: {
+                NewProjectSheet { project in
+                    pendingProject = project
                 }
             }
-        }
-        .sheet(isPresented: $showNewProjectSheet, onDismiss: {
-            if let project = pendingProject {
-                navigationPath.append(CameraDestination.beforeCamera(project: project))
-                pendingProject = nil
-            }
-        }) {
-            NewProjectSheet { project in
-                pendingProject = project
-            }
-        }
+        )
         .alert("프로젝트 삭제", isPresented: $showDeleteAlert, presenting: projectToDelete) { project in
             Button("삭제", role: .destructive) {
                 deleteProject(project)
@@ -230,32 +235,16 @@ private struct ProjectRowView: View {
     }
 }
 
-enum CameraDestination {
+enum CameraDestination: Identifiable {
     case beforeCamera(project: Project)
     case afterCamera(project: Project, pair: PhotoPair)
-}
 
-extension CameraDestination: Hashable {
-    static func == (lhs: CameraDestination, rhs: CameraDestination) -> Bool {
-        switch (lhs, rhs) {
-            case let (.beforeCamera(lhsProject), .beforeCamera(rhsProject)):
-                lhsProject.id == rhsProject.id
-            case let (.afterCamera(lhsProject, lhsPair), .afterCamera(rhsProject, rhsPair)):
-                lhsProject.id == rhsProject.id && lhsPair.id == rhsPair.id
-            default:
-                false
-        }
-    }
-
-    func hash(into hasher: inout Hasher) {
+    var id: String {
         switch self {
             case let .beforeCamera(project):
-                hasher.combine(0)
-                hasher.combine(project.id)
+                "before-\(project.id.uuidString)"
             case let .afterCamera(project, pair):
-                hasher.combine(1)
-                hasher.combine(project.id)
-                hasher.combine(pair.id)
+                "after-\(project.id.uuidString)-\(pair.id.uuidString)"
         }
     }
 }

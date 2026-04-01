@@ -12,6 +12,7 @@ struct CameraView: View {
     }
 
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss) private var dismiss
 
     @State private var cameraManager = CameraManager()
     @State private var cameraSettings = CameraSettings()
@@ -143,6 +144,18 @@ struct CameraView: View {
                     )
                 }
                 .clipped()
+                .overlay(alignment: .topLeading) {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .frame(width: 40, height: 40)
+                            .background(.black.opacity(0.4), in: Circle())
+                    }
+                    .padding(12)
+                }
 
                 // 셔터 버튼: 프리뷰 바로 아래, 자기 크기만큼만
                 VStack(spacing: 0) {
