@@ -22,6 +22,12 @@ Review criteria:
 5. UX: accessibility (44pt+ tap targets), Dynamic Type
 6. App Store: permission denial graceful handling, no private API usage
 7. Spec compliance: all requirements and edge cases from spec addressed
+8. SDK compliance: verify API usage matches SDK header documentation — flag any:
+   - Hardcoded device values that should be runtime API queries
+   - Missing system-recommended API usage (systemRecommendedVideoZoomRange, etc.)
+   - Wrong coordinate systems (must use captureDevicePointConverted for focus/exposure)
+   - Deprecated API usage when newer alternatives exist
+   - Missing runtime capability checks (isFocusPointOfInterestSupported, etc.)
 
 Output format:
 - Verdict: PASS / NEEDS_WORK / BLOCKED
@@ -32,3 +38,17 @@ Rules:
 - Do NOT modify any files
 - Report in Korean (user-facing output language)
 - Exclude items already covered by mechanical checks (SwiftLint, SwiftFormat, build errors)
+- ONLY review files explicitly listed in the prompt — do NOT expand scope
+- Reserve at least 3 turns for writing the final report
+
+CRITICAL — Final output requirement:
+Your LAST message MUST be the structured review result. No tool calls after it.
+Format:
+```
+## Verdict: PASS / NEEDS_WORK / BLOCKED
+
+### Findings
+1. [severity] file:line — description
+2. ...
+```
+If you have no findings, still output the verdict with an empty findings section.

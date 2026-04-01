@@ -35,10 +35,19 @@ iOS native app for field workers to capture and manage Before-After photo pairs.
 - Removed features: NFC, voice memo, floor detection, CloudKit, WeatherKit, map view
 - Minimal comments — only where logic is non-obvious. No file headers, no MARK sections, no doc comments on simple properties/functions
 
-## Apple SDK Reference
+## Apple SDK Reference — CRITICAL
 - SDK headers: .claude/apple-sdk-refs/{FrameworkName}/ — API definitions with detailed Discussion comments
-- MUST read relevant SDK header files before implementing any Apple framework feature
-- Example: before implementing zoom, read .claude/apple-sdk-refs/AVFoundation/AVCaptureDevice.h
+- MUST read relevant SDK header files BEFORE implementing any Apple framework feature
+- NEVER guess API names, parameters, or behavior — always verify from SDK headers first
+- NEVER hardcode device-specific values (zoom ranges, exposure limits, focal lengths) — use device API queries
+- Prefer iOS 18+ system-recommended APIs when available:
+  - systemRecommendedVideoZoomRange (zoom limits)
+  - systemRecommendedExposureBiasRange (exposure limits)
+  - displayVideoZoomFactorMultiplier (display zoom labels)
+  - captureDevicePointConverted(fromLayerPoint:) (coordinate conversion)
+- Use constituentDevices + nominalFocalLengthIn35mmFilm for focal length data (iOS 26+)
+- Always check device capability at runtime (isFocusPointOfInterestSupported, etc.) before using
+- Example workflow: read header → find relevant API → check availability → implement → verify on device
 
 ## Git Convention
 - Conventional Commits: `<type>(<scope>): <한국어 요약>` + 한국어 본문 (type/scope만 영어)
