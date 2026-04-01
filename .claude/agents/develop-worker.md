@@ -3,7 +3,7 @@ name: develop-worker
 description: Implements features in isolated worktree with build verification
 tools: Read, Write, Edit, Grep, Glob, Bash
 model: sonnet
-maxTurns: 30
+maxTurns: 50
 isolation: worktree
 effort: high
 ---

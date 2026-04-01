@@ -3,17 +3,21 @@ import CoreImage
 import Observation
 import UIKit
 
-/// AVCaptureSession 전체 생명주기를 책임지는 서비스.
-///
-/// - 모든 AVFoundation 설정·변경은 `sessionQueue`(serial background queue)에서 실행한다.
-/// - `@Observable` 프로퍼티 업데이트는 반드시 `@MainActor`로 전환한다.
-/// - 권한 요청은 절대 init에서 하지 않는다 (just-in-time).
 @Observable
 @MainActor
 final class CameraManager: NSObject, CameraServiceProtocol {
     private(set) var isSessionRunning: Bool = false
     private(set) var isCameraAuthorized: Bool = false
     private(set) var capturedPhoto: UIImage?
+
+    struct SaveResult {
+        let filePath: String
+        let thumbnailPath: String
+        let isBefore: Bool
+        let pairId: UUID
+    }
+
+    var onPhotoSaved: ((SaveResult) -> Void)?
 
     // nonisolated(unsafe): sessionQueue에서만 접근하므로 안전 — Swift 6 Sendable 경고 억제
     @ObservationIgnored
@@ -29,6 +33,7 @@ final class CameraManager: NSObject, CameraServiceProtocol {
 
     private var pendingProjectId: UUID?
     private var pendingPairId: UUID?
+    private var pendingIsBefore: Bool = true
 
     let previewLayer: AVCaptureVideoPreviewLayer
 
@@ -86,9 +91,10 @@ final class CameraManager: NSObject, CameraServiceProtocol {
         }
     }
 
-    func capturePhoto(projectId: UUID, pairId: UUID) {
+    func capturePhoto(projectId: UUID, pairId: UUID, isBefore: Bool = true) {
         pendingProjectId = projectId
         pendingPairId = pairId
+        pendingIsBefore = isBefore
 
         let settings = makePhotoSettings()
         sessionQueue.async { [weak self] in
@@ -465,113 +471,18 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
             guard let self else { return }
             let projectId = pendingProjectId
             let pairId = pendingPairId
+            let isBefore = pendingIsBefore
             pendingProjectId = nil
             pendingPairId = nil
+            pendingIsBefore = true
 
             if let image = UIImage(data: data) {
                 capturedPhoto = image
             }
 
             Task.detached(priority: .utility) {
-                await self.savePhoto(data: data, projectId: projectId, pairId: pairId)
+                await self.savePhoto(data: data, projectId: projectId, pairId: pairId, isBefore: isBefore)
             }
         }
-    }
-
-    private func savePhoto(data: Data, projectId: UUID?, pairId: UUID?) async {
-        let fileManager = FileManager.default
-        guard let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
-            return
-        }
-
-        // 경로: Documents/projects/{projectId}/pairs/{pairId}/before.jpg
-        // projectId / pairId가 없으면 임시 UUID 사용 (독립 캡처 시나리오)
-        let resolvedProject = projectId ?? UUID()
-        let resolvedPair = pairId ?? UUID()
-
-        let pairDirectory = documentsURL
-            .appendingPathComponent("projects")
-            .appendingPathComponent(resolvedProject.uuidString)
-            .appendingPathComponent("pairs")
-            .appendingPathComponent(resolvedPair.uuidString)
-
-        do {
-            try fileManager.createDirectory(at: pairDirectory, withIntermediateDirectories: true)
-        } catch {
-            return
-        }
-
-        let photoURL = pairDirectory.appendingPathComponent("before.jpg")
-
-        // HEIC → JPEG 변환 후 저장 (범용 호환성 + 명세 파일명 준수)
-        let jpegData: Data = if let image = UIImage(data: data),
-                                let converted = image.jpegData(compressionQuality: 0.92)
-        {
-            converted
-        } else {
-            data
-        }
-
-        do {
-            try jpegData.write(to: photoURL, options: .atomic)
-        } catch {
-            return
-        }
-
-        // iOS 사진 라이브러리에도 저장
-        if let image = UIImage(data: jpegData) {
-            UIImageWriteToSavedPhotosAlbum(image, nil, nil, nil)
-        }
-
-        await generateThumbnail(
-            sourceURL: photoURL,
-            projectId: resolvedProject,
-            pairId: resolvedPair,
-            documentsURL: documentsURL
-        )
-    }
-
-    private func generateThumbnail(
-        sourceURL: URL,
-        projectId: UUID,
-        pairId: UUID,
-        documentsURL: URL
-    ) async {
-        let fileManager = FileManager.default
-
-        // 경로: Documents/projects/{projectId}/thumbs/{pairId}_before.jpg
-        let thumbDirectory = documentsURL
-            .appendingPathComponent("projects")
-            .appendingPathComponent(projectId.uuidString)
-            .appendingPathComponent("thumbs")
-
-        do {
-            try fileManager.createDirectory(at: thumbDirectory, withIntermediateDirectories: true)
-        } catch {
-            return
-        }
-
-        let thumbURL = thumbDirectory.appendingPathComponent("\(pairId.uuidString)_before.jpg")
-
-        let sourceOptions: [CFString: Any] = [kCGImageSourceShouldCache: false]
-        guard let source = CGImageSourceCreateWithURL(sourceURL as CFURL, sourceOptions as CFDictionary) else {
-            return
-        }
-
-        let thumbOptions: [CFString: Any] = [
-            kCGImageSourceThumbnailMaxPixelSize: 300,
-            kCGImageSourceCreateThumbnailFromImageAlways: true,
-            kCGImageSourceCreateThumbnailWithTransform: true,
-            kCGImageSourceShouldCacheImmediately: false,
-        ]
-
-        guard let cgThumb = CGImageSourceCreateThumbnailAtIndex(source, 0, thumbOptions as CFDictionary) else {
-            return
-        }
-
-        let thumbImage = UIImage(cgImage: cgThumb)
-        guard let thumbData = thumbImage.jpegData(compressionQuality: 0.85) else { return }
-
-        try? thumbData.write(to: thumbURL, options: .atomic)
     }
 }

@@ -11,6 +11,6 @@ protocol CameraServiceProtocol: AnyObject {
     func requestAuthorization() async -> Bool
     func startSession()
     func stopSession()
-    func capturePhoto(projectId: UUID, pairId: UUID)
+    func capturePhoto(projectId: UUID, pairId: UUID, isBefore: Bool)
     func switchCamera()
 }

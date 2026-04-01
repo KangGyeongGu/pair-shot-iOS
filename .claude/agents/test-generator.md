@@ -3,7 +3,7 @@ name: test-generator
 description: Generates or enhances Swift Testing test cases with falsifiability focus
 tools: Read, Write, Edit, Grep, Glob, Bash
 model: sonnet
-maxTurns: 30
+maxTurns: 50
 isolation: worktree
 effort: high
 ---
