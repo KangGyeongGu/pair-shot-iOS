@@ -1,11 +1,11 @@
 {
-  "state": "merging",
-  "current_phase": "P1",
+  "state": "developing",
+  "current_phase": "P2",
   "current_branch": "develop",
-  "current_feature_branch": "feature/camera-basic-p1",
-  "retry_count": 1,
+  "current_feature_branch": "feature/data-model",
+  "retry_count": 0,
   "max_retries": 3,
-  "last_completed_phase": null,
+  "last_completed_phase": "P1",
   "awaiting_device_test": false,
   "device_test_items": []
 }

@@ -1,8 +1,18 @@
 import AVFoundation
+import SwiftData
 import SwiftUI
 import UIKit
 
 struct CameraView: View {
+    let project: Project
+    var existingPair: PhotoPair?
+
+    var isBefore: Bool {
+        existingPair == nil
+    }
+
+    @Environment(\.modelContext) private var modelContext
+
     @State private var cameraManager = CameraManager()
     @State private var cameraSettings = CameraSettings()
     @State private var lowLightManager = LowLightManager()
@@ -182,6 +192,9 @@ struct CameraView: View {
             }
         }
         .task {
+            cameraManager.onPhotoSaved = { [self] result in
+                handleSaveResult(result)
+            }
             await startCamera()
         }
         .onChange(of: cameraManager.isSessionRunning) { _, running in
@@ -340,9 +353,20 @@ extension CameraView {
 
     func handleShutterTap() {
         if cameraSettings.timerDuration == .off {
-            cameraManager.capturePhoto(projectId: UUID(), pairId: UUID())
+            fireCapture()
         } else {
             startTimerCapture()
+        }
+    }
+
+    private func fireCapture() {
+        if isBefore {
+            let pair = PhotoPair(project: project)
+            modelContext.insert(pair)
+            project.pairs.append(pair)
+            cameraManager.capturePhoto(projectId: project.id, pairId: pair.id, isBefore: true)
+        } else if let pair = existingPair {
+            cameraManager.capturePhoto(projectId: project.id, pairId: pair.id, isBefore: false)
         }
     }
 
@@ -356,12 +380,41 @@ extension CameraView {
                 try? await Task.sleep(for: .seconds(1))
                 withAnimation { timerCountdown -= 1 }
             }
-            cameraManager.capturePhoto(projectId: UUID(), pairId: UUID())
+            fireCapture()
             isTimerRunning = false
+        }
+    }
+
+    private func handleSaveResult(_ result: CameraManager.SaveResult) {
+        let photo = Photo(
+            filePath: result.filePath,
+            thumbnailPath: result.thumbnailPath
+        )
+        modelContext.insert(photo)
+
+        if result.isBefore {
+            if let pair = project.pairs.first(where: { $0.id == result.pairId }) {
+                pair.beforePhoto = photo
+                pair.status = .pendingAfter
+            }
+        } else if let pair = existingPair, pair.id == result.pairId {
+            pair.afterPhoto = photo
+            pair.status = .complete
         }
     }
 }
 
 #Preview {
-    CameraView()
+    do {
+        let config = ModelConfiguration(isStoredInMemoryOnly: true)
+        let container = try ModelContainer(for: Project.self, configurations: config)
+        let project = Project(title: "미리보기 현장")
+        container.mainContext.insert(project)
+        return AnyView(
+            CameraView(project: project)
+                .modelContainer(container)
+        )
+    } catch {
+        return AnyView(Text("미리보기 오류: \(error.localizedDescription)"))
+    }
 }

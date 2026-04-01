@@ -3,7 +3,7 @@ name: fix-worker
 description: Fixes audit violations in existing code with minimal targeted edits
 tools: Read, Write, Edit, Grep, Glob, Bash
 model: sonnet
-maxTurns: 30
+maxTurns: 50
 isolation: worktree
 effort: high
 ---

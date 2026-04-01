@@ -25,6 +25,21 @@ final class Project {
     @Relationship(deleteRule: .cascade, inverse: \PhotoPair.project)
     var pairs: [PhotoPair]
 
+    var completePairCount: Int {
+        pairs.count(where: { $0.status == .complete })
+    }
+
+    var totalPairCount: Int {
+        pairs.count
+    }
+
+    var coverThumbnailPath: String? {
+        pairs
+            .min { $0.createdAt < $1.createdAt }?
+            .beforePhoto?
+            .thumbnailPath
+    }
+
     init(
         id: UUID = UUID(),
         title: String,
