@@ -1,7 +1,5 @@
 @preconcurrency import AVFoundation
 import CoreImage
-import ImageIO
-import MobileCoreServices
 import Observation
 import UIKit
 
@@ -19,15 +17,15 @@ final class CameraManager: NSObject, CameraServiceProtocol {
 
     // nonisolated(unsafe): sessionQueue에서만 접근하므로 안전 — Swift 6 Sendable 경고 억제
     @ObservationIgnored
-    nonisolated(unsafe) private let session = AVCaptureSession()
+    private nonisolated(unsafe) let session = AVCaptureSession()
     private let sessionQueue = DispatchQueue(label: "com.pairshot.camera.sessionQueue", qos: .userInitiated)
 
     @ObservationIgnored
-    nonisolated(unsafe) private var videoDeviceInput: AVCaptureDeviceInput?
+    private nonisolated(unsafe) var videoDeviceInput: AVCaptureDeviceInput?
     @ObservationIgnored
-    nonisolated(unsafe) private let photoOutput = AVCapturePhotoOutput()
+    private nonisolated(unsafe) let photoOutput = AVCapturePhotoOutput()
     @ObservationIgnored
-    nonisolated(unsafe) private var currentCameraPosition: AVCaptureDevice.Position = .back
+    private nonisolated(unsafe) var currentCameraPosition: AVCaptureDevice.Position = .back
 
     private var pendingProjectId: UUID?
     private var pendingPairId: UUID?
@@ -102,92 +100,124 @@ final class CameraManager: NSObject, CameraServiceProtocol {
     struct ZoomInfo {
         let minFactor: CGFloat
         let maxFactor: CGFloat
-        let displayMultiplier: CGFloat                    // videoZoomFactor * multiplier = 표시값
-        let switchOverFactors: [CGFloat]                  // 렌즈 전환 포인트
-        let secondaryNativeResolutionZoomFactors: [CGFloat] // 2x 크롭 등 네이티브 해상도 포인트
-        let defaultFactor: CGFloat                        // 1x에 해당하는 zoomFactor
+        let recommendedMaxFactor: CGFloat
+        let displayMultiplier: CGFloat
+        let allFixedFactors: [CGFloat]
+        let focalLengthMap: [CGFloat: Int] // zoomFactor → 35mm 환산 초점거리 (mm)
+        let defaultFactor: CGFloat
     }
 
     func getZoomInfo() -> ZoomInfo {
         guard let device = videoDeviceInput?.device else {
             return ZoomInfo(
-                minFactor: 1.0, maxFactor: 1.0, displayMultiplier: 1.0,
-                switchOverFactors: [], secondaryNativeResolutionZoomFactors: [], defaultFactor: 1.0
+                minFactor: 1.0,
+                maxFactor: 1.0,
+                recommendedMaxFactor: 1.0,
+                displayMultiplier: 1.0,
+                allFixedFactors: [1.0],
+                focalLengthMap: [:],
+                defaultFactor: 1.0
             )
         }
         let switchOvers = device.virtualDeviceSwitchOverVideoZoomFactors.map { CGFloat(truncating: $0) }
-        // secondaryNativeResolutionZoomFactors (iOS 16+): 2x 크롭 같은 네이티브 고해상도 줌 포인트
-        // AVCaptureDeviceFormat 프로퍼티 — activeFormat에서 읽는다
         let secondaryNative = device.activeFormat.secondaryNativeResolutionZoomFactors
-        // displayVideoZoomFactorMultiplier (iOS 18+): Apple 시스템 UI와 동일한 표시 배율 계산용
         let multiplier = device.displayVideoZoomFactorMultiplier
-        // 1x = displayMultiplier 적용 시 1.0이 되는 zoomFactor
         let defaultZoom: CGFloat = multiplier > 0 ? (1.0 / multiplier) : (switchOvers.first ?? 1.0)
+
+        let allFixed = buildAllFixedFactors(
+            device: device,
+            switchOvers: switchOvers,
+            secondaryNative: secondaryNative,
+            defaultZoom: defaultZoom
+        )
+        let focalMap = buildFocalLengthMap(
+            device: device,
+            switchOvers: switchOvers,
+            secondaryNative: secondaryNative,
+            allFixed: allFixed,
+            defaultZoom: defaultZoom
+        )
+
+        let recommendedMax: CGFloat = if let range = device.activeFormat.systemRecommendedVideoZoomRange {
+            range.upperBound
+        } else {
+            device.maxAvailableVideoZoomFactor
+        }
+
         return ZoomInfo(
             minFactor: device.minAvailableVideoZoomFactor,
             maxFactor: device.maxAvailableVideoZoomFactor,
+            recommendedMaxFactor: recommendedMax,
             displayMultiplier: multiplier,
-            switchOverFactors: switchOvers,
-            secondaryNativeResolutionZoomFactors: secondaryNative,
+            allFixedFactors: allFixed.sorted(),
+            focalLengthMap: focalMap,
             defaultFactor: defaultZoom
         )
     }
 
-    /// 버튼 탭: `ramp(toVideoZoomFactor:withRate:)` 로 부드럽게 전환
-    func setZoom(factor: CGFloat) {
-        sessionQueue.async { [weak self] in
-            guard let self, let device = videoDeviceInput?.device else { return }
-            do {
-                try device.lockForConfiguration()
-                let clamped = max(device.minAvailableVideoZoomFactor,
-                                  min(factor, device.maxAvailableVideoZoomFactor))
-                device.ramp(toVideoZoomFactor: clamped, withRate: 8.0)
-                device.unlockForConfiguration()
-            } catch {}
-        }
-    }
+    private func buildAllFixedFactors(
+        device: AVCaptureDevice,
+        switchOvers: [CGFloat],
+        secondaryNative: [CGFloat],
+        defaultZoom: CGFloat
+    ) -> Set<CGFloat> {
+        var allFixed = Set<CGFloat>([device.minAvailableVideoZoomFactor])
+        switchOvers.forEach { allFixed.insert($0) }
+        secondaryNative.forEach { allFixed.insert($0) }
 
-    /// 드래그 제스처: `videoZoomFactor` 직접 설정 — 호출 스레드에서 즉시 실행 (지연 없음)
-    func setZoomDirect(factor: CGFloat) {
-        guard let device = videoDeviceInput?.device else { return }
-        do {
-            try device.lockForConfiguration()
-            let clamped = max(device.minAvailableVideoZoomFactor,
-                              min(factor, device.maxAvailableVideoZoomFactor))
-            device.videoZoomFactor = clamped
-            device.unlockForConfiguration()
-        } catch {}
-    }
-
-    func switchCamera() {
-        sessionQueue.async { [weak self] in
-            guard let self else { return }
-            let newPosition: AVCaptureDevice.Position = currentCameraPosition == .back ? .front : .back
-            guard let newDevice = Self.captureDevice(for: newPosition) else { return }
-
-            session.beginConfiguration()
-            defer { self.session.commitConfiguration() }
-
-            if let currentInput = videoDeviceInput {
-                session.removeInput(currentInput)
-            }
-
-            do {
-                let newInput = try AVCaptureDeviceInput(device: newDevice)
-                if session.canAddInput(newInput) {
-                    session.addInput(newInput)
-                    videoDeviceInput = newInput
-                    currentCameraPosition = newPosition
-                }
-            } catch {
-                // 전환 실패 시 기존 입력 복구
-                if let existing = videoDeviceInput,
-                   session.canAddInput(existing)
-                {
-                    session.addInput(existing)
+        // 28mm/35mm 화각 포인트 추가 (와이드 렌즈가 48MP인 Pro 모델에서 네이티브 크롭)
+        let wideDevice = device.constituentDevices.first { $0.deviceType == .builtInWideAngleCamera }
+        if let wide = wideDevice {
+            let wideFocal = CGFloat(wide.nominalFocalLengthIn35mmFilm)
+            let wideZoom = switchOvers.first ?? defaultZoom
+            if wideFocal > 0 {
+                for focal in [28, 35] as [CGFloat] {
+                    let factor = wideZoom * (focal / wideFocal)
+                    if factor > wideZoom, factor <= (secondaryNative.first ?? factor) {
+                        allFixed.insert(factor)
+                    }
                 }
             }
         }
+        return allFixed
+    }
+
+    private func buildFocalLengthMap(
+        device: AVCaptureDevice,
+        switchOvers: [CGFloat],
+        secondaryNative: [CGFloat],
+        allFixed: Set<CGFloat>,
+        defaultZoom: CGFloat
+    ) -> [CGFloat: Int] {
+        var focalMap: [CGFloat: Int] = [:]
+        let constituents = device.constituentDevices
+        var zoomForConstituent: [CGFloat] = [device.minAvailableVideoZoomFactor]
+        zoomForConstituent.append(contentsOf: switchOvers)
+        for (i, constituent) in constituents.enumerated() {
+            let focal = constituent.nominalFocalLengthIn35mmFilm
+            if focal > 0, i < zoomForConstituent.count {
+                focalMap[zoomForConstituent[i]] = Int(focal)
+            }
+        }
+
+        let wideDevice = device.constituentDevices.first { $0.deviceType == .builtInWideAngleCamera }
+        if let wide = wideDevice {
+            let wideFocal = CGFloat(wide.nominalFocalLengthIn35mmFilm)
+            let wideZoom = switchOvers.first ?? defaultZoom
+            if wideFocal > 0 {
+                for focal in [28, 35] as [CGFloat] {
+                    let factor = wideZoom * (focal / wideFocal)
+                    if allFixed.contains(factor) || allFixed.contains(where: { abs($0 - factor) < 0.01 }) {
+                        focalMap[factor] = Int(focal)
+                    }
+                }
+                if let secZoom = secondaryNative.first {
+                    let focal = wideFocal * (secZoom / wideZoom)
+                    focalMap[secZoom] = Int(focal)
+                }
+            }
+        }
+        return focalMap
     }
 
     private nonisolated func configureSession() {
@@ -282,6 +312,139 @@ final class CameraManager: NSObject, CameraServiceProtocol {
         Task { @MainActor in
             guard self.isCameraAuthorized else { return }
             self.startSession()
+        }
+    }
+}
+
+extension CameraManager {
+    /// 버튼 탭: `ramp(toVideoZoomFactor:withRate:)` 로 부드럽게 전환
+    func setZoom(factor: CGFloat) {
+        sessionQueue.async { [weak self] in
+            guard let self, let device = videoDeviceInput?.device else { return }
+            do {
+                try device.lockForConfiguration()
+                let clamped = max(
+                    device.minAvailableVideoZoomFactor,
+                    min(factor, device.maxAvailableVideoZoomFactor)
+                )
+                device.ramp(toVideoZoomFactor: clamped, withRate: 8.0)
+                device.unlockForConfiguration()
+            } catch {}
+        }
+    }
+
+    /// 드래그 제스처: `videoZoomFactor` 직접 설정 — 호출 스레드에서 즉시 실행 (지연 없음)
+    func setZoomDirect(factor: CGFloat) {
+        guard let device = videoDeviceInput?.device else { return }
+        do {
+            try device.lockForConfiguration()
+            let clamped = max(
+                device.minAvailableVideoZoomFactor,
+                min(factor, device.maxAvailableVideoZoomFactor)
+            )
+            device.videoZoomFactor = clamped
+            device.unlockForConfiguration()
+        } catch {}
+    }
+
+    // 터치한 지점에 포커스 + 노출 조정 (화면 좌표 → previewLayer 변환)
+
+    func focusAndExpose(at screenPoint: CGPoint) {
+        let devicePoint = previewLayer.captureDevicePointConverted(fromLayerPoint: screenPoint)
+        sessionQueue.async { [weak self] in
+            guard let self, let device = videoDeviceInput?.device else { return }
+            do {
+                try device.lockForConfiguration()
+                if device.isFocusPointOfInterestSupported {
+                    device.focusPointOfInterest = devicePoint
+                    device.focusMode = .autoFocus
+                }
+                if device.isExposurePointOfInterestSupported {
+                    device.exposurePointOfInterest = devicePoint
+                    device.exposureMode = .autoExpose
+                }
+                device.isSubjectAreaChangeMonitoringEnabled = true
+                device.unlockForConfiguration()
+            } catch {}
+        }
+    }
+
+    /// 피사체 변경 시 연속 자동 포커스/노출로 복귀
+    func resetFocusAndExposure() {
+        sessionQueue.async { [weak self] in
+            guard let self, let device = videoDeviceInput?.device else { return }
+            do {
+                try device.lockForConfiguration()
+                if device.isFocusPointOfInterestSupported {
+                    device.focusPointOfInterest = CGPoint(x: 0.5, y: 0.5)
+                    device.focusMode = .continuousAutoFocus
+                }
+                if device.isExposurePointOfInterestSupported {
+                    device.exposurePointOfInterest = CGPoint(x: 0.5, y: 0.5)
+                    device.exposureMode = .continuousAutoExposure
+                }
+                device.isSubjectAreaChangeMonitoringEnabled = false
+                device.unlockForConfiguration()
+            } catch {}
+        }
+    }
+
+    func setExposureBias(_ bias: Float) {
+        sessionQueue.async { [weak self] in
+            guard let self, let device = videoDeviceInput?.device else { return }
+            let range = Self.recommendedExposureRange(for: device)
+            let clamped = max(range.min, min(bias, range.max))
+            do {
+                try device.lockForConfiguration()
+                device.setExposureTargetBias(clamped)
+                device.unlockForConfiguration()
+            } catch {}
+        }
+    }
+
+    func getExposureBiasRange() -> (min: Float, max: Float) {
+        guard let device = videoDeviceInput?.device else { return (-3, 3) }
+        return Self.recommendedExposureRange(for: device)
+    }
+
+    private nonisolated static func recommendedExposureRange(for device: AVCaptureDevice) -> (min: Float, max: Float) {
+        // iOS 18+: Apple이 기기별로 권장하는 노출 범위
+        if let range = device.activeFormat.systemRecommendedExposureBiasRange {
+            return (range.lowerBound, range.upperBound)
+        }
+        // fallback: 하드웨어 범위를 ±3 EV로 제한
+        let limit: Float = 3.0
+        return (max(device.minExposureTargetBias, -limit), min(device.maxExposureTargetBias, limit))
+    }
+
+    func switchCamera() {
+        sessionQueue.async { [weak self] in
+            guard let self else { return }
+            let newPosition: AVCaptureDevice.Position = currentCameraPosition == .back ? .front : .back
+            guard let newDevice = Self.captureDevice(for: newPosition) else { return }
+
+            session.beginConfiguration()
+            defer { self.session.commitConfiguration() }
+
+            if let currentInput = videoDeviceInput {
+                session.removeInput(currentInput)
+            }
+
+            do {
+                let newInput = try AVCaptureDeviceInput(device: newDevice)
+                if session.canAddInput(newInput) {
+                    session.addInput(newInput)
+                    videoDeviceInput = newInput
+                    currentCameraPosition = newPosition
+                }
+            } catch {
+                // 전환 실패 시 기존 입력 복구
+                if let existing = videoDeviceInput,
+                   session.canAddInput(existing)
+                {
+                    session.addInput(existing)
+                }
+            }
         }
     }
 }

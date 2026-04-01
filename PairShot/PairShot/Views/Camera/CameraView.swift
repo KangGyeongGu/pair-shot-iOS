@@ -12,47 +12,127 @@ struct CameraView: View {
     @State private var isTimerRunning: Bool = false
     @State private var isMenuExpanded: Bool = false
     @State private var pinchBaseZoom: CGFloat = 1.0
+    @State private var focusPoint: CGPoint?
+    @State private var showFocusIndicator = false
+    @State private var focusIndicatorScale: CGFloat = 1.0
+    @State private var focusIndicatorOpacity: CGFloat = 1.0
+    @State private var focusHideTask: Task<Void, Never>?
+    @State private var exposureBias: Float = 0
+    @State private var isDraggingExposure = false
+    @State private var exposureDragStartY: CGFloat = 0
+    @State private var exposureBiasAtDragStart: Float = 0
 
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
 
             VStack(spacing: 0) {
-                ZStack {
-                    CameraPreviewView(
-                        previewLayer: cameraManager.previewLayer,
-                        aspectRatio: cameraSettings.currentAspectRatio
-                    )
-                    .gesture(pinchGesture)
+                GeometryReader { previewGeo in
+                    ZStack {
+                        CameraPreviewView(
+                            previewLayer: cameraManager.previewLayer,
+                            aspectRatio: cameraSettings.currentAspectRatio
+                        )
+                        .gesture(pinchGesture)
 
-                    GridOverlayView(isGridEnabled: cameraSettings.isGridEnabled)
+                        GridOverlayView(isGridEnabled: cameraSettings.isGridEnabled)
 
-                    if !cameraManager.isCameraAuthorized, !cameraManager.isSessionRunning {
-                        PermissionDeniedView.camera
+                        LevelIndicatorView(previewWidth: previewGeo.size.width)
+
+                        if !cameraManager.isCameraAuthorized, !cameraManager.isSessionRunning {
+                            PermissionDeniedView.camera
+                        }
+
+                        if showFocusIndicator, let point = focusPoint {
+                            FocusIndicatorView(
+                                exposureBias: exposureBias,
+                                exposureBiasMax: cameraManager.getExposureBiasRange().max,
+                                isDraggingExposure: isDraggingExposure,
+                                scale: focusIndicatorScale,
+                                opacity: focusIndicatorOpacity
+                            )
+                            .position(point)
+                        }
                     }
+                    .contentShape(Rectangle())
+                    .simultaneousGesture(
+                        SpatialTapGesture()
+                            .onEnded { value in
+                                let location = value.location
+                                cameraManager.focusAndExpose(at: location)
+                                focusPoint = location
+                                showFocusIndicator = true
+                                focusIndicatorScale = 1.2
+                                exposureBias = 0
+                                cameraManager.setExposureBias(0)
+                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                withAnimation(.spring(response: 0.2, dampingFraction: 0.6)) {
+                                    focusIndicatorScale = 1.0
+                                }
+                                focusHideTask?.cancel()
+                                focusHideTask = Task {
+                                    try? await Task.sleep(for: .seconds(2.0))
+                                    withAnimation(.easeOut(duration: 0.5)) {
+                                        focusIndicatorOpacity = 0.3
+                                    }
+                                }
+                                focusIndicatorOpacity = 1.0
+                            }
+                    )
+                    // 포커스 후 세로 드래그로 노출 조절
+                    .simultaneousGesture(
+                        DragGesture(minimumDistance: 10)
+                            .onChanged { value in
+                                if !isDraggingExposure {
+                                    guard abs(value.translation.height) > abs(value.translation.width) else { return }
+                                    guard showFocusIndicator || focusPoint != nil else { return }
+                                    isDraggingExposure = true
+                                    exposureDragStartY = value.startLocation.y
+                                    exposureBiasAtDragStart = exposureBias
+                                    showFocusIndicator = true
+                                    focusIndicatorOpacity = 1.0
+                                }
+                                focusHideTask?.cancel()
+                                let dragDelta = exposureDragStartY - value.location.y
+                                let range = cameraManager.getExposureBiasRange()
+                                let deltaEV = Float(dragDelta / 2400.0) * (range.max - range.min)
+                                let newBias = max(range.min, min(exposureBiasAtDragStart + deltaEV, range.max))
+                                exposureBias = newBias
+                                cameraManager.setExposureBias(newBias)
+                                focusIndicatorOpacity = 1.0
+                            }
+                            .onEnded { _ in
+                                isDraggingExposure = false
+                                focusHideTask = Task {
+                                    try? await Task.sleep(for: .seconds(2.0))
+                                    withAnimation(.easeOut(duration: 0.5)) {
+                                        focusIndicatorOpacity = 0.3
+                                    }
+                                }
+                            }
+                    )
                 }
                 .aspectRatio(3.0 / 4.0, contentMode: .fit)
-                .clipped()
-                .overlay(alignment: .bottom) {
+                .overlay {
                     ZoomControlView(
                         availableFactors: cameraSettings.availableZoomFactors,
+                        allFixedFactors: cameraSettings.allFixedFactors,
+                        focalLengthMap: cameraSettings.focalLengthMap,
                         currentFactor: cameraSettings.currentZoomFactor,
                         minFactor: cameraSettings.minZoomFactor,
                         maxFactor: cameraSettings.maxZoomFactor,
                         zoomDivisor: cameraSettings.zoomDivisor,
                         onZoomChanged: { factor in
-                            // 버튼 탭: ramp 애니메이션
                             cameraManager.setZoom(factor: factor)
                             cameraSettings.currentZoomFactor = factor
                         },
                         onZoomDrag: { factor in
-                            // 드래그: 즉각 반응
                             cameraManager.setZoomDirect(factor: factor)
                             cameraSettings.currentZoomFactor = factor
                         }
                     )
-                    .padding(.bottom, 12)
                 }
+                .clipped()
 
                 // 셔터 버튼: 프리뷰 바로 아래, 자기 크기만큼만
                 VStack(spacing: 0) {
@@ -107,24 +187,34 @@ struct CameraView: View {
         .onChange(of: cameraManager.isSessionRunning) { _, running in
             if running {
                 let info = cameraManager.getZoomInfo()
-                // 줌 버튼: min + 렌즈 전환점 + 2x 크롭 등 네이티브 포인트
-                var factors = [info.minFactor] + info.switchOverFactors + info.secondaryNativeResolutionZoomFactors
-                factors = Array(Set(factors)).sorted()
-                cameraSettings.availableZoomFactors = factors
+                // 다이얼용: 기기의 모든 고정 배율 (기기별 동적)
+                cameraSettings.allFixedFactors = info.allFixedFactors
+                cameraSettings.focalLengthMap = info.focalLengthMap
+                // 버튼용: 항상 0.5x, 1x, 2x, 3x 고정 (displayMultiplier 기반으로 내부값 계산)
+                let mult = info.displayMultiplier
+                if mult > 0 {
+                    cameraSettings.availableZoomFactors = [0.5, 1.0, 2.0, 3.0].map { $0 / mult }
+                } else {
+                    cameraSettings.availableZoomFactors = info.allFixedFactors
+                }
                 cameraSettings.currentZoomFactor = info.defaultFactor
-                // displayVideoZoomFactorMultiplier: Apple 시스템 UI와 동일한 표시 계산
                 cameraSettings.zoomDivisor = info.displayMultiplier
                 cameraSettings.minZoomFactor = info.minFactor
-                // 실용 줌 한도: 15x 또는 기기 max 중 작은 값
-                cameraSettings.maxZoomFactor = min(info.maxFactor, info.defaultFactor * 15.0)
+                cameraSettings.maxZoomFactor = info.recommendedMaxFactor
             }
         }
         .onDisappear { cameraManager.stopSession() }
         .onChange(of: cameraManager.capturedPhoto) { _, newPhoto in
             if newPhoto != nil { captureCount += 1 }
         }
+        .onReceive(NotificationCenter.default.publisher(for: AVCaptureDevice.subjectAreaDidChangeNotification)) { _ in
+            cameraManager.resetFocusAndExposure()
+            showFocusIndicator = false
+        }
     }
+}
 
+extension CameraView {
     private var torchIndicator: some View {
         HStack(spacing: 4) {
             Circle().fill(.yellow).frame(width: 6, height: 6)
@@ -188,9 +278,18 @@ struct CameraView: View {
 
             CameraControlBar(
                 flashMode: Binding(get: { cameraSettings.flashMode }, set: { _ in cameraSettings.cycleFlashMode() }),
-                aspectRatio: Binding(get: { cameraSettings.currentAspectRatio }, set: { _ in cameraSettings.cycleAspectRatio() }),
-                isGridEnabled: Binding(get: { cameraSettings.isGridEnabled }, set: { _ in cameraSettings.toggleGrid() }),
-                timerDuration: Binding(get: { cameraSettings.timerDuration }, set: { _ in cameraSettings.cycleTimer() }),
+                aspectRatio: Binding(
+                    get: { cameraSettings.currentAspectRatio },
+                    set: { _ in cameraSettings.cycleAspectRatio() }
+                ),
+                isGridEnabled: Binding(
+                    get: { cameraSettings.isGridEnabled },
+                    set: { _ in cameraSettings.toggleGrid() }
+                ),
+                timerDuration: Binding(
+                    get: { cameraSettings.timerDuration },
+                    set: { _ in cameraSettings.cycleTimer() }
+                ),
                 onFlashTap: { cameraSettings.cycleFlashMode() },
                 onRatioTap: { cameraSettings.cycleAspectRatio() },
                 onGridTap: { cameraSettings.toggleGrid() },
@@ -233,13 +332,13 @@ struct CameraView: View {
             }
     }
 
-    private func startCamera() async {
+    func startCamera() async {
         let granted = await cameraManager.requestAuthorization()
         guard granted else { return }
         cameraManager.startSession()
     }
 
-    private func handleShutterTap() {
+    func handleShutterTap() {
         if cameraSettings.timerDuration == .off {
             cameraManager.capturePhoto(projectId: UUID(), pairId: UUID())
         } else {
@@ -247,7 +346,7 @@ struct CameraView: View {
         }
     }
 
-    private func startTimerCapture() {
+    func startTimerCapture() {
         guard !isTimerRunning else { return }
         isTimerRunning = true
         timerCountdown = cameraSettings.timerDuration.seconds
