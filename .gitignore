@@ -38,8 +38,8 @@ playground.xcworkspace
 # Claude Code local settings
 .claude/settings.local.json
 
-# Apple SDK reference (local only)
-.claude/apple-sdk-refs/
+# Apple SDK reference (tracked — worktree agents need access)
+# .claude/apple-sdk-refs/ — intentionally tracked
 .claude/apple-docs/
 .claude/scripts/
 PairShot/build/
