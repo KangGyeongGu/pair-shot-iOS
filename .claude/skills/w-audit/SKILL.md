@@ -7,10 +7,10 @@ Audit workflow:
 1. Read .claude/status.json → state must be "auditing"
 
 Phase 1 — Mechanical (fail-stop, sequential):
-  1. xcodebuild build -scheme PairShot -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 16 Pro' -quiet
-  2. swiftlint lint --strict
-  3. swiftformat --lint .
-  4. xcodebuild test -scheme PairShot -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 16 Pro' -quiet
+  1. xcodebuild build -project PairShot/PairShot.xcodeproj -scheme PairShot -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 15 Pro' SWIFT_TREAT_WARNINGS_AS_ERRORS=YES SWIFT_STRICT_CONCURRENCY=complete -quiet
+  2. swiftlint lint PairShot/PairShot --config .swiftlint.yml --strict
+  3. swiftformat --lint PairShot/PairShot --config .swiftformat
+  4. xcodebuild test -project PairShot/PairShot.xcodeproj -scheme PairShot -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 15 Pro' SWIFT_TREAT_WARNINGS_AS_ERRORS=YES SWIFT_STRICT_CONCURRENCY=complete -quiet
   (any failure → verdict: FAIL, stop immediately)
 
 Phase 2 — Semantic (parallel):

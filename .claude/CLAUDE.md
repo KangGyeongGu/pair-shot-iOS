@@ -33,8 +33,9 @@ iOS native app for field workers to capture and manage Before-After photo pairs.
 - Sensor layering — never depend on a single sensor
 - Low-light auto — app optimizes exposure without user knowledge
 - Removed features: NFC, voice memo, floor detection, CloudKit, WeatherKit, map view
+- Minimal comments — only where logic is non-obvious. No file headers, no MARK sections, no doc comments on simple properties/functions
 
 ## Git Convention
-- Conventional Commits: `<type>(<scope>): <English summary>` + Korean body
+- Conventional Commits: `<type>(<scope>): <한국어 요약>` + 한국어 본문 (type/scope만 영어)
 - NEVER add Co-Authored-By, Contributed-by, or any attribution trailer
 - NEVER reference Claude, AI, bot, or assistant in commits/PRs

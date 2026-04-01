@@ -81,7 +81,6 @@ opt_in_rules:
   - reduce_into
   - redundant_nil_coalescing
   - redundant_type_annotation
-  - required_deinit
   - return_value_from_void_function
   - shorthand_optional_binding
   - sorted_first_last
@@ -89,10 +88,8 @@ opt_in_rules:
   - static_operator
   - strict_fileprivate
   - strong_iboutlet
-  - switch_case_on_newline
   - toggle_bool
   - trailing_closure
-  - type_contents_order
   - unavailable_function
   - unneeded_parentheses_in_closure_argument
   - untyped_error_in_catch
@@ -120,9 +117,17 @@ disabled_rules:
   - statement_position       # SwiftFormat: elseOnSameLine
   - multiline_parameters_brackets  # Can conflict with SwiftFormat's wrapArguments
 
+  # SwiftFormat indentation conflict
+  - switch_case_alignment    # SwiftFormat: indentcase
+  - vertical_whitespace_between_cases  # SwiftFormat handles case spacing
+
   # Overly strict for SwiftUI / iOS patterns
   - todo                     # TODOs are tracked elsewhere
   - no_extension_access_modifier  # Conflicts with extension_access_modifier
+  - required_deinit          # SwiftData @Model classes don't need explicit deinit
+  - trailing_comma           # SwiftFormat handles this
+  - type_contents_order      # Too strict for current project phase
+  - modifier_order           # SwiftFormat handles modifier ordering
 
 # ────────────────────────────────────────────────
 # Rule Configuration
@@ -171,6 +176,7 @@ identifier_name:
   max_length:
     warning: 60
     error: 80
+  allowed_symbols: ["_"]
   excluded:
     - id
     - x
