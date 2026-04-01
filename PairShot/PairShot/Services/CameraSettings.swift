@@ -65,8 +65,10 @@ final class CameraSettings {
     var isGridEnabled: Bool = false
     private(set) var timerDuration: TimerDuration = .off
     private(set) var isUsingFrontCamera: Bool = false
-    var availableZoomFactors: [CGFloat] = [1.0]
-    var zoomDivisor: CGFloat = 2.0      // 표시 배율 = zoomFactor * divisor
+    var availableZoomFactors: [CGFloat] = [1.0] // 버튼용 (0.5x, 1x, 2x, 3x 고정)
+    var allFixedFactors: [CGFloat] = [1.0] // 다이얼용 (기기별 전체 고정 배율)
+    var focalLengthMap: [CGFloat: Int] = [:] // zoomFactor → 35mm 환산 초점거리
+    var zoomDivisor: CGFloat = 2.0
     var minZoomFactor: CGFloat = 1.0
     var maxZoomFactor: CGFloat = 15.0
 

@@ -1,10 +1,10 @@
 import CoreLocation
 
 struct SensorSnapshot {
-    let pitch: Double    // radians
-    let roll: Double     // radians
-    let yaw: Double      // radians
-    let heading: Double  // degrees, magnetic north
+    let pitch: Double // radians
+    let roll: Double // radians
+    let yaw: Double // radians
+    let heading: Double // degrees, magnetic north
     let latitude: Double?
     let longitude: Double?
     let altitude: Double?

@@ -11,3 +11,9 @@ paths:
 - Permission requests must be just-in-time (never at app launch — App Store rejection cause)
 - Permission denial must never crash or show blank screen → show fallback UI + Settings button
 - LiDAR/ARKit availability must be checked at runtime (never in UIRequiredDeviceCapabilities)
+- NEVER hardcode zoom factors, exposure limits, or focal lengths — use device API queries:
+  - Zoom: device.activeFormat.systemRecommendedVideoZoomRange, virtualDeviceSwitchOverVideoZoomFactors, displayVideoZoomFactorMultiplier
+  - Exposure: device.activeFormat.systemRecommendedExposureBiasRange
+  - Focal length: constituentDevices[].nominalFocalLengthIn35mmFilm
+- Focus/exposure point conversion: MUST use previewLayer.captureDevicePointConverted(fromLayerPoint:)
+- Check capability before use: isFocusPointOfInterestSupported, isExposurePointOfInterestSupported, etc.

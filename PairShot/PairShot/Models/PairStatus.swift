@@ -12,5 +12,5 @@ enum PairStatus: String, Codable, CaseIterable {
     /// Before 촬영 완료, After 촬영 대기 중
     case pendingAfter = "pending_after"
     /// Before + After 모두 촬영 완료
-    case complete = "complete"
+    case complete
 }

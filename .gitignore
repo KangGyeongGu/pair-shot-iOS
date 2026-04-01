@@ -20,6 +20,9 @@ DerivedData/
 .build/
 Packages/
 
+# JetBrains IDE
+.idea/
+
 # macOS
 .DS_Store
 *.swp
