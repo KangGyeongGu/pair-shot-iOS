@@ -1,11 +1,11 @@
 {
-  "state": "developing",
-  "current_phase": "P2",
+  "state": "idle",
+  "current_phase": "P3",
   "current_branch": "develop",
-  "current_feature_branch": "feature/data-model",
+  "current_feature_branch": null,
   "retry_count": 0,
   "max_retries": 3,
-  "last_completed_phase": "P1",
+  "last_completed_phase": "P2",
   "awaiting_device_test": false,
   "device_test_items": []
 }

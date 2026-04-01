@@ -3,6 +3,7 @@ import SwiftUI
 struct PairCellView: View {
     let pair: PhotoPair
     let projectId: UUID
+    var onTapAfter: ((PhotoPair) -> Void)?
 
     private let storage = PhotoStorageService()
 
@@ -31,6 +32,12 @@ struct PairCellView: View {
                         .foregroundStyle(.red)
                 }
                 .padding(.top, 4)
+            }
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            if pair.status == .pendingAfter {
+                onTapAfter?(pair)
             }
         }
     }

@@ -6,6 +6,7 @@ struct ArchiveView: View {
     @Environment(\.modelContext) private var modelContext
 
     @State private var showNewProjectSheet = false
+    @State private var pendingProject: Project?
     @State private var projectToDelete: Project?
     @State private var showDeleteAlert = false
     @State private var projectToRename: Project?
@@ -41,12 +42,19 @@ struct ArchiveView: View {
                 switch destination {
                     case let .beforeCamera(project):
                         CameraView(project: project)
+                    case let .afterCamera(project, pair):
+                        CameraView(project: project, existingPair: pair)
                 }
             }
         }
-        .sheet(isPresented: $showNewProjectSheet) {
-            NewProjectSheet { project in
+        .sheet(isPresented: $showNewProjectSheet, onDismiss: {
+            if let project = pendingProject {
                 navigationPath.append(CameraDestination.beforeCamera(project: project))
+                pendingProject = nil
+            }
+        }) {
+            NewProjectSheet { project in
+                pendingProject = project
             }
         }
         .alert("프로젝트 삭제", isPresented: $showDeleteAlert, presenting: projectToDelete) { project in
@@ -224,6 +232,7 @@ private struct ProjectRowView: View {
 
 enum CameraDestination {
     case beforeCamera(project: Project)
+    case afterCamera(project: Project, pair: PhotoPair)
 }
 
 extension CameraDestination: Hashable {
@@ -231,13 +240,22 @@ extension CameraDestination: Hashable {
         switch (lhs, rhs) {
             case let (.beforeCamera(lhsProject), .beforeCamera(rhsProject)):
                 lhsProject.id == rhsProject.id
+            case let (.afterCamera(lhsProject, lhsPair), .afterCamera(rhsProject, rhsPair)):
+                lhsProject.id == rhsProject.id && lhsPair.id == rhsPair.id
+            default:
+                false
         }
     }
 
     func hash(into hasher: inout Hasher) {
         switch self {
             case let .beforeCamera(project):
+                hasher.combine(0)
                 hasher.combine(project.id)
+            case let .afterCamera(project, pair):
+                hasher.combine(1)
+                hasher.combine(project.id)
+                hasher.combine(pair.id)
         }
     }
 }

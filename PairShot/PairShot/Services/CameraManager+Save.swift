@@ -57,7 +57,7 @@ extension CameraManager {
             isBefore: isBefore,
             pairId: resolvedPair
         )
-        await MainActor.run { [weak self] in self?.onPhotoSaved?(result) }
+        await MainActor.run { [weak self] in self?.saveResult = result }
     }
 
     private func generateThumbnail(

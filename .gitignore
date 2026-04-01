@@ -43,3 +43,4 @@ playground.xcworkspace
 .claude/apple-docs/
 .claude/scripts/
 PairShot/build/
+.claude/worktrees/

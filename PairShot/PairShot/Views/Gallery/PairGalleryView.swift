@@ -8,6 +8,7 @@ struct PairGalleryView: View {
     @State private var filter: PairFilter = .all
     @State private var pairsToDelete: [PhotoPair] = []
     @State private var showDeleteConfirm = false
+    @State private var cameraDestination: GalleryCameraDestination?
 
     private let storage = PhotoStorageService()
     private let columns = [GridItem(.flexible()), GridItem(.flexible())]
@@ -34,15 +35,17 @@ struct PairGalleryView: View {
                         } else {
                             LazyVGrid(columns: columns, spacing: 12) {
                                 ForEach(displayed) { pair in
-                                    PairCellView(pair: pair, projectId: project.id)
-                                        .contextMenu {
-                                            Button(role: .destructive) {
-                                                pairsToDelete = [pair]
-                                                showDeleteConfirm = true
-                                            } label: {
-                                                Label("삭제", systemImage: "trash")
-                                            }
+                                    PairCellView(pair: pair, projectId: project.id) { tappedPair in
+                                        cameraDestination = .after(pair: tappedPair)
+                                    }
+                                    .contextMenu {
+                                        Button(role: .destructive) {
+                                            pairsToDelete = [pair]
+                                            showDeleteConfirm = true
+                                        } label: {
+                                            Label("삭제", systemImage: "trash")
                                         }
+                                    }
                                 }
                             }
                             .padding(.horizontal, 12)
@@ -67,6 +70,14 @@ struct PairGalleryView: View {
             }
             Button("취소", role: .cancel) {
                 pairsToDelete = []
+            }
+        }
+        .fullScreenCover(item: $cameraDestination) { destination in
+            switch destination {
+                case .before:
+                    CameraView(project: project)
+                case let .after(pair):
+                    CameraView(project: project, existingPair: pair)
             }
         }
     }
@@ -138,7 +149,9 @@ struct PairGalleryView: View {
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
-            Button {} label: {
+            Button {
+                cameraDestination = .before
+            } label: {
                 Label("첫 사진 촬영하기", systemImage: "camera.fill")
                     .font(.body.weight(.semibold))
                     .padding(.horizontal, 24)
@@ -175,9 +188,12 @@ struct PairGalleryView: View {
                     .background(Color.green, in: RoundedRectangle(cornerRadius: 14))
                     .foregroundStyle(.white)
             }
+            .disabled(true)
         } else {
             HStack(spacing: 12) {
-                Button {} label: {
+                Button {
+                    cameraDestination = .before
+                } label: {
                     Label("Before 추가", systemImage: "plus.circle")
                         .font(.subheadline.weight(.semibold))
                         .frame(maxWidth: .infinity)
@@ -185,7 +201,12 @@ struct PairGalleryView: View {
                         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
                 }
 
-                Button {} label: {
+                Button {
+                    let firstPending = project.pairs.first { $0.status == .pendingAfter }
+                    if let pair = firstPending {
+                        cameraDestination = .after(pair: pair)
+                    }
+                } label: {
                     Label("After 촬영", systemImage: "camera.fill")
                         .font(.subheadline.weight(.semibold))
                         .frame(maxWidth: .infinity)
@@ -205,6 +226,18 @@ struct PairGalleryView: View {
                 await storage.deletePair(projectId: projectId, pairId: pairId)
             }
             modelContext.delete(pair)
+        }
+    }
+}
+
+private enum GalleryCameraDestination: Identifiable {
+    case before
+    case after(pair: PhotoPair)
+
+    var id: String {
+        switch self {
+            case .before: "before"
+            case let .after(pair): "after-\(pair.id.uuidString)"
         }
     }
 }

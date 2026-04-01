@@ -192,10 +192,12 @@ struct CameraView: View {
             }
         }
         .task {
-            cameraManager.onPhotoSaved = { [self] result in
+            await startCamera()
+        }
+        .onChange(of: cameraManager.saveResult) { _, result in
+            if let result {
                 handleSaveResult(result)
             }
-            await startCamera()
         }
         .onChange(of: cameraManager.isSessionRunning) { _, running in
             if running {
@@ -338,7 +340,9 @@ extension CameraView {
     private var pinchGesture: some Gesture {
         MagnificationGesture()
             .onChanged { value in
-                _ = pinchBaseZoom * value
+                let factor = pinchBaseZoom * value
+                cameraManager.setZoomDirect(factor: factor)
+                cameraSettings.currentZoomFactor = factor
             }
             .onEnded { _ in
                 pinchBaseZoom = cameraSettings.currentZoomFactor

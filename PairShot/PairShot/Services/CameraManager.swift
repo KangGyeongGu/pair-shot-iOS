@@ -9,15 +9,14 @@ final class CameraManager: NSObject, CameraServiceProtocol {
     private(set) var isSessionRunning: Bool = false
     private(set) var isCameraAuthorized: Bool = false
     private(set) var capturedPhoto: UIImage?
+    var saveResult: SaveResult?
 
-    struct SaveResult {
+    struct SaveResult: Equatable {
         let filePath: String
         let thumbnailPath: String
         let isBefore: Bool
         let pairId: UUID
     }
-
-    var onPhotoSaved: ((SaveResult) -> Void)?
 
     // nonisolated(unsafe): sessionQueue에서만 접근하므로 안전 — Swift 6 Sendable 경고 억제
     @ObservationIgnored
