@@ -16,7 +16,9 @@ struct CameraView: View {
 
     @State private var cameraManager = CameraManager()
     @State private var cameraSettings = CameraSettings()
+    @State private var hapticService = HapticService()
     @State private var lowLightManager = LowLightManager()
+    @State private var sensorManager = SensorManager()
 
     @State private var captureCount: Int = 0
     @State private var timerCountdown: Int = 0
@@ -32,6 +34,8 @@ struct CameraView: View {
     @State private var isDraggingExposure = false
     @State private var exposureDragStartY: CGFloat = 0
     @State private var exposureBiasAtDragStart: Float = 0
+    @State private var ghostOpacity: Double = 0.4
+    @State private var beforeImage: UIImage?
 
     var body: some View {
         ZStack {
@@ -63,6 +67,10 @@ struct CameraView: View {
                                 opacity: focusIndicatorOpacity
                             )
                             .position(point)
+                        }
+
+                        if !isBefore {
+                            GhostOverlayView(beforeImage: beforeImage, opacity: $ghostOpacity)
                         }
                     }
                     .contentShape(Rectangle())
@@ -207,6 +215,27 @@ struct CameraView: View {
         .task {
             await startCamera()
         }
+        .onAppear {
+            sensorManager.startUpdates()
+            if !isBefore {
+                hapticService.startContinuousHaptic()
+            }
+        }
+        .onDisappear {
+            hapticService.stopHaptic()
+            sensorManager.stopUpdates()
+            cameraManager.stopSession()
+        }
+        .onChange(of: sensorManager.currentPitch) { _, _ in
+            guard !isBefore else { return }
+            let score = alignmentScore
+            if score >= 0.95 {
+                hapticService.triggerSuccess()
+                hapticService.stopHaptic()
+            } else {
+                hapticService.updateIntensity(alignmentScore: score)
+            }
+        }
         .onChange(of: cameraManager.saveResult) { _, result in
             if let result {
                 handleSaveResult(result)
@@ -231,7 +260,6 @@ struct CameraView: View {
                 cameraSettings.maxZoomFactor = info.recommendedMaxFactor
             }
         }
-        .onDisappear { cameraManager.stopSession() }
         .onChange(of: cameraManager.capturedPhoto) { _, newPhoto in
             if newPhoto != nil { captureCount += 1 }
         }
@@ -243,6 +271,25 @@ struct CameraView: View {
 }
 
 extension CameraView {
+    private var alignmentScore: Double {
+        guard let target = existingPair?.beforePhoto,
+              let tPitch = target.pitch,
+              let tRoll = target.roll,
+              let tYaw = target.yaw
+        else { return 0.0 }
+
+        let tolerance = 5.0 * (.pi / 180.0)
+        let pitchDiff = abs(sensorManager.currentPitch - tPitch)
+        let rollDiff = abs(sensorManager.currentRoll - tRoll)
+        let yawDiff = abs(sensorManager.currentYaw - tYaw)
+
+        let pitchScore = max(0.0, 1.0 - pitchDiff / tolerance)
+        let rollScore = max(0.0, 1.0 - rollDiff / tolerance)
+        let yawScore = max(0.0, 1.0 - yawDiff / tolerance)
+
+        return (pitchScore + rollScore + yawScore) / 3.0
+    }
+
     private var torchIndicator: some View {
         HStack(spacing: 4) {
             Circle().fill(.yellow).frame(width: 6, height: 6)
@@ -403,9 +450,17 @@ extension CameraView {
     }
 
     private func handleSaveResult(_ result: CameraManager.SaveResult) {
+        let snapshot = sensorManager.captureSnapshot()
         let photo = Photo(
             filePath: result.filePath,
-            thumbnailPath: result.thumbnailPath
+            thumbnailPath: result.thumbnailPath,
+            latitude: snapshot.latitude,
+            longitude: snapshot.longitude,
+            altitude: snapshot.altitude,
+            heading: snapshot.heading,
+            pitch: snapshot.pitch,
+            roll: snapshot.roll,
+            yaw: snapshot.yaw
         )
         modelContext.insert(photo)
 
