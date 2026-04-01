@@ -10,8 +10,20 @@
         "hooks": [
           {
             "type": "command",
-            "command": "jq -r '.tool_response.filePath // .tool_input.file_path' | { read -r f; [[ \"$f\" == *.swift ]] && swiftlint lint --path \"$f\" --quiet; } 2>/dev/null || true",
-            "statusMessage": "SwiftLint 검사 중..."
+            "command": "jq -r '.tool_response.filePath // .tool_input.file_path' | { read -r f; [[ \"$f\" == *.swift ]] && { swiftformat --config \"$CLAUDE_PROJECT_DIR/.swiftformat\" \"$f\" 2>/dev/null; swiftlint lint --fix --path \"$f\" --config \"$CLAUDE_PROJECT_DIR/.swiftlint.yml\" --quiet 2>/dev/null; }; }",
+            "statusMessage": "Swift 자동 포맷 + lint fix 중..."
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": "develop-worker|fix-worker|test-generator",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "AGENT_ID=$(jq -r '.agent_id // empty' < /dev/stdin); [ -z \"$AGENT_ID\" ] && exit 0; SHORT_ID=$(echo \"$AGENT_ID\" | cut -c1-8); WT_DIR=\"$CLAUDE_PROJECT_DIR/.claude/worktrees/agent-$SHORT_ID\"; [ ! -d \"$WT_DIR\" ] && exit 0; cd \"$WT_DIR\" && DIFF=$(git diff HEAD); [ -z \"$DIFF\" ] && exit 0; cd \"$CLAUDE_PROJECT_DIR\" && echo \"$DIFF\" | git apply --stat && echo \"$DIFF\" | git apply && echo \"WORKTREE_APPLIED: $WT_DIR\" >&2",
+            "statusMessage": "워크트리 변경사항 반영 중..."
           }
         ]
       }
@@ -21,7 +33,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "cd \"$CLAUDE_PROJECT_DIR\" && xcodebuild build -project PairShot/PairShot.xcodeproj -scheme PairShot -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 15 Pro' SWIFT_TREAT_WARNINGS_AS_ERRORS=YES SWIFT_STRICT_CONCURRENCY=complete -quiet 2>&1 | tail -10 || true",
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && xcodebuild build -project PairShot/PairShot.xcodeproj -scheme PairShot -sdk iphonesimulator -destination 'platform=iOS Simulator,id=264250BF-D45C-4121-B7AD-A915B6F8F2EA' SWIFT_TREAT_WARNINGS_AS_ERRORS=YES SWIFT_STRICT_CONCURRENCY=complete -quiet 2>&1 | tail -20",
             "statusMessage": "빌드 검증 중..."
           }
         ]
