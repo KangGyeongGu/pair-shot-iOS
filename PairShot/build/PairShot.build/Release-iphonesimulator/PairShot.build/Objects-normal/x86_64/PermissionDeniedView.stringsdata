@@ -1,0 +1,32 @@
+{
+  "source": "/Users/kkk/Documents/projects/pairshot/PairShot/PairShot/Views/Camera/PermissionDeniedView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "설정 앱 열기",
+        "location": {
+          "startingColumn": 29,
+          "startingLine": 81
+        }
+      },
+      {
+        "comment": "",
+        "key": "PairShot의 권한 설정 화면으로 이동합니다",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 82
+        }
+      },
+      {
+        "comment": "",
+        "key": "설정 열기",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 68
+        }
+      }
+    ]
+  },
+  "version": 1
+}

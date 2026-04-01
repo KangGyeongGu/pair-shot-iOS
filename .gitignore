@@ -34,3 +34,8 @@ playground.xcworkspace
 
 # Claude Code local settings
 .claude/settings.local.json
+
+# Apple SDK reference (local only)
+.claude/apple-sdk-refs/
+.claude/apple-docs/
+.claude/scripts/

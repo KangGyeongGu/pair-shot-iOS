@@ -13,4 +13,7 @@
 - `@Query(filter: #Predicate { $0.status == .pendingAfter })` count
 - SwiftUI `Text("\(remainingCount) remaining")` overlay
 
+## Apple SDK References
+- .claude/apple-sdk-refs/SwiftData/SwiftData.swiftinterface
+
 ## Related Files

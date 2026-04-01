@@ -25,4 +25,9 @@
 - Flash: `AVCapturePhotoSettings.flashMode`
 - Grid: Draw 2 vertical lines + 2 horizontal lines on `UIView`
 
+## Apple SDK References
+- .claude/apple-sdk-refs/AVFoundation/AVCaptureDevice.h (videoZoomFactor, virtualDeviceSwitchOverVideoZoomFactors, displayVideoZoomFactorMultiplier, flashMode, focusMode, whiteBalanceMode)
+- .claude/apple-sdk-refs/AVFoundation/AVCapturePhotoOutput.h (flashMode, supportedFlashModes)
+- .claude/apple-sdk-refs/AVFoundation/AVCaptureSession.h
+
 ## Related Files

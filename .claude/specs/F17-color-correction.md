@@ -10,4 +10,8 @@
 - Compare average colors → Correct with `CIFilter.colorMatrix()`
 - `CIImage.autoAdjustmentFilters()` auto correction
 
+## Apple SDK References
+- .claude/apple-sdk-refs/CoreImage/CIFilter.h (CITemperatureAndTint, CIColorMatrix)
+- .claude/apple-sdk-refs/CoreImage/CIImage.h
+
 ## Related Files

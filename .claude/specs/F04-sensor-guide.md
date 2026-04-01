@@ -29,4 +29,11 @@
 - Indicator position: `CGPoint(x: deltaRoll * scale, y: deltaPitch * scale)`
 - Low-pass filter: `filtered = alpha * new + (1-alpha) * filtered` (alpha=0.15)
 
+## Apple SDK References
+- .claude/apple-sdk-refs/CoreMotion/CMMotionManager.h
+- .claude/apple-sdk-refs/CoreMotion/CMDeviceMotion.h
+- .claude/apple-sdk-refs/CoreMotion/CMAttitude.h
+- .claude/apple-sdk-refs/CoreLocation/CLLocationManager.h
+- .claude/apple-sdk-refs/CoreLocation/CLHeading.h
+
 ## Related Files

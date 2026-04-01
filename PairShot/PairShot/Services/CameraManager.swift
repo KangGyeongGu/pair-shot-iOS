@@ -99,6 +99,66 @@ final class CameraManager: NSObject, CameraServiceProtocol {
         }
     }
 
+    struct ZoomInfo {
+        let minFactor: CGFloat
+        let maxFactor: CGFloat
+        let displayMultiplier: CGFloat                    // videoZoomFactor * multiplier = 표시값
+        let switchOverFactors: [CGFloat]                  // 렌즈 전환 포인트
+        let secondaryNativeResolutionZoomFactors: [CGFloat] // 2x 크롭 등 네이티브 해상도 포인트
+        let defaultFactor: CGFloat                        // 1x에 해당하는 zoomFactor
+    }
+
+    func getZoomInfo() -> ZoomInfo {
+        guard let device = videoDeviceInput?.device else {
+            return ZoomInfo(
+                minFactor: 1.0, maxFactor: 1.0, displayMultiplier: 1.0,
+                switchOverFactors: [], secondaryNativeResolutionZoomFactors: [], defaultFactor: 1.0
+            )
+        }
+        let switchOvers = device.virtualDeviceSwitchOverVideoZoomFactors.map { CGFloat(truncating: $0) }
+        // secondaryNativeResolutionZoomFactors (iOS 16+): 2x 크롭 같은 네이티브 고해상도 줌 포인트
+        // AVCaptureDeviceFormat 프로퍼티 — activeFormat에서 읽는다
+        let secondaryNative = device.activeFormat.secondaryNativeResolutionZoomFactors
+        // displayVideoZoomFactorMultiplier (iOS 18+): Apple 시스템 UI와 동일한 표시 배율 계산용
+        let multiplier = device.displayVideoZoomFactorMultiplier
+        // 1x = displayMultiplier 적용 시 1.0이 되는 zoomFactor
+        let defaultZoom: CGFloat = multiplier > 0 ? (1.0 / multiplier) : (switchOvers.first ?? 1.0)
+        return ZoomInfo(
+            minFactor: device.minAvailableVideoZoomFactor,
+            maxFactor: device.maxAvailableVideoZoomFactor,
+            displayMultiplier: multiplier,
+            switchOverFactors: switchOvers,
+            secondaryNativeResolutionZoomFactors: secondaryNative,
+            defaultFactor: defaultZoom
+        )
+    }
+
+    /// 버튼 탭: `ramp(toVideoZoomFactor:withRate:)` 로 부드럽게 전환
+    func setZoom(factor: CGFloat) {
+        sessionQueue.async { [weak self] in
+            guard let self, let device = videoDeviceInput?.device else { return }
+            do {
+                try device.lockForConfiguration()
+                let clamped = max(device.minAvailableVideoZoomFactor,
+                                  min(factor, device.maxAvailableVideoZoomFactor))
+                device.ramp(toVideoZoomFactor: clamped, withRate: 8.0)
+                device.unlockForConfiguration()
+            } catch {}
+        }
+    }
+
+    /// 드래그 제스처: `videoZoomFactor` 직접 설정 — 호출 스레드에서 즉시 실행 (지연 없음)
+    func setZoomDirect(factor: CGFloat) {
+        guard let device = videoDeviceInput?.device else { return }
+        do {
+            try device.lockForConfiguration()
+            let clamped = max(device.minAvailableVideoZoomFactor,
+                              min(factor, device.maxAvailableVideoZoomFactor))
+            device.videoZoomFactor = clamped
+            device.unlockForConfiguration()
+        } catch {}
+    }
+
     func switchCamera() {
         sessionQueue.async { [weak self] in
             guard let self else { return }
@@ -293,6 +353,11 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
             try jpegData.write(to: photoURL, options: .atomic)
         } catch {
             return
+        }
+
+        // iOS 사진 라이브러리에도 저장
+        if let image = UIImage(data: jpegData) {
+            UIImageWriteToSavedPhotosAlbum(image, nil, nil, nil)
         }
 
         await generateThumbnail(

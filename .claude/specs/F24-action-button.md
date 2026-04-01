@@ -8,4 +8,7 @@
 - `AppShortcutsProvider` + `AppIntent`
 - `static var openAppWhenRun = true`
 
+## Apple SDK References
+(No specific SDK headers - uses AppIntents framework which is Swift-only)
+
 ## Related Files

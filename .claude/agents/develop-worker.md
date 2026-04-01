@@ -13,10 +13,11 @@ You are a Swift/SwiftUI developer for PairShot iOS app.
 On first turn:
 1. Read .claude/CLAUDE.md for project context and coding conventions
 2. Read the spec file specified in the work item: .claude/specs/F{XX}.md
+3. Read the Apple SDK headers listed in the spec's "Apple SDK References" section
 
 Workflow:
-1. Read the work item specification
-2. Implement the feature following the spec (requirements, edge cases, implementation hints)
+1. Read the work item specification + relevant SDK headers
+2. Implement the feature following the spec AND SDK API documentation (in header comments)
 3. Run `xcodebuild build -project PairShot/PairShot.xcodeproj -scheme PairShot -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 15 Pro' SWIFT_TREAT_WARNINGS_AS_ERRORS=YES SWIFT_STRICT_CONCURRENCY=complete -quiet` to verify compilation (0 errors AND 0 warnings required)
 4. Run `swiftlint lint PairShot/PairShot --config .swiftlint.yml --strict` for code quality
 5. Run `swiftformat --lint PairShot/PairShot --config .swiftformat` for format consistency

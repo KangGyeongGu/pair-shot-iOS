@@ -60,12 +60,15 @@ enum TimerDuration: CaseIterable {
 @MainActor
 final class CameraSettings {
     private(set) var currentAspectRatio: AspectRatio = .ratio4_3
-    private(set) var currentZoomFactor: CGFloat = 1.0
+    var currentZoomFactor: CGFloat = 1.0
     var flashMode: AVCaptureDevice.FlashMode = .auto
     var isGridEnabled: Bool = false
     private(set) var timerDuration: TimerDuration = .off
     private(set) var isUsingFrontCamera: Bool = false
-    private(set) var availableZoomFactors: [CGFloat] = [1.0]
+    var availableZoomFactors: [CGFloat] = [1.0]
+    var zoomDivisor: CGFloat = 2.0      // 표시 배율 = zoomFactor * divisor
+    var minZoomFactor: CGFloat = 1.0
+    var maxZoomFactor: CGFloat = 15.0
 
     func cycleAspectRatio() {
         let all = AspectRatio.allCases
@@ -126,16 +129,21 @@ final class CameraSettings {
     }
 
     nonisolated func getAvailableZoomFactors(from device: AVCaptureDevice) -> [CGFloat] {
+        let minFactor = device.minAvailableVideoZoomFactor
+        let maxFactor = device.maxAvailableVideoZoomFactor
+
+        // 렌즈 전환점 (virtualDeviceSwitchOverVideoZoomFactors)
         let switchPoints = device.virtualDeviceSwitchOverVideoZoomFactors.map { CGFloat(truncating: $0) }
+        // 2x 크롭 등 네이티브 해상도 포인트 (secondaryNativeResolutionZoomFactors, iOS 16+)
+        // AVCaptureDeviceFormat 프로퍼티 — activeFormat에서 읽는다
+        let secondaryNative = device.activeFormat.secondaryNativeResolutionZoomFactors
 
-        var factors = Set<CGFloat>([1.0])
+        var factors = Set<CGFloat>([minFactor])
         switchPoints.forEach { factors.insert($0) }
-
-        let min = device.minAvailableVideoZoomFactor
-        let max = device.maxAvailableVideoZoomFactor
+        secondaryNative.forEach { factors.insert($0) }
 
         let sorted = factors
-            .filter { $0 >= min && $0 <= max }
+            .filter { $0 >= minFactor && $0 <= maxFactor }
             .sorted()
 
         return sorted.isEmpty ? [1.0] : sorted

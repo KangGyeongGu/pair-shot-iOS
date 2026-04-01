@@ -32,4 +32,12 @@
 - Arrow: `SCNNode` or SwiftUI overlay showing direction/distance
 - Sensor tier: Check `ARWorldTrackingConfiguration.supportsSceneReconstruction(.mesh)`
 
+## Apple SDK References
+- .claude/apple-sdk-refs/ARKit/ARSession.h
+- .claude/apple-sdk-refs/ARKit/ARWorldTrackingConfiguration.h
+- .claude/apple-sdk-refs/ARKit/ARWorldMap.h
+- .claude/apple-sdk-refs/ARKit/ARFrame.h
+- .claude/apple-sdk-refs/ARKit/ARCamera.h
+- .claude/apple-sdk-refs/ARKit/ARAnchor.h
+
 ## Related Files

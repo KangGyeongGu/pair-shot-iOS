@@ -29,4 +29,9 @@
 - Tap toggle: `UITapGestureRecognizer` → Toggle alpha between 0 ↔ 0.35
 - 1080p downscale: `UIImage` → `CGImage` → `CGContext.draw` resize
 
+## Apple SDK References
+- .claude/apple-sdk-refs/AVFoundation/AVCaptureVideoPreviewLayer.h
+- .claude/apple-sdk-refs/UIKit/UIImageView.h
+- .claude/apple-sdk-refs/QuartzCore/CALayer.h
+
 ## Related Files

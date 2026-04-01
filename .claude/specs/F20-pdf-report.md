@@ -11,4 +11,9 @@
 - Or custom drawing with `UIGraphicsPDFRenderer`
 - GPS coordinates: `CLLocationCoordinate2D` → Text formatting
 
+## Apple SDK References
+- .claude/apple-sdk-refs/PDFKit/PDFDocument.h
+- .claude/apple-sdk-refs/PDFKit/PDFPage.h
+- .claude/apple-sdk-refs/UIKit/UIGraphicsPDFRenderer.h
+
 ## Related Files

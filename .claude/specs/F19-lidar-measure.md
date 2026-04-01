@@ -14,4 +14,10 @@
 - Calculate `simd_distance` between two points
 - Runtime check: `ARWorldTrackingConfiguration.supportsSceneReconstruction(.mesh)`
 
+## Apple SDK References
+- .claude/apple-sdk-refs/ARKit/ARSession.h
+- .claude/apple-sdk-refs/ARKit/ARRaycastQuery.h
+- .claude/apple-sdk-refs/ARKit/ARRaycastResult.h
+- .claude/apple-sdk-refs/ARKit/ARWorldTrackingConfiguration.h (supportsSceneReconstruction)
+
 ## Related Files

@@ -18,4 +18,8 @@
 - Use `FileManager.default.temporaryDirectory`
 - Delete temporary files in share completion callback
 
+## Apple SDK References
+- .claude/apple-sdk-refs/UIKit/UIActivityViewController.h
+- .claude/apple-sdk-refs/Foundation/NSFileManager.h
+
 ## Related Files

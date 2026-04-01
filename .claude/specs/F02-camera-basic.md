@@ -36,4 +36,14 @@
 - ARWorldMap: `arSession.getCurrentWorldMap` → `NSKeyedArchiver` → File save
 - File saving / thumbnail generation processed on background queue
 
+## Apple SDK References
+- .claude/apple-sdk-refs/AVFoundation/AVCaptureDevice.h
+- .claude/apple-sdk-refs/AVFoundation/AVCaptureSession.h
+- .claude/apple-sdk-refs/AVFoundation/AVCapturePhotoOutput.h
+- .claude/apple-sdk-refs/AVFoundation/AVCaptureVideoPreviewLayer.h
+- .claude/apple-sdk-refs/AVFoundation/AVCaptureInput.h
+- .claude/apple-sdk-refs/Photos/PHPhotoLibrary.h
+- .claude/apple-sdk-refs/Photos/PHAssetChangeRequest.h
+- .claude/apple-sdk-refs/ImageIO/CGImageSource.h
+
 ## Related Files

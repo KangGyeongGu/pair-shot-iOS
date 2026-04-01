@@ -33,4 +33,8 @@
 - Incomplete indicator: `photoPair.status == .pendingAfter` → Red border
 - "Batch After Capture": Iterate incomplete pair array, enter After camera for each → Capture → Auto-transition to next pair
 
+## Apple SDK References
+- .claude/apple-sdk-refs/SwiftData/SwiftData.swiftinterface
+- .claude/apple-sdk-refs/SwiftUI/SwiftUI.swiftinterface
+
 ## Related Files

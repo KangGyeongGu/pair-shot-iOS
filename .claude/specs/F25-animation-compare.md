@@ -9,4 +9,8 @@
 - `withAnimation(.easeInOut(duration: 0.3))` + `opacity` toggle
 - Or `UIView.transition(with:duration:options:.transitionCrossDissolve)`
 
+## Apple SDK References
+- .claude/apple-sdk-refs/SwiftUI/SwiftUI.swiftinterface
+- .claude/apple-sdk-refs/QuartzCore/CALayer.h
+
 ## Related Files

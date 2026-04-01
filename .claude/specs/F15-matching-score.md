@@ -10,4 +10,8 @@
 - `fp1.computeDistance(&distance, to: fp2)` → Float distance
 - UI: Top badge "92% match" or color code (green/yellow/red)
 
+## Apple SDK References
+- .claude/apple-sdk-refs/Vision/VNGenerateImageFeaturePrintRequest.h
+- .claude/apple-sdk-refs/Vision/VNFeaturePrintObservation.h
+
 ## Related Files

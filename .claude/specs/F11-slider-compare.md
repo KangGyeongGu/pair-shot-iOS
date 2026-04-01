@@ -22,4 +22,8 @@
 - After image: Displayed full in background
 - Divider line: `Rectangle().frame(width: 2).position(x: sliderX)`
 
+## Apple SDK References
+- .claude/apple-sdk-refs/SwiftUI/SwiftUI.swiftinterface
+- .claude/apple-sdk-refs/QuartzCore/CALayer.h
+
 ## Related Files

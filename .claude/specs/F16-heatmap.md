@@ -11,4 +11,8 @@
 - `CIFilter.sourceOverCompositing()` → Composite over after image
 - Change percentage: Calculate ratio of pixels exceeding threshold in difference image
 
+## Apple SDK References
+- .claude/apple-sdk-refs/CoreImage/CIFilter.h (CIDifferenceBlendMode, CIFalseColor, CISourceOverCompositing)
+- .claude/apple-sdk-refs/CoreImage/CIImage.h
+
 ## Related Files

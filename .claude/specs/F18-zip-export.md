@@ -29,4 +29,8 @@ PairNumber,Before_DateTime,After_DateTime,Latitude,Longitude,Memo
 - Copy files with renamed filenames to temporary directory → ZIP → Share → Clean up
 - Progress: `Progress` object binding
 
+## Apple SDK References
+- .claude/apple-sdk-refs/Foundation/NSFileManager.h
+- .claude/apple-sdk-refs/UIKit/UIActivityViewController.h
+
 ## Related Files

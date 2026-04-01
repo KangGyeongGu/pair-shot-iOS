@@ -19,4 +19,9 @@
 - Exposure: `CIFilter(name: "CIAreaHistogram")` → Analyze histogram distribution
 - Analysis runs on background queue, only results delivered to main thread
 
+## Apple SDK References
+- .claude/apple-sdk-refs/CoreImage/CIFilter.h (CILaplacian)
+- .claude/apple-sdk-refs/CoreImage/CIImage.h
+- .claude/apple-sdk-refs/AVFoundation/AVCaptureDevice.h (ISO, exposureDuration)
+
 ## Related Files

@@ -25,4 +25,10 @@
 - Success pattern: `UINotificationFeedbackGenerator.notificationOccurred(.success)`
 - Battery protection: Stop haptics after alignment complete
 
+## Apple SDK References
+- .claude/apple-sdk-refs/CoreHaptics/CHHapticEngine.h
+- .claude/apple-sdk-refs/CoreHaptics/CHHapticEvent.h
+- .claude/apple-sdk-refs/CoreHaptics/CHHapticPattern.h
+- .claude/apple-sdk-refs/UIKit/UIFeedbackGenerator.h
+
 ## Related Files

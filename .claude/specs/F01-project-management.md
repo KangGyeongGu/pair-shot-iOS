@@ -72,4 +72,9 @@ Documents/
 └── exports/                            ← Temporary export directory (cleaned after sharing)
 ```
 
+## Apple SDK References
+- .claude/apple-sdk-refs/SwiftData/SwiftData.swiftinterface
+- .claude/apple-sdk-refs/CoreLocation/CLLocationManager.h
+- .claude/apple-sdk-refs/CoreLocation/CLLocation.h
+
 ## Related Files

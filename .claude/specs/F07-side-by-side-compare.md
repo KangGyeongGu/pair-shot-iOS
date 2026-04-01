@@ -23,4 +23,8 @@
 - Shared `@State var zoomScale`, `@State var offset`
 - High resolution: Generate display version with `CGImageSourceCreateThumbnailAtPixelSize`, crop original region on zoom
 
+## Apple SDK References
+- .claude/apple-sdk-refs/SwiftUI/SwiftUI.swiftinterface
+- .claude/apple-sdk-refs/UIKit/UIScrollView.h
+
 ## Related Files

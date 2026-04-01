@@ -29,4 +29,9 @@
 - Post-processing: `CIHighlightShadowAdjust(shadowAmount: 1.5)` + `CINoiseReduction`
 - `photoQualityPrioritization = .quality` → Auto-activate Deep Fusion/Smart HDR
 
+## Apple SDK References
+- .claude/apple-sdk-refs/AVFoundation/AVCaptureDevice.h (exposureTargetBias, ISO, torch)
+- .claude/apple-sdk-refs/CoreImage/CIFilter.h (CIHighlightShadowAdjust, CINoiseReduction)
+- .claude/apple-sdk-refs/CoreImage/CIImage.h
+
 ## Related Files

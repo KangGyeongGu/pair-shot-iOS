@@ -20,4 +20,10 @@
 - `observation.warpTransform` → Warp before using `CIPerspectiveTransform`
 - Cache warped image (prevent recomputation)
 
+## Apple SDK References
+- .claude/apple-sdk-refs/Vision/VNHomographicImageRegistrationRequest.h
+- .claude/apple-sdk-refs/Vision/VNImageRequestHandler.h
+- .claude/apple-sdk-refs/Vision/VNObservation.h
+- .claude/apple-sdk-refs/CoreImage/CIFilter.h (CIPerspectiveTransform)
+
 ## Related Files

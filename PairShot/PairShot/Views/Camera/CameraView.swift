@@ -37,7 +37,19 @@ struct CameraView: View {
                     ZoomControlView(
                         availableFactors: cameraSettings.availableZoomFactors,
                         currentFactor: cameraSettings.currentZoomFactor,
-                        onZoomChanged: { _ in }
+                        minFactor: cameraSettings.minZoomFactor,
+                        maxFactor: cameraSettings.maxZoomFactor,
+                        zoomDivisor: cameraSettings.zoomDivisor,
+                        onZoomChanged: { factor in
+                            // 버튼 탭: ramp 애니메이션
+                            cameraManager.setZoom(factor: factor)
+                            cameraSettings.currentZoomFactor = factor
+                        },
+                        onZoomDrag: { factor in
+                            // 드래그: 즉각 반응
+                            cameraManager.setZoomDirect(factor: factor)
+                            cameraSettings.currentZoomFactor = factor
+                        }
                     )
                     .padding(.bottom, 12)
                 }
@@ -89,7 +101,24 @@ struct CameraView: View {
                 timerCountdownOverlay
             }
         }
-        .task { await startCamera() }
+        .task {
+            await startCamera()
+        }
+        .onChange(of: cameraManager.isSessionRunning) { _, running in
+            if running {
+                let info = cameraManager.getZoomInfo()
+                // 줌 버튼: min + 렌즈 전환점 + 2x 크롭 등 네이티브 포인트
+                var factors = [info.minFactor] + info.switchOverFactors + info.secondaryNativeResolutionZoomFactors
+                factors = Array(Set(factors)).sorted()
+                cameraSettings.availableZoomFactors = factors
+                cameraSettings.currentZoomFactor = info.defaultFactor
+                // displayVideoZoomFactorMultiplier: Apple 시스템 UI와 동일한 표시 계산
+                cameraSettings.zoomDivisor = info.displayMultiplier
+                cameraSettings.minZoomFactor = info.minFactor
+                // 실용 줌 한도: 15x 또는 기기 max 중 작은 값
+                cameraSettings.maxZoomFactor = min(info.maxFactor, info.defaultFactor * 15.0)
+            }
+        }
         .onDisappear { cameraManager.stopSession() }
         .onChange(of: cameraManager.capturedPhoto) { _, newPhoto in
             if newPhoto != nil { captureCount += 1 }
