@@ -5,13 +5,14 @@ struct PairCellView: View {
     let projectId: UUID
     var onTapAfter: ((PhotoPair) -> Void)?
 
-    private let storage = PhotoStorageService()
+    @State private var beforeThumb: UIImage?
+    @State private var afterThumb: UIImage?
 
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 2) {
-                thumbnailSlot(isBefore: true)
-                thumbnailSlot(isBefore: false)
+                thumbnailSlot(image: beforeThumb, isBefore: true)
+                thumbnailSlot(image: afterThumb, isBefore: false)
             }
             .clipShape(RoundedRectangle(cornerRadius: 10))
             .overlay(
@@ -40,11 +41,15 @@ struct PairCellView: View {
                 onTapAfter?(pair)
             }
         }
+        .task(id: pair.beforePhoto?.thumbnailPath) {
+            beforeThumb = await loadThumbnailAsync(isBefore: true)
+        }
+        .task(id: pair.afterPhoto?.thumbnailPath) {
+            afterThumb = await loadThumbnailAsync(isBefore: false)
+        }
     }
 
-    @ViewBuilder
-    private func thumbnailSlot(isBefore: Bool) -> some View {
-        let image = loadThumbnail(isBefore: isBefore)
+    private func thumbnailSlot(image: UIImage?, isBefore: Bool) -> some View {
         Group {
             if let image {
                 Image(uiImage: image)
@@ -75,12 +80,16 @@ struct PairCellView: View {
         .clipped()
     }
 
-    private func loadThumbnail(isBefore: Bool) -> UIImage? {
+    private func loadThumbnailAsync(isBefore: Bool) async -> UIImage? {
+        let storage = PhotoStorageService()
         guard let url = try? storage.thumbnailURL(
             projectId: projectId,
             pairId: pair.id,
             isBefore: isBefore
         ) else { return nil }
-        return ThumbnailCache.shared.image(for: url.path)
+        let path = url.path
+        return await Task.detached(priority: .utility) {
+            ThumbnailCache.shared.image(for: path)
+        }.value
     }
 }

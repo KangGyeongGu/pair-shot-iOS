@@ -1,4 +1,3 @@
-@preconcurrency import ARKit
 import AVFoundation
 import SwiftData
 import SwiftUI
@@ -39,16 +38,8 @@ struct CameraView: View {
     @State private var ghostAutoActivated: Bool = false
     @State private var ghostDefaultOpacity: Double = 0.15
     @State private var beforeImage: UIImage?
-    @State var arSessionManager = ARSessionManager()
-    @State var isARRelocalized = false
-    @State var qualityCheckService = QualityCheckService()
     @State var showQualityAlert = false
     @State var qualityIssueMessage = ""
-    @State var lidarStartPoint: CGPoint?
-    @State var lidarEndPoint: CGPoint?
-    @State var lidarDistance: Float?
-    @State var lidarStartWorldPos: SIMD3<Float>?
-    @State var isMeasureMode: Bool = false
     @State private var wasAligned = false
 
     var body: some View {
@@ -104,23 +95,6 @@ struct CameraView: View {
         .onReceive(NotificationCenter.default.publisher(for: AVCaptureDevice.subjectAreaDidChangeNotification)) { _ in
             cameraManager.resetFocusAndExposure()
             showFocusIndicator = false
-        }
-        .onChange(of: arSessionManager.worldMappingStatus) { _, status in
-            if status == .mapped, !isARRelocalized { isARRelocalized = true }
-        }
-        .onChange(of: arSessionManager.isPositionMatched) { _, matched in
-            if matched { hapticService.triggerSuccess() }
-        }
-        .alert("촬영 품질", isPresented: $showQualityAlert) {
-            Button("재촬영", role: .destructive) {
-                if let pair = existingPair {
-                    pair.afterPhoto = nil
-                    pair.status = .pendingAfter
-                }
-            }
-            Button("저장", role: .cancel) {}
-        } message: {
-            Text(qualityIssueMessage)
         }
     }
 }
@@ -186,26 +160,6 @@ extension CameraView {
             }
             .padding(12)
         }
-        .overlay(alignment: .topTrailing) {
-            if !isBefore, arSessionManager.hasLiDAR {
-                Button {
-                    isMeasureMode.toggle()
-                    if !isMeasureMode {
-                        lidarStartPoint = nil
-                        lidarEndPoint = nil
-                        lidarDistance = nil
-                        lidarStartWorldPos = nil
-                    }
-                } label: {
-                    Image(systemName: isMeasureMode ? "ruler.fill" : "ruler")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(isMeasureMode ? .yellow : .white)
-                        .frame(width: 40, height: 40)
-                        .background(.black.opacity(0.4), in: Circle())
-                }
-                .padding(12)
-            }
-        }
     }
 
     @ViewBuilder var afterModeOverlays: some View {
@@ -227,30 +181,11 @@ extension CameraView {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
             .allowsHitTesting(false)
         }
-        if isARRelocalized, !arSessionManager.isPositionMatched {
-            ARPositionGuideView(
-                positionDelta: arSessionManager.positionDelta,
-                threshold: arSessionManager.positionThreshold,
-                isPositionMatched: arSessionManager.isPositionMatched
-            )
-            .allowsHitTesting(false)
-        }
-        if arSessionManager.hasLiDAR {
-            LiDARMeasureOverlayView(
-                startPoint: lidarStartPoint,
-                endPoint: lidarEndPoint,
-                distance: lidarDistance
-            )
-        }
     }
 
     private var tapGesture: some Gesture {
         SpatialTapGesture()
             .onEnded { value in
-                if !isBefore, isMeasureMode {
-                    handleMeasureTap(at: value.location)
-                    return
-                }
                 if !isBefore, ghostAutoActivated {
                     ghostOpacity = ghostOpacity > 0 ? 0.0 : ghostDefaultOpacity
                 }
@@ -383,7 +318,6 @@ extension CameraView {
         hapticService.stopHaptic()
         sensorManager.stopUpdates()
         cameraManager.stopSession()
-        arSessionManager.stopSession()
     }
 
     private func handleSensorUpdate() {
@@ -448,9 +382,6 @@ extension CameraView {
         } else if let pair = existingPair, pair.id == result.pairId {
             pair.afterPhoto = photo
             pair.status = .complete
-            if let capturedImage = cameraManager.capturedPhoto {
-                runQualityCheck(on: capturedImage)
-            }
         }
     }
 }

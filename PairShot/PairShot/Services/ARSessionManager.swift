@@ -213,10 +213,16 @@ final class ARSessionManager: NSObject {
     func raycast(_ query: ARRaycastQuery) -> [ARRaycastResult] {
         session.raycast(query)
     }
+
+    @ObservationIgnored
+    private nonisolated(unsafe) var lastFrameUpdate: CFTimeInterval = 0
 }
 
 extension ARSessionManager: ARSessionDelegate {
     nonisolated func session(_: ARSession, didUpdate frame: ARFrame) {
+        let now = CACurrentMediaTime()
+        guard now - lastFrameUpdate >= 0.033 else { return } // ~30fps 스로틀
+        lastFrameUpdate = now
         let status = frame.worldMappingStatus
         let tracking = frame.camera.trackingState
         let transform = frame.camera.transform

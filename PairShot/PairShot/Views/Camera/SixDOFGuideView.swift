@@ -48,8 +48,8 @@ struct SixDOFGuideView: View {
             }
             if abs(positionDelta.z) > positionThreshold {
                 directionArrow(
-                    icon: positionDelta.z > 0 ? "arrow.up.forward" : "arrow.down.backward",
-                    label: positionDelta.z > 0 ? "가까이" : "멀리",
+                    icon: positionDelta.z > 0 ? "arrow.down.backward" : "arrow.up.forward",
+                    label: positionDelta.z > 0 ? "멀리" : "가까이",
                     value: abs(positionDelta.z),
                     threshold: positionThreshold,
                     isAngle: false

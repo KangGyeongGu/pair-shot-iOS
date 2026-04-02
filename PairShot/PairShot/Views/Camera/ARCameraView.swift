@@ -123,6 +123,10 @@ struct ARCameraView: View {
         }
         .statusBarHidden(true)
         .task {
+            if !arManager.isSessionRunning {
+                arManager.startSession()
+            }
+
             if !isBefore {
                 restoreSavedPose()
             }
@@ -130,8 +134,11 @@ struct ARCameraView: View {
             if !isBefore, let filePath = existingPair?.beforePhoto?.filePath {
                 let docsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
                 let fullURL = docsURL.appendingPathComponent(filePath)
-                if let image = UIImage(contentsOfFile: fullURL.path) {
-                    beforeImage = image.downscaledTo1080p()
+                let loaded: UIImage? = await Task.detached(priority: .userInitiated) {
+                    UIImage(contentsOfFile: fullURL.path)?.downscaledTo1080p()
+                }.value
+                if let loaded {
+                    beforeImage = loaded
                     ghostOpacity = 0.35
                     ghostVisible = true
                 }

@@ -65,13 +65,11 @@ struct PairGalleryView: View {
         }
         .navigationTitle(project.title)
         .navigationBarTitleDisplayMode(.inline)
-        .onAppear {
-            guard !arManager.isSessionRunning else { return }
-            arManager.startSession()
-        }
         .onDisappear {
-            Task { await saveProjectWorldMap() }
-            arManager.stopSession()
+            if arManager.isSessionRunning {
+                Task { await saveProjectWorldMap() }
+                arManager.stopSession()
+            }
         }
         .confirmationDialog("페어를 삭제하시겠습니까?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
             Button("삭제", role: .destructive) {
