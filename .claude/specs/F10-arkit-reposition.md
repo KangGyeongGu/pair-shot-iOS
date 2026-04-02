@@ -6,6 +6,11 @@
 - On successful repositioning: Display "Position matched" + success haptic
 - Devices without LiDAR: Operates with ARKit camera tracking only (~10cm precision)
 - Devices with LiDAR: Auto-enhanced (1~3cm precision)
+- Position match threshold: LiDAR device: ±10cm, non-LiDAR: ±20cm
+- Height(Y) correction: up/down arrow using ARCamera.transform[3].y
+- Distance(Z) correction: forward/back arrow using ARCamera.transform[3].z
+- No text guidance — 3D icons only for direction communication
+- Stage transition: worldMappingStatus == .mapped activates Stage 2 (position guide)
 
 ## Non-functional Requirements
 - ARWorldMap save: Background, within 2~5 seconds
@@ -15,10 +20,11 @@
 
 ## UI Behavior
 - ARWorldMap auto-loads on entering After capture mode (no separate guidance text)
-- Position guidance: Display only semi-transparent arrows (visual representation of direction + distance)
-- Arrow shrinks as user gets closer + haptic intensity increases
-- Arrow disappears on position match + success haptic
-- No text guidance ("Recognizing environment", etc.) — visual + tactile feedback is sufficient
+- Position guidance: Display 3D arrow icons for X(lateral)/Y(height)/Z(distance) axis-separated guidance
+- Each axis has an independent 3D arrow; arrows shrink as user gets closer on that axis
+- Arrow disappears per axis on position match; all arrows gone + success haptic when fully matched
+- No text guidance ("Recognizing environment", etc.) — 3D icons only for direction communication
+- worldMappingStatus == .mapped activates Stage 2 (position guide)
 
 ## Edge Cases
 - ARWorldMap file missing (previous version before, or save failure) → Ignore, use sensor + overlay only

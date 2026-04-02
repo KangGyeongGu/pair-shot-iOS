@@ -2,8 +2,10 @@
 
 ## Requirements
 - When selecting an incomplete pair → Camera launches with the corresponding before photo displayed as a semi-transparent overlay
-- Opacity slider: Adjustable from 0.0 (invisible) to 0.7 (nearly opaque)
-- Tap toggle: Tap anywhere on screen → Instantly switch overlay between 0% ↔ default (35%)
+- Overlay starts HIDDEN on After capture entry
+- Auto-activates when F04 sensor guide detects angle within ±10° threshold
+- Default opacity 25% on activation, adjustable 0-70% via slider
+- Tap toggle: Tap anywhere on screen → Instantly switch overlay between 0% ↔ default (25%)
 - Overlay image is NOT included in the capture (only the original photo is saved)
 - Pair status transitions to `.complete` upon capture completion
 
@@ -13,7 +15,8 @@
 
 ## UI Behavior
 - Full-screen camera preview + semi-transparent before photo overlaid
-- Bottom: Opacity slider (left=transparent, right=opaque)
+- Overlay is hidden on entry; appears automatically when F04 sensor guide angle is within ±10°
+- Bottom: Opacity slider (left=transparent, right=opaque), range 0-70%
 - Top: "View Before" toggle icon
 - Overlay and preview aspect ratio/position must match exactly
 
@@ -26,7 +29,7 @@
 - `UIImageView` + `alpha` property overlaid on camera preview
 - Separate UIView layer on top of `AVCaptureVideoPreviewLayer`
 - Opacity slider: SwiftUI `Slider` → `ghostImageView.alpha` binding
-- Tap toggle: `UITapGestureRecognizer` → Toggle alpha between 0 ↔ 0.35
+- Tap toggle: `UITapGestureRecognizer` → Toggle alpha between 0 ↔ 0.25
 - 1080p downscale: `UIImage` → `CGImage` → `CGContext.draw` resize
 
 ## Apple SDK References

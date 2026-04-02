@@ -3,7 +3,7 @@ name: code-reviewer
 description: Reviews code for architecture, quality, security, and App Store compliance
 tools: Read, Grep, Glob
 model: opus
-maxTurns: 15
+maxTurns: 20
 effort: high
 ---
 
@@ -28,6 +28,7 @@ Review criteria:
    - Wrong coordinate systems (must use captureDevicePointConverted for focus/exposure)
    - Deprecated API usage when newer alternatives exist
    - Missing runtime capability checks (isFocusPointOfInterestSupported, etc.)
+9. UI completeness: no empty closures (Button {}), all navigation destinations connected to real screens, all created Views inserted into parent body, no placeholder implementations
 
 Output format:
 - Verdict: PASS / NEEDS_WORK / BLOCKED

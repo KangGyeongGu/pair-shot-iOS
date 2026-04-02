@@ -29,3 +29,17 @@
 - **Root Cause**: Guessed API names from memory instead of reading SDK headers
 - **Prevention**: Always grep SDK headers for exact method signatures before writing code
 - **Recurrence**: 2
+
+## F005 — Empty closures and disconnected navigation (P2)
+- **Phase**: P2 Data Model
+- **Pattern**: PairGalleryView had 4 buttons with empty action closures (Button {}). ArchiveView used navigationDestination instead of fullScreenCover for camera, causing duplicate back buttons.
+- **Root Cause**: develop-worker created UI elements without implementing action logic. No verification step for UI-logic connection completeness.
+- **Prevention**: develop-worker must verify every button action is connected. code-reviewer must flag empty closures as critical.
+- **Recurrence**: 1
+
+## F006 — View created but not inserted into parent (P3)
+- **Phase**: P3 Ghost Overlay
+- **Pattern**: GhostOverlayView.swift and SensorGuideView.swift were created as files but never inserted into CameraView body ZStack. beforeImage loading logic was also missing entirely.
+- **Root Cause**: develop-worker created separate View files but did not add them to the parent view hierarchy. No spec-vs-implementation completeness check.
+- **Prevention**: develop-worker must verify all new Views appear in their parent body. Creating a file ≠ using it.
+- **Recurrence**: 1

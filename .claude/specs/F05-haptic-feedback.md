@@ -1,8 +1,10 @@
 # F05 - Haptic Feedback
 
 ## Requirements
-- Vibration intensity increases as angle approaches target ("hot/cold" sensation)
-- Success vibration pattern when all axes (pitch/roll/yaw) enter tolerance range
+- Vibration intensity DECREASES as angle approaches target (intensity = 1.0 - alignmentScore)
+- Far: strong/rough vibration. Near: weak/soft vibration. Aligned: silence + success tap
+- Quiet = correct — provides user sense of stability
+- Alignment complete: continuous vibration stops + single success tap (UINotificationFeedbackGenerator.success)
 - Enables alignment without looking at screen in bright sunlight / glove-wearing situations
 
 ## Non-functional Requirements
@@ -20,7 +22,7 @@
 
 ## Implementation Points
 - `CHHapticEngine` + `CHHapticEvent(.hapticContinuous)`
-- Intensity: `CHHapticEventParameter(.hapticIntensity, value: alignmentScore)`
+- Intensity: `CHHapticEventParameter(.hapticIntensity, value: 1.0 - alignmentScore)`
 - alignmentScore: 0.0 (far) ~ 1.0 (aligned) → Weighted average of pitch/roll/yaw
 - Success pattern: `UINotificationFeedbackGenerator.notificationOccurred(.success)`
 - Battery protection: Stop haptics after alignment complete

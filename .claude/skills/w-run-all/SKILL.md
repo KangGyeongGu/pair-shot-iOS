@@ -28,6 +28,7 @@ IMPORTANT: Between steps, do NOT pause to ask user unless:
 - device_test = true (4b)
 - BLOCKED state (3g)
 All other transitions (develop → audit → auto-fix → merge) run automatically.
+Never create pr or merge to git, it must be activated by User's permission. 
 
 Rules:
 - Orchestrator stays on develop branch (never switches branches)

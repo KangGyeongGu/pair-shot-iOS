@@ -25,23 +25,31 @@
     },
     {
       "id": "P3",
-      "name": "Before/After 촬영 고도화",
-      "features": ["F03", "F04", "F05", "F10", "F13", "F19"],
+      "name": "오버레이 + 센서 가이드 + 햅틱 (기본)",
+      "features": ["F03", "F04", "F05"],
       "depends_on": ["P2"],
       "device_test": true,
+      "device_test_items": ["고스트 오버레이", "센서 가이드", "햅틱 피드백", "Before→After 워크플로우"]
+    },
+    {
+      "id": "P4",
+      "name": "촬영 고도화 (ARKit + LiDAR + 재설계 반영)",
+      "features": ["F03", "F04", "F05", "F10", "F13", "F19"],
+      "depends_on": ["P3"],
+      "device_test": true,
       "device_test_items": [
-        "고스트 오버레이 (임계값 진입 후 활성화)",
-        "3D 각도 가이드 동작",
-        "햅틱 피드백 (맞을수록 약해짐)",
+        "오버레이 임계값 활성화",
+        "3D 구체 각도 가이드",
+        "햅틱 방향 반전 (맞을수록 약해짐)",
         "ARKit 재위치 + 3D 화살표 X/Y/Z 축별 안내",
         "LiDAR 자동 분기",
         "촬영 품질 검사",
         "LiDAR 거리 측정",
-        "Before→After 전체 3단계 가이드 워크플로우"
+        "3단계 가이드 워크플로우"
       ]
     },
     {
-      "id": "P4",
+      "id": "P5",
       "name": "비교 뷰 + AI 분석",
       "features": ["F07", "F11", "F14", "F15", "F16", "F17", "F25"],
       "depends_on": ["P2"],
@@ -49,7 +57,7 @@
       "device_test_items": ["나란히 비교", "슬라이더 비교", "AI 정렬 품질", "히트맵", "매칭 점수"]
     },
     {
-      "id": "P5",
+      "id": "P6",
       "name": "내보내기",
       "features": ["F12", "F18", "F20"],
       "depends_on": ["P2"],
@@ -57,10 +65,10 @@
       "device_test_items": ["AirDrop 전송", "ZIP PC 열기", "PDF 보고서"]
     },
     {
-      "id": "P6",
+      "id": "P7",
       "name": "부가 기능 + 배포",
       "features": ["F22", "F24"],
-      "depends_on": ["P3", "P4", "P5"],
+      "depends_on": ["P4", "P5", "P6"],
       "device_test": true,
       "device_test_items": ["미촬영 카운트", "Action Button", "TestFlight 전체 워크플로우"]
     }

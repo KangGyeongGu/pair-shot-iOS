@@ -4,7 +4,6 @@ description: Generates or enhances Swift Testing test cases with falsifiability 
 tools: Read, Write, Edit, Grep, Glob, Bash
 model: sonnet
 maxTurns: 50
-isolation: worktree
 effort: high
 ---
 

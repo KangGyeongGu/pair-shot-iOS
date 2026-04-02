@@ -4,7 +4,6 @@ description: Fixes audit violations in existing code with minimal targeted edits
 tools: Read, Write, Edit, Grep, Glob, Bash
 model: sonnet
 maxTurns: 50
-isolation: worktree
 effort: high
 ---
 

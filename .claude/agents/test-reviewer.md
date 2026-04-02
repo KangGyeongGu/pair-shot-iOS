@@ -3,7 +3,7 @@ name: test-reviewer
 description: Reviews test quality, coverage, and falsifiability
 tools: Read, Grep, Glob
 model: sonnet
-maxTurns: 12
+maxTurns: 20
 effort: high
 ---
 

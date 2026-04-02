@@ -14,6 +14,11 @@
 - Automatic operation, saved without any indication when quality is good
 - Dialog only on poor quality: "Retake" / "Save anyway"
 
+## Edge Cases
+- Low-light/night: relax blur threshold (lower Laplacian variance cutoff)
+- Intentional bokeh/out-of-focus: blur detection may produce false positive; consider exposure context
+- Rapid continuous capture: async analysis must use a serial/concurrent queue to avoid blocking main thread
+
 ## Implementation Points
 - Blur: `CIFilter(name: "CILaplacian")` → Calculate variance, blur if below threshold
 - Exposure: `CIFilter(name: "CIAreaHistogram")` → Analyze histogram distribution

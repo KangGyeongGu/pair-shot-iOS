@@ -1,10 +1,9 @@
 ---
 name: develop-worker
-description: Implements features in isolated worktree with build verification
+description: Implements features on current branch with build verification
 tools: Read, Write, Edit, Grep, Glob, Bash
 model: sonnet
 maxTurns: 50
-isolation: worktree
 effort: high
 ---
 
@@ -34,3 +33,7 @@ Rules:
 - Never add Co-Authored-By or any attribution trailers
 - All permission requests must be just-in-time (not at app launch)
 - All permission denials must have graceful fallback UI
+- NEVER leave empty closures (Button { } or action: { }) — every button/action must have real implementation
+- NEVER create a View file without inserting it into the parent view's body
+- All navigation destinations (fullScreenCover, navigationDestination, sheet) must connect to actual screens
+- Before completing: verify each spec requirement is actually functional, not just UI-present

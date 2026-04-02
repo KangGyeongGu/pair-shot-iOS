@@ -16,18 +16,6 @@
         ]
       }
     ],
-    "SubagentStop": [
-      {
-        "matcher": "develop-worker|fix-worker|test-generator",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "AGENT_ID=$(jq -r '.agent_id // empty' < /dev/stdin); [ -z \"$AGENT_ID\" ] && exit 0; SHORT_ID=$(echo \"$AGENT_ID\" | cut -c1-8); WT_DIR=\"$CLAUDE_PROJECT_DIR/.claude/worktrees/agent-$SHORT_ID\"; [ ! -d \"$WT_DIR\" ] && exit 0; cd \"$WT_DIR\" && DIFF=$(git diff HEAD) && NEW_FILES=$(git ls-files --others --exclude-standard); cd \"$CLAUDE_PROJECT_DIR\"; [ -n \"$DIFF\" ] && echo \"$DIFF\" | git apply 2>/dev/null; if [ -n \"$NEW_FILES\" ]; then echo \"$NEW_FILES\" | while read -r f; do [ -f \"$WT_DIR/$f\" ] && mkdir -p \"$(dirname \"$f\")\" && cp \"$WT_DIR/$f\" \"$f\"; done; fi; BRANCH=$(cd \"$WT_DIR\" && git rev-parse --abbrev-ref HEAD 2>/dev/null); git worktree remove \"$WT_DIR\" --force 2>/dev/null; [ -n \"$BRANCH\" ] && git branch -D \"$BRANCH\" 2>/dev/null; echo \"WORKTREE_APPLIED_AND_CLEANED: agent-$SHORT_ID\" >&2",
-            "statusMessage": "워크트리 변경사항 반영 중..."
-          }
-        ]
-      }
-    ],
     "Stop": [
       {
         "hooks": [
