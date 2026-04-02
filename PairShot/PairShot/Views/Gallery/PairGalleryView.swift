@@ -1,3 +1,4 @@
+@preconcurrency import ARKit
 import SwiftData
 import SwiftUI
 
@@ -9,6 +10,7 @@ struct PairGalleryView: View {
     @State private var pairsToDelete: [PhotoPair] = []
     @State private var showDeleteConfirm = false
     @State private var cameraDestination: GalleryCameraDestination?
+    @State private var arManager = ARSessionManager()
 
     private let storage = PhotoStorageService()
     private let columns = [GridItem(.flexible()), GridItem(.flexible())]
@@ -63,6 +65,21 @@ struct PairGalleryView: View {
         }
         .navigationTitle(project.title)
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            let docsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            let wmURL = docsURL.appendingPathComponent("projects/\(project.id)/worldmap.arworldmap")
+            if let worldMap = try? arManager.loadWorldMap(from: wmURL) {
+                arManager.startSession(withWorldMap: worldMap)
+            } else {
+                arManager.startSession()
+            }
+        }
+        .onDisappear {
+            Task {
+                await saveProjectWorldMap()
+            }
+            arManager.stopSession()
+        }
         .confirmationDialog("페어를 삭제하시겠습니까?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
             Button("삭제", role: .destructive) {
                 deletePairs(pairsToDelete)
@@ -75,9 +92,9 @@ struct PairGalleryView: View {
         .fullScreenCover(item: $cameraDestination) { destination in
             switch destination {
                 case .before:
-                    ARCameraView(project: project)
+                    ARCameraView(project: project, arManager: arManager)
                 case let .after(pair):
-                    ARCameraView(project: project, existingPair: pair)
+                    ARCameraView(project: project, arManager: arManager, existingPair: pair)
             }
         }
     }
@@ -227,6 +244,20 @@ struct PairGalleryView: View {
             }
             modelContext.delete(pair)
         }
+    }
+
+    private func saveProjectWorldMap() async {
+        guard arManager.isSessionRunning else { return }
+        guard arManager.worldMappingStatus == .mapped || arManager.worldMappingStatus == .extending else { return }
+        do {
+            let worldMap = try await arManager.captureWorldMap()
+            let docsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            let wmURL = docsURL.appendingPathComponent("projects/\(project.id)/worldmap.arworldmap")
+            try FileManager.default.createDirectory(
+                at: wmURL.deletingLastPathComponent(), withIntermediateDirectories: true
+            )
+            try arManager.saveWorldMap(worldMap, to: wmURL)
+        } catch {}
     }
 }
 

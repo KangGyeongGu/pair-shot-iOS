@@ -22,26 +22,22 @@ final class ARSessionManager: NSObject {
     private(set) var worldMappingStatus: ARFrame.WorldMappingStatus = .notAvailable
     private(set) var trackingState: ARCamera.TrackingState = .notAvailable
     private(set) var cameraTransform: simd_float4x4 = matrix_identity_float4x4
-    private(set) var cameraEulerAngles: simd_float3 = .zero
     private(set) var hasLiDAR: Bool = false
     private(set) var isARSupported: Bool = false
 
     private(set) var savedTransform: simd_float4x4?
-    private(set) var savedEulerAngles: simd_float3?
 
     var positionThreshold: Float {
         hasLiDAR ? 0.05 : 0.15
     }
 
-    private let orientationThreshold: Float = 0.035
+    let orientationThreshold: Float = 0.035
 
     var positionDelta: SIMD3<Float> {
         guard let saved = savedTransform else { return .zero }
         let cur = SIMD3<Float>(cameraTransform.columns.3.x, cameraTransform.columns.3.y, cameraTransform.columns.3.z)
         let sav = SIMD3<Float>(saved.columns.3.x, saved.columns.3.y, saved.columns.3.z)
         let worldDelta = cur - sav
-        // 월드 좌표 → 저장된 카메라 로컬 좌표로 변환
-        // 카메라 로컬: x=오른쪽, y=위, -z=앞(카메라가 바라보는 방향)
         let savedRot = simd_float3x3(
             SIMD3<Float>(saved.columns.0.x, saved.columns.0.y, saved.columns.0.z),
             SIMD3<Float>(saved.columns.1.x, saved.columns.1.y, saved.columns.1.z),
@@ -50,23 +46,44 @@ final class ARSessionManager: NSObject {
         return savedRot.transpose * worldDelta
     }
 
-    var orientationDelta: simd_float3 {
-        guard let saved = savedTransform else { return .zero }
-        let savedRot = simd_float3x3(
-            SIMD3<Float>(saved.columns.0.x, saved.columns.0.y, saved.columns.0.z),
-            SIMD3<Float>(saved.columns.1.x, saved.columns.1.y, saved.columns.1.z),
-            SIMD3<Float>(saved.columns.2.x, saved.columns.2.y, saved.columns.2.z)
-        )
-        let curRot = simd_float3x3(
-            SIMD3<Float>(cameraTransform.columns.0.x, cameraTransform.columns.0.y, cameraTransform.columns.0.z),
-            SIMD3<Float>(cameraTransform.columns.1.x, cameraTransform.columns.1.y, cameraTransform.columns.1.z),
-            SIMD3<Float>(cameraTransform.columns.2.x, cameraTransform.columns.2.y, cameraTransform.columns.2.z)
-        )
-        let relative = curRot * savedRot.transpose
-        let pitch = asin(max(-1, min(1, -relative.columns.2.y)))
-        let yaw = atan2(relative.columns.2.x, relative.columns.2.z)
-        let roll = atan2(relative.columns.0.y, relative.columns.1.y)
-        return simd_float3(pitch, yaw, roll)
+    private static func forwardVector(from transform: simd_float4x4) -> SIMD3<Float> {
+        -SIMD3<Float>(transform.columns.2.x, transform.columns.2.y, transform.columns.2.z)
+    }
+
+    private static func upVector(from transform: simd_float4x4) -> SIMD3<Float> {
+        SIMD3<Float>(transform.columns.1.x, transform.columns.1.y, transform.columns.1.z)
+    }
+
+    var yawDelta: Float {
+        guard let saved = savedTransform else { return 0 }
+        let curFwd = Self.forwardVector(from: cameraTransform)
+        let savFwd = Self.forwardVector(from: saved)
+        let curFlat = normalize(SIMD2<Float>(curFwd.x, curFwd.z))
+        let savFlat = normalize(SIMD2<Float>(savFwd.x, savFwd.z))
+        let cross = curFlat.x * savFlat.y - curFlat.y * savFlat.x
+        let dot = simd_dot(curFlat, savFlat)
+        return atan2(cross, dot)
+    }
+
+    var pitchDelta: Float {
+        guard let saved = savedTransform else { return 0 }
+        let curFwd = Self.forwardVector(from: cameraTransform)
+        let savFwd = Self.forwardVector(from: saved)
+        let curPitch = asin(max(-1, min(1, curFwd.y)))
+        let savPitch = asin(max(-1, min(1, savFwd.y)))
+        return curPitch - savPitch
+    }
+
+    var rollDelta: Float {
+        guard let saved = savedTransform else { return 0 }
+        let curUp = Self.upVector(from: cameraTransform)
+        let savUp = Self.upVector(from: saved)
+        let curRoll = atan2(curUp.x, curUp.y)
+        let savRoll = atan2(savUp.x, savUp.y)
+        var delta = curRoll - savRoll
+        if delta > .pi { delta -= 2 * .pi }
+        if delta < -.pi { delta += 2 * .pi }
+        return delta
     }
 
     var isPositionMatched: Bool {
@@ -76,10 +93,9 @@ final class ARSessionManager: NSObject {
 
     var isOrientationMatched: Bool {
         guard savedTransform != nil else { return false }
-        let delta = orientationDelta
-        return abs(delta.x) <= orientationThreshold
-            && abs(delta.y) <= orientationThreshold
-            && abs(delta.z) <= orientationThreshold
+        return abs(yawDelta) <= orientationThreshold
+            && abs(pitchDelta) <= orientationThreshold
+            && abs(rollDelta) <= orientationThreshold
     }
 
     var isFullyAligned: Bool {
@@ -125,18 +141,18 @@ final class ARSessionManager: NSObject {
     func stopSession() {
         session.pause()
         isSessionRunning = false
+    }
+
+    func clearSavedPose() {
         savedTransform = nil
-        savedEulerAngles = nil
     }
 
     func saveCurrentPose() {
         savedTransform = cameraTransform
-        savedEulerAngles = cameraEulerAngles
     }
 
-    func setSavedPose(transform: simd_float4x4, eulerAngles: simd_float3) {
+    func setSavedPose(transform: simd_float4x4) {
         savedTransform = transform
-        savedEulerAngles = eulerAngles
     }
 
     func captureWorldMap() async throws -> ARWorldMap {
@@ -167,7 +183,7 @@ final class ARSessionManager: NSObject {
         return worldMap
     }
 
-    func capturePhoto() async throws -> (UIImage, simd_float4x4, simd_float3) {
+    func capturePhoto() async throws -> (UIImage, simd_float4x4) {
         guard isSessionRunning else { throw ARSessionError.sessionNotRunning }
         let frame: ARFrame = try await withCheckedThrowingContinuation { continuation in
             session.captureHighResolutionFrame { frame, error in
@@ -188,15 +204,12 @@ final class ARSessionManager: NSObject {
             throw ARSessionError.pixelBufferConversionFailed
         }
         let image = UIImage(cgImage: cgImage)
-        return (image, frame.camera.transform, frame.camera.eulerAngles)
+        return (image, frame.camera.transform)
     }
 
     func raycast(_ query: ARRaycastQuery) -> [ARRaycastResult] {
         session.raycast(query)
     }
-
-    @ObservationIgnored
-    private var lastDebugLog: Date = .distantPast
 }
 
 extension ARSessionManager: ARSessionDelegate {
@@ -204,22 +217,11 @@ extension ARSessionManager: ARSessionDelegate {
         let status = frame.worldMappingStatus
         let tracking = frame.camera.trackingState
         let transform = frame.camera.transform
-        let euler = frame.camera.eulerAngles
         Task { @MainActor [weak self] in
             guard let self else { return }
             worldMappingStatus = status
             trackingState = tracking
             cameraTransform = transform
-            cameraEulerAngles = euler
-
-            if savedTransform != nil, Date().timeIntervalSince(lastDebugLog) > 2.0 {
-                lastDebugLog = Date()
-                let p = positionDelta
-                let o = orientationDelta
-                print(
-                    "[AR-LIVE] pos(\(String(format: "%.3f", p.x)), \(String(format: "%.3f", p.y)), \(String(format: "%.3f", p.z))) ori(\(String(format: "%.3f", o.x)), \(String(format: "%.3f", o.y)), \(String(format: "%.3f", o.z)))"
-                )
-            }
         }
     }
 

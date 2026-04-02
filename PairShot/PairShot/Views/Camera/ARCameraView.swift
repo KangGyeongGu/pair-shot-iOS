@@ -5,6 +5,7 @@ import UIKit
 
 struct ARCameraView: View {
     let project: Project
+    let arManager: ARSessionManager
     var existingPair: PhotoPair?
 
     var isBefore: Bool {
@@ -14,7 +15,6 @@ struct ARCameraView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
 
-    @State private var arManager = ARSessionManager()
     @State private var capturedPhoto: UIImage?
     @State private var beforeImage: UIImage?
     @State private var ghostOpacity: Double = 0.0
@@ -44,9 +44,11 @@ struct ARCameraView: View {
                         if arManager.savedTransform != nil, !arManager.isFullyAligned {
                             SixDOFGuideView(
                                 positionDelta: arManager.positionDelta,
-                                orientationDelta: arManager.orientationDelta,
+                                yawDelta: arManager.yawDelta,
+                                pitchDelta: arManager.pitchDelta,
+                                rollDelta: arManager.rollDelta,
                                 positionThreshold: arManager.positionThreshold,
-                                orientationThreshold: Float(0.035),
+                                orientationThreshold: arManager.orientationThreshold,
                                 isPositionMatched: arManager.isPositionMatched,
                                 isOrientationMatched: arManager.isOrientationMatched
                             )
@@ -121,32 +123,8 @@ struct ARCameraView: View {
         }
         .statusBarHidden(true)
         .task {
-            if !isBefore, let wmPath = existingPair?.beforePhoto?.worldMapPath {
-                let docsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-                let wmURL = docsURL.appendingPathComponent(wmPath)
-                if let worldMap = try? arManager.loadWorldMap(from: wmURL) {
-                    arManager.startSession(withWorldMap: worldMap)
-                } else {
-                    arManager.startSession()
-                }
-            } else {
-                arManager.startSession()
-            }
-
             if !isBefore {
                 restoreSavedPose()
-                print("[AR-DEBUG] === AFTER ENTRY ===")
-                print("[AR-DEBUG] hasSavedTransform: \(arManager.savedTransform != nil)")
-                print("[AR-DEBUG] hasSavedEuler: \(arManager.savedEulerAngles != nil)")
-                if let s = arManager.savedTransform {
-                    print("[AR-DEBUG] savedPos: \(s.columns.3.x), \(s.columns.3.y), \(s.columns.3.z)")
-                }
-                if let e = arManager.savedEulerAngles {
-                    print("[AR-DEBUG] savedEuler: \(e.x), \(e.y), \(e.z)")
-                }
-                print("[AR-DEBUG] hasWorldMap: \(existingPair?.beforePhoto?.worldMapPath != nil)")
-                print("[AR-DEBUG] hasTransformData: \(existingPair?.beforePhoto?.arTransformData != nil)")
-                print("[AR-DEBUG] hasEulerData: \(existingPair?.beforePhoto?.arEulerData != nil)")
             }
 
             if !isBefore, let filePath = existingPair?.beforePhoto?.filePath {
@@ -158,9 +136,6 @@ struct ARCameraView: View {
                     ghostVisible = true
                 }
             }
-        }
-        .onDisappear {
-            arManager.stopSession()
         }
         .alert("촬영 품질", isPresented: $showQualityAlert) {
             Button("재촬영", role: .destructive) {
@@ -210,29 +185,19 @@ struct ARCameraView: View {
         defer { isSaving = false }
 
         do {
-            // 트래킹이 안정화될 때까지 대기 (최대 3초)
             for _ in 0 ..< 30 {
                 if arManager.trackingState == .normal { break }
                 try? await Task.sleep(for: .milliseconds(100))
             }
-            let (image, transform, euler) = try await arManager.capturePhoto()
-            print("[AR-DEBUG] === CAPTURE (\(isBefore ? "BEFORE" : "AFTER")) ===")
-            print("[AR-DEBUG] tracking: \(arManager.trackingState)")
-            print(
-                "[AR-DEBUG] transform pos: \(transform.columns.3.x), \(transform.columns.3.y), \(transform.columns.3.z)"
-            )
-            print("[AR-DEBUG] euler (p/y/r): \(euler.x), \(euler.y), \(euler.z)")
-            print("[AR-DEBUG] worldMap: \(arManager.worldMappingStatus)")
+            let (image, transform) = try await arManager.capturePhoto()
             capturedPhoto = image
             let (pair, pairId) = try resolvePair()
             let photo = try savePhotoFiles(image: image, transform: transform, pairId: pairId)
-            var eulerCopy = euler
-            photo.arEulerData = Data(bytes: &eulerCopy, count: MemoryLayout<simd_float3>.size)
-            photo.pitch = Double(euler.x)
-            photo.roll = Double(euler.z)
-            photo.yaw = Double(euler.y)
+            photo.pitch = Double(arManager.pitchDelta)
+            photo.roll = Double(arManager.rollDelta)
+            photo.yaw = Double(arManager.yawDelta)
             modelContext.insert(photo)
-            await applyPhotoToPair(pair: pair, photo: photo, image: image, pairId: pairId)
+            await applyPhotoToPair(pair: pair, photo: photo, image: image)
         } catch {
             // Capture failed — user can retry
         }
@@ -282,11 +247,10 @@ struct ARCameraView: View {
         )
     }
 
-    private func applyPhotoToPair(pair: PhotoPair, photo: Photo, image: UIImage, pairId: UUID) async {
+    private func applyPhotoToPair(pair: PhotoPair, photo: Photo, image: UIImage) async {
         if isBefore {
             pair.beforePhoto = photo
             pair.status = .pendingAfter
-            await saveWorldMap(for: photo, pairId: pairId)
         } else {
             pair.afterPhoto = photo
             pair.status = .complete
@@ -300,14 +264,7 @@ struct ARCameraView: View {
            transformData.count == MemoryLayout<simd_float4x4>.size
         {
             let transform = transformData.withUnsafeBytes { $0.load(as: simd_float4x4.self) }
-            if let eulerData = beforePhoto.arEulerData,
-               eulerData.count == MemoryLayout<simd_float3>.size
-            {
-                let euler = eulerData.withUnsafeBytes { $0.load(as: simd_float3.self) }
-                arManager.setSavedPose(transform: transform, eulerAngles: euler)
-            } else {
-                arManager.setSavedPose(transform: transform, eulerAngles: .zero)
-            }
+            arManager.setSavedPose(transform: transform)
         }
     }
 
@@ -323,29 +280,6 @@ struct ARCameraView: View {
                 qualityIssueMessage = "노출 부족이 감지되었습니다. 재촬영하시겠습니까?"
         }
         showQualityAlert = true
-    }
-
-    private func saveWorldMap(for photo: Photo, pairId: UUID) async {
-        // arTransformData/arEulerData는 savePhotoFiles에서 캡처 시점 값으로 이미 저장됨
-        // worldMap 저장 시도 (최대 3초 대기)
-        for _ in 0 ..< 30 {
-            if arManager.worldMappingStatus == .mapped { break }
-            try? await Task.sleep(for: .milliseconds(100))
-        }
-        guard arManager.worldMappingStatus == .mapped || arManager.worldMappingStatus == .extending else { return }
-        do {
-            let worldMap = try await arManager.captureWorldMap()
-            let docsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-            let wmPath = "projects/\(project.id)/pairs/\(pairId)/worldmap.arworldmap"
-            let wmURL = docsURL.appendingPathComponent(wmPath)
-            try FileManager.default.createDirectory(
-                at: wmURL.deletingLastPathComponent(), withIntermediateDirectories: true
-            )
-            try arManager.saveWorldMap(worldMap, to: wmURL)
-            photo.worldMapPath = wmPath
-        } catch {
-            // WorldMap 저장 실패 — transform 기반 가이드만 동작
-        }
     }
 }
 
