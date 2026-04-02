@@ -14,100 +14,55 @@
       "features": ["F02", "F08", "F09"],
       "depends_on": ["P0"],
       "device_test": true,
-      "device_test_items": [
-        "카메라 프리뷰 표시 확인",
-        "사진 촬영 + 저장 확인",
-        "저조도 환경에서 자동 보정 동작 확인",
-        "비율 전환(4:3/16:9/1:1) 확인",
-        "줌(0.5x~5x) 동작 확인"
-      ]
+      "device_test_items": ["카메라 프리뷰", "사진 촬영+저장", "저조도 보정", "줌/비율/플래시"]
     },
     {
       "id": "P2",
-      "name": "데이터 모델 + 프로젝트 관리",
+      "name": "프로젝트 관리 + Before/After 기본 연결",
       "features": ["F01", "F06"],
       "depends_on": ["P1"],
       "device_test": false
     },
     {
       "id": "P3",
-      "name": "고스트 오버레이 + 센서 가이드",
-      "features": ["F03", "F04", "F05"],
+      "name": "Before/After 촬영 고도화",
+      "features": ["F03", "F04", "F05", "F10", "F13", "F19"],
       "depends_on": ["P2"],
       "device_test": true,
       "device_test_items": [
-        "고스트 오버레이 표시 + 투명도 조절 확인",
-        "센서 가이드 십자선 동작 확인",
-        "햅틱 피드백 체감 확인",
-        "실제 Before→After 촬영 워크플로우 테스트"
+        "고스트 오버레이 (임계값 진입 후 활성화)",
+        "3D 각도 가이드 동작",
+        "햅틱 피드백 (맞을수록 약해짐)",
+        "ARKit 재위치 + 3D 화살표 X/Y/Z 축별 안내",
+        "LiDAR 자동 분기",
+        "촬영 품질 검사",
+        "LiDAR 거리 측정",
+        "Before→After 전체 3단계 가이드 워크플로우"
       ]
     },
     {
       "id": "P4",
-      "name": "ARKit 재위치",
-      "features": ["F10"],
-      "depends_on": ["P3"],
+      "name": "비교 뷰 + AI 분석",
+      "features": ["F07", "F11", "F14", "F15", "F16", "F17", "F25"],
+      "depends_on": ["P2"],
       "device_test": true,
-      "device_test_items": [
-        "ARWorldMap 저장 확인",
-        "ARWorldMap 로드 + 재위치 동작 확인",
-        "AR 화살표 가이드 체감 확인",
-        "LiDAR 유/무 자동 분기 확인"
-      ]
+      "device_test_items": ["나란히 비교", "슬라이더 비교", "AI 정렬 품질", "히트맵", "매칭 점수"]
     },
     {
       "id": "P5",
-      "name": "비교 뷰",
-      "features": ["F07", "F11", "F25"],
-      "depends_on": ["P2"],
-      "device_test": false
-    },
-    {
-      "id": "P6",
-      "name": "AI 분석",
-      "features": ["F14", "F15", "F16", "F17"],
-      "depends_on": ["P5"],
-      "device_test": true,
-      "device_test_items": [
-        "자동 정렬 품질 확인 (실제 Before-After 사진)",
-        "히트맵 시각화 정확도 확인"
-      ]
-    },
-    {
-      "id": "P7",
       "name": "내보내기",
       "features": ["F12", "F18", "F20"],
       "depends_on": ["P2"],
       "device_test": true,
-      "device_test_items": [
-        "AirDrop 전송 테스트",
-        "ZIP 파일 PC에서 열기 확인",
-        "PDF 보고서 내용 확인"
-      ]
+      "device_test_items": ["AirDrop 전송", "ZIP PC 열기", "PDF 보고서"]
     },
     {
-      "id": "P8",
-      "name": "부가 기능",
-      "features": ["F22", "F24", "F19", "F13"],
-      "depends_on": ["P2"],
-      "parallel": true,
+      "id": "P6",
+      "name": "부가 기능 + 배포",
+      "features": ["F22", "F24"],
+      "depends_on": ["P3", "P4", "P5"],
       "device_test": true,
-      "device_test_items": [
-        "Action Button 카메라 즉시 실행 확인",
-        "LiDAR 거리 측정 정확도 확인",
-        "미촬영 카운트 표시 확인"
-      ]
-    },
-    {
-      "id": "P9",
-      "name": "배포 준비",
-      "features": [],
-      "depends_on": ["P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8"],
-      "device_test": true,
-      "device_test_items": [
-        "TestFlight 빌드 설치 + 전체 워크플로우 테스트",
-        "의뢰인 iPhone 17 Pro 테스트"
-      ]
+      "device_test_items": ["미촬영 카운트", "Action Button", "TestFlight 전체 워크플로우"]
     }
   ]
 }

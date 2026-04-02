@@ -71,6 +71,21 @@ struct CameraView: View {
 
                         if !isBefore {
                             GhostOverlayView(beforeImage: beforeImage, opacity: $ghostOpacity)
+
+                            if let target = existingPair?.beforePhoto,
+                               target.pitch != nil
+                            {
+                                SensorGuideView(
+                                    currentPitch: sensorManager.currentPitch,
+                                    currentRoll: sensorManager.currentRoll,
+                                    currentYaw: sensorManager.currentYaw,
+                                    targetPitch: target.pitch ?? 0,
+                                    targetRoll: target.roll ?? 0,
+                                    targetYaw: target.yaw ?? 0
+                                )
+                                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+                                .allowsHitTesting(false)
+                            }
                         }
                     }
                     .contentShape(Rectangle())
@@ -214,10 +229,17 @@ struct CameraView: View {
         }
         .task {
             await startCamera()
+            if !isBefore, let filePath = existingPair?.beforePhoto?.filePath {
+                let docsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+                let fullURL = docsURL.appendingPathComponent(filePath)
+                if let image = UIImage(contentsOfFile: fullURL.path) {
+                    beforeImage = image.downscaledTo1080p()
+                }
+            }
         }
         .onAppear {
             sensorManager.startUpdates()
-            if !isBefore {
+            if !isBefore, existingPair?.beforePhoto?.pitch != nil {
                 hapticService.startContinuousHaptic()
             }
         }
