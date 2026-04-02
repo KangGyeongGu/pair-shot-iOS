@@ -194,6 +194,9 @@ final class ARSessionManager: NSObject {
     func raycast(_ query: ARRaycastQuery) -> [ARRaycastResult] {
         session.raycast(query)
     }
+
+    @ObservationIgnored
+    private var lastDebugLog: Date = .distantPast
 }
 
 extension ARSessionManager: ARSessionDelegate {
@@ -208,6 +211,15 @@ extension ARSessionManager: ARSessionDelegate {
             trackingState = tracking
             cameraTransform = transform
             cameraEulerAngles = euler
+
+            if savedTransform != nil, Date().timeIntervalSince(lastDebugLog) > 2.0 {
+                lastDebugLog = Date()
+                let p = positionDelta
+                let o = orientationDelta
+                print(
+                    "[AR-LIVE] pos(\(String(format: "%.3f", p.x)), \(String(format: "%.3f", p.y)), \(String(format: "%.3f", p.z))) ori(\(String(format: "%.3f", o.x)), \(String(format: "%.3f", o.y)), \(String(format: "%.3f", o.z)))"
+                )
+            }
         }
     }
 

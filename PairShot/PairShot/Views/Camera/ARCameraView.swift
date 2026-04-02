@@ -72,10 +72,6 @@ struct ARCameraView: View {
                             Spacer()
                         }
                     }
-
-                    if !isBefore {
-                        debugOverlay
-                    }
                 }
                 .aspectRatio(3.0 / 4.0, contentMode: .fit)
                 .clipped()
@@ -139,6 +135,18 @@ struct ARCameraView: View {
 
             if !isBefore {
                 restoreSavedPose()
+                print("[AR-DEBUG] === AFTER ENTRY ===")
+                print("[AR-DEBUG] hasSavedTransform: \(arManager.savedTransform != nil)")
+                print("[AR-DEBUG] hasSavedEuler: \(arManager.savedEulerAngles != nil)")
+                if let s = arManager.savedTransform {
+                    print("[AR-DEBUG] savedPos: \(s.columns.3.x), \(s.columns.3.y), \(s.columns.3.z)")
+                }
+                if let e = arManager.savedEulerAngles {
+                    print("[AR-DEBUG] savedEuler: \(e.x), \(e.y), \(e.z)")
+                }
+                print("[AR-DEBUG] hasWorldMap: \(existingPair?.beforePhoto?.worldMapPath != nil)")
+                print("[AR-DEBUG] hasTransformData: \(existingPair?.beforePhoto?.arTransformData != nil)")
+                print("[AR-DEBUG] hasEulerData: \(existingPair?.beforePhoto?.arEulerData != nil)")
             }
 
             if !isBefore, let filePath = existingPair?.beforePhoto?.filePath {
@@ -196,50 +204,6 @@ struct ARCameraView: View {
         }
     }
 
-    private var debugOverlay: some View {
-        let pos = arManager.positionDelta
-        let ori = arManager.orientationDelta
-        let cur = arManager.cameraTransform
-        let curE = arManager.cameraEulerAngles
-        let hasSaved = arManager.savedTransform != nil
-
-        return VStack(alignment: .leading, spacing: 2) {
-            Text("=== DEBUG ===").bold()
-            Text("tracking: \(String(describing: arManager.trackingState))")
-            Text("worldMap: \(String(describing: arManager.worldMappingStatus))")
-            Text("hasSaved: \(hasSaved)")
-            if hasSaved {
-                Text("--- SAVED ---")
-                if let s = arManager.savedTransform {
-                    Text("sPos: \(f3(s.columns.3.x, s.columns.3.y, s.columns.3.z))")
-                }
-                if let e = arManager.savedEulerAngles {
-                    Text("sEul: \(f3(e.x, e.y, e.z))")
-                }
-                Text("--- CURRENT ---")
-                Text("cPos: \(f3(cur.columns.3.x, cur.columns.3.y, cur.columns.3.z))")
-                Text("cEul: \(f3(curE.x, curE.y, curE.z))")
-                Text("--- DELTA ---")
-                Text("dPos: \(f3(pos.x, pos.y, pos.z))")
-                Text("dOri: \(f3(ori.x, ori.y, ori.z))")
-                Text("posMatch: \(arManager.isPositionMatched)")
-                Text("oriMatch: \(arManager.isOrientationMatched)")
-            }
-        }
-        .font(.system(size: 9, design: .monospaced))
-        .foregroundStyle(.green)
-        .padding(6)
-        .background(.black.opacity(0.7))
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-        .padding(.top, 40)
-        .padding(.trailing, 4)
-        .allowsHitTesting(false)
-    }
-
-    private func f3(_ x: Float, _ y: Float, _ z: Float) -> String {
-        String(format: "%.3f, %.3f, %.3f", x, y, z)
-    }
-
     private func handleCapture() async {
         guard !isSaving else { return }
         isSaving = true
@@ -252,6 +216,13 @@ struct ARCameraView: View {
                 try? await Task.sleep(for: .milliseconds(100))
             }
             let (image, transform, euler) = try await arManager.capturePhoto()
+            print("[AR-DEBUG] === CAPTURE (\(isBefore ? "BEFORE" : "AFTER")) ===")
+            print("[AR-DEBUG] tracking: \(arManager.trackingState)")
+            print(
+                "[AR-DEBUG] transform pos: \(transform.columns.3.x), \(transform.columns.3.y), \(transform.columns.3.z)"
+            )
+            print("[AR-DEBUG] euler (p/y/r): \(euler.x), \(euler.y), \(euler.z)")
+            print("[AR-DEBUG] worldMap: \(arManager.worldMappingStatus)")
             capturedPhoto = image
             let (pair, pairId) = try resolvePair()
             let photo = try savePhotoFiles(image: image, transform: transform, pairId: pairId)
