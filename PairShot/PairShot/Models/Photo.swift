@@ -35,8 +35,6 @@ final class Photo {
 
     var notes: String?
 
-    // MARK: - AR
-
     var worldMapPath: String?
 
     init(

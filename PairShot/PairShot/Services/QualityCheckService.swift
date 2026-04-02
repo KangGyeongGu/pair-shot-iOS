@@ -23,24 +23,22 @@ final class QualityCheckService {
         let ciImage = CIImage(cgImage: cgImage)
         let ciContext = context
 
-        let issue: QualityIssue? = await withCheckedContinuation { continuation in
-            DispatchQueue.global(qos: .utility).async {
-                var result: QualityIssue?
+        let issue = await Task.detached(priority: .utility) {
+            var result: QualityIssue?
 
-                if let blurScore = Self.calculateBlurScore(ciImage: ciImage, context: ciContext) {
-                    let threshold: Double = isLowLight ? 300 : 500
-                    if blurScore < threshold {
-                        result = .blurry
-                    }
+            if let blurScore = Self.calculateBlurScore(ciImage: ciImage, context: ciContext) {
+                let threshold: Double = isLowLight ? 300 : 500
+                if blurScore < threshold {
+                    result = .blurry
                 }
-
-                if case .none = result {
-                    result = Self.checkExposure(ciImage: ciImage, context: ciContext)
-                }
-
-                continuation.resume(returning: result)
             }
-        }
+
+            if case .none = result {
+                result = Self.checkExposure(ciImage: ciImage, context: ciContext)
+            }
+
+            return result
+        }.value
 
         lastIssue = issue
         return issue
