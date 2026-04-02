@@ -41,7 +41,7 @@ final class ARSessionManager: NSObject {
         // 좌우/앞뒤: 카메라 로컬 수평면 기준
         let fwd = Self.forwardVector(from: saved)
         let flatFwd = normalize(SIMD3<Float>(fwd.x, 0, fwd.z))
-        let flatRight = SIMD3<Float>(flatFwd.z, 0, -flatFwd.x)
+        let flatRight = SIMD3<Float>(-flatFwd.z, 0, flatFwd.x)
         let localX = simd_dot(worldDelta, flatRight)
         let localZ = simd_dot(worldDelta, flatFwd)
         // 위아래: world Y (중력 기준)

@@ -83,7 +83,7 @@ struct SixDOFGuideView: View {
             if abs(rollDelta) > orientationThreshold {
                 directionArrow(
                     icon: "rotate.3d",
-                    label: rollDelta > 0 ? "시계방향" : "반시계방향",
+                    label: rollDelta > 0 ? "반시계방향" : "시계방향",
                     value: abs(rollDelta),
                     threshold: orientationThreshold,
                     isAngle: true
