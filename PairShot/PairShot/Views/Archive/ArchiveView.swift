@@ -13,6 +13,8 @@ struct ArchiveView: View {
     @State private var renameText: String = ""
     @State private var showRenameAlert = false
     @State private var navigationPath = NavigationPath()
+    @State private var isSelectionMode = false
+    @State private var selectedProjects: Set<UUID> = []
 
     private let storage = PhotoStorageService()
 
@@ -28,10 +30,36 @@ struct ArchiveView: View {
             .navigationTitle("현장 목록")
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
-                    Button {
-                        showNewProjectSheet = true
-                    } label: {
-                        Image(systemName: "plus")
+                    if isSelectionMode {
+                        Button("완료") {
+                            isSelectionMode = false
+                            selectedProjects.removeAll()
+                        }
+                    } else {
+                        Menu {
+                            Button {
+                                showNewProjectSheet = true
+                            } label: {
+                                Label("새 현장 추가", systemImage: "plus")
+                            }
+                            Button {
+                                isSelectionMode = true
+                            } label: {
+                                Label("선택", systemImage: "checkmark.circle")
+                            }
+                        } label: {
+                            Image(systemName: "ellipsis.circle")
+                        }
+                    }
+                }
+                if isSelectionMode, !selectedProjects.isEmpty {
+                    ToolbarItem(placement: .bottomBar) {
+                        Button(role: .destructive) {
+                            showDeleteAlert = true
+                            projectToDelete = nil
+                        } label: {
+                            Label("선택 항목 삭제 (\(selectedProjects.count))", systemImage: "trash")
+                        }
                     }
                 }
             }
@@ -53,16 +81,24 @@ struct ArchiveView: View {
                 }
             }
         )
-        .alert("프로젝트 삭제", isPresented: $showDeleteAlert, presenting: projectToDelete) { project in
+        .alert("프로젝트 삭제", isPresented: $showDeleteAlert) {
             Button("삭제", role: .destructive) {
-                deleteProject(project)
-                projectToDelete = nil
+                if let single = projectToDelete {
+                    deleteProject(single)
+                    projectToDelete = nil
+                } else if !selectedProjects.isEmpty {
+                    deleteSelectedProjects()
+                }
             }
             Button("취소", role: .cancel) {
                 projectToDelete = nil
             }
-        } message: { _ in
-            Text("모든 사진이 삭제됩니다. 되돌릴 수 없습니다.")
+        } message: {
+            if let single = projectToDelete {
+                Text("'\(single.title)' 현장의 모든 사진이 삭제됩니다.")
+            } else {
+                Text("\(selectedProjects.count)개 현장의 모든 사진이 삭제됩니다.")
+            }
         }
         .alert("이름 변경", isPresented: $showRenameAlert) {
             TextField("현장 이름", text: $renameText)
@@ -100,49 +136,51 @@ struct ArchiveView: View {
     }
 
     private var projectList: some View {
-        List {
+        List(selection: isSelectionMode ? $selectedProjects : nil) {
             ForEach(projects) { project in
-                NavigationLink(value: project) {
+                if isSelectionMode {
                     ProjectRowView(project: project)
-                }
-                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                    Button(role: .destructive) {
-                        projectToDelete = project
-                        showDeleteAlert = true
-                    } label: {
-                        Label("삭제", systemImage: "trash")
+                        .tag(project.id)
+                } else {
+                    NavigationLink(value: project) {
+                        ProjectRowView(project: project)
                     }
-                }
-                .contextMenu {
-                    Button {
-                        projectToRename = project
-                        renameText = project.title
-                        showRenameAlert = true
-                    } label: {
-                        Label("이름 변경", systemImage: "pencil")
+                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                        Button(role: .destructive) {
+                            projectToDelete = project
+                            showDeleteAlert = true
+                        } label: {
+                            Label("삭제", systemImage: "trash")
+                        }
                     }
-
-                    Button(role: .destructive) {
-                        projectToDelete = project
-                        showDeleteAlert = true
-                    } label: {
-                        Label("삭제", systemImage: "trash")
+                    .contextMenu {
+                        Button {
+                            projectToRename = project
+                            renameText = project.title
+                            showRenameAlert = true
+                        } label: {
+                            Label("이름 변경", systemImage: "pencil")
+                        }
+                        Button(role: .destructive) {
+                            projectToDelete = project
+                            showDeleteAlert = true
+                        } label: {
+                            Label("삭제", systemImage: "trash")
+                        }
                     }
-                }
-                .onLongPressGesture {
-                    projectToRename = project
-                    renameText = project.title
-                    showRenameAlert = true
                 }
             }
 
-            Section {
-                newShootButton
-                    .listRowInsets(EdgeInsets())
-                    .listRowBackground(Color.clear)
+            if !isSelectionMode {
+                Section {
+                    newShootButton
+                        .listRowInsets(EdgeInsets())
+                        .listRowBackground(Color.clear)
+                }
             }
         }
         .listStyle(.insetGrouped)
+        .environment(\.editMode, .constant(isSelectionMode ? .active : .inactive))
     }
 
     private var newShootButton: some View {
@@ -167,10 +205,19 @@ struct ArchiveView: View {
 
     private func deleteProject(_ project: Project) {
         let projectId = project.id
-        Task {
-            await storage.deleteProject(projectId: projectId)
-        }
+        Task { await storage.deleteProject(projectId: projectId) }
         modelContext.delete(project)
+    }
+
+    private func deleteSelectedProjects() {
+        let toDelete = projects.filter { selectedProjects.contains($0.id) }
+        for project in toDelete {
+            let projectId = project.id
+            Task { await storage.deleteProject(projectId: projectId) }
+            modelContext.delete(project)
+        }
+        selectedProjects.removeAll()
+        isSelectionMode = false
     }
 }
 
