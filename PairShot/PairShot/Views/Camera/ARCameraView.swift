@@ -72,6 +72,10 @@ struct ARCameraView: View {
                             Spacer()
                         }
                     }
+
+                    if !isBefore {
+                        debugOverlay
+                    }
                 }
                 .aspectRatio(3.0 / 4.0, contentMode: .fit)
                 .clipped()
@@ -190,6 +194,50 @@ struct ARCameraView: View {
                     .padding(.vertical, 4)
                     .background(.black.opacity(0.5), in: Capsule())
         }
+    }
+
+    private var debugOverlay: some View {
+        let pos = arManager.positionDelta
+        let ori = arManager.orientationDelta
+        let cur = arManager.cameraTransform
+        let curE = arManager.cameraEulerAngles
+        let hasSaved = arManager.savedTransform != nil
+
+        return VStack(alignment: .leading, spacing: 2) {
+            Text("=== DEBUG ===").bold()
+            Text("tracking: \(String(describing: arManager.trackingState))")
+            Text("worldMap: \(String(describing: arManager.worldMappingStatus))")
+            Text("hasSaved: \(hasSaved)")
+            if hasSaved {
+                Text("--- SAVED ---")
+                if let s = arManager.savedTransform {
+                    Text("sPos: \(f3(s.columns.3.x, s.columns.3.y, s.columns.3.z))")
+                }
+                if let e = arManager.savedEulerAngles {
+                    Text("sEul: \(f3(e.x, e.y, e.z))")
+                }
+                Text("--- CURRENT ---")
+                Text("cPos: \(f3(cur.columns.3.x, cur.columns.3.y, cur.columns.3.z))")
+                Text("cEul: \(f3(curE.x, curE.y, curE.z))")
+                Text("--- DELTA ---")
+                Text("dPos: \(f3(pos.x, pos.y, pos.z))")
+                Text("dOri: \(f3(ori.x, ori.y, ori.z))")
+                Text("posMatch: \(arManager.isPositionMatched)")
+                Text("oriMatch: \(arManager.isOrientationMatched)")
+            }
+        }
+        .font(.system(size: 9, design: .monospaced))
+        .foregroundStyle(.green)
+        .padding(6)
+        .background(.black.opacity(0.7))
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+        .padding(.top, 40)
+        .padding(.trailing, 4)
+        .allowsHitTesting(false)
+    }
+
+    private func f3(_ x: Float, _ y: Float, _ z: Float) -> String {
+        String(format: "%.3f, %.3f, %.3f", x, y, z)
     }
 
     private func handleCapture() async {
