@@ -101,7 +101,7 @@ extension PairCameraView {
     }
 
     var heightDeltaCm: Double {
-        (sensorManager.currentRelativeAltitude - beforeRelativeAltitude) * 100
+        positionMatcher.verticalDisplacementCm
     }
 
     var distanceDeltaCm: Double {

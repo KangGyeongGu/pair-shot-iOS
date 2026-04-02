@@ -18,9 +18,7 @@ struct SixDOFGuideView: View {
             HStack(spacing: 6) {
                 if hasLiDAR {
                     lateralIndicator
-                }
-                heightIndicator
-                if hasLiDAR {
+                    heightIndicator
                     depthIndicator
                 }
                 yawIndicator

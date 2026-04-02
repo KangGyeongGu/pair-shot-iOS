@@ -1,7 +1,29 @@
 import AVFoundation
+import CoreVideo
 import SwiftData
 import SwiftUI
 import UIKit
+
+private nonisolated struct SendablePixelBuffer: @unchecked Sendable {
+    let buffer: CVPixelBuffer
+}
+
+@MainActor
+final class VideoFrameDelegate: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
+    var onFrame: ((CVPixelBuffer) -> Void)?
+
+    nonisolated func captureOutput(
+        _: AVCaptureOutput,
+        didOutput sampleBuffer: CMSampleBuffer,
+        from _: AVCaptureConnection
+    ) {
+        guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
+        let wrapped = SendablePixelBuffer(buffer: pixelBuffer)
+        Task { @MainActor [weak self] in
+            self?.onFrame?(wrapped.buffer)
+        }
+    }
+}
 
 struct PairCameraView: View {
     let project: Project
@@ -47,7 +69,9 @@ struct PairCameraView: View {
     @State var beforeRoll: Double = 0
     @State var beforeHeading: Double = 0
     @State var beforeDepth: Double = 0
-    @State var beforeRelativeAltitude: Double = 0
+
+    @State private var videoDelegate = VideoFrameDelegate()
+    @State private var videoOutput = AVCaptureVideoDataOutput()
 
     var body: some View {
         ZStack {
@@ -136,7 +160,6 @@ extension PairCameraView {
             beforeRoll = beforePhoto.roll ?? 0
             beforeHeading = beforePhoto.heading ?? 0
             beforeDepth = beforePhoto.depthAtCenter ?? 0
-            beforeRelativeAltitude = beforePhoto.relativeAltitude ?? 0
         }
     }
 
@@ -147,11 +170,26 @@ extension PairCameraView {
                 queue: cameraManager.captureSessionQueue
             )
         }
+        if !isBefore, depthService.isLiDARAvailable {
+            let matcher = positionMatcher
+            let depth = depthService
+            videoDelegate.onFrame = { buffer in
+                matcher.processFrame(
+                    buffer,
+                    depth: depth.centerDepth,
+                    focalLengthPx: depth.focalLengthPixels ?? 2800
+                )
+            }
+            let queue = DispatchQueue(label: "com.pairshot.videoframes")
+            videoOutput.setSampleBufferDelegate(videoDelegate, queue: queue)
+            cameraManager.addVideoDataOutput(videoOutput, on: cameraManager.captureSessionQueue)
+        }
     }
 
     func onViewDisappear() {
         depthService.stopStreaming()
         positionMatcher.stop()
+        cameraManager.removeOutput(videoOutput, on: cameraManager.captureSessionQueue)
         cameraManager.stopSession()
     }
 

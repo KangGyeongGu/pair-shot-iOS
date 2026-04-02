@@ -21,7 +21,6 @@ protocol SensorServiceProtocol: AnyObject {
     var currentYaw: Double { get }
     var currentHeading: Double { get }
     var currentLocation: CLLocationCoordinate2D? { get }
-    var currentRelativeAltitude: Double { get }
     var isMotionAuthorized: Bool { get }
     var isLocationAuthorized: Bool { get }
 
