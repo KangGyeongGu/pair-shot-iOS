@@ -1,3 +1,4 @@
+@preconcurrency import ARKit
 import AVFoundation
 import SwiftData
 import SwiftUI
@@ -16,7 +17,7 @@ struct CameraView: View {
 
     @State private var cameraManager = CameraManager()
     @State private var cameraSettings = CameraSettings()
-    @State private var hapticService = HapticService()
+    @State var hapticService = HapticService()
     @State private var lowLightManager = LowLightManager()
     @State private var sensorManager = SensorManager()
 
@@ -38,6 +39,8 @@ struct CameraView: View {
     @State private var ghostAutoActivated: Bool = false
     @State private var ghostDefaultOpacity: Double = 0.25
     @State private var beforeImage: UIImage?
+    @State var arSessionManager = ARSessionManager()
+    @State var isARRelocalized = false
 
     var body: some View {
         ZStack {
@@ -71,30 +74,7 @@ struct CameraView: View {
                             .position(point)
                         }
 
-                        if !isBefore {
-                            GhostOverlayView(beforeImage: beforeImage, opacity: $ghostOpacity)
-
-                            if ghostOpacity > 0 {
-                                GhostOpacitySlider(opacity: $ghostOpacity) { newValue in
-                                    ghostDefaultOpacity = newValue
-                                }
-                            }
-
-                            if let target = existingPair?.beforePhoto,
-                               target.pitch != nil
-                            {
-                                SensorGuideView(
-                                    currentPitch: sensorManager.currentPitch,
-                                    currentRoll: sensorManager.currentRoll,
-                                    currentYaw: sensorManager.currentYaw,
-                                    targetPitch: target.pitch ?? 0,
-                                    targetRoll: target.roll ?? 0,
-                                    targetYaw: target.yaw ?? 0
-                                )
-                                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-                                .allowsHitTesting(false)
-                            }
-                        }
+                        if !isBefore { afterModeOverlays }
                     }
                     .contentShape(Rectangle())
                     .simultaneousGesture(
@@ -247,6 +227,7 @@ struct CameraView: View {
                     beforeImage = image.downscaledTo1080p()
                 }
             }
+            await loadWorldMapIfNeeded()
         }
         .onAppear {
             sensorManager.startUpdates()
@@ -258,6 +239,7 @@ struct CameraView: View {
             hapticService.stopHaptic()
             sensorManager.stopUpdates()
             cameraManager.stopSession()
+            arSessionManager.stopSession()
         }
         .onChange(of: sensorManager.currentPitch) { _, _ in
             guard !isBefore, let alignment = sensorAlignment else { return }
@@ -303,10 +285,47 @@ struct CameraView: View {
             cameraManager.resetFocusAndExposure()
             showFocusIndicator = false
         }
+        .onChange(of: arSessionManager.worldMappingStatus) { _, status in
+            if status == .mapped, !isARRelocalized {
+                isARRelocalized = true
+            }
+        }
+        .onChange(of: arSessionManager.isPositionMatched) { _, matched in
+            if matched { hapticService.triggerSuccess() }
+        }
     }
 }
 
 extension CameraView {
+    @ViewBuilder var afterModeOverlays: some View {
+        GhostOverlayView(beforeImage: beforeImage, opacity: $ghostOpacity)
+        if ghostOpacity > 0 {
+            GhostOpacitySlider(opacity: $ghostOpacity) { newValue in
+                ghostDefaultOpacity = newValue
+            }
+        }
+        if let target = existingPair?.beforePhoto, target.pitch != nil {
+            SensorGuideView(
+                currentPitch: sensorManager.currentPitch,
+                currentRoll: sensorManager.currentRoll,
+                currentYaw: sensorManager.currentYaw,
+                targetPitch: target.pitch ?? 0,
+                targetRoll: target.roll ?? 0,
+                targetYaw: target.yaw ?? 0
+            )
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+            .allowsHitTesting(false)
+        }
+        if isARRelocalized, !arSessionManager.isPositionMatched {
+            ARPositionGuideView(
+                positionDelta: arSessionManager.positionDelta,
+                threshold: arSessionManager.positionThreshold,
+                isPositionMatched: arSessionManager.isPositionMatched
+            )
+            .allowsHitTesting(false)
+        }
+    }
+
     private var sensorAlignment: SensorAlignment? {
         guard let target = existingPair?.beforePhoto,
               let tPitch = target.pitch,
@@ -501,6 +520,9 @@ extension CameraView {
             if let pair = project.pairs.first(where: { $0.id == result.pairId }) {
                 pair.beforePhoto = photo
                 pair.status = .pendingAfter
+                if arSessionManager.isARSupported {
+                    Task { await captureAndSaveWorldMap(for: photo, pairId: pair.id) }
+                }
             }
         } else if let pair = existingPair, pair.id == result.pairId {
             pair.afterPhoto = photo
