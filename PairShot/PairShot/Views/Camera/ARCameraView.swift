@@ -190,6 +190,12 @@ struct ARCameraView: View {
                 try? await Task.sleep(for: .milliseconds(100))
             }
             let (image, transform) = try await arManager.capturePhoto()
+            let fwd = -SIMD3<Float>(transform.columns.2.x, transform.columns.2.y, transform.columns.2.z)
+            print(
+                "[AR-CAM] CAPTURE \(isBefore ? "BEFORE" : "AFTER") pos: \(transform.columns.3.x), \(transform.columns.3.y), \(transform.columns.3.z)"
+            )
+            print("[AR-CAM] CAPTURE forward: \(fwd.x), \(fwd.y), \(fwd.z)")
+            print("[AR-CAM] session running: \(arManager.isSessionRunning), tracking: \(arManager.trackingState)")
             capturedPhoto = image
             let (pair, pairId) = try resolvePair()
             let photo = try savePhotoFiles(image: image, transform: transform, pairId: pairId)
@@ -259,12 +265,23 @@ struct ARCameraView: View {
     }
 
     private func restoreSavedPose() {
-        guard let beforePhoto = existingPair?.beforePhoto else { return }
+        guard let beforePhoto = existingPair?.beforePhoto else {
+            print("[AR-CAM] restoreSavedPose: no beforePhoto")
+            return
+        }
         if let transformData = beforePhoto.arTransformData,
            transformData.count == MemoryLayout<simd_float4x4>.size
         {
             let transform = transformData.withUnsafeBytes { $0.load(as: simd_float4x4.self) }
             arManager.setSavedPose(transform: transform)
+            let fwd = -SIMD3<Float>(transform.columns.2.x, transform.columns.2.y, transform.columns.2.z)
+            print(
+                "[AR-CAM] restored savedPose pos: \(transform.columns.3.x), \(transform.columns.3.y), \(transform.columns.3.z)"
+            )
+            print("[AR-CAM] restored forward: \(fwd.x), \(fwd.y), \(fwd.z)")
+            print("[AR-CAM] session running: \(arManager.isSessionRunning)")
+        } else {
+            print("[AR-CAM] restoreSavedPose: no arTransformData")
         }
     }
 
