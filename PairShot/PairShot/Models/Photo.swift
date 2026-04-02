@@ -21,6 +21,10 @@ final class Photo {
 
     var worldMapPath: String?
     var arTransformData: Data?
+    var depthAtCenter: Double?
+    var relativeAltitude: Double?
+    var referenceImagePath: String?
+    var focalLength: Double?
 
     init(
         id: UUID = UUID(),
@@ -36,7 +40,11 @@ final class Photo {
         yaw: Double? = nil,
         notes: String? = nil,
         worldMapPath: String? = nil,
-        arTransformData: Data? = nil
+        arTransformData: Data? = nil,
+        depthAtCenter _: Double? = nil,
+        relativeAltitude _: Double? = nil,
+        referenceImagePath _: String? = nil,
+        focalLength _: Double? = nil
     ) {
         self.id = id
         self.filePath = filePath
@@ -52,5 +60,9 @@ final class Photo {
         self.notes = notes
         self.worldMapPath = worldMapPath
         self.arTransformData = arTransformData
+        depthAtCenter = depthAtCenter
+        relativeAltitude = relativeAltitude
+        referenceImagePath = referenceImagePath
+        focalLength = focalLength
     }
 }
