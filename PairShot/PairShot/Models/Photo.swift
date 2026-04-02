@@ -41,10 +41,10 @@ final class Photo {
         notes: String? = nil,
         worldMapPath: String? = nil,
         arTransformData: Data? = nil,
-        depthAtCenter _: Double? = nil,
-        relativeAltitude _: Double? = nil,
-        referenceImagePath _: String? = nil,
-        focalLength _: Double? = nil
+        depthAtCenter: Double? = nil,
+        relativeAltitude: Double? = nil,
+        referenceImagePath: String? = nil,
+        focalLength: Double? = nil
     ) {
         self.id = id
         self.filePath = filePath
@@ -60,9 +60,9 @@ final class Photo {
         self.notes = notes
         self.worldMapPath = worldMapPath
         self.arTransformData = arTransformData
-        depthAtCenter = depthAtCenter
-        relativeAltitude = relativeAltitude
-        referenceImagePath = referenceImagePath
-        focalLength = focalLength
+        self.depthAtCenter = depthAtCenter
+        self.relativeAltitude = relativeAltitude
+        self.referenceImagePath = referenceImagePath
+        self.focalLength = focalLength
     }
 }
