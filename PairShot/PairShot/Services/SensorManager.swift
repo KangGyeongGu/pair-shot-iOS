@@ -3,10 +3,6 @@ import CoreMotion
 import Foundation
 import Observation
 
-/// Core Motion + Core Location 통합 센서 매니저
-///
-/// - CMMotionManager는 Sendable이 아니므로 mainQueue 콜백만 사용
-/// - Low-pass filter: filtered = alpha * new + (1-alpha) * filtered, alpha = 0.15
 @MainActor
 @Observable
 final class SensorManager: NSObject, SensorServiceProtocol {
@@ -85,9 +81,15 @@ final class SensorManager: NSObject, SensorServiceProtocol {
         isMotionAuthorized = true
         motionManager.deviceMotionUpdateInterval = Constants.motionUpdateInterval
 
+        let available = CMMotionManager.availableAttitudeReferenceFrames()
+        let referenceFrame: CMAttitudeReferenceFrame =
+            available.contains(.xArbitraryCorrectedZVertical)
+                ? .xArbitraryCorrectedZVertical
+                : .xArbitraryZVertical
+
         // CMMotionManager는 Sendable이 아니므로 OperationQueue.main 사용
         motionManager.startDeviceMotionUpdates(
-            using: .xArbitraryZVertical,
+            using: referenceFrame,
             to: .main
         ) { [weak self] motion, error in
             guard let self, let motion, error == nil else { return }
@@ -160,7 +162,13 @@ extension SensorManager: CLLocationManagerDelegate {
         Task { @MainActor [weak self] in
             guard let self else { return }
             let alpha = Constants.lowPassAlpha
-            currentHeading = alpha * magnetic + (1.0 - alpha) * currentHeading
+            // 360도 경계 wraparound 보정: 355→5 전환 시 점프 방지
+            var delta = magnetic - currentHeading
+            if delta > 180 { delta -= 360 }
+            if delta < -180 { delta += 360 }
+            var updated = (currentHeading + alpha * delta).truncatingRemainder(dividingBy: 360)
+            if updated < 0 { updated += 360 }
+            currentHeading = updated
         }
     }
 
