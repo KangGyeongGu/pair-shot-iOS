@@ -6,6 +6,7 @@ import UIKit
 struct PairCameraView: View {
     let project: Project
     var existingPair: PhotoPair?
+    let sensorManager: SensorManager
 
     var isBefore: Bool {
         existingPair == nil
@@ -16,7 +17,6 @@ struct PairCameraView: View {
 
     @State var cameraManager = CameraManager()
     @State var cameraSettings = CameraSettings()
-    @State var sensorManager = SensorManager()
     @State var depthService = DepthCaptureService()
     @State var positionMatcher = PositionMatchingService()
     @State var hapticService = HapticService()
@@ -141,9 +141,6 @@ extension PairCameraView {
     }
 
     func onViewAppear() {
-        sensorManager.startUpdates()
-        sensorManager.requestLocationAuthorization()
-
         if depthService.isLiDARAvailable {
             depthService.configure(
                 session: cameraManager.captureSession,
@@ -153,8 +150,6 @@ extension PairCameraView {
     }
 
     func onViewDisappear() {
-        hapticService.stopHaptic()
-        sensorManager.stopUpdates()
         depthService.stopStreaming()
         positionMatcher.stop()
         cameraManager.stopSession()
@@ -313,7 +308,7 @@ extension PairCameraView {
         let project = Project(title: "미리보기 현장")
         container.mainContext.insert(project)
         return AnyView(
-            PairCameraView(project: project)
+            PairCameraView(project: project, sensorManager: SensorManager())
                 .modelContainer(container)
         )
     } catch {
