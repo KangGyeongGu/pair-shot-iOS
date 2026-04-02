@@ -60,7 +60,7 @@ struct ArchiveView: View {
             isPresented: $showNewProjectSheet,
             onDismiss: {
                 if let project = pendingProject {
-                    cameraDestination = .beforeCamera(project: project)
+                    navigationPath.append(project)
                     pendingProject = nil
                 }
             },
