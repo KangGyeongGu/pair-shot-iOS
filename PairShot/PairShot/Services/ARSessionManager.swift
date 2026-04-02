@@ -73,6 +73,10 @@ final class ARSessionManager: NSObject {
         }
     }
 
+    func raycast(_ query: ARRaycastQuery) -> [ARRaycastResult] {
+        session.raycast(query)
+    }
+
     func saveWorldMap(_ worldMap: ARWorldMap, to url: URL) throws {
         let data = try NSKeyedArchiver.archivedData(withRootObject: worldMap, requiringSecureCoding: true)
         try data.write(to: url)
