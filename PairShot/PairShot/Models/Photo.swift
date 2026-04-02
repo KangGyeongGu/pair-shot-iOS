@@ -35,6 +35,10 @@ final class Photo {
 
     var notes: String?
 
+    // MARK: - AR
+
+    var worldMapPath: String?
+
     init(
         id: UUID = UUID(),
         filePath: String,
@@ -47,7 +51,8 @@ final class Photo {
         pitch: Double? = nil,
         roll: Double? = nil,
         yaw: Double? = nil,
-        notes: String? = nil
+        notes: String? = nil,
+        worldMapPath: String? = nil
     ) {
         self.id = id
         self.filePath = filePath
@@ -61,5 +66,6 @@ final class Photo {
         self.roll = roll
         self.yaw = yaw
         self.notes = notes
+        self.worldMapPath = worldMapPath
     }
 }
