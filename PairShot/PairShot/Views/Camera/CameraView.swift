@@ -34,7 +34,9 @@ struct CameraView: View {
     @State private var isDraggingExposure = false
     @State private var exposureDragStartY: CGFloat = 0
     @State private var exposureBiasAtDragStart: Float = 0
-    @State private var ghostOpacity: Double = 0.4
+    @State private var ghostOpacity: Double = 0.0
+    @State private var ghostAutoActivated: Bool = false
+    @State private var ghostDefaultOpacity: Double = 0.25
     @State private var beforeImage: UIImage?
 
     var body: some View {
@@ -72,6 +74,12 @@ struct CameraView: View {
                         if !isBefore {
                             GhostOverlayView(beforeImage: beforeImage, opacity: $ghostOpacity)
 
+                            if ghostOpacity > 0 {
+                                GhostOpacitySlider(opacity: $ghostOpacity) { newValue in
+                                    ghostDefaultOpacity = newValue
+                                }
+                            }
+
                             if let target = existingPair?.beforePhoto,
                                target.pitch != nil
                             {
@@ -92,6 +100,9 @@ struct CameraView: View {
                     .simultaneousGesture(
                         SpatialTapGesture()
                             .onEnded { value in
+                                if !isBefore, ghostAutoActivated {
+                                    ghostOpacity = ghostOpacity > 0 ? 0.0 : ghostDefaultOpacity
+                                }
                                 let location = value.location
                                 cameraManager.focusAndExpose(at: location)
                                 focusPoint = location
@@ -250,6 +261,10 @@ struct CameraView: View {
         }
         .onChange(of: sensorManager.currentPitch) { _, _ in
             guard !isBefore, let alignment = sensorAlignment else { return }
+            if alignment.isPositioning, !ghostAutoActivated {
+                ghostOpacity = ghostDefaultOpacity
+                ghostAutoActivated = true
+            }
             if alignment.stage == .aligning, alignment.isAligned {
                 hapticService.triggerSuccess()
                 hapticService.stopHaptic()
