@@ -1,9 +1,19 @@
 import SwiftUI
 
+enum GuidanceStage {
+    case locating
+    case positioning
+    case aligning
+}
+
 struct SensorAlignment {
     static let pitchTolerance: Double = 0.0349
     static let rollTolerance: Double = 0.0349
     static let yawTolerance: Double = 0.0873
+
+    static let positioningThreshold: Double = 0.1745
+    static let aligningPitchRoll: Double = 0.0349
+    static let aligningYaw: Double = 0.0873
 
     private static let weightPitch: Double = 1.0
     private static let weightRoll: Double = 1.0
@@ -24,6 +34,26 @@ struct SensorAlignment {
         deltaPitch = currentPitch - targetPitch
         deltaRoll = currentRoll - targetRoll
         deltaYaw = currentYaw - targetYaw
+    }
+
+    var stage: GuidanceStage {
+        if abs(deltaPitch) <= Self.aligningPitchRoll,
+           abs(deltaRoll) <= Self.aligningPitchRoll,
+           abs(deltaYaw) <= Self.aligningYaw
+        {
+            .aligning
+        } else if abs(deltaPitch) <= Self.positioningThreshold,
+                  abs(deltaRoll) <= Self.positioningThreshold,
+                  abs(deltaYaw) <= Self.positioningThreshold
+        {
+            .positioning
+        } else {
+            .locating
+        }
+    }
+
+    var isPositioning: Bool {
+        stage == .positioning || stage == .aligning
     }
 
     var isAligned: Bool {

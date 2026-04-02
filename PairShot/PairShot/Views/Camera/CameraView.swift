@@ -249,13 +249,12 @@ struct CameraView: View {
             cameraManager.stopSession()
         }
         .onChange(of: sensorManager.currentPitch) { _, _ in
-            guard !isBefore else { return }
-            let score = alignmentScore
-            if score >= 0.95 {
+            guard !isBefore, let alignment = sensorAlignment else { return }
+            if alignment.stage == .aligning, alignment.isAligned {
                 hapticService.triggerSuccess()
                 hapticService.stopHaptic()
             } else {
-                hapticService.updateIntensity(alignmentScore: score)
+                hapticService.updateIntensity(alignmentScore: alignment.alignmentScore)
             }
         }
         .onChange(of: cameraManager.saveResult) { _, result in
@@ -293,23 +292,20 @@ struct CameraView: View {
 }
 
 extension CameraView {
-    private var alignmentScore: Double {
+    private var sensorAlignment: SensorAlignment? {
         guard let target = existingPair?.beforePhoto,
               let tPitch = target.pitch,
               let tRoll = target.roll,
               let tYaw = target.yaw
-        else { return 0.0 }
-
-        let tolerance = 5.0 * (.pi / 180.0)
-        let pitchDiff = abs(sensorManager.currentPitch - tPitch)
-        let rollDiff = abs(sensorManager.currentRoll - tRoll)
-        let yawDiff = abs(sensorManager.currentYaw - tYaw)
-
-        let pitchScore = max(0.0, 1.0 - pitchDiff / tolerance)
-        let rollScore = max(0.0, 1.0 - rollDiff / tolerance)
-        let yawScore = max(0.0, 1.0 - yawDiff / tolerance)
-
-        return (pitchScore + rollScore + yawScore) / 3.0
+        else { return nil }
+        return SensorAlignment(
+            currentPitch: sensorManager.currentPitch,
+            currentRoll: sensorManager.currentRoll,
+            currentYaw: sensorManager.currentYaw,
+            targetPitch: tPitch,
+            targetRoll: tRoll,
+            targetYaw: tYaw
+        )
     }
 
     private var torchIndicator: some View {

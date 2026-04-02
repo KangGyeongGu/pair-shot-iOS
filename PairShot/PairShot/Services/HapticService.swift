@@ -63,7 +63,7 @@ final class HapticService {
     }
 
     static func clampedIntensity(_ score: Double) -> Float {
-        Float(max(0.0, min(score, 1.0)))
+        Float(max(0.0, min(1.0 - score, 1.0)))
     }
 
     func updateIntensity(alignmentScore: Double) {
