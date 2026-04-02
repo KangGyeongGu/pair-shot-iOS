@@ -111,11 +111,20 @@ struct PairCameraView: View {
         }
         .task { await loadCameraAndSetup() }
         .task {
-            if !isBefore, let refPath = existingPair?.beforePhoto?.referenceImagePath {
-                let docsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-                let url = docsURL.appendingPathComponent(refPath)
-                if let cgImage = UIImage(contentsOfFile: url.path)?.cgImage {
-                    positionMatcher.setReferenceImage(cgImage)
+            if !isBefore {
+                let refPath = existingPair?.beforePhoto?.referenceImagePath
+                print("[PAIR-CAM] refPath=\(refPath ?? "nil")")
+                if let refPath {
+                    let docsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+                    let url = docsURL.appendingPathComponent(refPath)
+                    let exists = FileManager.default.fileExists(atPath: url.path)
+                    print("[PAIR-CAM] refImage exists=\(exists), path=\(url.path)")
+                    if let cgImage = UIImage(contentsOfFile: url.path)?.cgImage {
+                        positionMatcher.setReferenceImage(cgImage)
+                        print("[PAIR-CAM] setReferenceImage OK, isActive=\(positionMatcher.isActive)")
+                    } else {
+                        print("[PAIR-CAM] Failed to load reference image")
+                    }
                 }
             }
         }
@@ -171,9 +180,20 @@ extension PairCameraView {
             )
         }
         if !isBefore, depthService.isLiDARAvailable {
+            print("[PAIR-CAM] Setting up video frame delegate for Vision matching")
             let matcher = positionMatcher
             let depth = depthService
+            var frameCount = 0
             videoDelegate.onFrame = { buffer in
+                frameCount += 1
+                if frameCount % 30 == 1 {
+                    print(
+                        "[PAIR-CAM] frame #\(frameCount), depth=\(depth.centerDepth), fx=\(depth.focalLengthPixels ?? 0), matcher.isActive=\(matcher.isActive)"
+                    )
+                    print(
+                        "[PAIR-CAM] lateral=\(matcher.lateralDisplacementCm), vertical=\(matcher.verticalDisplacementCm)"
+                    )
+                }
                 matcher.processFrame(
                     buffer,
                     depth: depth.centerDepth,
@@ -183,6 +203,10 @@ extension PairCameraView {
             let queue = DispatchQueue(label: "com.pairshot.videoframes")
             videoOutput.setSampleBufferDelegate(videoDelegate, queue: queue)
             cameraManager.addVideoDataOutput(videoOutput, on: cameraManager.captureSessionQueue)
+        } else {
+            print(
+                "[PAIR-CAM] Video delegate NOT set up: isBefore=\(isBefore), hasLiDAR=\(depthService.isLiDARAvailable)"
+            )
         }
     }
 
@@ -269,7 +293,7 @@ extension PairCameraView {
         var refImagePath: String?
         if result.isBefore {
             refImagePath = saveReferenceImage(
-                projectId: result.pairId,
+                projectId: project.id,
                 pairId: result.pairId,
                 filePath: result.filePath,
                 docsURL: docsURL
