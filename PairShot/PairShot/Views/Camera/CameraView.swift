@@ -369,7 +369,7 @@ extension CameraView {
                 beforeImage = image.downscaledTo1080p()
             }
         }
-        await loadWorldMapIfNeeded()
+        // AR 기능은 ARCameraView로 이전됨
     }
 
     private func onViewAppear() {

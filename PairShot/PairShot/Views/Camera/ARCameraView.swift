@@ -126,11 +126,19 @@ struct ARCameraView: View {
                 let wmURL = docsURL.appendingPathComponent(wmPath)
                 if let worldMap = try? arManager.loadWorldMap(from: wmURL) {
                     arManager.startSession(withWorldMap: worldMap)
-                    if let savedData = existingPair?.beforePhoto?.arTransformData,
-                       savedData.count == 64
+                    if let transformData = existingPair?.beforePhoto?.arTransformData,
+                       transformData.count == MemoryLayout<simd_float4x4>.size,
+                       let eulerData = existingPair?.beforePhoto?.arEulerData,
+                       eulerData.count == MemoryLayout<simd_float3>.size
                     {
-                        let transform = savedData.withUnsafeBytes { $0.load(as: simd_float4x4.self) }
-                        arManager.setSavedAnchorTransform(transform)
+                        let transform = transformData.withUnsafeBytes { $0.load(as: simd_float4x4.self) }
+                        let euler = eulerData.withUnsafeBytes { $0.load(as: simd_float3.self) }
+                        arManager.setSavedPose(transform: transform, eulerAngles: euler)
+                    } else if let transformData = existingPair?.beforePhoto?.arTransformData,
+                              transformData.count == MemoryLayout<simd_float4x4>.size
+                    {
+                        let transform = transformData.withUnsafeBytes { $0.load(as: simd_float4x4.self) }
+                        arManager.setSavedPose(transform: transform, eulerAngles: .zero)
                     }
                 } else {
                     arManager.startSession()
@@ -200,10 +208,15 @@ struct ARCameraView: View {
         defer { isSaving = false }
 
         do {
-            let (image, transform) = try await arManager.capturePhoto()
+            let (image, transform, euler) = try await arManager.capturePhoto()
             capturedPhoto = image
             let (pair, pairId) = try resolvePair()
             let photo = try savePhotoFiles(image: image, transform: transform, pairId: pairId)
+            var eulerCopy = euler
+            photo.arEulerData = Data(bytes: &eulerCopy, count: MemoryLayout<simd_float3>.size)
+            photo.pitch = Double(euler.x)
+            photo.roll = Double(euler.z)
+            photo.yaw = Double(euler.y)
             modelContext.insert(photo)
             await applyPhotoToPair(pair: pair, photo: photo, image: image, pairId: pairId)
         } catch {
@@ -222,7 +235,11 @@ struct ARCameraView: View {
         return (existing, existing.id)
     }
 
-    private func savePhotoFiles(image: UIImage, transform: simd_float4x4, pairId: UUID) throws -> Photo {
+    private func savePhotoFiles(
+        image: UIImage,
+        transform: simd_float4x4,
+        pairId: UUID
+    ) throws -> Photo {
         let docsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         let subDir = isBefore ? "before" : "after"
         let photoPath = "projects/\(project.id)/pairs/\(pairId)/\(subDir).jpg"
@@ -247,7 +264,6 @@ struct ARCameraView: View {
         return Photo(
             filePath: photoPath,
             thumbnailPath: thumbPath,
-            pitch: Double(transform.columns.2.y),
             arTransformData: transformData
         )
     }
@@ -279,11 +295,7 @@ struct ARCameraView: View {
     }
 
     private func saveWorldMap(for photo: Photo, pairId: UUID) async {
-        // transform은 항상 저장 (worldMap 실패해도 orientation 가이드는 동작)
-        arManager.saveCurrentTransform()
-        var currentTransform = arManager.cameraTransform
-        photo.arTransformData = Data(bytes: &currentTransform, count: MemoryLayout<simd_float4x4>.size)
-
+        // arTransformData/arEulerData는 savePhotoFiles에서 캡처 시점 값으로 이미 저장됨
         // worldMap 저장 시도 (최대 3초 대기)
         for _ in 0 ..< 30 {
             if arManager.worldMappingStatus == .mapped { break }

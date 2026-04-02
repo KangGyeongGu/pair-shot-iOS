@@ -37,6 +37,7 @@ final class Photo {
 
     var worldMapPath: String?
     var arTransformData: Data?
+    var arEulerData: Data?
 
     init(
         id: UUID = UUID(),
@@ -52,7 +53,8 @@ final class Photo {
         yaw: Double? = nil,
         notes: String? = nil,
         worldMapPath: String? = nil,
-        arTransformData: Data? = nil
+        arTransformData: Data? = nil,
+        arEulerData: Data? = nil
     ) {
         self.id = id
         self.filePath = filePath
@@ -68,5 +70,6 @@ final class Photo {
         self.notes = notes
         self.worldMapPath = worldMapPath
         self.arTransformData = arTransformData
+        self.arEulerData = arEulerData
     }
 }

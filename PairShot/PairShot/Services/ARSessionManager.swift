@@ -27,6 +27,7 @@ final class ARSessionManager: NSObject {
     private(set) var isARSupported: Bool = false
 
     private(set) var savedTransform: simd_float4x4?
+    private(set) var savedEulerAngles: simd_float3?
 
     var positionThreshold: Float {
         hasLiDAR ? 0.05 : 0.15
@@ -42,9 +43,8 @@ final class ARSessionManager: NSObject {
     }
 
     var orientationDelta: simd_float3 {
-        guard let saved = savedTransform else { return .zero }
-        let savedEuler = eulerAngles(from: saved)
-        return cameraEulerAngles - savedEuler
+        guard let saved = savedEulerAngles else { return .zero }
+        return cameraEulerAngles - saved
     }
 
     var isPositionMatched: Bool {
@@ -100,15 +100,17 @@ final class ARSessionManager: NSObject {
         session.pause()
         isSessionRunning = false
         savedTransform = nil
+        savedEulerAngles = nil
     }
 
-    func saveCurrentTransform() {
+    func saveCurrentPose() {
         savedTransform = cameraTransform
+        savedEulerAngles = cameraEulerAngles
     }
 
-    /// Backward compat shim used by CameraView+AR
-    func setSavedAnchorTransform(_ transform: simd_float4x4) {
+    func setSavedPose(transform: simd_float4x4, eulerAngles: simd_float3) {
         savedTransform = transform
+        savedEulerAngles = eulerAngles
     }
 
     func captureWorldMap() async throws -> ARWorldMap {
@@ -139,7 +141,7 @@ final class ARSessionManager: NSObject {
         return worldMap
     }
 
-    func capturePhoto() async throws -> (UIImage, simd_float4x4) {
+    func capturePhoto() async throws -> (UIImage, simd_float4x4, simd_float3) {
         guard isSessionRunning else { throw ARSessionError.sessionNotRunning }
         let frame: ARFrame = try await withCheckedThrowingContinuation { continuation in
             session.captureHighResolutionFrame { frame, error in
@@ -160,18 +162,11 @@ final class ARSessionManager: NSObject {
             throw ARSessionError.pixelBufferConversionFailed
         }
         let image = UIImage(cgImage: cgImage)
-        return (image, frame.camera.transform)
+        return (image, frame.camera.transform, frame.camera.eulerAngles)
     }
 
     func raycast(_ query: ARRaycastQuery) -> [ARRaycastResult] {
         session.raycast(query)
-    }
-
-    private func eulerAngles(from transform: simd_float4x4) -> simd_float3 {
-        let pitch = asin(-transform.columns.2.y)
-        let yaw = atan2(transform.columns.2.x, transform.columns.2.z)
-        let roll = atan2(transform.columns.1.x, transform.columns.0.x)
-        return simd_float3(pitch, yaw, roll)
     }
 }
 

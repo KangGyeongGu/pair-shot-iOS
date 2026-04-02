@@ -26,6 +26,7 @@ struct SixDOFGuideView: View {
 
     private var positionGuideSection: some View {
         HStack(spacing: 16) {
+            // delta = current - saved; delta > 0 → 현재가 오른쪽 → 왼쪽으로 이동해야 함
             if abs(positionDelta.x) > positionThreshold {
                 directionArrow(
                     icon: positionDelta.x > 0 ? "arrow.left" : "arrow.right",
@@ -34,6 +35,7 @@ struct SixDOFGuideView: View {
                     threshold: positionThreshold
                 )
             }
+            // delta > 0 → 현재가 위 → 아래로 이동해야 함
             if abs(positionDelta.y) > positionThreshold {
                 directionArrow(
                     icon: positionDelta.y > 0 ? "arrow.down" : "arrow.up",
@@ -42,10 +44,11 @@ struct SixDOFGuideView: View {
                     threshold: positionThreshold
                 )
             }
+            // delta > 0 → 현재가 뒤 → 앞으로 이동해야 함
             if abs(positionDelta.z) > positionThreshold {
                 directionArrow(
-                    icon: positionDelta.z > 0 ? "arrow.up.forward" : "arrow.down.backward",
-                    label: positionDelta.z > 0 ? "뒤로" : "앞으로",
+                    icon: positionDelta.z > 0 ? "arrow.down.backward" : "arrow.up.forward",
+                    label: positionDelta.z > 0 ? "앞으로" : "뒤로",
                     distance: abs(positionDelta.z),
                     threshold: positionThreshold
                 )
@@ -55,26 +58,29 @@ struct SixDOFGuideView: View {
 
     private var orientationGuideSection: some View {
         HStack(spacing: 16) {
+            // pitch(x): delta > 0 → 현재가 더 위로 기울어짐 → 아래로 기울여야
             if abs(orientationDelta.x) > orientationThreshold {
                 directionArrow(
-                    icon: orientationDelta.x > 0 ? "iphone.gen3.radiowaves.left.and.right" : "iphone.gen3",
+                    icon: orientationDelta.x > 0 ? "iphone.gen3" : "iphone.gen3.radiowaves.left.and.right",
                     label: orientationDelta.x > 0 ? "아래로 기울여" : "위로 들어",
                     distance: abs(orientationDelta.x),
                     threshold: orientationThreshold
                 )
             }
+            // yaw(y): delta > 0 → 현재가 더 왼쪽 회전 → 오른쪽으로 돌아야
             if abs(orientationDelta.y) > orientationThreshold {
                 directionArrow(
-                    icon: orientationDelta.y > 0 ? "rotate.left" : "rotate.right",
-                    label: orientationDelta.y > 0 ? "왼쪽 회전" : "오른쪽 회전",
+                    icon: orientationDelta.y > 0 ? "rotate.right" : "rotate.left",
+                    label: orientationDelta.y > 0 ? "오른쪽 회전" : "왼쪽 회전",
                     distance: abs(orientationDelta.y),
                     threshold: orientationThreshold
                 )
             }
+            // roll(z): delta > 0 → 현재가 더 시계방향 → 반시계방향으로 돌려야
             if abs(orientationDelta.z) > orientationThreshold {
                 directionArrow(
                     icon: "rotate.3d",
-                    label: orientationDelta.z > 0 ? "시계방향" : "반시계방향",
+                    label: orientationDelta.z > 0 ? "반시계방향" : "시계방향",
                     distance: abs(orientationDelta.z),
                     threshold: orientationThreshold
                 )
