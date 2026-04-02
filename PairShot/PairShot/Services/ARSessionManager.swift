@@ -43,8 +43,22 @@ final class ARSessionManager: NSObject {
     }
 
     var orientationDelta: simd_float3 {
-        guard let saved = savedEulerAngles else { return .zero }
-        return cameraEulerAngles - saved
+        guard let saved = savedTransform else { return .zero }
+        let savedRot = simd_float3x3(
+            SIMD3<Float>(saved.columns.0.x, saved.columns.0.y, saved.columns.0.z),
+            SIMD3<Float>(saved.columns.1.x, saved.columns.1.y, saved.columns.1.z),
+            SIMD3<Float>(saved.columns.2.x, saved.columns.2.y, saved.columns.2.z)
+        )
+        let curRot = simd_float3x3(
+            SIMD3<Float>(cameraTransform.columns.0.x, cameraTransform.columns.0.y, cameraTransform.columns.0.z),
+            SIMD3<Float>(cameraTransform.columns.1.x, cameraTransform.columns.1.y, cameraTransform.columns.1.z),
+            SIMD3<Float>(cameraTransform.columns.2.x, cameraTransform.columns.2.y, cameraTransform.columns.2.z)
+        )
+        let relative = curRot * savedRot.transpose
+        let pitch = asin(max(-1, min(1, -relative.columns.2.y)))
+        let yaw = atan2(relative.columns.2.x, relative.columns.2.z)
+        let roll = atan2(relative.columns.0.y, relative.columns.1.y)
+        return simd_float3(pitch, yaw, roll)
     }
 
     var isPositionMatched: Bool {
