@@ -351,4 +351,90 @@ struct SensorAlignmentTests {
         let expected = 1.0 - sqrt(0.5)
         #expect(abs(a.alignmentScore - expected) < 1e-10)
     }
+
+    // GuidanceStage tests
+
+    @Test func stage_locating_whenAllAxesFarFromTarget() {
+        let a = SensorAlignment(
+            currentPitch: 0.5, currentRoll: 0.5, currentYaw: 0.5,
+            targetPitch: 0.0, targetRoll: 0.0, targetYaw: 0.0
+        )
+        #expect(a.stage == .locating)
+    }
+
+    @Test func stage_positioning_whenAllWithin10Degrees() {
+        // 10° = 0.1745 rad
+        let a = SensorAlignment(
+            currentPitch: 0.10, currentRoll: 0.10, currentYaw: 0.10,
+            targetPitch: 0.0, targetRoll: 0.0, targetYaw: 0.0
+        )
+        #expect(a.stage == .positioning)
+    }
+
+    @Test func stage_positioning_boundaryAtExact10Degrees() {
+        let threshold = 0.1745
+        let a = SensorAlignment(
+            currentPitch: threshold, currentRoll: threshold, currentYaw: threshold,
+            targetPitch: 0.0, targetRoll: 0.0, targetYaw: 0.0
+        )
+        #expect(a.stage == .positioning)
+    }
+
+    @Test func stage_locating_justOutside10Degrees() {
+        let threshold = 0.1745
+        let a = SensorAlignment(
+            currentPitch: threshold + 0.001, currentRoll: 0.0, currentYaw: 0.0,
+            targetPitch: 0.0, targetRoll: 0.0, targetYaw: 0.0
+        )
+        #expect(a.stage == .locating)
+    }
+
+    @Test func stage_aligning_whenPitchRollWithin2DegAndYawWithin5Deg() {
+        // 2° = 0.0349, 5° = 0.0873
+        let a = SensorAlignment(
+            currentPitch: 0.01, currentRoll: 0.01, currentYaw: 0.03,
+            targetPitch: 0.0, targetRoll: 0.0, targetYaw: 0.0
+        )
+        #expect(a.stage == .aligning)
+    }
+
+    @Test func stage_aligning_boundaryAtExactThresholds() {
+        let a = SensorAlignment(
+            currentPitch: 0.0349, currentRoll: 0.0349, currentYaw: 0.0873,
+            targetPitch: 0.0, targetRoll: 0.0, targetYaw: 0.0
+        )
+        #expect(a.stage == .aligning)
+    }
+
+    @Test func stage_positioning_whenPitchRollWithin2ButYawOutside5() {
+        let a = SensorAlignment(
+            currentPitch: 0.01, currentRoll: 0.01, currentYaw: 0.10,
+            targetPitch: 0.0, targetRoll: 0.0, targetYaw: 0.0
+        )
+        #expect(a.stage == .positioning)
+    }
+
+    @Test func stage_isPositioning_trueForPositioningStage() {
+        let a = SensorAlignment(
+            currentPitch: 0.10, currentRoll: 0.10, currentYaw: 0.10,
+            targetPitch: 0.0, targetRoll: 0.0, targetYaw: 0.0
+        )
+        #expect(a.isPositioning == true)
+    }
+
+    @Test func stage_isPositioning_trueForAligningStage() {
+        let a = SensorAlignment(
+            currentPitch: 0.01, currentRoll: 0.01, currentYaw: 0.03,
+            targetPitch: 0.0, targetRoll: 0.0, targetYaw: 0.0
+        )
+        #expect(a.isPositioning == true)
+    }
+
+    @Test func stage_isPositioning_falseForLocatingStage() {
+        let a = SensorAlignment(
+            currentPitch: 0.5, currentRoll: 0.5, currentYaw: 0.5,
+            targetPitch: 0.0, targetRoll: 0.0, targetYaw: 0.0
+        )
+        #expect(a.isPositioning == false)
+    }
 }
