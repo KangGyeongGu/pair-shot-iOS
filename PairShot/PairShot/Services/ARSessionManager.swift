@@ -38,12 +38,15 @@ final class ARSessionManager: NSObject {
         let cur = SIMD3<Float>(cameraTransform.columns.3.x, cameraTransform.columns.3.y, cameraTransform.columns.3.z)
         let sav = SIMD3<Float>(saved.columns.3.x, saved.columns.3.y, saved.columns.3.z)
         let worldDelta = cur - sav
-        let savedRot = simd_float3x3(
-            SIMD3<Float>(saved.columns.0.x, saved.columns.0.y, saved.columns.0.z),
-            SIMD3<Float>(saved.columns.1.x, saved.columns.1.y, saved.columns.1.z),
-            SIMD3<Float>(saved.columns.2.x, saved.columns.2.y, saved.columns.2.z)
-        )
-        return savedRot.transpose * worldDelta
+        // 좌우/앞뒤: 카메라 로컬 수평면 기준
+        let fwd = Self.forwardVector(from: saved)
+        let flatFwd = normalize(SIMD3<Float>(fwd.x, 0, fwd.z))
+        let flatRight = SIMD3<Float>(flatFwd.z, 0, -flatFwd.x)
+        let localX = simd_dot(worldDelta, flatRight)
+        let localZ = simd_dot(worldDelta, flatFwd)
+        // 위아래: world Y (중력 기준)
+        let localY = worldDelta.y
+        return SIMD3<Float>(localX, localY, localZ)
     }
 
     private static func forwardVector(from transform: simd_float4x4) -> SIMD3<Float> {

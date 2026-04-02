@@ -253,14 +253,13 @@ struct ARCameraView: View {
         )
     }
 
-    private func applyPhotoToPair(pair: PhotoPair, photo: Photo, image: UIImage) async {
+    private func applyPhotoToPair(pair: PhotoPair, photo: Photo, image _: UIImage) async {
         if isBefore {
             pair.beforePhoto = photo
             pair.status = .pendingAfter
         } else {
             pair.afterPhoto = photo
             pair.status = .complete
-            await runQualityCheck(on: image, pair: pair)
         }
     }
 
