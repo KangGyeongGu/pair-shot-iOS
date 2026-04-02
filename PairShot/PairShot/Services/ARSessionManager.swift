@@ -92,7 +92,11 @@ final class ARSessionManager: NSObject {
             config.initialWorldMap = worldMap
         }
 
-        session.run(config, options: [.resetTracking, .removeExistingAnchors])
+        if worldMap != nil {
+            session.run(config)
+        } else {
+            session.run(config, options: [.resetTracking, .removeExistingAnchors])
+        }
         isSessionRunning = true
     }
 
