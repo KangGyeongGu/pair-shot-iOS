@@ -59,10 +59,11 @@ final class PositionMatchingService {
         let capturedDepth = depth
         let fx = focalLengthPx
 
-        // Convert to CIImage on main actor before crossing isolation boundary (CVBuffer is not Sendable)
         let ciImage = CIImage(cvPixelBuffer: pixelBuffer)
-        let frameW = CVPixelBufferGetWidth(pixelBuffer)
-        let frameH = CVPixelBufferGetHeight(pixelBuffer)
+            .oriented(.right)
+        let rotatedExtent = ciImage.extent
+        let frameW = Int(rotatedExtent.width)
+        let frameH = Int(rotatedExtent.height)
 
         processingQueue.async { [weak self] in
             let scaleX = Double(refW) / Double(frameW)
