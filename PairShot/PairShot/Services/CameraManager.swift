@@ -36,6 +36,14 @@ final class CameraManager: NSObject, CameraServiceProtocol {
 
     let previewLayer: AVCaptureVideoPreviewLayer
 
+    nonisolated var captureSession: AVCaptureSession {
+        session
+    }
+
+    nonisolated var captureSessionQueue: DispatchQueue {
+        sessionQueue
+    }
+
     override init() {
         previewLayer = AVCaptureVideoPreviewLayer(session: session)
         previewLayer.videoGravity = .resizeAspectFill

@@ -16,6 +16,7 @@ final class SensorManager: NSObject, SensorServiceProtocol {
     private(set) var currentYaw: Double = 0.0
     private(set) var currentHeading: Double = 0.0
     private(set) var currentLocation: CLLocationCoordinate2D?
+    private(set) var currentRelativeAltitude: Double = 0.0
     private(set) var isMotionAuthorized: Bool = false
     private(set) var isLocationAuthorized: Bool = false
 
@@ -23,6 +24,7 @@ final class SensorManager: NSObject, SensorServiceProtocol {
 
     private let motionManager: CMMotionManager = .init()
     private let locationManager: CLLocationManager = .init()
+    private let altimeter: CMAltimeter = .init()
 
     override init() {
         super.init()
@@ -33,6 +35,7 @@ final class SensorManager: NSObject, SensorServiceProtocol {
     func startUpdates() {
         startMotionUpdates()
         startLocationUpdatesIfAuthorized()
+        startAltimeterUpdates()
     }
 
     func stopUpdates() {
@@ -41,6 +44,7 @@ final class SensorManager: NSObject, SensorServiceProtocol {
         }
         locationManager.stopUpdatingLocation()
         locationManager.stopUpdatingHeading()
+        altimeter.stopRelativeAltitudeUpdates()
     }
 
     func captureSnapshot() -> SensorSnapshot {
@@ -52,6 +56,7 @@ final class SensorManager: NSObject, SensorServiceProtocol {
             latitude: currentLocation?.latitude,
             longitude: currentLocation?.longitude,
             altitude: currentAltitude,
+            relativeAltitude: currentRelativeAltitude,
             timestamp: Date()
         )
     }
@@ -104,6 +109,14 @@ final class SensorManager: NSObject, SensorServiceProtocol {
         currentPitch = alpha * attitude.pitch + (1.0 - alpha) * currentPitch
         currentRoll = alpha * attitude.roll + (1.0 - alpha) * currentRoll
         currentYaw = alpha * attitude.yaw + (1.0 - alpha) * currentYaw
+    }
+
+    private func startAltimeterUpdates() {
+        guard CMAltimeter.isRelativeAltitudeAvailable() else { return }
+        altimeter.startRelativeAltitudeUpdates(to: .main) { [weak self] data, error in
+            guard let self, let data, error == nil else { return }
+            currentRelativeAltitude = data.relativeAltitude.doubleValue
+        }
     }
 
     private func startLocationUpdatesIfAuthorized() {

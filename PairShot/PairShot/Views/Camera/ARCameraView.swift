@@ -43,14 +43,15 @@ struct ARCameraView: View {
 
                         if arManager.savedTransform != nil, !arManager.isFullyAligned {
                             SixDOFGuideView(
-                                positionDelta: arManager.positionDelta,
-                                yawDelta: arManager.yawDelta,
-                                pitchDelta: arManager.pitchDelta,
-                                rollDelta: arManager.rollDelta,
-                                positionThreshold: arManager.positionThreshold,
-                                orientationThreshold: arManager.orientationThreshold,
-                                isPositionMatched: arManager.isPositionMatched,
-                                isOrientationMatched: arManager.isOrientationMatched
+                                lateralDeltaCm: Double(arManager.positionDelta.x) * 100,
+                                heightDeltaCm: Double(arManager.positionDelta.y) * 100,
+                                distanceDeltaCm: Double(arManager.positionDelta.z) * 100,
+                                yawDeltaDeg: Double(arManager.yawDelta) * (180 / .pi),
+                                pitchDeltaDeg: Double(arManager.pitchDelta) * (180 / .pi),
+                                rollDeltaDeg: Double(arManager.rollDelta) * (180 / .pi),
+                                hasLiDAR: arManager.hasLiDAR,
+                                positionThresholdCm: Double(arManager.positionThreshold) * 100,
+                                orientationThresholdDeg: Double(arManager.orientationThreshold) * (180 / .pi)
                             )
                             .allowsHitTesting(false)
                         }

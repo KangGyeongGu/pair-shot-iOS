@@ -1,23 +1,28 @@
-import simd
 import SwiftUI
 
 struct SixDOFGuideView: View {
-    let positionDelta: SIMD3<Float>
-    let yawDelta: Float
-    let pitchDelta: Float
-    let rollDelta: Float
-    let positionThreshold: Float
-    let orientationThreshold: Float
-    let isPositionMatched: Bool
-    let isOrientationMatched: Bool
+    let lateralDeltaCm: Double
+    let heightDeltaCm: Double
+    let distanceDeltaCm: Double
+    let yawDeltaDeg: Double
+    let pitchDeltaDeg: Double
+    let rollDeltaDeg: Double
+    let hasLiDAR: Bool
+
+    let positionThresholdCm: Double
+    let orientationThresholdDeg: Double
 
     var body: some View {
         VStack {
             Spacer()
             HStack(spacing: 6) {
-                lateralIndicator
+                if hasLiDAR {
+                    lateralIndicator
+                }
                 heightIndicator
-                depthIndicator
+                if hasLiDAR {
+                    depthIndicator
+                }
                 yawIndicator
                 pitchIndicator
                 rollIndicator
@@ -34,10 +39,9 @@ struct SixDOFGuideView: View {
     private let ringSize: CGFloat = 36
     private let lineWidth: CGFloat = 2.0
 
-    // 좌우: 테두리 좌/우 호가 강조
     private var lateralIndicator: some View {
-        let val = positionDelta.x
-        let matched = abs(val) <= positionThreshold
+        let val = lateralDeltaCm
+        let matched = abs(val) <= positionThresholdCm
         return indicatorWrapper(label: "좌우", matched: matched) {
             if matched {
                 checkmark
@@ -48,7 +52,7 @@ struct SixDOFGuideView: View {
                     arcHighlight(
                         start: goLeft ? 0.5 : 0.0,
                         end: goLeft ? 0.85 : 0.35,
-                        intensity: abs(val) / (positionThreshold * 5)
+                        intensity: abs(val) / (positionThresholdCm * 5)
                     )
                     Image(systemName: goLeft ? "chevron.left" : "chevron.right")
                         .font(.system(size: 10, weight: .bold))
@@ -58,10 +62,9 @@ struct SixDOFGuideView: View {
         }
     }
 
-    // 높이: 테두리 상/하 호가 강조
     private var heightIndicator: some View {
-        let val = positionDelta.y
-        let matched = abs(val) <= positionThreshold
+        let val = heightDeltaCm
+        let matched = abs(val) <= positionThresholdCm
         return indicatorWrapper(label: "높이", matched: matched) {
             if matched {
                 checkmark
@@ -72,7 +75,7 @@ struct SixDOFGuideView: View {
                     arcHighlight(
                         start: goDown ? 0.25 : 0.0,
                         end: goDown ? 0.6 : 0.1,
-                        intensity: abs(val) / (positionThreshold * 5)
+                        intensity: abs(val) / (positionThresholdCm * 5)
                     )
                     Image(systemName: goDown ? "chevron.down" : "chevron.up")
                         .font(.system(size: 10, weight: .bold))
@@ -82,24 +85,23 @@ struct SixDOFGuideView: View {
         }
     }
 
-    // 거리: 원이 펄스 애니메이션
     private var depthIndicator: some View {
-        let val = positionDelta.z
-        let matched = abs(val) <= positionThreshold
+        let val = distanceDeltaCm
+        let matched = abs(val) <= positionThresholdCm
         return indicatorWrapper(label: "거리", matched: matched) {
             if matched {
                 checkmark
             } else {
                 ZStack {
                     baseRing
-                    let norm = min(abs(val) / (positionThreshold * 5), 1.0)
+                    let norm = min(abs(val) / (positionThresholdCm * 5), 1.0)
                     Circle()
                         .strokeBorder(indicatorColor(norm).opacity(0.6), lineWidth: 1)
                         .frame(
                             width: ringSize * CGFloat(val > 0 ? 0.5 : 0.85),
                             height: ringSize * CGFloat(val > 0 ? 0.5 : 0.85)
                         )
-                    Text(String(format: "%.0f", abs(val) * 100))
+                    Text(String(format: "%.0f", abs(val)))
                         .font(.system(size: 9, weight: .bold, design: .monospaced))
                         .foregroundStyle(.white)
                 }
@@ -107,37 +109,36 @@ struct SixDOFGuideView: View {
         }
     }
 
-    // 회전(yaw): 원 테두리 위에 dot이 회전
     private var yawIndicator: some View {
-        let matched = abs(yawDelta) <= orientationThreshold
+        let matched = abs(yawDeltaDeg) <= orientationThresholdDeg
         return indicatorWrapper(label: "회전", matched: matched) {
             if matched {
                 checkmark
             } else {
                 ZStack {
                     baseRing
-                    let angle = Angle(radians: Double(clamp(yawDelta, limit: .pi)))
-                    let norm = min(abs(yawDelta) / (orientationThreshold * 5), 1.0)
+                    let clampedRad = clampDeg(yawDeltaDeg, limitDeg: 180) * (.pi / 180)
+                    let angle = Angle(radians: clampedRad)
+                    let norm = min(abs(yawDeltaDeg) / (orientationThresholdDeg * 5), 1.0)
                     Circle()
                         .fill(indicatorColor(norm))
                         .frame(width: 6, height: 6)
                         .offset(y: -ringSize / 2 + 2)
                         .rotationEffect(angle)
-                    smallArrow(clockwise: yawDelta > 0)
+                    smallArrow(clockwise: yawDeltaDeg > 0)
                 }
             }
         }
     }
 
-    // 기울기(pitch): 원 안에 수평선이 상하로 기울어짐
     private var pitchIndicator: some View {
-        let matched = abs(pitchDelta) <= orientationThreshold
+        let matched = abs(pitchDeltaDeg) <= orientationThresholdDeg
         return indicatorWrapper(label: "기울기", matched: matched) {
             if matched {
                 checkmark
             } else {
-                let tilt = Double(clamp(pitchDelta, limit: .pi / 4)) * (180 / .pi)
-                let norm = min(abs(pitchDelta) / (orientationThreshold * 5), 1.0)
+                let tilt = clampDeg(pitchDeltaDeg, limitDeg: 45)
+                let norm = min(abs(pitchDeltaDeg) / (orientationThresholdDeg * 5), 1.0)
                 ZStack {
                     baseRing
                     RoundedRectangle(cornerRadius: 1)
@@ -149,15 +150,14 @@ struct SixDOFGuideView: View {
         }
     }
 
-    // 수평(roll): 원 안에 수평선이 좌우로 기울어짐
     private var rollIndicator: some View {
-        let matched = abs(rollDelta) <= orientationThreshold
+        let matched = abs(rollDeltaDeg) <= orientationThresholdDeg
         return indicatorWrapper(label: "수평", matched: matched) {
             if matched {
                 checkmark
             } else {
-                let tilt = Double(clamp(rollDelta, limit: .pi / 4)) * (180 / .pi)
-                let norm = min(abs(rollDelta) / (orientationThreshold * 5), 1.0)
+                let tilt = clampDeg(rollDeltaDeg, limitDeg: 45)
+                let norm = min(abs(rollDeltaDeg) / (orientationThresholdDeg * 5), 1.0)
                 ZStack {
                     baseRing
                     HStack(spacing: 2) {
@@ -171,8 +171,6 @@ struct SixDOFGuideView: View {
             }
         }
     }
-
-    // --- 공용 컴포넌트 ---
 
     private var baseRing: some View {
         Circle()
@@ -191,7 +189,7 @@ struct SixDOFGuideView: View {
         }
     }
 
-    private func arcHighlight(start: Double, end: Double, intensity: Float) -> some View {
+    private func arcHighlight(start: Double, end: Double, intensity: Double) -> some View {
         Circle()
             .trim(from: start, to: end)
             .stroke(indicatorColor(intensity), lineWidth: lineWidth + 1.5)
@@ -205,10 +203,10 @@ struct SixDOFGuideView: View {
             .foregroundStyle(.white.opacity(0.7))
     }
 
-    private func indicatorColor(_ normalizedValue: Float) -> Color {
-        let v = min(normalizedValue, 1.0)
-        if v < 0.3 { return .green }
-        if v < 0.7 { return .yellow }
+    private func indicatorColor(_ normalizedValue: Double) -> Color {
+        let clamped = min(normalizedValue, 1.0)
+        if clamped < 0.3 { return .green }
+        if clamped < 0.7 { return .yellow }
         return .red
     }
 
@@ -227,7 +225,7 @@ struct SixDOFGuideView: View {
         .frame(maxWidth: .infinity)
     }
 
-    private func clamp(_ value: Float, limit: Float) -> Float {
-        max(-limit, min(limit, value))
+    private func clampDeg(_ value: Double, limitDeg: Double) -> Double {
+        max(-limitDeg, min(limitDeg, value))
     }
 }

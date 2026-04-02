@@ -8,6 +8,7 @@ struct SensorSnapshot {
     let latitude: Double?
     let longitude: Double?
     let altitude: Double?
+    let relativeAltitude: Double?
     let timestamp: Date
 }
 
@@ -20,6 +21,7 @@ protocol SensorServiceProtocol: AnyObject {
     var currentYaw: Double { get }
     var currentHeading: Double { get }
     var currentLocation: CLLocationCoordinate2D? { get }
+    var currentRelativeAltitude: Double { get }
     var isMotionAuthorized: Bool { get }
     var isLocationAuthorized: Bool { get }
 
