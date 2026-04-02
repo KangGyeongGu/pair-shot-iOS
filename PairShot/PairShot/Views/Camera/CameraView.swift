@@ -18,7 +18,7 @@ struct CameraView: View {
     @State private var cameraManager = CameraManager()
     @State private var cameraSettings = CameraSettings()
     @State var hapticService = HapticService()
-    @State private var lowLightManager = LowLightManager()
+    @State var lowLightManager = LowLightManager()
     @State private var sensorManager = SensorManager()
 
     @State private var captureCount: Int = 0
@@ -41,6 +41,9 @@ struct CameraView: View {
     @State private var beforeImage: UIImage?
     @State var arSessionManager = ARSessionManager()
     @State var isARRelocalized = false
+    @State var qualityCheckService = QualityCheckService()
+    @State var showQualityAlert = false
+    @State var qualityIssueMessage = ""
 
     var body: some View {
         ZStack {
@@ -293,6 +296,12 @@ struct CameraView: View {
         .onChange(of: arSessionManager.isPositionMatched) { _, matched in
             if matched { hapticService.triggerSuccess() }
         }
+        .alert("촬영 품질", isPresented: $showQualityAlert) {
+            Button("재촬영", role: .destructive) {}
+            Button("저장", role: .cancel) {}
+        } message: {
+            Text(qualityIssueMessage)
+        }
     }
 }
 
@@ -527,6 +536,9 @@ extension CameraView {
         } else if let pair = existingPair, pair.id == result.pairId {
             pair.afterPhoto = photo
             pair.status = .complete
+            if let capturedImage = cameraManager.capturedPhoto {
+                runQualityCheck(on: capturedImage)
+            }
         }
     }
 }
