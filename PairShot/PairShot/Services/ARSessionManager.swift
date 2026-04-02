@@ -39,7 +39,15 @@ final class ARSessionManager: NSObject {
         guard let saved = savedTransform else { return .zero }
         let cur = SIMD3<Float>(cameraTransform.columns.3.x, cameraTransform.columns.3.y, cameraTransform.columns.3.z)
         let sav = SIMD3<Float>(saved.columns.3.x, saved.columns.3.y, saved.columns.3.z)
-        return cur - sav
+        let worldDelta = cur - sav
+        // 월드 좌표 → 저장된 카메라 로컬 좌표로 변환
+        // 카메라 로컬: x=오른쪽, y=위, -z=앞(카메라가 바라보는 방향)
+        let savedRot = simd_float3x3(
+            SIMD3<Float>(saved.columns.0.x, saved.columns.0.y, saved.columns.0.z),
+            SIMD3<Float>(saved.columns.1.x, saved.columns.1.y, saved.columns.1.z),
+            SIMD3<Float>(saved.columns.2.x, saved.columns.2.y, saved.columns.2.z)
+        )
+        return savedRot.transpose * worldDelta
     }
 
     var orientationDelta: simd_float3 {

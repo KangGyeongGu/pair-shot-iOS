@@ -26,7 +26,8 @@ struct SixDOFGuideView: View {
 
     private var positionGuideSection: some View {
         HStack(spacing: 16) {
-            // delta = current - saved; delta > 0 → 현재가 오른쪽 → 왼쪽으로 이동해야 함
+            // 카메라 로컬 좌표: x=오른쪽, y=위, z=뒤(−z=앞)
+            // delta.x > 0 → 현재가 카메라 기준 오른쪽 → 왼쪽으로 이동
             if abs(positionDelta.x) > positionThreshold {
                 directionArrow(
                     icon: positionDelta.x > 0 ? "arrow.left" : "arrow.right",
@@ -35,7 +36,7 @@ struct SixDOFGuideView: View {
                     threshold: positionThreshold
                 )
             }
-            // delta > 0 → 현재가 위 → 아래로 이동해야 함
+            // delta.y > 0 → 현재가 위 → 아래로 이동
             if abs(positionDelta.y) > positionThreshold {
                 directionArrow(
                     icon: positionDelta.y > 0 ? "arrow.down" : "arrow.up",
@@ -44,11 +45,12 @@ struct SixDOFGuideView: View {
                     threshold: positionThreshold
                 )
             }
-            // delta > 0 → 현재가 뒤 → 앞으로 이동해야 함
+            // delta.z > 0 → 현재가 카메라 뒤쪽 → 앞으로(가까이) 이동
+            // delta.z < 0 → 현재가 카메라 앞쪽(더 가까움) → 뒤로(멀리) 이동
             if abs(positionDelta.z) > positionThreshold {
                 directionArrow(
-                    icon: positionDelta.z > 0 ? "arrow.down.backward" : "arrow.up.forward",
-                    label: positionDelta.z > 0 ? "앞으로" : "뒤로",
+                    icon: positionDelta.z > 0 ? "arrow.up.forward" : "arrow.down.backward",
+                    label: positionDelta.z > 0 ? "가까이" : "멀리",
                     distance: abs(positionDelta.z),
                     threshold: positionThreshold
                 )
