@@ -126,25 +126,15 @@ struct ARCameraView: View {
                 let wmURL = docsURL.appendingPathComponent(wmPath)
                 if let worldMap = try? arManager.loadWorldMap(from: wmURL) {
                     arManager.startSession(withWorldMap: worldMap)
-                    if let transformData = existingPair?.beforePhoto?.arTransformData,
-                       transformData.count == MemoryLayout<simd_float4x4>.size,
-                       let eulerData = existingPair?.beforePhoto?.arEulerData,
-                       eulerData.count == MemoryLayout<simd_float3>.size
-                    {
-                        let transform = transformData.withUnsafeBytes { $0.load(as: simd_float4x4.self) }
-                        let euler = eulerData.withUnsafeBytes { $0.load(as: simd_float3.self) }
-                        arManager.setSavedPose(transform: transform, eulerAngles: euler)
-                    } else if let transformData = existingPair?.beforePhoto?.arTransformData,
-                              transformData.count == MemoryLayout<simd_float4x4>.size
-                    {
-                        let transform = transformData.withUnsafeBytes { $0.load(as: simd_float4x4.self) }
-                        arManager.setSavedPose(transform: transform, eulerAngles: .zero)
-                    }
                 } else {
                     arManager.startSession()
                 }
             } else {
                 arManager.startSession()
+            }
+
+            if !isBefore {
+                restoreSavedPose()
             }
 
             if !isBefore, let filePath = existingPair?.beforePhoto?.filePath {
@@ -277,6 +267,23 @@ struct ARCameraView: View {
             pair.afterPhoto = photo
             pair.status = .complete
             await runQualityCheck(on: image, pair: pair)
+        }
+    }
+
+    private func restoreSavedPose() {
+        guard let beforePhoto = existingPair?.beforePhoto else { return }
+        if let transformData = beforePhoto.arTransformData,
+           transformData.count == MemoryLayout<simd_float4x4>.size
+        {
+            let transform = transformData.withUnsafeBytes { $0.load(as: simd_float4x4.self) }
+            if let eulerData = beforePhoto.arEulerData,
+               eulerData.count == MemoryLayout<simd_float3>.size
+            {
+                let euler = eulerData.withUnsafeBytes { $0.load(as: simd_float3.self) }
+                arManager.setSavedPose(transform: transform, eulerAngles: euler)
+            } else {
+                arManager.setSavedPose(transform: transform, eulerAngles: .zero)
+            }
         }
     }
 
