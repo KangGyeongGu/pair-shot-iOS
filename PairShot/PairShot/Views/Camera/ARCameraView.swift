@@ -145,7 +145,7 @@ struct ARCameraView: View {
                 let fullURL = docsURL.appendingPathComponent(filePath)
                 if let image = UIImage(contentsOfFile: fullURL.path) {
                     beforeImage = image.downscaledTo1080p()
-                    ghostOpacity = 0.15
+                    ghostOpacity = 0.35
                     ghostVisible = true
                 }
             }

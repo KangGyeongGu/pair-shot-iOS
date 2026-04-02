@@ -159,7 +159,7 @@ final class ARSessionManager: NSObject {
         guard let cgImage = ciContext.createCGImage(ciImage, from: ciImage.extent) else {
             throw ARSessionError.pixelBufferConversionFailed
         }
-        let image = UIImage(cgImage: cgImage)
+        let image = UIImage(cgImage: cgImage, scale: 1.0, orientation: .right)
         return (image, frame.camera.transform)
     }
 
