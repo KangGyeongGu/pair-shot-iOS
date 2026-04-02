@@ -198,6 +198,11 @@ struct ARCameraView: View {
         defer { isSaving = false }
 
         do {
+            // 트래킹이 안정화될 때까지 대기 (최대 3초)
+            for _ in 0 ..< 30 {
+                if arManager.trackingState == .normal { break }
+                try? await Task.sleep(for: .milliseconds(100))
+            }
             let (image, transform, euler) = try await arManager.capturePhoto()
             capturedPhoto = image
             let (pair, pairId) = try resolvePair()
