@@ -1,5 +1,4 @@
 @preconcurrency import ARKit
-import ImageIO
 import SwiftData
 import SwiftUI
 import UIKit
@@ -226,8 +225,8 @@ struct ARCameraView: View {
     private func savePhotoFiles(image: UIImage, transform: simd_float4x4, pairId: UUID) throws -> Photo {
         let docsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         let subDir = isBefore ? "before" : "after"
-        let photoPath = "projects/\(project.id)/pairs/\(pairId)/\(subDir).heic"
-        let thumbPath = "projects/\(project.id)/thumbs/\(pairId)_\(subDir).heic"
+        let photoPath = "projects/\(project.id)/pairs/\(pairId)/\(subDir).jpg"
+        let thumbPath = "projects/\(project.id)/thumbs/\(pairId)_\(subDir).jpg"
         let photoURL = docsURL.appendingPathComponent(photoPath)
         let thumbURL = docsURL.appendingPathComponent(thumbPath)
         try FileManager.default.createDirectory(
@@ -236,11 +235,11 @@ struct ARCameraView: View {
         try FileManager.default.createDirectory(
             at: thumbURL.deletingLastPathComponent(), withIntermediateDirectories: true
         )
-        if let data = image.arHeicData() ?? image.jpegData(compressionQuality: 0.9) {
+        if let data = image.jpegData(compressionQuality: 0.9) {
             try data.write(to: photoURL)
         }
         let thumbImage = image.arThumbnailImage(maxDimension: 300)
-        if let thumbData = thumbImage.arHeicData() ?? thumbImage.jpegData(compressionQuality: 0.8) {
+        if let thumbData = thumbImage.jpegData(compressionQuality: 0.8) {
             try thumbData.write(to: thumbURL)
         }
         var transformCopy = transform
@@ -280,6 +279,12 @@ struct ARCameraView: View {
     }
 
     private func saveWorldMap(for photo: Photo, pairId: UUID) async {
+        // transform은 항상 저장 (worldMap 실패해도 orientation 가이드는 동작)
+        arManager.saveCurrentTransform()
+        var currentTransform = arManager.cameraTransform
+        photo.arTransformData = Data(bytes: &currentTransform, count: MemoryLayout<simd_float4x4>.size)
+
+        // worldMap 저장 시도 (최대 3초 대기)
         for _ in 0 ..< 30 {
             if arManager.worldMappingStatus == .mapped { break }
             try? await Task.sleep(for: .milliseconds(100))
@@ -287,7 +292,6 @@ struct ARCameraView: View {
         guard arManager.worldMappingStatus == .mapped || arManager.worldMappingStatus == .extending else { return }
         do {
             let worldMap = try await arManager.captureWorldMap()
-            arManager.saveCurrentTransform()
             let docsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             let wmPath = "projects/\(project.id)/pairs/\(pairId)/worldmap.arworldmap"
             let wmURL = docsURL.appendingPathComponent(wmPath)
@@ -296,26 +300,13 @@ struct ARCameraView: View {
             )
             try arManager.saveWorldMap(worldMap, to: wmURL)
             photo.worldMapPath = wmPath
-            var currentTransform = arManager.cameraTransform
-            photo.arTransformData = Data(bytes: &currentTransform, count: MemoryLayout<simd_float4x4>.size)
         } catch {
-            // WorldMap save failed — sensor-only fallback
+            // WorldMap 저장 실패 — transform 기반 가이드만 동작
         }
     }
 }
 
 private extension UIImage {
-    func arHeicData() -> Data? {
-        guard let cgImage else { return nil }
-        let data = NSMutableData()
-        guard let dest = CGImageDestinationCreateWithData(data, "public.heic" as CFString, 1, nil) else {
-            return nil
-        }
-        CGImageDestinationAddImage(dest, cgImage, nil)
-        guard CGImageDestinationFinalize(dest) else { return nil }
-        return data as Data
-    }
-
     func arThumbnailImage(maxDimension: CGFloat) -> UIImage {
         let scale = min(maxDimension / size.width, maxDimension / size.height, 1.0)
         guard scale < 1.0 else { return self }
