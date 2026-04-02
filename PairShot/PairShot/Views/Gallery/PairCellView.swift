@@ -60,7 +60,7 @@ struct PairCellView: View {
                     Color(.systemGray5)
                     if !isBefore {
                         VStack(spacing: 4) {
-                            Image(systemName: "camera.badge.plus")
+                            Image(systemName: "camera.fill")
                                 .font(.system(size: 20, weight: .light))
                                 .foregroundStyle(.secondary)
                             Text("After")
@@ -87,9 +87,6 @@ struct PairCellView: View {
             pairId: pair.id,
             isBefore: isBefore
         ) else { return nil }
-        let path = url.path
-        return await Task.detached(priority: .utility) {
-            ThumbnailCache.shared.image(for: path)
-        }.value
+        return ThumbnailCache.shared.image(for: url.path)
     }
 }

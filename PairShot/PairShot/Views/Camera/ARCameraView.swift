@@ -134,9 +134,10 @@ struct ARCameraView: View {
             if !isBefore, let filePath = existingPair?.beforePhoto?.filePath {
                 let docsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
                 let fullURL = docsURL.appendingPathComponent(filePath)
-                let loaded: UIImage? = await Task.detached(priority: .userInitiated) {
-                    UIImage(contentsOfFile: fullURL.path)?.downscaledTo1080p()
+                let rawImage = await Task.detached(priority: .userInitiated) {
+                    UIImage(contentsOfFile: fullURL.path)
                 }.value
+                let loaded = rawImage?.downscaledTo1080p()
                 if let loaded {
                     beforeImage = loaded
                     ghostOpacity = 0.35
