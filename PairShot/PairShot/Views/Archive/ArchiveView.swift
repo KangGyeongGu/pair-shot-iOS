@@ -43,9 +43,9 @@ struct ArchiveView: View {
         .fullScreenCover(item: $cameraDestination) { destination in
             switch destination {
                 case let .beforeCamera(project):
-                    CameraView(project: project)
+                    ARCameraView(project: project)
                 case let .afterCamera(project, pair):
-                    CameraView(project: project, existingPair: pair)
+                    ARCameraView(project: project, existingPair: pair)
             }
         }
         .sheet(

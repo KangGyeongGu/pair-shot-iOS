@@ -1,34 +1,72 @@
 @preconcurrency import ARKit
+import AVFoundation
+import CoreImage
 import Foundation
 import Observation
 import simd
+import UIKit
 
 enum ARSessionError: Error {
     case sessionNotRunning
     case worldMapUnavailable
+    case captureHighResFailed
+    case pixelBufferConversionFailed
 }
 
 @Observable
 @MainActor
 final class ARSessionManager: NSObject {
+    let session = ARSession()
+
+    private(set) var isSessionRunning: Bool = false
     private(set) var worldMappingStatus: ARFrame.WorldMappingStatus = .notAvailable
     private(set) var trackingState: ARCamera.TrackingState = .notAvailable
     private(set) var cameraTransform: simd_float4x4 = matrix_identity_float4x4
-    private(set) var isSessionRunning: Bool = false
+    private(set) var cameraEulerAngles: simd_float3 = .zero
     private(set) var hasLiDAR: Bool = false
     private(set) var isARSupported: Bool = false
-    private(set) var positionDelta: SIMD3<Float> = .zero
-    private(set) var isPositionMatched: Bool = false
+
+    private(set) var savedTransform: simd_float4x4?
 
     var positionThreshold: Float {
-        hasLiDAR ? 0.10 : 0.20
+        hasLiDAR ? 0.05 : 0.15
     }
 
-    @ObservationIgnored
-    private nonisolated(unsafe) let session = ARSession()
+    private let orientationThreshold: Float = 0.035
 
-    @ObservationIgnored
-    private var savedAnchorTransform: simd_float4x4?
+    var positionDelta: SIMD3<Float> {
+        guard let saved = savedTransform else { return .zero }
+        let cur = SIMD3<Float>(cameraTransform.columns.3.x, cameraTransform.columns.3.y, cameraTransform.columns.3.z)
+        let sav = SIMD3<Float>(saved.columns.3.x, saved.columns.3.y, saved.columns.3.z)
+        return cur - sav
+    }
+
+    var orientationDelta: simd_float3 {
+        guard let saved = savedTransform else { return .zero }
+        let savedEuler = eulerAngles(from: saved)
+        return cameraEulerAngles - savedEuler
+    }
+
+    var isPositionMatched: Bool {
+        guard savedTransform != nil else { return false }
+        return simd_length(positionDelta) <= positionThreshold
+    }
+
+    var isOrientationMatched: Bool {
+        guard savedTransform != nil else { return false }
+        let delta = orientationDelta
+        return abs(delta.x) <= orientationThreshold
+            && abs(delta.y) <= orientationThreshold
+            && abs(delta.z) <= orientationThreshold
+    }
+
+    var isFullyAligned: Bool {
+        isPositionMatched && isOrientationMatched
+    }
+
+    var captureDevice: AVCaptureDevice? {
+        ARWorldTrackingConfiguration.configurableCaptureDeviceForPrimaryCamera
+    }
 
     override init() {
         super.init()
@@ -40,12 +78,20 @@ final class ARSessionManager: NSObject {
     func startSession(withWorldMap worldMap: ARWorldMap? = nil) {
         guard isARSupported else { return }
         let config = ARWorldTrackingConfiguration()
+        config.worldAlignment = .gravityAndHeading
+
+        if let hiResFormat = ARWorldTrackingConfiguration.recommendedVideoFormatForHighResolutionFrameCapturing {
+            config.videoFormat = hiResFormat
+        }
+
         if hasLiDAR {
             config.sceneReconstruction = .mesh
         }
+
         if let worldMap {
             config.initialWorldMap = worldMap
         }
+
         session.run(config, options: [.resetTracking, .removeExistingAnchors])
         isSessionRunning = true
     }
@@ -53,9 +99,16 @@ final class ARSessionManager: NSObject {
     func stopSession() {
         session.pause()
         isSessionRunning = false
-        savedAnchorTransform = nil
-        positionDelta = .zero
-        isPositionMatched = false
+        savedTransform = nil
+    }
+
+    func saveCurrentTransform() {
+        savedTransform = cameraTransform
+    }
+
+    /// Backward compat shim used by CameraView+AR
+    func setSavedAnchorTransform(_ transform: simd_float4x4) {
+        savedTransform = transform
     }
 
     func captureWorldMap() async throws -> ARWorldMap {
@@ -73,10 +126,6 @@ final class ARSessionManager: NSObject {
         }
     }
 
-    func raycast(_ query: ARRaycastQuery) -> [ARRaycastResult] {
-        session.raycast(query)
-    }
-
     func saveWorldMap(_ worldMap: ARWorldMap, to url: URL) throws {
         let data = try NSKeyedArchiver.archivedData(withRootObject: worldMap, requiringSecureCoding: true)
         try data.write(to: url)
@@ -90,29 +139,39 @@ final class ARSessionManager: NSObject {
         return worldMap
     }
 
-    func setSavedAnchorTransform(_ transform: simd_float4x4) {
-        savedAnchorTransform = transform
-        updatePositionDelta(currentTransform: cameraTransform)
+    func capturePhoto() async throws -> (UIImage, simd_float4x4) {
+        guard isSessionRunning else { throw ARSessionError.sessionNotRunning }
+        let frame: ARFrame = try await withCheckedThrowingContinuation { continuation in
+            session.captureHighResolutionFrame { frame, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                } else if let frame {
+                    continuation.resume(returning: frame)
+                } else {
+                    continuation.resume(throwing: ARSessionError.captureHighResFailed)
+                }
+            }
+        }
+
+        let pixelBuffer = frame.capturedImage
+        let ciImage = CIImage(cvPixelBuffer: pixelBuffer)
+        let ciContext = CIContext()
+        guard let cgImage = ciContext.createCGImage(ciImage, from: ciImage.extent) else {
+            throw ARSessionError.pixelBufferConversionFailed
+        }
+        let image = UIImage(cgImage: cgImage)
+        return (image, frame.camera.transform)
     }
 
-    private func updatePositionDelta(currentTransform: simd_float4x4) {
-        guard let saved = savedAnchorTransform else {
-            positionDelta = .zero
-            isPositionMatched = false
-            return
-        }
-        let currentPos = SIMD3<Float>(
-            currentTransform.columns.3.x,
-            currentTransform.columns.3.y,
-            currentTransform.columns.3.z
-        )
-        let savedPos = SIMD3<Float>(
-            saved.columns.3.x,
-            saved.columns.3.y,
-            saved.columns.3.z
-        )
-        positionDelta = currentPos - savedPos
-        isPositionMatched = simd_length(positionDelta) <= positionThreshold
+    func raycast(_ query: ARRaycastQuery) -> [ARRaycastResult] {
+        session.raycast(query)
+    }
+
+    private func eulerAngles(from transform: simd_float4x4) -> simd_float3 {
+        let pitch = asin(-transform.columns.2.y)
+        let yaw = atan2(transform.columns.2.x, transform.columns.2.z)
+        let roll = atan2(transform.columns.1.x, transform.columns.0.x)
+        return simd_float3(pitch, yaw, roll)
     }
 }
 
@@ -121,12 +180,13 @@ extension ARSessionManager: ARSessionDelegate {
         let status = frame.worldMappingStatus
         let tracking = frame.camera.trackingState
         let transform = frame.camera.transform
+        let euler = frame.camera.eulerAngles
         Task { @MainActor [weak self] in
             guard let self else { return }
             worldMappingStatus = status
             trackingState = tracking
             cameraTransform = transform
-            updatePositionDelta(currentTransform: transform)
+            cameraEulerAngles = euler
         }
     }
 
