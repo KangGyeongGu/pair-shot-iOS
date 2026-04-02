@@ -150,10 +150,6 @@ extension PairCameraView {
                 queue: cameraManager.captureSessionQueue
             )
         }
-
-        if !isBefore, existingPair?.beforePhoto?.pitch != nil {
-            hapticService.startContinuousHaptic()
-        }
     }
 
     func onViewDisappear() {
@@ -230,19 +226,7 @@ extension PairCameraView {
             ghostAutoActivated = true
         }
 
-        if alignment.isAligned {
-            if !wasAligned {
-                hapticService.triggerSuccess()
-                hapticService.stopHaptic()
-                wasAligned = true
-            }
-        } else {
-            if wasAligned {
-                hapticService.startContinuousHaptic()
-                wasAligned = false
-            }
-            hapticService.updateIntensity(alignmentScore: alignment.alignmentScore)
-        }
+        wasAligned = alignment.isAligned
     }
 
     func handleSaveResult(_ result: CameraManager.SaveResult) {

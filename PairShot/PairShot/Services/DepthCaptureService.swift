@@ -95,7 +95,8 @@ extension DepthCaptureService: AVCaptureDepthDataOutputDelegate {
 
         Task { @MainActor [weak self] in
             guard let self, centerValue.isFinite, centerValue > 0 else { return }
-            centerDepth = centerValue
+            let alpha = 0.15
+            centerDepth = centerDepth == 0 ? centerValue : alpha * centerValue + (1 - alpha) * centerDepth
             if let cal { calibrationData = cal }
         }
     }

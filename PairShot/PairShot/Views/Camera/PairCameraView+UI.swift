@@ -101,7 +101,9 @@ extension PairCameraView {
     }
 
     var heightDeltaCm: Double {
-        (sensorManager.currentRelativeAltitude - beforeRelativeAltitude) * 100
+        // 기압계 relativeAltitude는 매 세션 시작 시 0으로 리셋되어 세션 간 비교 불가
+        // 향후 LiDAR depth map 기반 높이 추정으로 대체 예정
+        0
     }
 
     var distanceDeltaCm: Double {
