@@ -16,12 +16,8 @@ extension CameraView {
     }
 
     func loadWorldMapIfNeeded() async {
-        guard !isBefore, let wmPath = existingPair?.beforePhoto?.worldMapPath else { return }
-        let docsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        let wmURL = docsURL.appendingPathComponent(wmPath)
-        if let worldMap = try? arSessionManager.loadWorldMap(from: wmURL) {
-            arSessionManager.startSession(withWorldMap: worldMap)
-        }
+        // worldMap 존재 여부만 확인 — ARSession은 시작하지 않음 (AVCaptureSession과 충돌)
+        // ARKit 재위치는 향후 별도 모드 전환으로 구현 예정
     }
 
     func captureAndSaveWorldMap(for photo: Photo, pairId: UUID) async {

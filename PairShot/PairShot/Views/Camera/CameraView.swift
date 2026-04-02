@@ -428,9 +428,8 @@ extension CameraView {
             if let pair = project.pairs.first(where: { $0.id == result.pairId }) {
                 pair.beforePhoto = photo
                 pair.status = .pendingAfter
-                if arSessionManager.isARSupported {
-                    Task { await captureAndSaveWorldMap(for: photo, pairId: pair.id) }
-                }
+                // ARWorldMap 저장은 비활성화 — ARSession이 AVCaptureSession을 방해하여 프리뷰 끊김
+                // TODO: 카메라 종료 후 별도 흐름에서 worldMap 저장 구현
             }
         } else if let pair = existingPair, pair.id == result.pairId {
             pair.afterPhoto = photo
