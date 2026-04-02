@@ -13,8 +13,6 @@ struct ArchiveView: View {
     @State private var renameText: String = ""
     @State private var showRenameAlert = false
     @State private var navigationPath = NavigationPath()
-    @State private var cameraDestination: CameraDestination?
-    @State private var arManager = ARSessionManager()
 
     private let storage = PhotoStorageService()
 
@@ -39,21 +37,6 @@ struct ArchiveView: View {
             }
             .navigationDestination(for: Project.self) { project in
                 PairGalleryView(project: project)
-            }
-        }
-        .fullScreenCover(item: $cameraDestination) { destination in
-            switch destination {
-                case let .beforeCamera(project):
-                    ARCameraView(project: project, arManager: arManager)
-                case let .afterCamera(project, pair):
-                    ARCameraView(project: project, arManager: arManager, existingPair: pair)
-            }
-        }
-        .onChange(of: cameraDestination?.id) { old, new in
-            if old != nil, new == nil {
-                arManager.stopSession()
-            } else if new != nil {
-                arManager.startSession()
             }
         }
         .sheet(

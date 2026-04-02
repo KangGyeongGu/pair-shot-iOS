@@ -66,19 +66,12 @@ struct PairGalleryView: View {
         .navigationTitle(project.title)
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
-            print("[AR-GALLERY] onAppear, isSessionRunning: \(arManager.isSessionRunning)")
-            if !arManager.isSessionRunning {
-                let docsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-                let wmURL = docsURL.appendingPathComponent("projects/\(project.id)/worldmap.arworldmap")
-                if let worldMap = try? arManager.loadWorldMap(from: wmURL) {
-                    arManager.startSession(withWorldMap: worldMap)
-                } else {
-                    arManager.startSession()
-                }
-            }
+            guard !arManager.isSessionRunning else { return }
+            arManager.startSession()
         }
         .onDisappear {
-            print("[AR-GALLERY] onDisappear")
+            Task { await saveProjectWorldMap() }
+            arManager.stopSession()
         }
         .confirmationDialog("페어를 삭제하시겠습니까?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
             Button("삭제", role: .destructive) {
