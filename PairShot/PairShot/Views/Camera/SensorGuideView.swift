@@ -7,44 +7,46 @@ enum GuidanceStage {
 }
 
 struct SensorAlignment {
-    static let pitchTolerance: Double = 0.0349
+    static let pitchTolerance: Double = 0.0349 // ±2° in radians
     static let rollTolerance: Double = 0.0349
-    static let yawTolerance: Double = 0.0873
+    static let headingTolerance: Double = 5.0 // ±5° in degrees
 
-    static let positioningThreshold: Double = 0.1745
-    static let aligningPitchRoll: Double = 0.0349
-    static let aligningYaw: Double = 0.0873
+    static let positioningThresholdRad: Double = 0.1745 // ±10° in radians
+    static let positioningThresholdDeg: Double = 10.0 // ±10° in degrees
 
     private static let weightPitch: Double = 1.0
     private static let weightRoll: Double = 1.0
-    private static let weightYaw: Double = 0.5
+    private static let weightHeading: Double = 0.5
 
-    let deltaPitch: Double
-    let deltaRoll: Double
-    let deltaYaw: Double
+    let deltaPitch: Double // radians
+    let deltaRoll: Double // radians
+    let deltaHeading: Double // degrees, wraparound-corrected
 
     init(
         currentPitch: Double,
         currentRoll: Double,
-        currentYaw: Double,
+        currentHeading: Double,
         targetPitch: Double,
         targetRoll: Double,
-        targetYaw: Double
+        targetHeading: Double
     ) {
         deltaPitch = currentPitch - targetPitch
         deltaRoll = currentRoll - targetRoll
-        deltaYaw = currentYaw - targetYaw
+        var hDelta = currentHeading - targetHeading
+        if hDelta > 180 { hDelta -= 360 }
+        if hDelta < -180 { hDelta += 360 }
+        deltaHeading = hDelta
     }
 
     var stage: GuidanceStage {
-        if abs(deltaPitch) <= Self.aligningPitchRoll,
-           abs(deltaRoll) <= Self.aligningPitchRoll,
-           abs(deltaYaw) <= Self.aligningYaw
+        if abs(deltaPitch) <= Self.pitchTolerance,
+           abs(deltaRoll) <= Self.rollTolerance,
+           abs(deltaHeading) <= Self.headingTolerance
         {
             .aligning
-        } else if abs(deltaPitch) <= Self.positioningThreshold,
-                  abs(deltaRoll) <= Self.positioningThreshold,
-                  abs(deltaYaw) <= Self.positioningThreshold
+        } else if abs(deltaPitch) <= Self.positioningThresholdRad,
+                  abs(deltaRoll) <= Self.positioningThresholdRad,
+                  abs(deltaHeading) <= Self.positioningThresholdDeg
         {
             .positioning
         } else {
@@ -59,16 +61,16 @@ struct SensorAlignment {
     var isAligned: Bool {
         abs(deltaPitch) <= Self.pitchTolerance &&
             abs(deltaRoll) <= Self.rollTolerance &&
-            abs(deltaYaw) <= Self.yawTolerance
+            abs(deltaHeading) <= Self.headingTolerance
     }
 
     var alignmentScore: Double {
         let dp = deltaPitch / Self.pitchTolerance
         let dr = deltaRoll / Self.rollTolerance
-        let dy = deltaYaw / Self.yawTolerance
+        let dh = deltaHeading / Self.headingTolerance
         let weighted = Self.weightPitch * dp * dp +
             Self.weightRoll * dr * dr +
-            Self.weightYaw * dy * dy
+            Self.weightHeading * dh * dh
         return max(0.0, 1.0 - sqrt(weighted))
     }
 }
@@ -76,10 +78,10 @@ struct SensorAlignment {
 struct SensorGuideView: View {
     let currentPitch: Double
     let currentRoll: Double
-    let currentYaw: Double
+    let currentHeading: Double
     let targetPitch: Double
     let targetRoll: Double
-    let targetYaw: Double
+    let targetHeading: Double
 
     private enum Constants {
         static let totalSize: CGFloat = 120
@@ -94,10 +96,10 @@ struct SensorGuideView: View {
         SensorAlignment(
             currentPitch: currentPitch,
             currentRoll: currentRoll,
-            currentYaw: currentYaw,
+            currentHeading: currentHeading,
             targetPitch: targetPitch,
             targetRoll: targetRoll,
-            targetYaw: targetYaw
+            targetHeading: targetHeading
         )
     }
 
@@ -109,8 +111,8 @@ struct SensorGuideView: View {
         alignment.deltaRoll
     }
 
-    var deltaYaw: Double {
-        alignment.deltaYaw
+    var deltaHeading: Double {
+        alignment.deltaHeading
     }
 
     var isAligned: Bool {
@@ -133,8 +135,8 @@ struct SensorGuideView: View {
         CGFloat(max(-1.0, min(1.0, deltaRoll / (.pi / 4))))
     }
 
-    private var yawAngle: Double {
-        max(-.pi, min(.pi, deltaYaw * 3.0))
+    private var headingAngle: Double {
+        max(-.pi, min(.pi, deltaHeading * .pi / 180.0))
     }
 
     var body: some View {
@@ -148,7 +150,7 @@ struct SensorGuideView: View {
         }
         .animation(.interactiveSpring(response: 0.1, dampingFraction: 0.8), value: deltaPitch)
         .animation(.interactiveSpring(response: 0.1, dampingFraction: 0.8), value: deltaRoll)
-        .animation(.interactiveSpring(response: 0.1, dampingFraction: 0.8), value: deltaYaw)
+        .animation(.interactiveSpring(response: 0.1, dampingFraction: 0.8), value: deltaHeading)
     }
 
     private func drawSphere(context: GraphicsContext, center: CGPoint) {
@@ -231,7 +233,7 @@ struct SensorGuideView: View {
         context.stroke(ringPath, with: .color(guideColor.opacity(0.4)), lineWidth: 1.2)
 
         // yaw 각도로 마커 위치 계산 (정렬 시 12시 방향)
-        let angle = yawAngle - .pi / 2
+        let angle = headingAngle - .pi / 2
         let markerX = center.x + ringRX * cos(angle)
         let markerY = center.y + ringRY * sin(angle)
         let markerR = Constants.markerRadius
@@ -253,10 +255,10 @@ struct SensorGuideView: View {
         SensorGuideView(
             currentPitch: 0.02,
             currentRoll: 0.03,
-            currentYaw: 0.05,
+            currentHeading: 95.0,
             targetPitch: 0.0,
             targetRoll: 0.0,
-            targetYaw: 0.0
+            targetHeading: 90.0
         )
     }
 }

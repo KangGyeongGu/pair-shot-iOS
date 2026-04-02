@@ -27,7 +27,7 @@ final class QualityCheckService {
             var result: QualityIssue?
 
             if let blurScore = Self.calculateBlurScore(ciImage: ciImage, context: ciContext) {
-                let threshold: Double = isLowLight ? 300 : 500
+                let threshold: Double = isLowLight ? 30 : 80
                 if blurScore < threshold {
                     result = .blurry
                 }

@@ -37,7 +37,7 @@ struct CameraView: View {
     @State private var exposureBiasAtDragStart: Float = 0
     @State private var ghostOpacity: Double = 0.0
     @State private var ghostAutoActivated: Bool = false
-    @State private var ghostDefaultOpacity: Double = 0.25
+    @State private var ghostDefaultOpacity: Double = 0.15
     @State private var beforeImage: UIImage?
     @State var arSessionManager = ARSessionManager()
     @State var isARRelocalized = false
@@ -49,6 +49,7 @@ struct CameraView: View {
     @State var lidarDistance: Float?
     @State var lidarStartWorldPos: SIMD3<Float>?
     @State var isMeasureMode: Bool = false
+    @State private var wasAligned = false
 
     var body: some View {
         ZStack {
@@ -90,6 +91,7 @@ struct CameraView: View {
         .onAppear { onViewAppear() }
         .onDisappear { onViewDisappear() }
         .onChange(of: sensorManager.currentPitch) { _, _ in handleSensorUpdate() }
+        .onChange(of: sensorManager.currentHeading) { _, _ in handleSensorUpdate() }
         .onChange(of: cameraManager.saveResult) { _, result in
             if let result { handleSaveResult(result) }
         }
@@ -110,7 +112,12 @@ struct CameraView: View {
             if matched { hapticService.triggerSuccess() }
         }
         .alert("촬영 품질", isPresented: $showQualityAlert) {
-            Button("재촬영", role: .destructive) {}
+            Button("재촬영", role: .destructive) {
+                if let pair = existingPair {
+                    pair.afterPhoto = nil
+                    pair.status = .pendingAfter
+                }
+            }
             Button("저장", role: .cancel) {}
         } message: {
             Text(qualityIssueMessage)
@@ -208,14 +215,14 @@ extension CameraView {
                 ghostDefaultOpacity = newValue
             }
         }
-        if let target = existingPair?.beforePhoto, target.pitch != nil {
+        if let target = existingPair?.beforePhoto, target.heading != nil {
             SensorGuideView(
                 currentPitch: sensorManager.currentPitch,
                 currentRoll: sensorManager.currentRoll,
-                currentYaw: sensorManager.currentYaw,
+                currentHeading: sensorManager.currentHeading,
                 targetPitch: target.pitch ?? 0,
                 targetRoll: target.roll ?? 0,
-                targetYaw: target.yaw ?? 0
+                targetHeading: target.heading ?? 0
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
             .allowsHitTesting(false)
@@ -302,15 +309,15 @@ extension CameraView {
         guard let target = existingPair?.beforePhoto,
               let tPitch = target.pitch,
               let tRoll = target.roll,
-              let tYaw = target.yaw
+              let tHeading = target.heading
         else { return nil }
         return SensorAlignment(
             currentPitch: sensorManager.currentPitch,
             currentRoll: sensorManager.currentRoll,
-            currentYaw: sensorManager.currentYaw,
+            currentHeading: sensorManager.currentHeading,
             targetPitch: tPitch,
             targetRoll: tRoll,
-            targetYaw: tYaw
+            targetHeading: tHeading
         )
     }
 
@@ -385,10 +392,17 @@ extension CameraView {
             ghostOpacity = ghostDefaultOpacity
             ghostAutoActivated = true
         }
-        if alignment.stage == .aligning, alignment.isAligned {
-            hapticService.triggerSuccess()
-            hapticService.stopHaptic()
+        if alignment.isAligned {
+            if !wasAligned {
+                hapticService.triggerSuccess()
+                hapticService.stopHaptic()
+                wasAligned = true
+            }
         } else {
+            if wasAligned {
+                hapticService.startContinuousHaptic()
+                wasAligned = false
+            }
             hapticService.updateIntensity(alignmentScore: alignment.alignmentScore)
         }
     }

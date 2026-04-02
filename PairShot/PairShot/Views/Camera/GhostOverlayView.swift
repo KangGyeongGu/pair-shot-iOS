@@ -9,7 +9,7 @@ struct GhostOverlayView: View {
         if let image = beforeImage {
             Image(uiImage: image)
                 .resizable()
-                .aspectRatio(contentMode: .fill)
+                .aspectRatio(contentMode: .fit)
                 .opacity(opacity)
                 .allowsHitTesting(false)
         }
