@@ -78,9 +78,9 @@ struct PairGalleryView: View {
         .fullScreenCover(item: $cameraDestination) { destination in
             switch destination {
                 case .before:
-                    PairCameraView(project: project, sensorManager: sensorManager)
+                    UnifiedCameraView(project: project, sensorManager: sensorManager)
                 case let .after(pair):
-                    PairCameraView(project: project, existingPair: pair, sensorManager: sensorManager)
+                    UnifiedCameraView(project: project, existingPair: pair, sensorManager: sensorManager)
             }
         }
     }

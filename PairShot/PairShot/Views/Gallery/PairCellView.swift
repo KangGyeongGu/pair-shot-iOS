@@ -22,6 +22,19 @@ struct PairCellView: View {
                         lineWidth: 2
                     )
             )
+            .overlay(alignment: .topLeading) {
+                HStack(spacing: 3) {
+                    Image(systemName: pair.captureMode.iconName)
+                        .font(.system(size: 9, weight: .bold))
+                    Text(pair.captureMode.label)
+                        .font(.system(size: 9, weight: .semibold))
+                }
+                .foregroundStyle(.white)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 3)
+                .background(.black.opacity(0.6), in: Capsule())
+                .padding(6)
+            }
 
             if pair.status == .pendingAfter {
                 HStack(spacing: 4) {

@@ -202,7 +202,7 @@ extension PairCameraView {
 
     func fireCapture() {
         if isBefore {
-            let pair = PhotoPair(project: project)
+            let pair = PhotoPair(captureMode: .normal, project: project)
             modelContext.insert(pair)
             project.pairs.append(pair)
             cameraManager.capturePhoto(projectId: project.id, pairId: pair.id, isBefore: true)

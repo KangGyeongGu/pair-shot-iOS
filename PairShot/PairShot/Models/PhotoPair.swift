@@ -1,21 +1,12 @@
-//
-//  PhotoPair.swift
-//  PairShot
-//
-//  Created by KKK on 3/31/26.
-//
-
 import Foundation
 import SwiftData
 
-/// Before-After 사진 쌍 단위
 @Model
 final class PhotoPair {
     var id: UUID
     var createdAt: Date
     var status: PairStatus
-
-    // MARK: - 사진 관계
+    var captureModeRaw: String
 
     @Relationship(deleteRule: .cascade)
     var beforePhoto: Photo?
@@ -23,19 +14,24 @@ final class PhotoPair {
     @Relationship(deleteRule: .cascade)
     var afterPhoto: Photo?
 
-    // MARK: - 역방향 관계
-
     var project: Project?
+
+    var captureMode: CaptureMode {
+        get { CaptureMode(rawValue: captureModeRaw) ?? .precision }
+        set { captureModeRaw = newValue.rawValue }
+    }
 
     init(
         id: UUID = UUID(),
         createdAt: Date = Date(),
         status: PairStatus = .pendingAfter,
+        captureMode: CaptureMode = .precision,
         project: Project? = nil
     ) {
         self.id = id
         self.createdAt = createdAt
         self.status = status
+        captureModeRaw = captureMode.rawValue
         self.project = project
     }
 }
