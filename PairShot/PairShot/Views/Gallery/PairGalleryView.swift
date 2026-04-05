@@ -9,6 +9,7 @@ struct PairGalleryView: View {
     @State private var pairsToDelete: [PhotoPair] = []
     @State private var showDeleteConfirm = false
     @State private var cameraDestination: GalleryCameraDestination?
+    @State private var comparisonPair: PhotoPair?
     @State private var sensorManager = SensorManager()
 
     private let storage = PhotoStorageService()
@@ -36,9 +37,16 @@ struct PairGalleryView: View {
                         } else {
                             LazyVGrid(columns: columns, spacing: 12) {
                                 ForEach(displayed) { pair in
-                                    PairCellView(pair: pair, projectId: project.id) { tappedPair in
-                                        cameraDestination = .after(pair: tappedPair)
-                                    }
+                                    PairCellView(
+                                        pair: pair,
+                                        projectId: project.id,
+                                        onTapAfter: { tappedPair in
+                                            cameraDestination = .after(pair: tappedPair)
+                                        },
+                                        onTapCompare: { tappedPair in
+                                            comparisonPair = tappedPair
+                                        }
+                                    )
                                     .contextMenu {
                                         Button(role: .destructive) {
                                             pairsToDelete = [pair]
@@ -82,6 +90,9 @@ struct PairGalleryView: View {
                 case let .after(pair):
                     UnifiedCameraView(project: project, existingPair: pair, sensorManager: sensorManager)
             }
+        }
+        .fullScreenCover(item: $comparisonPair) { pair in
+            ComparisonContainerView(pair: pair)
         }
     }
 

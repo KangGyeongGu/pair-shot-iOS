@@ -4,6 +4,7 @@ struct PairCellView: View {
     let pair: PhotoPair
     let projectId: UUID
     var onTapAfter: ((PhotoPair) -> Void)?
+    var onTapCompare: ((PhotoPair) -> Void)?
 
     @State private var beforeThumb: UIImage?
     @State private var afterThumb: UIImage?
@@ -50,7 +51,9 @@ struct PairCellView: View {
         }
         .contentShape(Rectangle())
         .onTapGesture {
-            if pair.status == .pendingAfter {
+            if pair.status == .complete {
+                onTapCompare?(pair)
+            } else if pair.status == .pendingAfter {
                 onTapAfter?(pair)
             }
         }
