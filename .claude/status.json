@@ -1,11 +1,11 @@
 {
-  "state": "developing",
-  "current_phase": "P4",
+  "state": "idle",
+  "current_phase": "P5",
   "current_branch": "develop",
-  "current_feature_branch": "feature/p4-advanced-capture",
+  "current_feature_branch": null,
   "retry_count": 0,
   "max_retries": 3,
-  "last_completed_phase": "P3",
+  "last_completed_phase": "P4",
   "awaiting_device_test": false,
   "device_test_items": []
 }
