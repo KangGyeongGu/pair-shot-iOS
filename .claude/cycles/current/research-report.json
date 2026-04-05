@@ -1,174 +1,449 @@
 {
-  "phase": "P1",
-  "phase_name": "Camera Basic",
-  "features": ["F02", "F08", "F09"],
+  "phase": "P5",
+  "phase_name": "비교 뷰 + AI 분석",
+  "features": ["F07", "F11", "F14", "F15", "F16", "F17", "F25"],
   "current_state": {
     "existing_files": [
-      "PairShot/PairShot/PairShotApp.swift",
-      "PairShot/PairShot/ContentView.swift",
-      "PairShot/PairShot/Item.swift",
-      "PairShot/PairShot/Assets.xcassets/",
-      "PairShot/PairShotTests/PairShotTests.swift",
-      "PairShot/PairShotUITests/PairShotUITests.swift"
+      "/Users/kkk/Documents/projects/pairshot/PairShot/PairShot/Models/PhotoPair.swift",
+      "/Users/kkk/Documents/projects/pairshot/PairShot/PairShot/Models/Photo.swift",
+      "/Users/kkk/Documents/projects/pairshot/PairShot/PairShot/Models/Project.swift",
+      "/Users/kkk/Documents/projects/pairshot/PairShot/PairShot/Models/PairStatus.swift",
+      "/Users/kkk/Documents/projects/pairshot/PairShot/PairShot/PairShotApp.swift",
+      "/Users/kkk/Documents/projects/pairshot/PairShot/PairShot/ContentView.swift",
+      "/Users/kkk/Documents/projects/pairshot/PairShot/PairShot/Views/Archive/ArchiveView.swift",
+      "/Users/kkk/Documents/projects/pairshot/PairShot/PairShot/Views/Gallery/PairGalleryView.swift",
+      "/Users/kkk/Documents/projects/pairshot/PairShot/PairShot/Views/Gallery/PairCellView.swift",
+      "/Users/kkk/Documents/projects/pairshot/PairShot/PairShot/Views/Gallery/ThumbnailCache.swift",
+      "/Users/kkk/Documents/projects/pairshot/PairShot/PairShot/Services/PhotoStorageService.swift",
+      "/Users/kkk/Documents/projects/pairshot/PairShot/PairShot/Services/CameraManager+Save.swift",
+      "/Users/kkk/Documents/projects/pairshot/PairShot/PairShot/Services/QualityCheckService.swift"
     ],
     "existing_models": [
       {
-        "name": "Item",
-        "file": "PairShot/PairShot/Item.swift",
-        "note": "Xcode 기본 템플릿 모델. timestamp: Date 하나만 있음. PairShot 도메인 모델로 교체 필요."
+        "name": "PhotoPair",
+        "file": "/Users/kkk/Documents/projects/pairshot/PairShot/PairShot/Models/PhotoPair.swift",
+        "fields": ["id: UUID", "createdAt: Date", "status: PairStatus", "captureModeRaw: String?", "beforePhoto: Photo?", "afterPhoto: Photo?", "project: Project?"],
+        "gaps": [
+          "matchingScore: Float? 필드 없음 — F15 구현 시 추가 필요",
+          "alignedBeforeImagePath: String? 필드 없음 — F14 정렬 결과 캐시 경로",
+          "colorCorrectedBeforeImagePath: String? 필드 없음 — F17 보정 결과 캐시 경로",
+          "alignmentStatus: String? 필드 없음 — 정렬 성공/실패/미처리 상태 표현 필요"
+        ]
+      },
+      {
+        "name": "Photo",
+        "file": "/Users/kkk/Documents/projects/pairshot/PairShot/PairShot/Models/Photo.swift",
+        "fields": ["id: UUID", "filePath: String", "thumbnailPath: String", "timestamp: Date", "latitude/longitude/altitude", "heading/pitch/roll/yaw", "notes: String?", "worldMapPath: String?", "arTransformData: Data?", "depthAtCenter: Double?", "relativeAltitude: Double?", "referenceImagePath: String?", "focalLength: Double?", "zoomFactor: Double?"],
+        "gaps": ["비교 뷰용 파생 이미지 경로 저장 필드 없음 — PhotoPair 레벨에 추가하는 것이 적합"]
+      },
+      {
+        "name": "SwiftData ModelContainer schema",
+        "file": "/Users/kkk/Documents/projects/pairshot/PairShot/PairShot/PairShotApp.swift",
+        "registered_models": ["Project.self", "PhotoPair.self", "Photo.self"],
+        "gaps": ["P5에서 PhotoPair에 새 필드 추가 시 Schema 마이그레이션 불필요 (SwiftData optional 필드는 자동 처리)"]
       }
     ],
     "existing_views": [
       {
-        "name": "ContentView",
-        "file": "PairShot/PairShot/ContentView.swift",
-        "note": "Xcode 기본 템플릿 뷰. NavigationSplitView + List 구조. PairShot 용으로 전면 교체 필요."
+        "name": "PairGalleryView",
+        "file": "/Users/kkk/Documents/projects/pairshot/PairShot/PairShot/Views/Gallery/PairGalleryView.swift",
+        "description": "갤러리 그리드. PairCellView 탭 시 pendingAfter 상태이면 After 카메라로 이동. complete 상태 페어 탭 시 동작 없음 — 비교 뷰 진입 지점 미구현",
+        "gap": "status == .complete 인 PairCellView를 탭할 때 ComparisonView 로 이동하는 navigationDestination 또는 sheet 연결이 전혀 없음"
+      },
+      {
+        "name": "PairCellView",
+        "file": "/Users/kkk/Documents/projects/pairshot/PairShot/PairShot/Views/Gallery/PairCellView.swift",
+        "description": "썸네일 2-슬롯 셀. complete 상태에서 탭 시 아무 동작 없음",
+        "gap": "onTapGesture 블록에 complete 상태 분기 없음 — 비교 뷰 진입 콜백 추가 필요"
+      }
+    ],
+    "comparison_views_existing": [],
+    "ai_analysis_services_existing": [],
+    "ci_context_existing": {
+      "file": "/Users/kkk/Documents/projects/pairshot/PairShot/PairShot/Services/QualityCheckService.swift",
+      "note": "QualityCheckService 내에 private let context = CIContext() 인스턴스가 있으나, 이는 QualityCheckService 전용. P5용 AI 분석/이미지 처리를 위한 공유 CIContext 싱글톤이 별도로 필요"
+    },
+    "integration_points": [
+      {
+        "point": "비교 뷰 진입",
+        "location": "PairGalleryView.swift — PairCellView onTapGesture",
+        "current": "complete 상태 페어 탭 시 아무 동작 없음",
+        "needed": "navigationDestination(for: PhotoPair.self) 또는 sheet(item:) 으로 ComparisonContainerView 연결"
+      },
+      {
+        "point": "F14 AI 정렬 실행 시점",
+        "location": "After 저장 직후 — CameraManager+Save.swift 또는 UnifiedCameraView dismiss 콜백",
+        "current": "After 저장 후 별도 처리 없음",
+        "needed": "savePhoto 완료 후 AlignmentService.align(pair:) 를 Task { } 로 비동기 실행 (백그라운드, 비교 뷰 진입 차단하지 않음)"
+      },
+      {
+        "point": "F14 정렬 결과 저장 위치",
+        "location": "PhotoStorageService — 새 메서드 추가 필요",
+        "current": "before.jpg / after.jpg 만 저장. aligned_before.jpg 경로 없음",
+        "needed": "PhotoStorageService에 alignedPhotoURL(projectId:pairId:) 메서드 추가, PhotoPair에 alignedBeforeImagePath 필드 추가"
+      },
+      {
+        "point": "F15 매칭 스코어 저장",
+        "location": "PhotoPair SwiftData 모델",
+        "current": "matchingScore 필드 없음",
+        "needed": "PhotoPair에 matchingScore: Float? 추가 — SwiftData optional이므로 마이그레이션 자동 처리"
       }
     ]
   },
+  "sdk_api_verification": [
+    {
+      "api": "VNHomographicImageRegistrationRequest",
+      "header": "VNImageRegistrationRequest.h + VNTargetedImageRequest.h",
+      "availability": "macOS 10.13, iOS 11.0, tvOS 11.0",
+      "init_signature": "init(targetedCGImage: CGImage, options: [VNImageOption: Any], completionHandler: VNRequestCompletionHandler?)",
+      "results_type": "[VNImageHomographicAlignmentObservation]?",
+      "handler_usage": "VNImageRequestHandler(cgImage: referenceCGImage, options: [:]).perform([request])",
+      "role": "request 생성 시 targetedImage = floating image (before). handler 생성 시 cgImage = reference image (after)",
+      "important_note": "request 의 pixelDimensions 는 reference image 와 정확히 일치해야 함. 불일치 시 실패. 즉 before 이미지를 after 와 동일 해상도로 리사이즈 후 사용해야 함",
+      "notes": "F14 구현에 사용. Swift에서 NS_SWIFT_UNAVAILABLE 표기가 없는 completionHandler 포함 버전 이니셜라이저 사용"
+    },
+    {
+      "api": "VNTrackHomographicImageRegistrationRequest",
+      "header": "VNTrackHomographicImageRegistrationRequest.h",
+      "availability": "macOS 14.0, iOS 17.0, tvOS 17.0",
+      "init_signature": "init() 또는 init(completionHandler:)",
+      "results_type": "[VNImageHomographicAlignmentObservation]?",
+      "notes": "iOS 17+ 전용 stateful 버전. VNSequenceRequestHandler와 함께 사용하며 두 이미지 이상 처리해야 결과 생성. P5는 단발성 정렬이므로 VNHomographicImageRegistrationRequest가 더 적합. VNTrackHomographicImageRegistrationRequest는 실시간 영상 추적용"
+    },
+    {
+      "api": "VNImageHomographicAlignmentObservation.warpTransform",
+      "header": "VNObservation.h",
+      "availability": "macOS 10.13, iOS 11.0",
+      "signature": "var warpTransform: matrix_float3x3 { get }",
+      "notes": "simd_float3x3 (matrix_float3x3) 타입. CIPerspectiveTransform 에 직접 사용 불가 — 3x3 행렬의 열 벡터에서 4 코너 CGPoint를 역산하여 CIPerspectiveTransform의 topLeft/topRight/bottomLeft/bottomRight 에 전달해야 함"
+    },
+    {
+      "api": "VNGenerateImageFeaturePrintRequest",
+      "header": "VNGenerateImageFeaturePrintRequest.h",
+      "availability": "macOS 10.15, iOS 13.0, tvOS 13.0",
+      "class_signature": "class VNGenerateImageFeaturePrintRequest : VNImageBasedRequest",
+      "property_imageCropAndScaleOption": "var imageCropAndScaleOption: VNImageCropAndScaleOption (default: .scaleFill)",
+      "results_type": "[VNFeaturePrintObservation]?",
+      "revision2": "VNGenerateImageFeaturePrintRequestRevision2 — iOS 17.0+ (더 높은 품질)",
+      "notes": "F15 구현. before/after 각각 VNImageRequestHandler로 실행하여 VNFeaturePrintObservation 2개 획득"
+    },
+    {
+      "api": "VNFeaturePrintObservation.computeDistance",
+      "header": "VNObservation.h",
+      "availability": "macOS 10.15, iOS 13.0",
+      "signature": "func computeDistance(_ outDistance: UnsafeMutablePointer<Float>, to featurePrint: VNFeaturePrintObservation) throws -> Bool",
+      "oc_signature": "- (BOOL)computeDistance:(float *)outDistance toFeaturePrintObservation:(VNFeaturePrintObservation *)featurePrint error:(NSError **)error",
+      "notes": "Swift에서는 try fp1.computeDistance(&distance, to: fp2) 형태. 거리가 클수록 유사도 낮음. 스펙 기준: <5 Excellent, 5~15 Good, >15 Retake"
+    },
+    {
+      "api": "VNImageRequestHandler",
+      "header": "VNRequestHandler.h",
+      "availability": "macOS 10.13, iOS 11.0",
+      "preferred_init": "init(cgImage: CGImage, options: [VNImageOption: Any])",
+      "perform_signature": "func performRequests(_ requests: [VNRequest]) throws",
+      "note_ci_context": "VNImageOption.ciContext 키로 CIContext를 공유 가능. Vision이 내부적으로 CoreImage를 사용하므로 앱의 CIContext를 주입하면 컨텍스트 전환 비용 절감",
+      "notes": "F14/F15 모두 사용. perform은 동기 블로킹이므로 Task.detached(priority: .userInitiated) 안에서 실행해야 함"
+    },
+    {
+      "api": "CIPerspectiveTransform",
+      "header": "CIFilterBuiltins.h",
+      "availability": "CIFilter(Builtins) 클래스: macOS 10.15, iOS 13.0",
+      "factory_method": "CIFilter.perspectiveTransformFilter()",
+      "protocol": "CIPerspectiveTransform : CIFourCoordinateGeometryFilter",
+      "input_properties": ["inputImage: CIImage?", "topLeft: CGPoint", "topRight: CGPoint", "bottomRight: CGPoint", "bottomLeft: CGPoint"],
+      "notes": "F14 warpTransform(matrix_float3x3) 적용에 사용. 행렬의 각 열로부터 4 코너 좌표 계산 필요. CIPerspectiveTransformWithExtent도 있으나 기본 CIPerspectiveTransform으로 충분"
+    },
+    {
+      "api": "CIDifferenceBlendMode (CICompositeOperation)",
+      "header": "CIFilterBuiltins.h",
+      "availability": "특별한 NS_AVAILABLE 없음 — CIFilter(Builtins) 기준 iOS 13.0+ (macOS 10.15+)",
+      "factory_method": "CIFilter.differenceBlendModeFilter()",
+      "protocol": "CICompositeOperation : CIFilter",
+      "input_properties": ["inputImage: CIImage? (foreground)", "backgroundImage: CIImage? (background)"],
+      "notes": "F16 변화 감지 히트맵 1단계. before-after 차이 이미지 생성. 출력은 픽셀별 절댓값 차이"
+    },
+    {
+      "api": "CIColorAbsoluteDifference",
+      "header": "CIFilterBuiltins.h",
+      "availability": "macOS 11.0, iOS 14.0",
+      "factory_method": "CIFilter.colorAbsoluteDifferenceFilter()",
+      "input_properties": ["inputImage: CIImage?", "inputImage2: CIImage?"],
+      "notes": "F16 대안: CIDifferenceBlendMode 보다 더 직접적인 절댓값 차이 필터. iOS 14+ 이므로 min target iOS 17과 호환"
+    },
+    {
+      "api": "CIFalseColor",
+      "header": "CIFilterBuiltins.h",
+      "availability": "CIFilter(Builtins) iOS 13.0+",
+      "factory_method": "CIFilter.falseColorFilter()",
+      "protocol": "CIFalseColor : CIFilter",
+      "input_properties": ["inputImage: CIImage?", "color0: CIColor (luminance=0 매핑)", "color1: CIColor (luminance=1 매핑)"],
+      "notes": "F16 2단계. 차이 이미지의 휘도를 red 오버레이로 매핑. color0=투명/검정, color1=빨간색 설정"
+    },
+    {
+      "api": "CISourceOverCompositing (CICompositeOperation)",
+      "header": "CIFilterBuiltins.h",
+      "availability": "CIFilter(Builtins) iOS 13.0+",
+      "factory_method": "CIFilter.sourceOverCompositingFilter()",
+      "input_properties": ["inputImage: CIImage? (foreground overlay)", "backgroundImage: CIImage? (after image)"],
+      "notes": "F16 3단계. FalseColor 오버레이를 after 이미지 위에 합성"
+    },
+    {
+      "api": "CITemperatureAndTint",
+      "header": "CIFilterBuiltins.h",
+      "availability": "CIFilter(Builtins) iOS 13.0+",
+      "factory_method": "CIFilter.temperatureAndTintFilter()",
+      "protocol": "CITemperatureAndTint : CIFilter",
+      "input_properties": ["inputImage: CIImage?", "neutral: CIVector (source 화이트포인트, x=colorTemp y=tint)", "targetNeutral: CIVector (목표 화이트포인트)"],
+      "notes": "F17 색온도/틴트 보정. neutral과 targetNeutral 모두 CIVector(x: colorTemp, y: tint) 형태"
+    },
+    {
+      "api": "CIColorMatrix",
+      "header": "CIFilterBuiltins.h",
+      "availability": "CIFilter(Builtins) iOS 13.0+",
+      "factory_method": "CIFilter.colorMatrixFilter()",
+      "protocol": "CIColorMatrix : CIFilter",
+      "input_properties": ["inputImage: CIImage?", "RVector: CIVector", "GVector: CIVector", "BVector: CIVector (추정, 헤더에 명시 없으나 표준 속성)", "AVector: CIVector", "biasVector: CIVector"],
+      "notes": "F17 색상 보정 매트릭스 적용. average color ratio를 계산하여 RGB 채널별 스케일 벡터 구성"
+    },
+    {
+      "api": "CIImage.autoAdjustmentFilters",
+      "header": "CIImage.h",
+      "availability": "macOS 10.8, iOS 5.0",
+      "signature": "func autoAdjustmentFilters() -> [CIFilter]",
+      "signature_with_options": "func autoAdjustmentFilters(options: [CIImageAutoAdjustmentOption: Any]?) -> [CIFilter]",
+      "notes": "F17 자동 보정 옵션. 필터 체인을 직접 적용해야 함. 비교적 간단한 보정이므로 before 이미지에 적용 후 캐시 저장"
+    },
+    {
+      "api": "CIContext (shared singleton)",
+      "header": "CIContext.h",
+      "availability": "iOS 5.0+",
+      "note": "CIContext는 CIImage/CIFilter와 달리 mutable하지 않으므로 Sendable. 멀티스레드 공유 가능. 하나의 CIContext 인스턴스를 앱 전체에서 재사용 권장 (내부 캐시/컴파일된 커널 유지). QualityCheckService 내 private context와는 별개로 P5 전용 공유 싱글톤 생성 권장"
+    }
+  ],
   "work_items_needed": [
     {
       "id": "W1",
-      "title": "SwiftData 도메인 모델 구축",
-      "description": "PhotoPair, Photo 등 핵심 도메인 모델을 SwiftData @Model로 작성. Item.swift 를 삭제하고 실제 앱 모델로 교체. SensorSnapshot(pitch/roll/yaw/heading/GPS 등 capture 시점 센서값) 포함.",
-      "files_to_create": [
-        "PairShot/PairShot/Models/PhotoPair.swift",
-        "PairShot/PairShot/Models/Photo.swift",
-        "PairShot/PairShot/Models/SensorSnapshot.swift"
-      ],
+      "title": "PhotoPair 모델 확장 — P5 필드 추가",
+      "description": "SwiftData @Model인 PhotoPair에 optional 필드 3개 추가: matchingScore: Float? (F15), alignedBeforeImagePath: String? (F14 캐시), colorCorrectedBeforeImagePath: String? (F17 캐시). 모두 optional이므로 SwiftData 자동 마이그레이션 처리됨 (명시적 SchemaMigrationPlan 불필요).",
+      "files_to_create": [],
       "files_to_modify": [
-        "PairShot/PairShot/PairShotApp.swift"
+        "/Users/kkk/Documents/projects/pairshot/PairShot/PairShot/Models/PhotoPair.swift"
       ],
       "dependencies": []
     },
     {
       "id": "W2",
-      "title": "AVFoundation 카메라 세션 매니저 구현",
-      "description": "AVCaptureSession, AVCapturePhotoOutput 을 관리하는 CameraManager (ObservableObject 또는 @Observable). 카메라 권한 요청, 세션 시작/중지, 사진 캡처, 사진 파일 저장, 섬네일 생성(300x300 CGImageSource)을 담당. 백그라운드 진입 시 세션 일시정지 및 복귀 시 자동 재개.",
-      "files_to_create": [
-        "PairShot/PairShot/Camera/CameraManager.swift"
+      "title": "PhotoStorageService 확장 — 파생 이미지 URL 메서드 추가",
+      "description": "alignedPhotoURL(projectId:pairId:) → projects/{id}/pairs/{id}/aligned_before.jpg, colorCorrectedPhotoURL(projectId:pairId:) → projects/{id}/pairs/{id}/corrected_before.jpg 경로 반환 메서드 추가. deletePair에도 이 파일들 삭제 포함.",
+      "files_to_create": [],
+      "files_to_modify": [
+        "/Users/kkk/Documents/projects/pairshot/PairShot/PairShot/Services/PhotoStorageService.swift"
       ],
-      "files_to_modify": [],
-      "dependencies": ["W1"]
+      "dependencies": []
     },
     {
       "id": "W3",
-      "title": "센서 데이터 수집 구현 (CMMotionManager + CLLocationManager)",
-      "description": "CMMotionManager를 1/60Hz로 구동하여 pitch/roll/yaw 실시간 수집. CLLocationManager로 GPS 수집. 셔터 시점에 SensorSnapshot 생성하여 Photo와 함께 저장.",
+      "title": "공유 CIContext 싱글톤 생성",
+      "description": "Services/ImageProcessingContext.swift 에 actor 또는 nonisolated(unsafe) static let 으로 shared CIContext 인스턴스 선언. AlignmentService, HeatmapService, ColorCorrectionService 모두 이 context를 사용. CIContext는 thread-safe하므로 공유 안전.",
       "files_to_create": [
-        "PairShot/PairShot/Sensors/SensorManager.swift"
+        "/Users/kkk/Documents/projects/pairshot/PairShot/PairShot/Services/ImageProcessingContext.swift"
       ],
       "files_to_modify": [],
-      "dependencies": ["W1"]
+      "dependencies": []
     },
     {
       "id": "W4",
-      "title": "저조도 자동 보정 구현 (F08)",
-      "description": "AVCaptureDevice.iso를 모니터링하여 800 초과 시 저조도로 판단. exposureTargetBias +1~2 EV 자동 적용. 매우 어두울 경우 torch level 0.4로 자동 활성화. 캡처 후 CIHighlightShadowAdjust(shadowAmount: 1.5) + CINoiseReduction 후처리. photoQualityPrioritization = .quality 설정으로 Deep Fusion/Smart HDR 활성화. torch 활성 시 상단에 아이콘 표시 및 수동 끄기 지원. 배터리 잔량 낮으면 torch 자동 비활성화.",
+      "title": "AlignmentService 구현 (F14)",
+      "description": "Services/AlignmentService.swift. async func align(pair: PhotoPair, projectId: UUID) throws -> URL? 구현. (1) before/after CGImage 로드, (2) before를 after 해상도로 CGContext resize (VNHomographicImageRegistrationRequest는 두 이미지 해상도 일치 필요), (3) VNHomographicImageRegistrationRequest(targetedCGImage: beforeResized, options:) 생성, (4) VNImageRequestHandler(cgImage: afterCGImage, options: [.ciContext: sharedContext]).perform([request]), (5) observation.warpTransform (matrix_float3x3) 추출, (6) 3x3 행렬로부터 4 코너 CGPoint 역산, (7) CIFilter.perspectiveTransformFilter() 적용하여 aligned CIImage 생성, (8) CIContext.createCGImage 후 JPEG 저장, (9) PhotoPair.alignedBeforeImagePath 업데이트. 실패 시 nil 반환 (원본 사용). Task.detached(priority: .userInitiated) 안에서 Vision perform 호출.",
       "files_to_create": [
-        "PairShot/PairShot/Camera/LowLightManager.swift"
+        "/Users/kkk/Documents/projects/pairshot/PairShot/PairShot/Services/AlignmentService.swift"
       ],
       "files_to_modify": [
-        "PairShot/PairShot/Camera/CameraManager.swift"
+        "/Users/kkk/Documents/projects/pairshot/PairShot/PairShot/Models/PhotoPair.swift"
       ],
-      "dependencies": ["W2"]
+      "dependencies": ["W1", "W2", "W3"]
     },
     {
       "id": "W5",
-      "title": "표준 카메라 기능 구현 (F09)",
-      "description": "화면비 전환(4:3 기본, 16:9, 1:1 — 센서는 항상 4:3 캡처, CGRect crop), 줌(0.5x/1x/2x/5x, videoZoomFactor + rampToVideoZoomFactor + pinch 제스처 + virtualDeviceSwitchOverVideoZoomFactors), 플래시(Auto/On/Off, AVCapturePhotoSettings.flashMode), 그리드선(3분할 UIView 오버레이), 타이머(Off/3초/10초), 전후면 카메라 전환.",
+      "title": "MatchingScoreService 구현 (F15)",
+      "description": "Services/MatchingScoreService.swift. async func computeScore(before: CGImage, after: CGImage) throws -> Float 구현. (1) VNGenerateImageFeaturePrintRequest 2개 생성 (revision: VNGenerateImageFeaturePrintRequestRevision2, iOS 17+ 고품질), (2) 각각 VNImageRequestHandler(cgImage:options:).perform([request]), (3) fp1.computeDistance(&dist, to: fp2), (4) Float 거리값 반환. PhotoPair.matchingScore에 저장. 등급 변환: <5 → 'excellent'(녹색), 5~15 → 'good'(노란색), >15 → 'retake'(빨간색). UI 배지 문자열: '92% match' 형태는 (1 - min(distance/20, 1)) * 100 근사값 사용.",
       "files_to_create": [
-        "PairShot/PairShot/Camera/CameraSettings.swift"
+        "/Users/kkk/Documents/projects/pairshot/PairShot/PairShot/Services/MatchingScoreService.swift"
       ],
       "files_to_modify": [
-        "PairShot/PairShot/Camera/CameraManager.swift"
+        "/Users/kkk/Documents/projects/pairshot/PairShot/PairShot/Models/PhotoPair.swift"
       ],
-      "dependencies": ["W2"]
+      "dependencies": ["W1", "W3"]
     },
     {
       "id": "W6",
-      "title": "카메라 UI 뷰 구현 (F02 UI)",
-      "description": "전체 화면 AVCaptureVideoPreviewLayer 기반 카메라 프리뷰(UIViewRepresentable). 하단 대형 셔터 버튼(장갑 착용 가능), 하단 좌측 최근 섬네일 스택, 상단 플래시/화면비/그리드 토글 버튼, 하단 줌 버튼(0.5x, 1x, 2x), 하단 우측 전후면 전환 버튼, 촬영 횟수 표시('N장 촬영'), torch 활성 표시 아이콘, 그리드선 오버레이, 저조도 시 수동 밝기 슬라이더(길게 누르기).",
+      "title": "ColorCorrectionService 구현 (F17)",
+      "description": "Services/ColorCorrectionService.swift. async func correctColor(before: CIImage, reference after: CIImage) -> CIImage 구현. 방법 1 (권장): CIImage.autoAdjustmentFilters(options:) 로 before에 자동 보정 필터 체인 적용. 방법 2: after 이미지의 평균 색온도를 CIAreaAverage 필터로 추출, before에 CITemperatureAndTint 적용. 결과를 corrected_before.jpg로 저장, PhotoPair.colorCorrectedBeforeImagePath 업데이트. F16 히트맵과 F11 슬라이더에서 보정 이미지 우선 사용.",
       "files_to_create": [
-        "PairShot/PairShot/Views/Camera/CameraView.swift",
-        "PairShot/PairShot/Views/Camera/CameraPreviewView.swift",
-        "PairShot/PairShot/Views/Camera/GridOverlayView.swift",
-        "PairShot/PairShot/Views/Camera/ZoomControlView.swift",
-        "PairShot/PairShot/Views/Camera/ShutterButton.swift"
+        "/Users/kkk/Documents/projects/pairshot/PairShot/PairShot/Services/ColorCorrectionService.swift"
       ],
       "files_to_modify": [
-        "PairShot/PairShot/ContentView.swift"
+        "/Users/kkk/Documents/projects/pairshot/PairShot/PairShot/Models/PhotoPair.swift"
       ],
-      "dependencies": ["W2", "W4", "W5"]
+      "dependencies": ["W1", "W2", "W3"]
     },
     {
       "id": "W7",
-      "title": "카메라 권한 거부 안내 화면 구현",
-      "description": "카메라 권한이 거부된 경우 Settings 앱으로 유도하는 안내 화면(PermissionDeniedView). ContentView 또는 CameraView 진입 시 권한 상태를 확인하고 분기.",
+      "title": "HeatmapService 구현 (F16)",
+      "description": "Services/HeatmapService.swift. async func generateHeatmap(before: CIImage, after: CIImage) -> (heatmapImage: CIImage, changeRatio: Double) 구현. (1) CIFilter.colorAbsoluteDifferenceFilter() (iOS 14+) 로 절댓값 차이 이미지 생성, (2) CIFilter.falseColorFilter()로 휘도→레드 매핑 (color0: .clear, color1: .red), (3) CIFilter.sourceOverCompositingFilter()로 after 이미지 위에 오버레이, (4) 변화율 계산: 차이 이미지의 픽셀을 임계값(0.1)으로 이진화하여 변화 면적 비율 계산. CIDifferenceBlendMode 대신 CIColorAbsoluteDifference 사용이 더 정확하고 단순.",
       "files_to_create": [
-        "PairShot/PairShot/Views/Camera/PermissionDeniedView.swift"
+        "/Users/kkk/Documents/projects/pairshot/PairShot/PairShot/Services/HeatmapService.swift"
       ],
-      "files_to_modify": [
-        "PairShot/PairShot/Views/Camera/CameraView.swift"
-      ],
-      "dependencies": ["W6"]
+      "files_to_modify": [],
+      "dependencies": ["W3"]
     },
     {
       "id": "W8",
-      "title": "저장공간 부족 경고 처리",
-      "description": "사진 저장 전 디바이스 여유 공간 확인. 부족할 경우 경고 다이얼로그 표시. CameraManager 또는 Photo 저장 로직에서 처리.",
+      "title": "비교 뷰 진입 연결 — PairGalleryView + PairCellView 수정",
+      "description": "PairCellView의 onTapGesture에 complete 상태 분기 추가: pair.status == .complete 시 onTapCompare?(pair) 콜백 호출. PairGalleryView에 @State var comparisonPair: PhotoPair? 추가, PairCellView에 onTapCompare 클로저 전달, .sheet(item: $comparisonPair) 또는 NavigationLink로 ComparisonContainerView 연결. F005 교훈: 빈 클로저 금지, 반드시 실제 액션 연결.",
       "files_to_create": [],
       "files_to_modify": [
-        "PairShot/PairShot/Camera/CameraManager.swift"
+        "/Users/kkk/Documents/projects/pairshot/PairShot/PairShot/Views/Gallery/PairGalleryView.swift",
+        "/Users/kkk/Documents/projects/pairshot/PairShot/PairShot/Views/Gallery/PairCellView.swift"
       ],
-      "dependencies": ["W2"]
+      "dependencies": ["W9"]
     },
     {
       "id": "W9",
-      "title": "ARWorldMap 백그라운드 저장 (선택적)",
-      "description": "ARKit 세션을 함께 운용하여 캡처 시점에 arSession.getCurrentWorldMap → NSKeyedArchiver → 파일 저장. LiDAR 없는 기기에서도 ARKit 카메라 트래킹 기반으로 동작. ARWorldMap 저장 실패(환경 특징점 부족)는 무시하고 센서 데이터만 저장.",
+      "title": "ComparisonContainerView 구현 — 탭바 + 모드 전환",
+      "description": "Views/Comparison/ComparisonContainerView.swift. TabView 또는 커스텀 세그먼트 바로 4개 모드 전환: [나란히(F07), 슬라이더(F11), 히트맵(F16), 애니메이션(F25)]. 상단 뒤로가기 + 공유 버튼. 상단 매칭 스코어 배지 (F15). AI 정렬 결과(alignedBeforeImagePath)를 로드하여 각 자식 뷰에 전달. 정렬 처리 중 상태 표시. F006 교훈: 자식 뷰를 부모 body에 실제 삽입 확인 필수.",
       "files_to_create": [
-        "PairShot/PairShot/AR/ARSessionManager.swift"
+        "/Users/kkk/Documents/projects/pairshot/PairShot/PairShot/Views/Comparison/ComparisonContainerView.swift"
       ],
+      "files_to_modify": [],
+      "dependencies": ["W1", "W4", "W5"]
+    },
+    {
+      "id": "W10",
+      "title": "SideBySideView 구현 (F07)",
+      "description": "Views/Comparison/SideBySideView.swift. 좌(Before)/우(After) HStack 레이아웃. 공유 @State var zoomScale, offset. .simultaneousGesture(MagnificationGesture) 로 양쪽 동시 줌. DragGesture로 동기 패닝. 더블탭으로 리셋. 대용량 이미지(48MP) 대응: 표시용은 CGImageSourceCreateThumbnailAtPixelSize(maxPixelSize: 1200)로 다운스케일 로드, 줌 시 원본 타일 로드. 종횡비 불일치 시 작은 쪽에 맞춰 크롭.",
+      "files_to_create": [
+        "/Users/kkk/Documents/projects/pairshot/PairShot/PairShot/Views/Comparison/SideBySideView.swift"
+      ],
+      "files_to_modify": [],
+      "dependencies": ["W9"]
+    },
+    {
+      "id": "W11",
+      "title": "SliderCompareView 구현 (F11)",
+      "description": "Views/Comparison/SliderCompareView.swift. GeometryReader + DragGesture. After 이미지 fullscreen 배경. Before 이미지는 .mask(alignment: .leading) { Rectangle().frame(width: sliderX) }. 분할선: Rectangle().frame(width: 2).position(x: sliderX, y: geo.size.height/2). 핸들 아이콘: arrow.left.and.right. F14 정렬 이미지 우선 사용. 줌 상태에서도 슬라이더 동작 유지. 60fps 유지: CATiledLayer 불필요, 리사이즈된 UIImage 사용으로 충분.",
+      "files_to_create": [
+        "/Users/kkk/Documents/projects/pairshot/PairShot/PairShot/Views/Comparison/SliderCompareView.swift"
+      ],
+      "files_to_modify": [],
+      "dependencies": ["W9"]
+    },
+    {
+      "id": "W12",
+      "title": "HeatmapView 구현 (F16)",
+      "description": "Views/Comparison/HeatmapView.swift. HeatmapService 결과 이미지 표시. 하단 또는 상단에 변화율 텍스트 (예: '42% 면적 변화'). 히트맵 생성 중 ProgressView 표시. 색상 범례 (낮음 → 높음). .task(id: pair.id) 로 뷰 진입 시 비동기 계산.",
+      "files_to_create": [
+        "/Users/kkk/Documents/projects/pairshot/PairShot/PairShot/Views/Comparison/HeatmapView.swift"
+      ],
+      "files_to_modify": [],
+      "dependencies": ["W7", "W9"]
+    },
+    {
+      "id": "W13",
+      "title": "AnimationCompareView 구현 (F25)",
+      "description": "Views/Comparison/AnimationCompareView.swift. @State var showingAfter = true. Image(before/after).opacity(showingAfter ? 0 : 1). 탭 시 withAnimation(.easeInOut(duration: 0.3)) { showingAfter.toggle() }. 또는 자동 반복 토글 타이머 옵션. 단순 구현으로 F25 요구사항 충족.",
+      "files_to_create": [
+        "/Users/kkk/Documents/projects/pairshot/PairShot/PairShot/Views/Comparison/AnimationCompareView.swift"
+      ],
+      "files_to_modify": [],
+      "dependencies": ["W9"]
+    },
+    {
+      "id": "W14",
+      "title": "MatchingScoreBadge 컴포넌트 구현 (F15 UI)",
+      "description": "Views/Comparison/MatchingScoreBadge.swift. matchingScore: Float? 를 받아 등급별 색상(녹/황/적) 배지 표시. score가 nil이면 '분석 중...' 표시. 거리값을 퍼센트로 표시: displayPercent = max(0, Int((1 - min(score/20, 1)) * 100)). ComparisonContainerView 상단에 overlay로 삽입.",
+      "files_to_create": [
+        "/Users/kkk/Documents/projects/pairshot/PairShot/PairShot/Views/Comparison/MatchingScoreBadge.swift"
+      ],
+      "files_to_modify": [],
+      "dependencies": ["W9"]
+    },
+    {
+      "id": "W15",
+      "title": "After 저장 후 AI 분석 백그라운드 트리거",
+      "description": "UnifiedCameraView 또는 ARCameraView의 After 저장 완료 콜백에서 Task { await AlignmentService.shared.align(pair:projectId:) } 를 비동기 실행. MatchingScoreService와 ColorCorrectionService도 동시 실행 (async let 병렬). PhotoPair 업데이트는 @MainActor 에서 처리. 비교 뷰 진입을 차단하지 않음 — 진입 시 alignedBeforeImagePath가 nil이면 원본 사용, 완료 후 자동 업데이트.",
+      "files_to_create": [],
       "files_to_modify": [
-        "PairShot/PairShot/Camera/CameraManager.swift"
+        "/Users/kkk/Documents/projects/pairshot/PairShot/PairShot/Views/Camera/UnifiedCameraView.swift"
       ],
-      "dependencies": ["W1", "W2"]
+      "dependencies": ["W4", "W5", "W6"]
     }
   ],
   "risks": [
     {
       "id": "R1",
       "severity": "high",
-      "description": "Swift 6 concurrency(Strict Concurrency) 환경에서 AVFoundation 델리게이트 콜백은 non-isolated 컨텍스트에서 호출됨. CameraManager를 @MainActor 로 선언할 경우 AVCapturePhotoCaptureDelegate 메서드에서 actor isolation 컴파일 오류 발생 가능. Sendable, nonisolated 처리를 명확히 설계해야 함."
+      "feature": "F14",
+      "description": "VNHomographicImageRegistrationRequest는 before와 after 이미지의 픽셀 해상도가 정확히 일치해야 함 (헤더 주석: 'the pixel dimensions of the reference image do not exactly match the resolved region of interest of the floating image'). 48MP before와 줌된 after는 해상도가 다를 수 있음. 구현 시 반드시 before를 after 해상도로 리사이즈 후 request 생성 필요. 미처리 시 request 실패(결과 nil)."
     },
     {
       "id": "R2",
-      "severity": "medium",
-      "description": "연속 촬영 시 메모리 200MB 제한. 48MP RAW 또는 고해상도 HEIF를 처리하는 경우 단일 이미지가 50MB 이상일 수 있음. 파일 저장과 섬네일 생성을 백그라운드 큐에서 처리하고 메모리 압박 알림(didReceiveMemoryWarning)에 대응하는 설계 필요."
+      "severity": "high",
+      "feature": "F14",
+      "description": "warpTransform(matrix_float3x3)을 CIPerspectiveTransform에 적용하려면 4 코너 CGPoint를 역산하는 로직이 필요. 행렬에서 직접 코너를 구하는 공식: 이미지 4 코너(0,0), (w,0), (w,h), (0,h)에 각각 행렬을 곱하고 homogeneous 좌표로 나누어 CGPoint 변환. 이 수학적 변환 없이 matrix_float3x3을 직접 CIFilter에 넣는 방법은 없음."
     },
     {
       "id": "R3",
-      "severity": "medium",
-      "description": "저조도 torch 자동 활성화 시 flash와 동시 사용하면 과노출 발생. 플래시 On 상태에서 torch를 비활성화하거나, 캡처 직전 torch를 끄고 플래시를 사용하는 타이밍 제어 로직이 필요."
+      "severity": "high",
+      "feature": "F14, F15, F16",
+      "description": "48MP 이미지(약 48~80MB decoded)를 Vision/CoreImage로 처리 시 메모리 250MB 초과 가능. 대응: (1) 표시용 다운스케일 이미지(1200px 이하)로 정렬/히트맵 계산 — 픽셀 정확도보다 구도 정렬이 목적이므로 충분, (2) CGImageSourceCreateThumbnailAtPixelSize 사용, (3) autoreleasepool { } 로 중간 이미지 즉시 해제."
     },
     {
       "id": "R4",
       "severity": "medium",
-      "description": "ARKit과 AVCaptureSession을 동시에 운용할 때 카메라 리소스 충돌 가능성. ARSession이 AVCaptureSession을 내부적으로 소유하므로, CameraManager 내 독립 AVCaptureSession과 ARSession을 함께 사용할 경우 멀티캠 세션(AVCaptureMultiCamSession) 또는 ARSession에서 capturedImage를 추출하는 방식으로 충돌 회피 필요."
+      "feature": "F14",
+      "description": "장면 변화가 크거나 촬영 각도 차이가 심한 경우 VNHomographicImageRegistrationRequest의 results가 nil 또는 빈 배열. 폴백: originalBeforeImagePath를 사용하고 UI에 '정렬 불가' 메시지 표시. 스펙 F14 edge case와 일치."
     },
     {
       "id": "R5",
+      "severity": "medium",
+      "feature": "F14, F15, F16, F17",
+      "description": "Swift 6 strict concurrency: Vision의 perform([request])은 동기 블로킹 함수이므로 Task.detached(priority: .userInitiated) 안에서만 호출. CIContext.createCGImage도 블로킹. @MainActor 함수에서 직접 호출 금지. PhotoPair SwiftData 모델 업데이트는 반드시 @MainActor 컨텍스트에서 수행."
+    },
+    {
+      "id": "R6",
+      "severity": "medium",
+      "feature": "F16",
+      "description": "변화율 계산 (픽셀 임계값 초과 비율)을 GPU 없이 CPU로 수행하면 48MP에서 수초 소요. 대응: 리사이즈된 차이 이미지(512px 이하)에서 계산하거나, CIAreaHistogram 필터로 근사."
+    },
+    {
+      "id": "R7",
       "severity": "low",
-      "description": "화면비 전환 시 센서는 항상 4:3으로 캡처하고 CGRect crop만 적용하므로, 16:9 또는 1:1 before 사진과 after 사진 간 crop 일관성을 PhotoPair 수준에서 관리해야 함."
+      "feature": "F07",
+      "description": "두 ScrollView 동기 줌/패닝은 SwiftUI에서 simultaneousGesture 간 충돌 가능. DragGesture를 ZStack 최상위에 단일 gesture로 받아 양쪽 offset을 동시 업데이트하는 방식 사용. UIKit UIScrollViewDelegate scrollViewDidScroll 기반 UIViewRepresentable도 대안."
+    },
+    {
+      "id": "R8",
+      "severity": "low",
+      "feature": "F11",
+      "description": "슬라이더 분할선이 pinch 줌 상태에서 좌표계 불일치 가능. sliderX는 항상 뷰 좌표계(GeometryReader 기준)로 유지하고 이미지 변환과 분리."
+    },
+    {
+      "id": "R9",
+      "severity": "low",
+      "feature": "전체",
+      "description": "F006 재발 방지: ComparisonContainerView 내 SideBySideView/SliderCompareView/HeatmapView/AnimationCompareView 4개를 모두 실제 body에 삽입했는지 코드리뷰 시 확인 필수."
     }
   ],
   "notes": [
-    "현재 프로젝트는 Xcode 기본 템플릿 수준. Item.swift와 ContentView.swift는 PairShot 전용 코드로 전면 교체 대상.",
-    "PairShotApp.swift의 ModelContainer 스키마를 Item.self에서 PhotoPair.self, Photo.self 로 교체해야 함.",
-    "작업 순서 권장: W1(모델) → W2(카메라) + W3(센서) 병렬 → W4(저조도) + W5(표준 기능) 병렬 → W6(UI) → W7(권한) + W8(저장공간) + W9(AR) 병렬.",
-    "W9(ARWorldMap)은 F02 요구사항이지만 구현 복잡도가 높으므로, 나머지 작업 완료 후 마지막에 추가하는 것을 권장.",
-    "Info.plist에 NSCameraUsageDescription, NSLocationWhenInUseUsageDescription, NSMotionUsageDescription 항목 추가 필요.",
-    "F02 요구사항 중 '아카이브(프로젝트 갤러리)로 복귀' 기능은 F01(프로젝트 관리) 의존. P1 범위에서는 임시 뒤로 가기 버튼만 구현하고, F01 구현 시 연결."
+    "비교 뷰 진입점: PairGalleryView에서 complete 상태 페어 탭 시 ComparisonContainerView로 이동. After 촬영 직후 자동 진입은 스펙에 없으므로 구현하지 않음.",
+    "F14 AI 정렬 실행 시점: After 저장 직후 백그라운드에서 실행 (UnifiedCameraView dismiss 전 Task 시작). 비교 뷰 진입을 차단하지 않으며, 정렬 완료 전에는 원본 이미지 사용.",
+    "CIFilterBuiltins 전체가 iOS 13.0 (macOS 10.15) 기준. P5 최소 타겟 iOS 17이므로 모든 사용 필터가 안전하게 사용 가능.",
+    "VNGenerateImageFeaturePrintRequestRevision2는 iOS 17.0+ 에서만 사용 가능. revision을 명시하지 않으면 기본 revision1(iOS 13+) 사용. iOS 17 타겟이므로 revision2 명시 권장.",
+    "PhotoPair SwiftData 마이그레이션: optional 필드 3개 추가(matchingScore, alignedBeforeImagePath, colorCorrectedBeforeImagePath)는 SwiftData 자동 처리. ModelContainer 스키마 재선언 불필요.",
+    "공유 CIContext 싱글톤은 NSObject를 상속하고 NS_SWIFT_SENDABLE 로 표시되어 있어 Swift 6 concurrency에서 actor 없이 안전하게 공유 가능. CIContext 헤더 주석: 'CIContext and CIImage instances are immutable, so multiple threads can use the same CIContext'.",
+    "F15 매칭 스코어를 '퍼센트'로 표시할 때 VNFeaturePrintObservation distance는 0~무한대이며 스케일이 모델에 따라 다름. 스펙의 <5 기준은 경험적 값이므로 displayPercent = max(0, Int((1 - min(score/20.0, 1.0)) * 100)) 근사 사용 권장.",
+    "W15(After 저장 후 AI 분석 트리거)는 async let을 사용하여 align/score/colorCorrect를 동시 실행 가능. 단 각각 독립적 CGImage 로드 필요 (CIContext는 공유 가능).",
+    "VNTrackHomographicImageRegistrationRequest (iOS 17+) 는 연속 프레임 추적용으로 P5 단발성 정렬에는 부적합. VNHomographicImageRegistrationRequest (iOS 11+) 사용이 올바름."
   ]
 }
