@@ -19,9 +19,6 @@ struct ARCameraView: View {
     @State private var beforeImage: UIImage?
     @State private var ghostOpacity: Double = 0.0
     @State private var ghostVisible: Bool = false
-    @State private var showQualityAlert = false
-    @State private var qualityIssueMessage = ""
-    @State private var qualityCheckService = QualityCheckService()
     @State private var isSaving = false
 
     var body: some View {
@@ -146,16 +143,8 @@ struct ARCameraView: View {
                 }
             }
         }
-        .alert("촬영 품질", isPresented: $showQualityAlert) {
-            Button("재촬영", role: .destructive) {
-                if let pair = existingPair {
-                    pair.afterPhoto = nil
-                    pair.status = .pendingAfter
-                }
-            }
-            Button("저장", role: .cancel) {}
-        } message: {
-            Text(qualityIssueMessage)
+        .onDisappear {
+            arManager.stopSession()
         }
     }
 
@@ -199,12 +188,6 @@ struct ARCameraView: View {
                 try? await Task.sleep(for: .milliseconds(100))
             }
             let (image, transform) = try await arManager.capturePhoto()
-            let fwd = -SIMD3<Float>(transform.columns.2.x, transform.columns.2.y, transform.columns.2.z)
-            print(
-                "[AR-CAM] CAPTURE \(isBefore ? "BEFORE" : "AFTER") pos: \(transform.columns.3.x), \(transform.columns.3.y), \(transform.columns.3.z)"
-            )
-            print("[AR-CAM] CAPTURE forward: \(fwd.x), \(fwd.y), \(fwd.z)")
-            print("[AR-CAM] session running: \(arManager.isSessionRunning), tracking: \(arManager.trackingState)")
             capturedPhoto = image
             let (pair, pairId) = try resolvePair()
             let photo = try savePhotoFiles(image: image, transform: transform, pairId: pairId)
@@ -273,38 +256,12 @@ struct ARCameraView: View {
     }
 
     private func restoreSavedPose() {
-        guard let beforePhoto = existingPair?.beforePhoto else {
-            print("[AR-CAM] restoreSavedPose: no beforePhoto")
-            return
-        }
-        if let transformData = beforePhoto.arTransformData,
-           transformData.count == MemoryLayout<simd_float4x4>.size
-        {
-            let transform = transformData.withUnsafeBytes { $0.load(as: simd_float4x4.self) }
-            arManager.setSavedPose(transform: transform)
-            let fwd = -SIMD3<Float>(transform.columns.2.x, transform.columns.2.y, transform.columns.2.z)
-            print(
-                "[AR-CAM] restored savedPose pos: \(transform.columns.3.x), \(transform.columns.3.y), \(transform.columns.3.z)"
-            )
-            print("[AR-CAM] restored forward: \(fwd.x), \(fwd.y), \(fwd.z)")
-            print("[AR-CAM] session running: \(arManager.isSessionRunning)")
-        } else {
-            print("[AR-CAM] restoreSavedPose: no arTransformData")
-        }
-    }
-
-    private func runQualityCheck(on image: UIImage, pair _: PhotoPair) async {
-        let issue = await qualityCheckService.analyze(image, isLowLight: false)
-        guard let issue else { return }
-        switch issue {
-            case .blurry:
-                qualityIssueMessage = "흐린 사진이 감지되었습니다. 재촬영하시겠습니까?"
-            case .overExposed:
-                qualityIssueMessage = "과다 노출이 감지되었습니다. 재촬영하시겠습니까?"
-            case .underExposed:
-                qualityIssueMessage = "노출 부족이 감지되었습니다. 재촬영하시겠습니까?"
-        }
-        showQualityAlert = true
+        guard let beforePhoto = existingPair?.beforePhoto,
+              let transformData = beforePhoto.arTransformData,
+              transformData.count == MemoryLayout<simd_float4x4>.size
+        else { return }
+        let transform = transformData.withUnsafeBytes { $0.load(as: simd_float4x4.self) }
+        arManager.setSavedPose(transform: transform)
     }
 }
 
