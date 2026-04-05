@@ -51,10 +51,9 @@ struct PairCellView: View {
         }
         .contentShape(Rectangle())
         .onTapGesture {
-            if pair.status == .complete {
-                onTapCompare?(pair)
-            } else if pair.status == .pendingAfter {
-                onTapAfter?(pair)
+            switch pair.status {
+                case .complete: onTapCompare?(pair)
+                case .pendingAfter: onTapAfter?(pair)
             }
         }
         .task(id: pair.beforePhoto?.thumbnailPath) {

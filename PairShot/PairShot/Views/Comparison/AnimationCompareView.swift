@@ -1,4 +1,3 @@
-import ImageIO
 import SwiftUI
 
 struct AnimationCompareView: View {
@@ -46,26 +45,12 @@ struct AnimationCompareView: View {
             }
         }
         .task(id: beforeURL) {
-            beforeImage = await Self.loadDownscaled(url: beforeURL)
+            beforeImage = nil
+            beforeImage = await ImageThumbnailLoader.loadUIImage(url: beforeURL)
         }
         .task(id: afterURL) {
-            afterImage = await Self.loadDownscaled(url: afterURL)
+            afterImage = nil
+            afterImage = await ImageThumbnailLoader.loadUIImage(url: afterURL)
         }
-    }
-
-    private static func loadDownscaled(url: URL) async -> UIImage? {
-        guard url.isFileURL else { return nil }
-        return await Task.detached(priority: .userInitiated) {
-            guard let source = CGImageSourceCreateWithURL(url as CFURL, nil) else { return nil }
-            let options: [CFString: Any] = [
-                kCGImageSourceThumbnailMaxPixelSize: 1600,
-                kCGImageSourceCreateThumbnailFromImageAlways: true,
-                kCGImageSourceCreateThumbnailWithTransform: true,
-            ]
-            guard let cgImage = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else {
-                return nil
-            }
-            return UIImage(cgImage: cgImage)
-        }.value
     }
 }

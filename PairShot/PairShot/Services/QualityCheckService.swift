@@ -1,12 +1,6 @@
 import CoreImage
 import UIKit
 
-enum QualityIssue {
-    case blurry
-    case overExposed
-    case underExposed
-}
-
 @Observable
 @MainActor
 final class QualityCheckService {

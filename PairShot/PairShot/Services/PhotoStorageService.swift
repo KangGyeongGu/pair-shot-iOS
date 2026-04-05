@@ -68,15 +68,14 @@ struct PhotoStorageService {
     }
 
     func deletePair(projectId: UUID, pairId: UUID) async {
-        let urls = [
-            try? photoURL(projectId: projectId, pairId: pairId, isBefore: true),
-            try? photoURL(projectId: projectId, pairId: pairId, isBefore: false),
+        if let pairDir = try? pairDirectoryURL(for: projectId, pairId: pairId) {
+            try? fileManager.removeItem(at: pairDir)
+        }
+        let thumbURLs = [
             try? thumbnailURL(projectId: projectId, pairId: pairId, isBefore: true),
             try? thumbnailURL(projectId: projectId, pairId: pairId, isBefore: false),
-            try? alignedPhotoURL(projectId: projectId, pairId: pairId),
-            try? colorCorrectedPhotoURL(projectId: projectId, pairId: pairId),
         ]
-        for url in urls.compactMap(\.self) {
+        for url in thumbURLs.compactMap(\.self) {
             try? fileManager.removeItem(at: url)
         }
     }

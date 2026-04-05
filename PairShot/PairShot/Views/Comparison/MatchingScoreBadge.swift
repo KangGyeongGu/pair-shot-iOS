@@ -39,7 +39,7 @@ struct MatchingScoreBadge: View {
 private func color(for grade: MatchingScoreService.MatchingGrade) -> Color {
     switch grade {
         case .excellent: .green
-        case .good: .orange
+        case .good: .yellow
         case .retake: .red
     }
 }

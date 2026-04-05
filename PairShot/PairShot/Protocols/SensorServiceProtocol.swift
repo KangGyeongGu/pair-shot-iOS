@@ -10,6 +10,28 @@ struct SensorSnapshot {
     let altitude: Double?
     let relativeAltitude: Double?
     let timestamp: Date
+
+    init(
+        pitch: Double,
+        roll: Double,
+        yaw: Double,
+        heading: Double,
+        latitude: Double?,
+        longitude: Double?,
+        altitude: Double?,
+        relativeAltitude: Double? = nil,
+        timestamp: Date
+    ) {
+        self.pitch = pitch
+        self.roll = roll
+        self.yaw = yaw
+        self.heading = heading
+        self.latitude = latitude
+        self.longitude = longitude
+        self.altitude = altitude
+        self.relativeAltitude = relativeAltitude
+        self.timestamp = timestamp
+    }
 }
 
 /// SensorManager가 준수해야 하는 인터페이스

@@ -70,7 +70,7 @@ struct ComparisonContainerView: View {
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
-                        print("TODO: F12 share")
+                        // F12 share — 미구현
                     } label: {
                         Image(systemName: "square.and.arrow.up")
                             .font(.body.weight(.medium))

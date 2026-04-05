@@ -1,17 +1,16 @@
 import CoreGraphics
 import Foundation
-import ImageIO
 import Vision
 
-enum MatchingScoreService {
+nonisolated enum MatchingScoreService {
     enum MatchingGrade { case excellent, good, retake }
     enum ScoreError: Error { case loadFailed, visionFailed, noFeaturePrint }
 
     static func computeDistance(beforeURL: URL, afterURL: URL) async throws -> Float {
         try await Task.detached(priority: .userInitiated) {
             guard
-                let beforeImage = loadThumbnail(url: beforeURL),
-                let afterImage = loadThumbnail(url: afterURL)
+                let beforeImage = ImageThumbnailLoader.load(url: beforeURL, maxPixelSize: 1200),
+                let afterImage = ImageThumbnailLoader.load(url: afterURL, maxPixelSize: 1200)
             else { throw ScoreError.loadFailed }
 
             let beforePrint = try Self.makeFeaturePrint(cgImage: beforeImage)
@@ -33,17 +32,7 @@ enum MatchingScoreService {
         max(0, Int((1 - min(distance / 20, 1)) * 100))
     }
 
-    private nonisolated static func loadThumbnail(url: URL) -> CGImage? {
-        guard let source = CGImageSourceCreateWithURL(url as CFURL, nil) else { return nil }
-        let options: [CFString: Any] = [
-            kCGImageSourceThumbnailMaxPixelSize: 1200,
-            kCGImageSourceCreateThumbnailFromImageAlways: true,
-            kCGImageSourceCreateThumbnailWithTransform: true,
-        ]
-        return CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary)
-    }
-
-    private nonisolated static func makeFeaturePrint(cgImage: CGImage) throws -> VNFeaturePrintObservation {
+    private static func makeFeaturePrint(cgImage: CGImage) throws -> VNFeaturePrintObservation {
         let request = VNGenerateImageFeaturePrintRequest()
         request.revision = VNGenerateImageFeaturePrintRequestRevision2
         let handler = VNImageRequestHandler(

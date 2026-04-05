@@ -1,4 +1,3 @@
-import ImageIO
 import SwiftUI
 
 struct SideBySideView: View {
@@ -13,38 +12,40 @@ struct SideBySideView: View {
     @State private var lastOffset: CGSize = .zero
 
     var body: some View {
-        HStack(spacing: 0) {
-            imagePanel(image: beforeImage)
-                .task(id: beforeURL) {
-                    beforeImage = nil
-                    beforeImage = await Self.loadDownscaled(url: beforeURL)
-                }
+        GeometryReader { geo in
+            HStack(spacing: 0) {
+                imagePanel(image: beforeImage, size: geo.size)
+                    .task(id: beforeURL) {
+                        beforeImage = nil
+                        beforeImage = await ImageThumbnailLoader.loadUIImage(url: beforeURL)
+                    }
 
-            imagePanel(image: afterImage)
-                .task(id: afterURL) {
-                    afterImage = nil
-                    afterImage = await Self.loadDownscaled(url: afterURL)
+                imagePanel(image: afterImage, size: geo.size)
+                    .task(id: afterURL) {
+                        afterImage = nil
+                        afterImage = await ImageThumbnailLoader.loadUIImage(url: afterURL)
+                    }
+            }
+            .background(.black)
+            .simultaneousGesture(magnifyGesture)
+            .simultaneousGesture(dragGesture(viewSize: geo.size))
+            .onTapGesture(count: 2) {
+                withAnimation {
+                    zoomScale = 1.0
+                    offset = .zero
+                    lastScale = 1.0
+                    lastOffset = .zero
                 }
-        }
-        .background(.black)
-        .simultaneousGesture(magnifyGesture)
-        .simultaneousGesture(dragGesture)
-        .onTapGesture(count: 2) {
-            withAnimation {
-                zoomScale = 1.0
-                offset = .zero
-                lastScale = 1.0
-                lastOffset = .zero
             }
         }
     }
 
-    private func imagePanel(image: UIImage?) -> some View {
+    private func imagePanel(image: UIImage?, size: CGSize) -> some View {
         Group {
             if let image {
                 Image(uiImage: image)
                     .resizable()
-                    .aspectRatio(contentMode: .fit)
+                    .aspectRatio(contentMode: .fill)
                     .scaleEffect(zoomScale)
                     .offset(offset)
             } else {
@@ -52,47 +53,38 @@ struct SideBySideView: View {
                     .tint(.white)
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .frame(width: size.width / 2, height: size.height)
         .clipped()
     }
 
     private var magnifyGesture: some Gesture {
         MagnifyGesture()
             .onChanged { value in
-                zoomScale = max(1.0, lastScale * value.magnification)
+                let newScale = lastScale * value.magnification
+                zoomScale = min(max(newScale, 1.0), 4.0)
             }
             .onEnded { value in
-                lastScale = max(1.0, lastScale * value.magnification)
+                lastScale = min(max(lastScale * value.magnification, 1.0), 4.0)
                 zoomScale = lastScale
             }
     }
 
-    private var dragGesture: some Gesture {
+    private func dragGesture(viewSize: CGSize) -> some Gesture {
         DragGesture()
             .onChanged { value in
+                let panelWidth = viewSize.width / 2
+                let panelHeight = viewSize.height
+                let maxOffsetX = panelWidth * (zoomScale - 1) / 2
+                let maxOffsetY = panelHeight * (zoomScale - 1) / 2
+                let newX = lastOffset.width + value.translation.width
+                let newY = lastOffset.height + value.translation.height
                 offset = CGSize(
-                    width: lastOffset.width + value.translation.width,
-                    height: lastOffset.height + value.translation.height
+                    width: min(max(newX, -maxOffsetX), maxOffsetX),
+                    height: min(max(newY, -maxOffsetY), maxOffsetY)
                 )
             }
             .onEnded { _ in
                 lastOffset = offset
             }
-    }
-
-    private static func loadDownscaled(url: URL) async -> UIImage? {
-        guard url.isFileURL else { return nil }
-        return await Task.detached(priority: .userInitiated) {
-            guard let source = CGImageSourceCreateWithURL(url as CFURL, nil) else { return nil }
-            let options: [CFString: Any] = [
-                kCGImageSourceThumbnailMaxPixelSize: 1600,
-                kCGImageSourceCreateThumbnailFromImageAlways: true,
-                kCGImageSourceCreateThumbnailWithTransform: true,
-            ]
-            guard let cgImage = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else {
-                return nil
-            }
-            return UIImage(cgImage: cgImage)
-        }.value
     }
 }

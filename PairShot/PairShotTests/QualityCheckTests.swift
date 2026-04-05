@@ -18,5 +18,3 @@ struct QualityCheckTests {
         #expect(service.isAnalyzing == false)
     }
 }
-
-extension QualityIssue: Equatable {}

@@ -2,6 +2,7 @@ import Foundation
 @testable import PairShot
 import Testing
 
+@MainActor
 struct SensorAlignmentTests {
     // MARK: - delta 계산 (happy path)
 

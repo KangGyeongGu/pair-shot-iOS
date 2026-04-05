@@ -1,4 +1,3 @@
-import ImageIO
 import SwiftUI
 
 struct SliderCompareView: View {
@@ -8,15 +7,25 @@ struct SliderCompareView: View {
     @State private var beforeImage: UIImage?
     @State private var afterImage: UIImage?
     @State private var sliderX: CGFloat = 0
+    @State private var zoomScale: CGFloat = 1.0
+    @State private var offset: CGSize = .zero
+    @State private var lastScale: CGFloat = 1.0
+    @State private var lastOffset: CGSize = .zero
 
     var body: some View {
         GeometryReader { geo in
             ZStack {
                 imageView(afterImage)
                     .frame(width: geo.size.width, height: geo.size.height)
+                    .clipped()
+                    .scaleEffect(zoomScale)
+                    .offset(offset)
 
                 imageView(beforeImage)
                     .frame(width: geo.size.width, height: geo.size.height)
+                    .clipped()
+                    .scaleEffect(zoomScale)
+                    .offset(offset)
                     .mask(alignment: .leading) {
                         Rectangle()
                             .frame(width: sliderX)
@@ -35,10 +44,21 @@ struct SliderCompareView: View {
             }
             .background(.black)
             .gesture(
-                DragGesture(minimumDistance: 0)
-                    .onChanged { value in
-                        sliderX = min(max(value.location.x, 0), geo.size.width)
-                    }
+                SimultaneousGesture(
+                    DragGesture(minimumDistance: 0)
+                        .onChanged { value in
+                            sliderX = min(max(value.location.x, 0), geo.size.width)
+                        },
+                    MagnifyGesture()
+                        .onChanged { value in
+                            let newScale = lastScale * value.magnification
+                            zoomScale = min(max(newScale, 1.0), 4.0)
+                        }
+                        .onEnded { value in
+                            lastScale = min(max(lastScale * value.magnification, 1.0), 4.0)
+                            zoomScale = lastScale
+                        }
+                )
             )
             .onAppear {
                 if sliderX == 0 {
@@ -47,10 +67,12 @@ struct SliderCompareView: View {
             }
         }
         .task(id: beforeURL) {
-            beforeImage = await loadDownscaled(url: beforeURL)
+            beforeImage = nil
+            beforeImage = await ImageThumbnailLoader.loadUIImage(url: beforeURL)
         }
         .task(id: afterURL) {
-            afterImage = await loadDownscaled(url: afterURL)
+            afterImage = nil
+            afterImage = await ImageThumbnailLoader.loadUIImage(url: afterURL)
         }
     }
 
@@ -59,26 +81,10 @@ struct SliderCompareView: View {
         if let image {
             Image(uiImage: image)
                 .resizable()
-                .scaledToFit()
+                .aspectRatio(contentMode: .fill)
         } else {
             ProgressView()
                 .tint(.white)
         }
     }
-}
-
-private func loadDownscaled(url: URL) async -> UIImage? {
-    guard url.isFileURL else { return nil }
-    return await Task.detached(priority: .userInitiated) {
-        guard let source = CGImageSourceCreateWithURL(url as CFURL, nil) else { return nil }
-        let options: [CFString: Any] = [
-            kCGImageSourceThumbnailMaxPixelSize: 1600,
-            kCGImageSourceCreateThumbnailFromImageAlways: true,
-            kCGImageSourceCreateThumbnailWithTransform: true,
-        ]
-        guard let cgImage = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else {
-            return nil
-        }
-        return UIImage(cgImage: cgImage)
-    }.value
 }

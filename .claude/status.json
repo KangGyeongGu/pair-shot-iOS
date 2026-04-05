@@ -3,7 +3,7 @@
   "current_phase": "P5",
   "current_branch": "develop",
   "current_feature_branch": "feature/p5-comparison-ai",
-  "retry_count": 0,
+  "retry_count": 1,
   "max_retries": 3,
   "last_completed_phase": "P4",
   "awaiting_device_test": false,

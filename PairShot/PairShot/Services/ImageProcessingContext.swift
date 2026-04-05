@@ -2,5 +2,5 @@ import CoreImage
 import Foundation
 
 nonisolated enum ImageProcessingContext {
-    static let shared = CIContext(options: [.useSoftwareRenderer: false])
+    static let shared = CIContext(options: [.cacheIntermediates: false])
 }

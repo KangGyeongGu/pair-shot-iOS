@@ -29,12 +29,18 @@ final class PhotoPair {
         createdAt: Date = Date(),
         status: PairStatus = .pendingAfter,
         captureMode: CaptureMode = .precision,
-        project: Project? = nil
+        project: Project? = nil,
+        matchingScore: Float? = nil,
+        alignedBeforeImagePath: String? = nil,
+        colorCorrectedBeforeImagePath: String? = nil
     ) {
         self.id = id
         self.createdAt = createdAt
         self.status = status
         captureModeRaw = captureMode.rawValue
         self.project = project
+        self.matchingScore = matchingScore
+        self.alignedBeforeImagePath = alignedBeforeImagePath
+        self.colorCorrectedBeforeImagePath = colorCorrectedBeforeImagePath
     }
 }
