@@ -7,6 +7,9 @@ final class PhotoPair {
     var createdAt: Date
     var status: PairStatus
     var captureModeRaw: String?
+    var matchingScore: Float?
+    var alignedBeforeImagePath: String?
+    var colorCorrectedBeforeImagePath: String?
 
     @Relationship(deleteRule: .cascade)
     var beforePhoto: Photo?
