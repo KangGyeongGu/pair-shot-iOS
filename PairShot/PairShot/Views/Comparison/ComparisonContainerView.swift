@@ -66,7 +66,7 @@ struct ComparisonContainerView: View {
                     }
                 }
                 ToolbarItem(placement: .principal) {
-                    scoreBadge
+                    MatchingScoreBadge(score: pair.matchingScore)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
@@ -82,26 +82,25 @@ struct ComparisonContainerView: View {
         }
     }
 
+    @ViewBuilder
     private var modeContent: some View {
-        GeometryReader { geometry in
+        if let before = alignedBeforeURL, let after = afterURL {
             switch mode {
                 case .sideBySide:
-                    placeholderView(label: "나란히 비교 (W10 pending)", geometry: geometry)
+                    SideBySideView(beforeURL: before, afterURL: after)
                 case .slider:
-                    placeholderView(label: "슬라이더 비교 (W11 pending)", geometry: geometry)
+                    SliderCompareView(beforeURL: before, afterURL: after)
                 case .heatmap:
-                    placeholderView(label: "히트맵 (W12 pending)", geometry: geometry)
+                    HeatmapView(beforeURL: before, afterURL: after)
                 case .animation:
-                    placeholderView(label: "애니메이션 비교 (W13 pending)", geometry: geometry)
+                    AnimationCompareView(beforeURL: before, afterURL: after)
             }
+        } else {
+            Text("사진을 불러올 수 없습니다")
+                .font(.body)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-    }
-
-    private func placeholderView(label: String, geometry: GeometryProxy) -> some View {
-        Text(label)
-            .font(.body)
-            .foregroundStyle(.secondary)
-            .frame(width: geometry.size.width, height: geometry.size.height)
     }
 
     private var modePicker: some View {
@@ -111,31 +110,5 @@ struct ComparisonContainerView: View {
             }
         }
         .pickerStyle(.segmented)
-    }
-
-    @ViewBuilder
-    private var scoreBadge: some View {
-        if let score = pair.matchingScore {
-            let percent = MatchingScoreService.percentMatch(for: score)
-            let grade = MatchingScoreService.grade(for: score)
-            Text("\(percent)% 일치")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(gradeColor(grade))
-                .padding(.horizontal, 10)
-                .padding(.vertical, 4)
-                .background(gradeColor(grade).opacity(0.15), in: Capsule())
-        } else {
-            Text("분석 중...")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-        }
-    }
-
-    private func gradeColor(_ grade: MatchingScoreService.MatchingGrade) -> Color {
-        switch grade {
-            case .excellent: .green
-            case .good: .yellow
-            case .retake: .red
-        }
     }
 }
