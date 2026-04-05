@@ -1,6 +1,5 @@
 import SwiftUI
 
-@MainActor
 struct HeatmapView: View {
     let beforeURL: URL
     let afterURL: URL
@@ -43,7 +42,7 @@ struct HeatmapView: View {
             do {
                 result = try await HeatmapService.generateHeatmap(beforeURL: beforeURL, afterURL: afterURL)
             } catch {
-                errorMessage = "히트맵 생성 실패"
+                errorMessage = error.localizedDescription
             }
             isLoading = false
         }

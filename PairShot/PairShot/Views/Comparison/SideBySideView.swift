@@ -3,6 +3,8 @@ import SwiftUI
 struct SideBySideView: View {
     let beforeURL: URL
     let afterURL: URL
+    var injectedBeforeImage: UIImage?
+    var injectedAfterImage: UIImage?
 
     @State private var beforeImage: UIImage?
     @State private var afterImage: UIImage?
@@ -10,6 +12,7 @@ struct SideBySideView: View {
     @State private var offset: CGSize = .zero
     @State private var lastScale: CGFloat = 1.0
     @State private var lastOffset: CGSize = .zero
+    @State private var pinchAnchor: UnitPoint = .center
     // M8: dynamic resolution — upgrades on zoom, downgrades on zoom-out
     @State private var currentMaxPixelSize: Int = 1600
 
@@ -19,6 +22,10 @@ struct SideBySideView: View {
                 imagePanel(image: beforeImage, size: geo.size)
                     // M8: task id encodes both url and resolution tier so reload fires on tier change
                     .task(id: "\(beforeURL)|\(currentMaxPixelSize)") {
+                        if currentMaxPixelSize == 1600, let injected = injectedBeforeImage {
+                            beforeImage = injected
+                            return
+                        }
                         let pixelSize = currentMaxPixelSize
                         let cgImage = await Task.detached(priority: .userInitiated) {
                             ImageThumbnailLoader.load(url: beforeURL, maxPixelSize: pixelSize)
@@ -28,6 +35,10 @@ struct SideBySideView: View {
 
                 imagePanel(image: afterImage, size: geo.size)
                     .task(id: "\(afterURL)|\(currentMaxPixelSize)") {
+                        if currentMaxPixelSize == 1600, let injected = injectedAfterImage {
+                            afterImage = injected
+                            return
+                        }
                         let pixelSize = currentMaxPixelSize
                         let cgImage = await Task.detached(priority: .userInitiated) {
                             ImageThumbnailLoader.load(url: afterURL, maxPixelSize: pixelSize)
@@ -44,6 +55,7 @@ struct SideBySideView: View {
                     offset = .zero
                     lastScale = 1.0
                     lastOffset = .zero
+                    pinchAnchor = .center
                     currentMaxPixelSize = 1600
                 }
             }
@@ -74,9 +86,8 @@ struct SideBySideView: View {
                 Image(uiImage: image)
                     .resizable()
                     .aspectRatio(contentMode: .fill)
-                    // M6: anchor .center ensures both panels scale from the same normalised centre point;
-                    // equal-width frames + .fill means the same (u,v) region is visible on both sides.
-                    .scaleEffect(zoomScale, anchor: .center)
+                    // M6: anchor ensures both panels scale from pinch centre point
+                    .scaleEffect(zoomScale, anchor: pinchAnchor)
                     .offset(offset)
             } else {
                 ProgressView()
@@ -90,12 +101,16 @@ struct SideBySideView: View {
     private var magnifyGesture: some Gesture {
         MagnifyGesture()
             .onChanged { value in
+                if pinchAnchor == .center {
+                    pinchAnchor = value.startAnchor
+                }
                 let newScale = lastScale * value.magnification
                 zoomScale = min(max(newScale, 1.0), 4.0)
             }
             .onEnded { value in
                 lastScale = min(max(lastScale * value.magnification, 1.0), 4.0)
                 zoomScale = lastScale
+                pinchAnchor = .center
             }
     }
 

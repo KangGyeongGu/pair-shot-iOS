@@ -48,14 +48,17 @@ enum AIAnalysisCoordinator {
 
         let (aligned, distance, corrected) = await (alignedResult, distanceResult, correctedResult)
 
-        if needsAlign, let aligned {
-            pair.alignedBeforeImagePath = "projects/\(projectID.uuidString)/pairs/\(pairID.uuidString)/\(aligned.lastPathComponent)"
+        if needsAlign, aligned != nil {
+            pair.alignedBeforeImagePath = storage.alignedPhotoRelativePath(projectId: projectID, pairId: pairID)
         }
         if needsScore, let distance {
             pair.matchingScore = distance
         }
-        if needsCorrected, let corrected {
-            pair.colorCorrectedBeforeImagePath = "projects/\(projectID.uuidString)/pairs/\(pairID.uuidString)/\(corrected.lastPathComponent)"
+        if needsCorrected, corrected != nil {
+            pair.colorCorrectedBeforeImagePath = storage.colorCorrectedPhotoRelativePath(
+                projectId: projectID,
+                pairId: pairID
+            )
         }
         do {
             try modelContext.save()

@@ -3,8 +3,8 @@ import UIKit
 final class ThumbnailCache: @unchecked Sendable {
     static let shared = ThumbnailCache()
 
-    private var store: [String: UIImage] = [:]
-    private var order: [String] = []
+    private nonisolated(unsafe) var store: [String: UIImage] = [:]
+    private nonisolated(unsafe) var order: [String] = []
     private let lock = NSLock()
     private let maxCount = 200
 
@@ -18,8 +18,16 @@ final class ThumbnailCache: @unchecked Sendable {
             return cached
         }
         guard let image = UIImage(contentsOfFile: path) else { return nil }
-        insert(image, for: path)
+        insertLocked(image, for: path)
         return image
+    }
+
+    nonisolated func imageAsync(for path: String) async -> UIImage? {
+        if let cached = lockedGet(path) { return cached }
+        guard let image = UIImage(contentsOfFile: path) else { return nil }
+        let prepared = await image.byPreparingForDisplay() ?? image
+        lockedSet(path, prepared)
+        return prepared
     }
 
     func removeAll() {
@@ -29,7 +37,19 @@ final class ThumbnailCache: @unchecked Sendable {
         order.removeAll()
     }
 
-    private func insert(_ image: UIImage, for path: String) {
+    private nonisolated func lockedGet(_ path: String) -> UIImage? {
+        lock.lock()
+        defer { lock.unlock() }
+        return store[path]
+    }
+
+    private nonisolated func lockedSet(_ path: String, _ image: UIImage) {
+        lock.lock()
+        defer { lock.unlock() }
+        insertLocked(image, for: path)
+    }
+
+    private nonisolated func insertLocked(_ image: UIImage, for path: String) {
         if store[path] == nil {
             order.append(path)
         }

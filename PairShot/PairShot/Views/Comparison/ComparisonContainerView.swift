@@ -6,6 +6,9 @@ struct ComparisonContainerView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @State private var mode: Mode = .sideBySide
+    @State private var resolvedAlignedURL: URL??
+    @State private var beforeImage: UIImage?
+    @State private var afterImage: UIImage?
 
     enum Mode: String, CaseIterable, Identifiable {
         case sideBySide, slider, heatmap, animation
@@ -39,14 +42,12 @@ struct ComparisonContainerView: View {
         return try? storage.photoURL(projectId: projectId, pairId: pair.id, isBefore: false)
     }
 
-    private var alignedBeforeURL: URL? {
-        guard let path = pair.alignedBeforeImagePath, !path.isEmpty else { return beforeURL }
-        guard let projectId = pair.project?.id else { return beforeURL }
-        guard let url = try? storage.alignedPhotoURL(projectId: projectId, pairId: pair.id) else { return beforeURL }
-        if FileManager.default.fileExists(atPath: url.path) {
-            return url
+    /// resolvedAlignedURL: nil = 미검증, .some(nil) = 존재X, .some(url) = 존재O
+    private var effectiveBeforeURL: URL? {
+        switch resolvedAlignedURL {
+            case .none: beforeURL
+            case let .some(url): url ?? beforeURL
         }
-        return beforeURL
     }
 
     var body: some View {
@@ -93,20 +94,63 @@ struct ComparisonContainerView: View {
                 await AIAnalysisCoordinator.analyze(pairID: pair.id, in: modelContext)
             }
         }
+        .task(id: pair.alignedBeforeImagePath) {
+            let path = pair.alignedBeforeImagePath
+            let projectId = pair.project?.id
+            let pairId = pair.id
+            let fallback = beforeURL
+            let candidateURL: URL? = {
+                guard let path, !path.isEmpty, let projectId else { return nil }
+                return try? storage.alignedPhotoURL(projectId: projectId, pairId: pairId)
+            }()
+            resolvedAlignedURL = await Self.resolveAlignedURL(
+                candidateURL: candidateURL,
+                fallback: fallback
+            )
+        }
+        .task(
+            id: "\(effectiveBeforeURL?.absoluteString ?? beforeURL?.absoluteString ?? "")|\(afterURL?.absoluteString ?? "")"
+        ) {
+            guard let bURL = effectiveBeforeURL ?? beforeURL, let aURL = afterURL else { return }
+            async let bLoad = Task.detached(priority: .userInitiated) {
+                ImageThumbnailLoader.load(url: bURL, maxPixelSize: 1200)
+            }.value
+            async let aLoad = Task.detached(priority: .userInitiated) {
+                ImageThumbnailLoader.load(url: aURL, maxPixelSize: 1200)
+            }.value
+            let (bCG, aCG) = await (bLoad, aLoad)
+            beforeImage = bCG.map { UIImage(cgImage: $0) }
+            afterImage = aCG.map { UIImage(cgImage: $0) }
+        }
     }
 
     @ViewBuilder
     private var modeContent: some View {
-        if let before = alignedBeforeURL, let after = afterURL {
+        if let before = effectiveBeforeURL ?? beforeURL, let after = afterURL {
             switch mode {
                 case .sideBySide:
-                    SideBySideView(beforeURL: before, afterURL: after)
+                    SideBySideView(
+                        beforeURL: before,
+                        afterURL: after,
+                        injectedBeforeImage: beforeImage,
+                        injectedAfterImage: afterImage
+                    )
                 case .slider:
-                    SliderCompareView(beforeURL: before, afterURL: after)
+                    SliderCompareView(
+                        beforeURL: before,
+                        afterURL: after,
+                        injectedBeforeImage: beforeImage,
+                        injectedAfterImage: afterImage
+                    )
                 case .heatmap:
                     HeatmapView(beforeURL: before, afterURL: after)
                 case .animation:
-                    AnimationCompareView(beforeURL: before, afterURL: after)
+                    AnimationCompareView(
+                        beforeURL: before,
+                        afterURL: after,
+                        injectedBeforeImage: beforeImage,
+                        injectedAfterImage: afterImage
+                    )
             }
         } else {
             Text("사진을 불러올 수 없습니다")
@@ -123,5 +167,16 @@ struct ComparisonContainerView: View {
             }
         }
         .pickerStyle(.segmented)
+    }
+
+    nonisolated static func resolveAlignedURL(
+        candidateURL: URL?,
+        fallback: URL?
+    ) async -> URL? {
+        guard let url = candidateURL else { return fallback }
+        let exists = await Task.detached {
+            FileManager.default.fileExists(atPath: url.path)
+        }.value
+        return exists ? url : fallback
     }
 }

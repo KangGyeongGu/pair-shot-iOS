@@ -2,7 +2,11 @@ import SwiftData
 import SwiftUI
 
 struct ArchiveView: View {
-    @Query(sort: \Project.createdAt, order: .reverse) private var projects: [Project]
+    @Query({
+        var descriptor = FetchDescriptor<Project>(sortBy: [.init(\.createdAt, order: .reverse)])
+        descriptor.fetchLimit = 200
+        return descriptor
+    }()) private var projects: [Project]
     @Environment(\.modelContext) private var modelContext
 
     @State private var showNewProjectSheet = false
@@ -204,16 +208,14 @@ struct ArchiveView: View {
     }
 
     private func deleteProject(_ project: Project) {
-        let projectId = project.id
-        Task { await storage.deleteProject(projectId: projectId) }
+        storage.deleteProject(projectId: project.id)
         modelContext.delete(project)
     }
 
     private func deleteSelectedProjects() {
         let toDelete = projects.filter { selectedProjects.contains($0.id) }
         for project in toDelete {
-            let projectId = project.id
-            Task { await storage.deleteProject(projectId: projectId) }
+            storage.deleteProject(projectId: project.id)
             modelContext.delete(project)
         }
         selectedProjects.removeAll()
@@ -224,24 +226,19 @@ struct ArchiveView: View {
 private struct ProjectRowView: View {
     let project: Project
 
-    private var completedCount: Int {
-        project.pairs.count(where: { $0.status == .complete })
-    }
-
-    private var totalCount: Int {
-        project.pairs.count
-    }
-
     var body: some View {
+        let total = project.pairs.count
+        let completed = project.pairs.count(where: { $0.status == .complete })
+
         VStack(alignment: .leading, spacing: 4) {
             Text(project.title)
                 .font(.body.weight(.medium))
                 .lineLimit(1)
 
             HStack(spacing: 8) {
-                Text(completionLabel)
+                Text(total == 0 ? "사진 없음" : "\(completed)/\(total) 완료")
                     .font(.subheadline)
-                    .foregroundStyle(completionColor)
+                    .foregroundStyle(completionColor(completed: completed, total: total))
 
                 Text("·")
                     .foregroundStyle(.secondary)
@@ -254,18 +251,10 @@ private struct ProjectRowView: View {
         .padding(.vertical, 4)
     }
 
-    private var completionLabel: String {
-        if totalCount == 0 {
-            "사진 없음"
-        } else {
-            "\(completedCount)/\(totalCount) 완료"
-        }
-    }
-
-    private var completionColor: Color {
-        if totalCount == 0 {
+    private func completionColor(completed: Int, total: Int) -> Color {
+        if total == 0 {
             .secondary
-        } else if completedCount == totalCount {
+        } else if completed == total {
             .green
         } else {
             .accentColor

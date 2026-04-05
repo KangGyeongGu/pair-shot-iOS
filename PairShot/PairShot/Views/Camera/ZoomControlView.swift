@@ -192,12 +192,59 @@ struct ZoomControlView: View {
             if lastTickHapticFactor != tick01Factor {
                 lastTickHapticFactor = tick01Factor
                 let is05 = abs(tick01.truncatingRemainder(dividingBy: 0.5)) < 0.05
-                UIImpactFeedbackGenerator(style: is05 ? .soft : .soft).impactOccurred(intensity: is05 ? 0.6 : 0.3)
+                UIImpactFeedbackGenerator(style: .soft).impactOccurred(intensity: is05 ? 0.6 : 0.3)
             }
         } else {
             lastTickHapticFactor = nil
         }
         return raw
+    }
+}
+
+private struct ZoomButtonCell: View {
+    let label: String
+    let isSelected: Bool
+    let onTap: () -> Void
+
+    private var fontSize: CGFloat {
+        isSelected ? 13 : 12
+    }
+
+    private var dimension: CGFloat {
+        isSelected ? 40 : 36
+    }
+
+    private var fillOpacity: Double {
+        isSelected ? 0.65 : 0.45
+    }
+
+    private var strokeColor: Color {
+        isSelected ? Color.yellow.opacity(0.55) : Color.white.opacity(0.12)
+    }
+
+    private var strokeWidth: CGFloat {
+        isSelected ? 1.5 : 0.5
+    }
+
+    private var foreground: Color {
+        isSelected ? .yellow : .white
+    }
+
+    var body: some View {
+        Text(label)
+            .font(.system(size: fontSize, weight: .semibold, design: .rounded))
+            .foregroundStyle(foreground)
+            .frame(width: dimension, height: dimension)
+            .background(backgroundShape)
+            .contentShape(Circle())
+            .onTapGesture(perform: onTap)
+            .animation(.spring(response: 0.22, dampingFraction: 0.7), value: isSelected)
+    }
+
+    private var backgroundShape: some View {
+        Circle()
+            .fill(.black.opacity(fillOpacity))
+            .overlay(Circle().strokeBorder(strokeColor, lineWidth: strokeWidth))
     }
 }
 
@@ -210,26 +257,11 @@ private struct ZoomButtonRow: View {
     var body: some View {
         HStack(spacing: 6) {
             ForEach(Array(availableFactors.enumerated()), id: \.element) { index, factor in
-                let inRange = isCurrentInRange(index: index)
-                let selected = inRange
-                let label = selected ? dynamicLabel() : fixedLabel(factor)
-                Text(label)
-                    .font(.system(size: selected ? 13 : 12, weight: .semibold, design: .rounded))
-                    .foregroundStyle(selected ? Color.yellow : Color.white)
-                    .frame(width: selected ? 40 : 36, height: selected ? 40 : 36)
-                    .background(
-                        Circle()
-                            .fill(.black.opacity(selected ? 0.65 : 0.45))
-                            .overlay(
-                                Circle().strokeBorder(
-                                    selected ? Color.yellow.opacity(0.55) : Color.white.opacity(0.12),
-                                    lineWidth: selected ? 1.5 : 0.5
-                                )
-                            )
-                    )
-                    .contentShape(Circle())
-                    .onTapGesture { onTap?(factor) }
-                    .animation(.spring(response: 0.22, dampingFraction: 0.7), value: selected)
+                ZoomButtonCell(
+                    label: isCurrentInRange(index: index) ? dynamicLabel() : fixedLabel(factor),
+                    isSelected: isCurrentInRange(index: index),
+                    onTap: { onTap?(factor) }
+                )
             }
         }
     }
@@ -267,6 +299,204 @@ private struct ZoomButtonRow: View {
     }
 }
 
+private struct DialRenderer {
+    let currentFactor: CGFloat
+    let minFactor: CGFloat
+    let maxFactor: CGFloat
+    let availableFactors: [CGFloat]
+    let focalLengthMap: [CGFloat: Int]
+    let zoomDivisor: CGFloat
+    let center: CGPoint
+    let circleRadius: CGFloat
+
+    private var boundary: CGFloat {
+        availableFactors.last ?? maxFactor * 0.3
+    }
+
+    private var lowR: CGFloat {
+        (maxFactor > boundary) ? 0.3 : 1.0
+    }
+
+    private var logMin: CGFloat {
+        log(max(minFactor, 0.01))
+    }
+
+    private var logMax: CGFloat {
+        log(max(maxFactor, 0.01))
+    }
+
+    private var logBound: CGFloat {
+        log(max(boundary, 0.01))
+    }
+
+    func fToNorm(_ factor: CGFloat) -> CGFloat {
+        let logF = log(max(factor, 0.01))
+        if logF <= logBound {
+            return lowR * (logF - logMin) / (logBound - logMin)
+        } else {
+            return lowR + (1 - lowR) * (logF - logBound) / (logMax - logBound)
+        }
+    }
+
+    func tickAngle(_ factor: CGFloat, currentNorm: CGFloat) -> CGFloat {
+        let norm = fToNorm(factor) - currentNorm
+        return (270.0 + norm * 300.0) * .pi / 180.0
+    }
+
+    func drawBackground(context: inout GraphicsContext, canvasSize: CGSize) {
+        let fullRect = CGRect(origin: .zero, size: canvasSize)
+        let circlePath = Path(ellipseIn: CGRect(
+            x: center.x - circleRadius,
+            y: center.y - circleRadius,
+            width: circleRadius * 2,
+            height: circleRadius * 2
+        ))
+        var mask = Path(fullRect)
+        mask.addPath(circlePath)
+        context.fill(mask, with: .color(.black.opacity(0.45)), style: FillStyle(eoFill: true))
+        context.stroke(circlePath, with: .color(.white.opacity(0.3)), lineWidth: 1.5)
+    }
+
+    func drawMinorTicks(context: inout GraphicsContext, canvasSize: CGSize, currentNorm: CGFloat) {
+        let displayMin = minFactor * zoomDivisor
+        let displayMax = maxFactor * zoomDivisor
+        let minorStep: CGFloat = 0.1
+        let outerR = circleRadius + 3
+
+        var displayVal = (displayMin / minorStep).rounded(.up) * minorStep
+        while displayVal <= displayMax + minorStep * 0.5 {
+            let internalFactor = displayVal / zoomDivisor
+            let angle = tickAngle(internalFactor, currentNorm: currentNorm)
+            let outerPt = CGPoint(x: center.x + cos(angle) * outerR, y: center.y + sin(angle) * outerR)
+
+            guard outerPt.x >= -20 && outerPt.x <= canvasSize.width + 20 &&
+                outerPt.y >= -20 && outerPt.y <= canvasSize.height + 20
+            else {
+                displayVal = ((displayVal + minorStep) * 100).rounded() / 100
+                continue
+            }
+
+            let isMajor = availableFactors.contains { abs($0 - internalFactor) < minorStep * 0.4 }
+            let displayRounded = (displayVal * 10).rounded() / 10
+            let isMedium = !isMajor && abs(displayRounded.truncatingRemainder(dividingBy: 0.5)) < 0.05
+
+            let tickLen: CGFloat = isMajor ? 12 : (isMedium ? 7 : 3)
+            let tickAlpha: CGFloat = isMajor ? 0.9 : (isMedium ? 0.5 : 0.2)
+            let tickWidth: CGFloat = isMajor ? 1.5 : (isMedium ? 0.8 : 0.5)
+
+            let innerPt = CGPoint(
+                x: center.x + cos(angle) * (outerR + tickLen),
+                y: center.y + sin(angle) * (outerR + tickLen)
+            )
+            var tick = Path()
+            tick.move(to: outerPt)
+            tick.addLine(to: innerPt)
+            context.stroke(tick, with: .color(.white.opacity(tickAlpha)), lineWidth: tickWidth)
+
+            if isMajor {
+                let labelR = outerR + tickLen + 12
+                let labelPt = CGPoint(x: center.x + cos(angle) * labelR, y: center.y + sin(angle) * labelR)
+                let near = abs(currentFactor - internalFactor) / max(internalFactor, 0.01) < 0.05
+                context.draw(
+                    Text(tickLabel(internalFactor))
+                        .font(.system(size: 11, weight: .bold, design: .rounded))
+                        .foregroundStyle(near ? Color.yellow : Color.white.opacity(0.8)),
+                    at: labelPt,
+                    anchor: .center
+                )
+            }
+
+            displayVal = ((displayVal + minorStep) * 100).rounded() / 100
+        }
+    }
+
+    func drawMajorTicks(context: inout GraphicsContext, canvasSize: CGSize, currentNorm: CGFloat) {
+        let outerR = circleRadius + 3
+        for factor in availableFactors {
+            let angle = tickAngle(factor, currentNorm: currentNorm)
+            let outerPt = CGPoint(x: center.x + cos(angle) * outerR, y: center.y + sin(angle) * outerR)
+
+            guard outerPt.x >= -20, outerPt.x <= canvasSize.width + 20,
+                  outerPt.y >= -20, outerPt.y <= canvasSize.height + 20 else { continue }
+
+            let innerPt = CGPoint(
+                x: center.x + cos(angle) * (outerR + 12),
+                y: center.y + sin(angle) * (outerR + 12)
+            )
+            var tick = Path()
+            tick.move(to: outerPt)
+            tick.addLine(to: innerPt)
+            context.stroke(tick, with: .color(.white.opacity(0.9)), lineWidth: 1.5)
+
+            let labelR = outerR + 24
+            let labelPt = CGPoint(x: center.x + cos(angle) * labelR, y: center.y + sin(angle) * labelR)
+            let near = abs(currentFactor - factor) / max(factor, 0.01) < 0.05
+            let displayV = factor * zoomDivisor
+
+            context.draw(
+                Text(zoomLabelText(displayV: displayV))
+                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                    .foregroundStyle(near ? Color.yellow : Color.white.opacity(0.8)),
+                at: labelPt,
+                anchor: .center
+            )
+
+            if let mm = focalLengthMap.first(where: { abs($0.key - factor) < 0.05 })?.value {
+                let mmPt = CGPoint(
+                    x: center.x + cos(angle) * (labelR + 14),
+                    y: center.y + sin(angle) * (labelR + 14)
+                )
+                context.draw(
+                    Text("\(mm)mm")
+                        .font(.system(size: 8, weight: .medium, design: .rounded))
+                        .foregroundStyle(near ? Color.yellow.opacity(0.7) : Color.white.opacity(0.5)),
+                    at: mmPt,
+                    anchor: .center
+                )
+            }
+        }
+    }
+
+    func drawIndicator(context: inout GraphicsContext) {
+        let indAngle: CGFloat = 270 * .pi / 180
+        let indOuter = CGPoint(
+            x: center.x + cos(indAngle) * (circleRadius + 2),
+            y: center.y + sin(indAngle) * (circleRadius + 2)
+        )
+        let indTip = CGPoint(
+            x: center.x + cos(indAngle) * (circleRadius + 16),
+            y: center.y + sin(indAngle) * (circleRadius + 16)
+        )
+        var indPath = Path()
+        indPath.move(to: indOuter)
+        indPath.addLine(to: indTip)
+        context.stroke(indPath, with: .color(.yellow), lineWidth: 2.5)
+    }
+
+    func drawCenterLabel(context: inout GraphicsContext, label: String) {
+        context.draw(
+            Text(label)
+                .font(.system(size: 28, weight: .bold, design: .rounded))
+                .foregroundStyle(Color.yellow),
+            at: center,
+            anchor: .center
+        )
+    }
+
+    private func tickLabel(_ factor: CGFloat) -> String {
+        let value = factor * zoomDivisor
+        if value < 1.0 { return String(format: "%.1f", value) }
+        if abs(value - value.rounded()) < 0.05 { return "\(Int(value.rounded()))x" }
+        return String(format: "%.1f", value)
+    }
+
+    private func zoomLabelText(displayV: CGFloat) -> String {
+        if displayV < 1.0 { return String(format: "%.1f", displayV) }
+        if abs(displayV - displayV.rounded()) < 0.05 { return "\(Int(displayV.rounded()))x" }
+        return String(format: "%.1f", displayV)
+    }
+}
+
 /// 프리뷰 중앙에 원형 다이얼, 원 바깥 = 반투명 검정, 원 테두리 = 배율 틱마크
 private struct CircleDialOverlay: View {
     let currentFactor: CGFloat
@@ -277,189 +507,12 @@ private struct CircleDialOverlay: View {
     let zoomDivisor: CGFloat
     let size: CGSize
 
-    var body: some View {
-        let center = CGPoint(x: size.width / 2, y: size.height / 2)
-        let circleRadius = min(size.width, size.height) * 0.38
+    private var center: CGPoint {
+        CGPoint(x: size.width / 2, y: size.height / 2)
+    }
 
-        Canvas { context, canvasSize in
-            // 원 바깥 영역을 반투명 검정으로 마스킹
-            let fullRect = CGRect(origin: .zero, size: canvasSize)
-            let circlePath = Path(ellipseIn: CGRect(
-                x: center.x - circleRadius,
-                y: center.y - circleRadius,
-                width: circleRadius * 2,
-                height: circleRadius * 2
-            ))
-
-            // 전체 채우고 원 영역 빼기
-            var mask = Path(fullRect)
-            mask.addPath(circlePath)
-            context.fill(mask, with: .color(.black.opacity(0.45)), style: FillStyle(eoFill: true))
-
-            // 원 테두리
-            context.stroke(circlePath, with: .color(.white.opacity(0.3)), lineWidth: 1.5)
-
-            // boundary = availableFactors의 마지막 (기기별 동적)
-            let boundary = availableFactors.last ?? maxFactor * 0.3
-            let lowR: CGFloat = (maxFactor > boundary) ? 0.3 : 1.0
-            let logMin = log(max(minFactor, 0.01))
-            let logMax = log(max(maxFactor, 0.01))
-            let logBound = log(max(boundary, 0.01))
-
-            func fToNorm(_ factor: CGFloat) -> CGFloat {
-                let logF = log(max(factor, 0.01))
-                if logF <= logBound {
-                    return lowR * (logF - logMin) / (logBound - logMin)
-                } else {
-                    return lowR + (1 - lowR) * (logF - logBound) / (logMax - logBound)
-                }
-            }
-
-            let currentNorm = fToNorm(currentFactor)
-            let totalArcDeg: CGFloat = 300
-
-            func tickAngle(_ factor: CGFloat) -> CGFloat {
-                let norm = fToNorm(factor) - currentNorm
-                return (270.0 + norm * totalArcDeg) * .pi / 180.0
-            }
-
-            let displayMin = minFactor * zoomDivisor
-            let displayMax = maxFactor * zoomDivisor
-            let minorStep: CGFloat = 0.1
-
-            var displayVal = (displayMin / minorStep).rounded(.up) * minorStep
-            while displayVal <= displayMax + minorStep * 0.5 {
-                let internalFactor = displayVal / zoomDivisor
-                let angle = tickAngle(internalFactor)
-
-                let outerR = circleRadius + 3
-                let outerPt = CGPoint(x: center.x + cos(angle) * outerR, y: center.y + sin(angle) * outerR)
-
-                guard outerPt.x >= -20 && outerPt.x <= canvasSize.width + 20 &&
-                    outerPt.y >= -20 && outerPt.y <= canvasSize.height + 20
-                else {
-                    displayVal += minorStep
-                    displayVal = (displayVal * 100).rounded() / 100
-                    continue
-                }
-
-                let isMajor = availableFactors.contains { abs($0 - internalFactor) < minorStep * 0.4 }
-                let displayRounded = (displayVal * 10).rounded() / 10
-                let isMedium = !isMajor && abs(displayRounded.truncatingRemainder(dividingBy: 0.5)) < 0.05
-
-                let tickLen: CGFloat = isMajor ? 12 : (isMedium ? 7 : 3)
-                let tickAlpha: CGFloat = isMajor ? 0.9 : (isMedium ? 0.5 : 0.2)
-                let tickWidth: CGFloat = isMajor ? 1.5 : (isMedium ? 0.8 : 0.5)
-
-                let innerPt = CGPoint(
-                    x: center.x + cos(angle) * (outerR + tickLen),
-                    y: center.y + sin(angle) * (outerR + tickLen)
-                )
-
-                var tick = Path()
-                tick.move(to: outerPt)
-                tick.addLine(to: innerPt)
-                context.stroke(tick, with: .color(.white.opacity(tickAlpha)), lineWidth: tickWidth)
-
-                if isMajor {
-                    let labelR = outerR + tickLen + 12
-                    let labelPt = CGPoint(x: center.x + cos(angle) * labelR, y: center.y + sin(angle) * labelR)
-                    let near = abs(currentFactor - internalFactor) / max(internalFactor, 0.01) < 0.05
-                    context.draw(
-                        Text(tickLabel(internalFactor))
-                            .font(.system(size: 11, weight: .bold, design: .rounded))
-                            .foregroundStyle(near ? Color.yellow : Color.white.opacity(0.8)),
-                        at: labelPt,
-                        anchor: .center
-                    )
-                }
-
-                displayVal += minorStep
-                displayVal = (displayVal * 100).rounded() / 100
-            }
-
-            // availableFactors의 각 고정 배율을 major 틱으로 별도 렌더링
-            // (0.1 단위 루프에서 누락되는 28mm/35mm 등 비정수 배율 포함)
-            for factor in availableFactors {
-                let angle = tickAngle(factor)
-                let outerR = circleRadius + 3
-                let outerPt = CGPoint(x: center.x + cos(angle) * outerR, y: center.y + sin(angle) * outerR)
-
-                guard outerPt.x >= -20, outerPt.x <= canvasSize.width + 20,
-                      outerPt.y >= -20, outerPt.y <= canvasSize.height + 20 else { continue }
-
-                let innerPt = CGPoint(
-                    x: center.x + cos(angle) * (outerR + 12),
-                    y: center.y + sin(angle) * (outerR + 12)
-                )
-                var tick = Path()
-                tick.move(to: outerPt)
-                tick.addLine(to: innerPt)
-                context.stroke(tick, with: .color(.white.opacity(0.9)), lineWidth: 1.5)
-
-                let labelR = outerR + 12 + 12
-                let labelPt = CGPoint(x: center.x + cos(angle) * labelR, y: center.y + sin(angle) * labelR)
-                let near = abs(currentFactor - factor) / max(factor, 0.01) < 0.05
-                let displayV = factor * zoomDivisor
-
-                // 배율 라벨
-                let zoomLabel = if displayV < 1.0 {
-                    String(format: "%.1f", displayV)
-                } else if abs(displayV - displayV.rounded()) < 0.05 {
-                    "\(Int(displayV.rounded()))x"
-                } else {
-                    String(format: "%.1f", displayV)
-                }
-
-                context.draw(
-                    Text(zoomLabel)
-                        .font(.system(size: 11, weight: .bold, design: .rounded))
-                        .foregroundStyle(near ? Color.yellow : Color.white.opacity(0.8)),
-                    at: labelPt,
-                    anchor: .center
-                )
-
-                // 화각 mm 표시 (있으면 배율 아래에)
-                let focalMm = focalLengthMap.first(where: { abs($0.key - factor) < 0.05 })?.value
-                if let mm = focalMm {
-                    let mmLabelR = labelR + 14
-                    let mmPt = CGPoint(x: center.x + cos(angle) * mmLabelR, y: center.y + sin(angle) * mmLabelR)
-                    context.draw(
-                        Text("\(mm)mm")
-                            .font(.system(size: 8, weight: .medium, design: .rounded))
-                            .foregroundStyle(near ? Color.yellow.opacity(0.7) : Color.white.opacity(0.5)),
-                        at: mmPt,
-                        anchor: .center
-                    )
-                }
-            }
-
-            // 중앙 인디케이터 (12시 = 270도, 현재 배율 위치)
-            let indAngle: CGFloat = 270 * .pi / 180
-            let indOuter = CGPoint(
-                x: center.x + cos(indAngle) * (circleRadius + 2),
-                y: center.y + sin(indAngle) * (circleRadius + 2)
-            )
-            let indTip = CGPoint(
-                x: center.x + cos(indAngle) * (circleRadius + 16),
-                y: center.y + sin(indAngle) * (circleRadius + 16)
-            )
-            var indPath = Path()
-            indPath.move(to: indOuter)
-            indPath.addLine(to: indTip)
-            context.stroke(indPath, with: .color(.yellow), lineWidth: 2.5)
-
-            // 중앙 배율 텍스트
-            let label = currentDisplayLabel
-            context.draw(
-                Text(label)
-                    .font(.system(size: 28, weight: .bold, design: .rounded))
-                    .foregroundStyle(Color.yellow),
-                at: center,
-                anchor: .center
-            )
-        }
-        .frame(width: size.width, height: size.height)
+    private var circleRadius: CGFloat {
+        min(size.width, size.height) * 0.38
     }
 
     private var currentDisplayLabel: String {
@@ -468,11 +521,28 @@ private struct CircleDialOverlay: View {
         return String(format: "%.1fx", value)
     }
 
-    private func tickLabel(_ factor: CGFloat) -> String {
-        let value = factor * zoomDivisor
-        if value < 1.0 { return String(format: "%.1f", value) }
-        if abs(value - value.rounded()) < 0.05 { return "\(Int(value.rounded()))x" }
-        return String(format: "%.1f", value)
+    var body: some View {
+        let renderer = DialRenderer(
+            currentFactor: currentFactor,
+            minFactor: minFactor,
+            maxFactor: maxFactor,
+            availableFactors: availableFactors,
+            focalLengthMap: focalLengthMap,
+            zoomDivisor: zoomDivisor,
+            center: center,
+            circleRadius: circleRadius
+        )
+        let label = currentDisplayLabel
+        Canvas { context, canvasSize in
+            var ctx = context
+            let currentNorm = renderer.fToNorm(currentFactor)
+            renderer.drawBackground(context: &ctx, canvasSize: canvasSize)
+            renderer.drawMinorTicks(context: &ctx, canvasSize: canvasSize, currentNorm: currentNorm)
+            renderer.drawMajorTicks(context: &ctx, canvasSize: canvasSize, currentNorm: currentNorm)
+            renderer.drawIndicator(context: &ctx)
+            renderer.drawCenterLabel(context: &ctx, label: label)
+        }
+        .frame(width: size.width, height: size.height)
     }
 }
 

@@ -37,44 +37,15 @@ periphery scan --project PairShot/PairShot.xcodeproj --schemes PairShot --target
 - `-- ` 이후는 xcodebuild로 패스스루되는 인자. macOS 데스티네이션 충돌을 피하기 위해 반드시 iOS Simulator 명시.
 - 출력 `* No unused code detected.` 가 통과. 파일별 경고가 있으면 dead code 수정 필요 목록에 기록.
 
-### 1D. 런타임 프로파일링 — xctrace (Instruments CLI, Xcode 내장)
-**선택적**: 성능 병목 심층 분석이 필요한 경우에만 실행. 시간 5-10분 소요.
-
-시뮬레이터 부팅 + 앱 설치:
-```
-xcrun simctl boot "iPhone 15 Pro" 2>/dev/null || true
-APP_PATH=$(find ~/Library/Developer/Xcode/DerivedData/PairShot-*/Build/Products/Debug-iphonesimulator -maxdepth 1 -name "PairShot.app" | head -1)
-xcrun simctl install booted "$APP_PATH"
-BUNDLE_ID=$(defaults read "$APP_PATH/Info" CFBundleIdentifier)
-```
-
-프로파일 수집 (템플릿별):
-```
-mkdir -p /tmp/pairshot-traces
-# 1. Time Profiler: CPU 핫스팟 + 구동 시간
-xcrun xctrace record --template 'Time Profiler' --device "iPhone 15 Pro" \
-  --launch -- "$BUNDLE_ID" --output /tmp/pairshot-traces/launch.trace --time-limit 30s
-
-# 2. Allocations: 메모리 할당 피크
-xcrun xctrace record --template 'Allocations' --device "iPhone 15 Pro" \
-  --launch -- "$BUNDLE_ID" --output /tmp/pairshot-traces/alloc.trace --time-limit 30s
-
-# 3. Animation Hitches: 프레임 드롭
-xcrun xctrace record --template 'Animation Hitches' --device "iPhone 15 Pro" \
-  --launch -- "$BUNDLE_ID" --output /tmp/pairshot-traces/hitches.trace --time-limit 30s
-```
-
-내보내기 (xml/csv 분석):
-```
-xcrun xctrace export --input /tmp/pairshot-traces/launch.trace --xpath '/trace-toc/run/data/table[@schema="time-sample"]'
-```
-
-**적용 기준**: xctrace는 CI 자동화보다는 심층 분석용. 보통 audit 시 1회 수집 후 finding이 있을 때만 재수집. 결과는 `/tmp/pairshot-traces/` 에 남김. 프로세스가 오래 실행되므로 `timeout` 파라미터 충분히 주기 (5-10분).
+### 1D. 런타임 프로파일링 — audit 단계 **제외**
+xctrace는 Xcode 26.4 + iOS 시뮬레이터 환경에서 finalize 단계 고착 이슈로 audit 자동화에 부적합함이 검증됨(2026-04-06).
+실기기 프로파일링이 필요한 경우 **수동**으로 Xcode GUI (⌘I Product → Profile) 또는 연결된 실기기에서 `xctrace record --device <실기기 이름>` 사용.
+런타임 실측 항목은 audit-report의 `device_test_items`로 위임.
 
 ---
 
 **Gating**: 1A-1C 중 하나라도 실패 → verdict NEEDS_WORK, do NOT proceed to Phase 2.
-1B(성능 경고)와 1D(xctrace 결과)는 정보성 — critical로 분류된 경우만 gating.
+1B(성능 경고)는 정보성 — critical로 분류된 경우만 gating.
 
 ---
 
@@ -128,8 +99,7 @@ Audit-report.json format:
     "format": "pass",
     "test": "pass",
     "build_flags_perf": { "warnings": [...], "status": "info|needs_work" },
-    "periphery": { "unused": [...], "status": "pass|needs_work" },
-    "xctrace": { "traces": ["path/to/.trace"], "findings": [...], "status": "info|needs_work" }
+    "periphery": { "unused": [...], "status": "pass|needs_work" }
   },
   "semantic": {
     "code_review": { "verdict": "...", "findings": [...] },

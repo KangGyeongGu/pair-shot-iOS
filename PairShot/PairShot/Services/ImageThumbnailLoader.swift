@@ -4,8 +4,9 @@ import ImageIO
 
 nonisolated enum ImageThumbnailLoader {
     static func load(url: URL, maxPixelSize: Int = 1200) -> CGImage? {
-        guard url.isFileURL,
-              let source = CGImageSourceCreateWithURL(url as CFURL, nil)
+        guard url.isFileURL else { return nil }
+        let sourceOptions: [CFString: Any] = [kCGImageSourceShouldCache: false]
+        guard let source = CGImageSourceCreateWithURL(url as CFURL, sourceOptions as CFDictionary)
         else { return nil }
         let options: [CFString: Any] = [
             kCGImageSourceThumbnailMaxPixelSize: maxPixelSize,

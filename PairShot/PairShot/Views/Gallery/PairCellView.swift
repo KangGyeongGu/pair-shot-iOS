@@ -102,6 +102,6 @@ struct PairCellView: View {
             pairId: pair.id,
             isBefore: isBefore
         ) else { return nil }
-        return ThumbnailCache.shared.image(for: url.path)
+        return await ThumbnailCache.shared.imageAsync(for: url.path)
     }
 }

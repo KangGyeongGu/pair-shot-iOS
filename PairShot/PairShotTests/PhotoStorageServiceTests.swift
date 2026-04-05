@@ -356,7 +356,7 @@ struct PhotoStorageServiceTests {
         let projectDir = try service.projectDirectoryURL(for: projectId)
         #expect(FileManager.default.fileExists(atPath: projectDir.path) == true)
 
-        await service.deleteProject(projectId: projectId)
+        service.deleteProject(projectId: projectId)
 
         #expect(FileManager.default.fileExists(atPath: projectDir.path) == false)
     }
@@ -370,7 +370,7 @@ struct PhotoStorageServiceTests {
         let pairDir = try service.pairDirectoryURL(for: projectId, pairId: pairId)
         #expect(FileManager.default.fileExists(atPath: pairDir.path) == true)
 
-        await service.deleteProject(projectId: projectId)
+        service.deleteProject(projectId: projectId)
 
         #expect(FileManager.default.fileExists(atPath: pairDir.path) == false)
     }
@@ -381,7 +381,7 @@ struct PhotoStorageServiceTests {
         let service = makeService()
         let nonExistentId = UUID()
 
-        await service.deleteProject(projectId: nonExistentId)
+        service.deleteProject(projectId: nonExistentId)
 
         let projectDir = try service.projectDirectoryURL(for: nonExistentId)
         #expect(FileManager.default.fileExists(atPath: projectDir.path) == false)
@@ -396,7 +396,7 @@ struct PhotoStorageServiceTests {
         try service.createDirectories(for: projectId1, pairId: pairId)
         try service.createDirectories(for: projectId2, pairId: pairId)
 
-        await service.deleteProject(projectId: projectId1)
+        service.deleteProject(projectId: projectId1)
 
         let projectDir2 = try service.projectDirectoryURL(for: projectId2)
         #expect(FileManager.default.fileExists(atPath: projectDir2.path) == true)
@@ -412,8 +412,8 @@ struct PhotoStorageServiceTests {
         let pairId = UUID()
 
         try service.createDirectories(for: projectId, pairId: pairId)
-        await service.deleteProject(projectId: projectId)
-        await service.deleteProject(projectId: projectId)
+        service.deleteProject(projectId: projectId)
+        service.deleteProject(projectId: projectId)
 
         let projectDir = try service.projectDirectoryURL(for: projectId)
         #expect(FileManager.default.fileExists(atPath: projectDir.path) == false)
@@ -430,7 +430,7 @@ struct PhotoStorageServiceTests {
         let thumbDir = try service.thumbnailDirectoryURL(for: projectId)
         #expect(FileManager.default.fileExists(atPath: thumbDir.path) == true)
 
-        await service.deleteProject(projectId: projectId)
+        service.deleteProject(projectId: projectId)
 
         #expect(FileManager.default.fileExists(atPath: thumbDir.path) == false)
     }

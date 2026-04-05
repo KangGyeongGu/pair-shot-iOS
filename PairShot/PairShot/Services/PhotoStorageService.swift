@@ -39,6 +39,14 @@ struct PhotoStorageService {
             .appendingPathComponent(filename)
     }
 
+    func alignedPhotoRelativePath(projectId: UUID, pairId: UUID) -> String {
+        "projects/\(projectId.uuidString)/pairs/\(pairId.uuidString)/aligned_before.jpg"
+    }
+
+    func colorCorrectedPhotoRelativePath(projectId: UUID, pairId: UUID) -> String {
+        "projects/\(projectId.uuidString)/pairs/\(pairId.uuidString)/corrected_before.jpg"
+    }
+
     func alignedPhotoURL(projectId: UUID, pairId: UUID) throws -> URL {
         try pairDirectoryURL(for: projectId, pairId: pairId)
             .appendingPathComponent("aligned_before.jpg")
@@ -62,12 +70,12 @@ struct PhotoStorageService {
         try fileManager.createDirectory(at: thumbDir, withIntermediateDirectories: true)
     }
 
-    func deleteProject(projectId: UUID) async {
+    func deleteProject(projectId: UUID) {
         guard let projectDir = try? projectDirectoryURL(for: projectId) else { return }
         try? fileManager.removeItem(at: projectDir)
     }
 
-    func deletePair(projectId: UUID, pairId: UUID) async {
+    func deletePair(projectId: UUID, pairId: UUID) {
         if let pairDir = try? pairDirectoryURL(for: projectId, pairId: pairId) {
             try? fileManager.removeItem(at: pairDir)
         }

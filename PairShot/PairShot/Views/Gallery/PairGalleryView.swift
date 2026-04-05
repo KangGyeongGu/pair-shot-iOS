@@ -71,8 +71,6 @@ struct PairGalleryView: View {
         }
         .navigationTitle(project.title)
         .navigationBarTitleDisplayMode(.inline)
-        .onAppear { sensorManager.startUpdates() }
-        .onDisappear { sensorManager.stopUpdates() }
         .confirmationDialog("페어를 삭제하시겠습니까?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
             Button("삭제", role: .destructive) {
                 deletePairs(pairsToDelete)
@@ -194,17 +192,7 @@ struct PairGalleryView: View {
 
     @ViewBuilder
     private var floatingButtons: some View {
-        if allComplete {
-            Button {} label: {
-                Label("내보내기", systemImage: "square.and.arrow.up")
-                    .font(.body.weight(.semibold))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .background(Color.green, in: RoundedRectangle(cornerRadius: 14))
-                    .foregroundStyle(.white)
-            }
-            .disabled(true)
-        } else {
+        if !allComplete {
             HStack(spacing: 12) {
                 Button {
                     presentation = .camera(.before)
@@ -235,11 +223,7 @@ struct PairGalleryView: View {
 
     private func deletePairs(_ pairs: [PhotoPair]) {
         for pair in pairs {
-            let projectId = project.id
-            let pairId = pair.id
-            Task {
-                await storage.deletePair(projectId: projectId, pairId: pairId)
-            }
+            storage.deletePair(projectId: project.id, pairId: pair.id)
             modelContext.delete(pair)
         }
     }

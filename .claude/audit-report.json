@@ -1,282 +1,285 @@
 {
   "phase": "P5",
+  "audit_iteration": 3,
   "feature_branch": "feature/p5-comparison-ai",
   "verdict": "NEEDS_WORK",
+  "focus": "성능 병목 검증 (사용자 요청)",
   "mechanical": {
-    "build": "pass",
-    "lint": "fail",
-    "format": "pass",
-    "test": "fail"
-  },
-  "mechanical_findings": [
-    {
-      "id": "MECH1",
-      "tool": "swiftlint",
-      "severity": "error",
-      "status": "partially_fixed_manually",
-      "description": "identifier_name 6건 — w/h/v (AlignmentService), r/g/b (ColorCorrectionService)",
-      "files": [
-        "PairShot/PairShot/Services/AlignmentService.swift:118-132",
-        "PairShot/PairShot/Services/ColorCorrectionService.swift:82-130"
+    "1A_build": "pass",
+    "1A_lint": "pass",
+    "1A_format": "pass",
+    "1A_test": "pass",
+    "1B_build_flags": {
+      "status": "needs_work",
+      "warnings": [
+        {
+          "id": "PERF1",
+          "severity": "critical",
+          "file": "PairShot/PairShot/Views/Camera/ZoomControlView.swift",
+          "line": 210,
+          "kind": "body_getter",
+          "duration_ms": 2735,
+          "limit_ms": 100,
+          "description": "ZoomButtonRow.body — 단일 expression에 10+ modifier chain + 7개 ternary가 중첩되어 2.7초 타입 체크"
+        },
+        {
+          "id": "PERF2",
+          "severity": "major",
+          "file": "PairShot/PairShot/Views/Camera/ZoomControlView.swift",
+          "line": 216,
+          "kind": "expression",
+          "duration_ms_range": "295-453",
+          "occurrences": 7,
+          "description": "Text 표현 내 7개 독립 ternary가 각각 타입 체크 비용 발생"
+        },
+        {
+          "id": "PERF3",
+          "severity": "minor",
+          "file": "PairShot/PairShot/Views/Camera/ZoomControlView.swift",
+          "line": 280,
+          "kind": "body_getter",
+          "duration_ms": 113,
+          "description": "CircleDialOverlay.body — Canvas 내부 if-expression 3-way branch + 중복 label 로직"
+        },
+        {
+          "id": "PERF4",
+          "severity": "minor",
+          "file": "PairShot/PairShot/Views/Camera/ARCameraView.swift",
+          "line": 24,
+          "kind": "body_getter",
+          "duration_ms": 106,
+          "description": "ARCameraView body — 임계값 약간 초과"
+        }
       ],
-      "note": "이미 수동으로 수정됨 (width/height/vec, red/green/blue). auto-fix 시 lint 재실행으로 확인만 필요",
-      "fix_strategy": "mechanical rename (이미 적용됨)"
+      "scope_note": "모두 P4 파일. P5 변경분은 경고 없음. 카메라 첫 진입 first-frame latency 영향."
     },
-    {
-      "id": "MECH2",
-      "tool": "xcodebuild test",
-      "severity": "error",
-      "status": "needs_fix",
-      "description": "QualityIssue의 Equatable 구현이 MainActor-isolated라 non-isolated 컨텍스트(#expect)에서 사용 불가",
-      "error_message": "main actor-isolated conformance of 'QualityIssue' to 'Equatable' cannot be used in nonisolated context",
-      "files": [
-        "PairShot/PairShot/Services/QualityCheckService.swift:4-8",
-        "PairShot/PairShotTests/QualityCheckTests.swift:11-12"
-      ],
-      "note": "P4에서 유래했지만 Swift 6 strict test 빌드에서 드러남",
-      "fix_strategy": "QualityCheckService.swift의 QualityIssue enum 선언을 `nonisolated enum QualityIssue: Sendable` 로 변경하거나, 별도 nonisolated 파일로 분리"
+    "1C_periphery": {
+      "status": "pass",
+      "unused_code": [],
+      "version": "2.21.2"
+    },
+    "1D_xctrace": {
+      "status": "infra_limitation",
+      "note": "Xcode 26.4 + iPhone 15 Pro simulator에서 xctrace record가 15s time-limit 후에도 finalize 단계에서 멈춤. Trace1.run 디렉토리는 생성되지만 RunIssues.storedata만 있고 실제 샘플 없음. simulator 환경 + Xcode 26 beta 이슈로 판단. 실기기 또는 Instruments GUI 사용 권장.",
+      "traces": ["/tmp/pairshot-traces/runtime.trace (incomplete)"],
+      "mitigation": "1B 빌드 플래그로 정적 분석이 이미 주요 SwiftUI 병목 검출 완료"
     }
-  ],
+  },
   "semantic": {
+    "code_review": {
+      "verdict": "NEEDS_WORK",
+      "agents": {
+        "A1_ai_services": {
+          "status": "incomplete",
+          "note": "CoreImage 헤더 검증 중 타임아웃. 이전 2회 audit(ebc5d62, 56d974d)에서 이미 해당 서비스 상세 리뷰 완료. 기존 수정 유효."
+        },
+        "A2_comparison_views": { "verdict": "NEEDS_WORK", "findings_count": 11 },
+        "A3_integration_camera": { "verdict": "NEEDS_WORK", "findings_count": 8 },
+        "A4_cold_start": { "verdict": "PASS", "findings_count": 5, "note": "모두 minor" },
+        "A5_zoomcontrolview_hotspot": { "verdict": "NEEDS_WORK", "findings_count": 5 }
+      }
+    },
     "critical": [
       {
-        "id": "C1",
-        "file": "PairShot/PairShot/Services/HeatmapService.swift",
+        "id": "PC1",
+        "file": "PairShot/PairShot/Views/Camera/ZoomControlView.swift",
+        "line": "210-234",
+        "agent": "A5",
         "severity": "critical",
-        "description": "generateHeatmap이 async이지만 내부에 Task.detached가 없어 호출자 MainActor(HeatmapView)에서 그대로 실행. CIContext.render + createCGImage가 메인 스레드 블로킹하여 UI가 수 초 freeze",
-        "fix_strategy": "함수 본문 전체를 `Task.detached(priority: .userInitiated) { ... }.value`로 감싸기. MatchingScoreService 패턴 참조"
-      },
-      {
-        "id": "C2",
-        "file": "PairShot/PairShot/Services/HeatmapService.swift",
-        "severity": "critical",
-        "description": "R3(1200px 다운스케일) 미적용. 48MP 원본을 전체 해상도로 로드/처리하여 메모리 초과 위험",
-        "fix_strategy": "MatchingScoreService의 loadThumbnail 패턴(CGImageSourceCreateThumbnailAtIndex, maxPixelSize 1200)을 재사용하거나 공통 유틸로 추출"
-      },
-      {
-        "id": "C3",
-        "file": "PairShot/PairShot/Views/Camera/UnifiedCameraView.swift",
-        "severity": "critical",
-        "description": "Task.detached 안에서 non-Sendable ModelContext 캡처. Swift 5 모드라 경고만, Swift 6 strict 전환 시 컴파일 에러. 프로젝트 Tech Stack은 'Swift 6' 명시",
-        "fix_strategy": "Task.detached 대신 `Task { @MainActor in ... }` 또는 외부 nonisolated 함수로 AI 연산 분리 후 MainActor에서 업데이트. modelContext 캡처 금지"
+        "description": "ZoomButtonRow.body의 단일 expression에 HStack→ForEach→Text→font→foregroundStyle→frame→background(Circle fill + overlay strokeBorder)→contentShape→onTapGesture→animation 체인에 7개 ternary가 섞여 generic specialization 폭발. 타입 체크 2735ms + 런타임 drag 중 60fps 재평가 부담.",
+        "reference": "https://developer.apple.com/videos/play/wwdc2023/10160/ (WWDC23 Demystify SwiftUI performance, Faster view updates 섹션), https://developer.apple.com/documentation/swiftui/viewbuilder",
+        "fix_strategy": "ZoomButtonCell 서브뷰 struct 추출 + 각 ternary를 computed property(fontSize/dimension/fillOpacity/strokeColor/strokeWidth/foreground)로 분리. backgroundShape도 private computed var로 분리. SwiftUI가 isSelected 값 불변 시 셀 재평가 skip 가능."
       }
     ],
     "major": [
       {
-        "id": "M1",
-        "file": "PairShot/PairShot/Services/HeatmapService.swift:33-34,62-100",
-        "description": "changeRatio가 평균 휘도 값을 그대로 사용 → '42% 면적 변화' UI 라벨과 의미 불일치. F16 스펙은 '임계 초과 픽셀 비율' 요구",
-        "fix_strategy": "diff 이미지에 CIColorThreshold 또는 colorMatrix로 임계 마스크 생성 후 areaAverage로 비율 산출"
+        "id": "PM1",
+        "file": "PairShot/PairShot/Views/Gallery/PairCellView.swift",
+        "line": "98-106",
+        "agent": "A3",
+        "description": "ThumbnailCache.shared.image(for:) → UIImage(contentsOfFile:) 동기 디스크 I/O가 .task 본문에서 MainActor 격리로 실행. LazyVGrid 스크롤 중 다수 셀이 동시에 메인 스레드 I/O를 유발하여 hitch 발생.",
+        "reference": "https://developer.apple.com/documentation/xcode/improving-app-responsiveness (메인 스레드 I/O 금지), https://developer.apple.com/videos/play/wwdc2023/10160/",
+        "fix_strategy": "ThumbnailCache에 nonisolated async func image(for:) 추가, 캐시 미스는 Task.detached에서 Data 로드 + UIImage(data:) + preparingForDisplay() (iOS 15+) 디코드 선행."
       },
       {
-        "id": "M2",
-        "file": "PairShot/PairShot/Services/AlignmentService.swift:134-135",
-        "description": "CIPerspectiveTransform 결과 extent가 warp된 바운딩 박스여서 after 해상도와 달라질 수 있음. 비교 뷰에서 픽셀 정합 깨짐",
-        "fix_strategy": "createCGImage(_, from: CGRect(0,0,afterW,afterH))로 after 크기 렉트 명시하여 crop/pad"
+        "id": "PM2",
+        "file": "PairShot/PairShot/Views/Comparison/ComparisonContainerView.swift",
+        "line": "42-50",
+        "agent": "A2",
+        "description": "alignedBeforeURL computed property가 body(modeContent line 100)에서 호출될 때마다 FileManager.default.fileExists(atPath:) 동기 stat 호출. mode 전환, SwiftData 갱신, .task 완료 등 모든 경로에서 body 재평가되어 메인 스레드 파일 I/O 반복.",
+        "reference": "https://developer.apple.com/videos/play/wwdc2023/10160/ (body should be pure and cheap), https://developer.apple.com/documentation/swiftui/reducing-view-modifier-maintenance",
+        "fix_strategy": "alignedBeforeImagePath 유무만 체크하여 URL 계산. 파일 존재 검증은 AI 분석 완료 시점에 1회 수행하여 PhotoPair 파생 상태 또는 @State로 캐시. 또는 .task(id: pair.alignedBeforeImagePath)에서 오프-메인 검증."
       },
       {
-        "id": "M3",
-        "file": "PairShot/PairShot/Services/ColorCorrectionService.swift:36-44",
-        "description": "R3 다운스케일 미적용. 원본 크기로 처리하여 Align 결과(1200px)와 크기 불일치",
-        "fix_strategy": "1200px 썸네일 경로 통일"
+        "id": "PM3",
+        "file": "PairShot/PairShot/Services/ImageThumbnailLoader.swift",
+        "line": "10-14",
+        "agent": "A2",
+        "description": "CGImageSourceCreateWithURL 호출 시 kCGImageSourceShouldCache가 미설정되어 64비트 기본값(true)이 적용. 48MP 원본 decoded cache(~192MB)가 CGImageSource 수명 동안 메모리 점유. SideBySideView tier 교체로 동일 파일 여러 번 reopen 시 피크 메모리 상승. 동일 프로젝트 내 CameraManager+Save.swift:85는 이미 false로 설정되어 있어 일관성 깨짐.",
+        "reference": ".claude/apple-sdk-refs/ImageIO/CGImageSource.h:42-48",
+        "fix_strategy": "CGImageSourceCreateWithURL options에 [kCGImageSourceShouldCache: false] 전달 또는 kCGImageSourceShouldCacheImmediately: false 병행."
       },
       {
-        "id": "M4",
-        "file": "PairShot/PairShot/Services/ColorCorrectionService.swift:87-95",
-        "description": "rScale/gScale/bScale 클램프 없음. 어두운 환경에서 수십 배 증폭 → highlight 클리핑",
-        "fix_strategy": "min(max(scale, 0.5), 2.0) 클램프 또는 Lab 색공간 매칭"
+        "id": "PM4",
+        "file": "PairShot/PairShot/Views/Comparison/ComparisonContainerView.swift",
+        "line": "99-110",
+        "agent": "A2",
+        "description": "switch 4분기가 @ViewBuilder로 직접 분기되어 SwiftUI가 각 case를 별개 view type으로 간주. Picker로 모드 전환 시 identity 파괴 + 각 자식 뷰의 @State(beforeImage/afterImage/currentMaxPixelSize/sliderX) 재생성 → 동일 파일이 디스크→ImageIO→CGImage 경로로 매번 재디코딩. F07 'Smooth zoom/panning' NFR 저해.",
+        "reference": "https://developer.apple.com/videos/play/wwdc2023/10160/ (View Identity/Lifetime)",
+        "fix_strategy": "(a) 상위 컨테이너에서 beforeImage/afterImage를 한 번 로드하여 자식에 주입, 또는 (b) ImageThumbnailLoader에 NSCache<NSURL, UIImage> actor 캐시 추가(키: url|maxPixelSize)."
       },
       {
-        "id": "M5",
-        "file": "PairShot/PairShot/Views/Comparison/SideBySideView.swift:47",
-        "description": "F07 edge case 'Crop to match the smaller one' 미준수. .aspectRatio(.fit)는 letterbox",
-        "fix_strategy": ".fill + .clipped() + 공통 프레임 프레임 통일"
+        "id": "PM5",
+        "file": "PairShot/PairShot/Services/AIAnalysisCoordinator.swift ↔ PhotoStorageService.swift",
+        "line": "52, 58 ↔ 42-50",
+        "agent": "A3",
+        "description": "AIAnalysisCoordinator가 DB 저장 경로를 projects/{id}/pairs/{id}/{filename} 문자열로 하드코딩. ComparisonContainerView는 storage.alignedPhotoURL(...) API로 URL 재구성. 즉 DB 값은 존재 플래그로만 기능하며 실제 파일 위치는 storage API가 결정 → single source of truth 위반.",
+        "reference": "https://developer.apple.com/documentation/swiftdata/persistentmodel",
+        "fix_strategy": "PhotoStorageService에 relativePath(for:projectId:pairId:) → String 헬퍼 노출 후 Coordinator는 이 API만 사용. 또는 DB에 boolean(hasAlignedBefore) 플래그만 저장하고 경로는 storage API로 항상 구성."
       },
       {
-        "id": "M6",
-        "file": "PairShot/PairShot/Views/Comparison/SideBySideView.swift:59-81",
-        "description": "동기 줌/패닝이 정규화 좌표계 없이 동일 scale/offset 적용. 해상도/aspect 다르면 '같은 영역' 스펙 위반",
-        "fix_strategy": "(u,v) 정규화 좌표로 변환 후 양쪽 적용 — UX 설계 필요",
-        "requires_design_decision": true
-      },
-      {
-        "id": "M7",
-        "file": "PairShot/PairShot/Views/Comparison/SideBySideView.swift:59-81",
-        "description": "zoomScale max/offset 경계 클램프 없음. 무제한 줌 + 끝까지 드래그하면 이미지 뷰 밖으로 사라짐",
-        "fix_strategy": "min/max scale(1.0~4.0) + 스케일 기반 offset bounds 클램프"
-      },
-      {
-        "id": "M8",
-        "file": "PairShot/PairShot/Views/Comparison/SideBySideView.swift",
-        "description": "F07 '48MP → 타일 로드 on zoom' 미구현. 1600px 고정",
-        "fix_strategy": "후속 작업으로 연기 (CATiledLayer 복잡도) — 현재는 고배율 줌 제한(M7)으로 완화",
-        "requires_design_decision": true
-      },
-      {
-        "id": "M9",
-        "file": "PairShot/PairShot/Views/Comparison/SliderCompareView.swift:12-55",
-        "description": "F11 'Pinch zoom also supported' 완전 미구현 — 스펙 핵심 요구사항 누락",
-        "fix_strategy": "MagnifyGesture 추가, 이미지와 sliderX 좌표 함께 변환"
-      },
-      {
-        "id": "M10",
-        "file": "PairShot/PairShot/Views/Comparison/SliderCompareView.swift:62",
-        "description": "F11 edge case 'Image size mismatch → Center-aligned crop' 미준수",
-        "fix_strategy": ".fill + .clipped() + 공통 프레임"
-      },
-      {
-        "id": "M11",
-        "file": "PairShot/PairShot/Views/Comparison/MatchingScoreBadge.swift:39-45",
-        "description": "F15 스펙 'green/yellow/red' 중 .good 등급이 .orange로 매핑 — 스펙 불일치",
-        "fix_strategy": ".orange → .yellow로 변경"
-      },
-      {
-        "id": "M12",
-        "file": "PairShot/PairShot/Models/PhotoPair.swift:27-39",
-        "description": "init에 신규 3개 필드 파라미터 없음 — 프리뷰/테스트 시드 불편",
-        "fix_strategy": "기본값 nil 파라미터 3개 추가 (matchingScore/alignedBeforeImagePath/colorCorrectedBeforeImagePath)"
-      },
-      {
-        "id": "M13",
-        "file": "PairShot/PairShot/Services/PhotoStorageService.swift:70-82",
-        "description": "deletePair가 개별 파일 루프 — 파생 파일 추가 시 동기화 부담",
-        "fix_strategy": "fileManager.removeItem(at: pairDir) 디렉토리 일괄 삭제로 전환"
-      },
-      {
-        "id": "M14",
-        "file": "PairShot/PairShot/Views/Camera/UnifiedCameraView.swift:97-110",
-        "description": "AI 서비스 3개 try?로 완전 silent. 디버깅 불가",
-        "fix_strategy": "os.Logger 또는 최소한 print로 실패 원인 출력"
-      },
-      {
-        "id": "M15",
-        "file": "PairShot/PairShot/Views/Camera/UnifiedCameraView.swift:77-81",
-        "description": "AI 재시도 경로 없음. 앱 종료 후 재진입하거나 백그라운드 실패 후 complete+aligned nil인 '고아 페어'가 영구 원본만 사용",
-        "fix_strategy": "ComparisonContainerView.task에서 'complete && aligned == nil' 감지 시 재실행 — 아키텍처 결정 필요",
-        "requires_design_decision": true
-      },
-      {
-        "id": "M16",
-        "file": "PairShot/PairShot/Views/Camera/UnifiedCameraView.swift:77-81",
-        "description": "AI 트리거가 View의 onChange에 결합 — MVVM 역전, 계층 부적절",
-        "fix_strategy": "PairCameraView/ARCameraView 저장 콜백 또는 PhotoStorageService 파이프라인으로 이동 — 구조 변경 필요",
-        "requires_design_decision": true
-      },
-      {
-        "id": "M17",
-        "file": "공통",
-        "description": "loadDownscaled 헬퍼가 5곳(SideBySide/Slider/Animation/Alignment/Matching)에 중복 — 데드코드/보일러플레이트",
-        "fix_strategy": "PairShot/PairShot/Services/ImageThumbnailLoader.swift 공통 유틸 추출, 1600/1200 상수 중앙 집중화",
-        "affected_files": [
-          "PairShot/PairShot/Views/Comparison/SideBySideView.swift:83-97",
-          "PairShot/PairShot/Views/Comparison/SliderCompareView.swift:70-84",
-          "PairShot/PairShot/Views/Comparison/AnimationCompareView.swift:56-70",
-          "PairShot/PairShot/Services/AlignmentService.swift:89-97",
-          "PairShot/PairShot/Services/MatchingScoreService.swift:36-44"
-        ]
+        "id": "PM6",
+        "file": "PairShot/PairShot/Views/Camera/UnifiedCameraView.swift",
+        "line": "77-83",
+        "agent": "A3",
+        "description": "Task { @MainActor in await AIAnalysisCoordinator.analyze(...) } fire-and-forget Task가 View 수명에 바인딩되지 않음. 사용자가 After 촬영 직후 즉시 카메라 dismiss 시 analyze는 백그라운드에서 계속 실행, modelContext save까지 수행. 취소 경로 없음 + ComparisonContainerView.task 경로와 중복되어 M16(트리거 계층 단일화) 의도와 어긋남.",
+        "reference": "https://developer.apple.com/documentation/swift/task/iscancelled, WWDC24 Migrate your app to Swift 6",
+        "fix_strategy": "(a) UnifiedCameraView의 onChange 경로 제거하고 ComparisonContainerView.task(id:)로 단일화, 또는 (b) @State analysisTask: Task<Void, Never>? 보관 + .onDisappear cancel + coordinator 내부 Task.checkCancellation()."
       }
     ],
     "minor": [
       {
-        "id": "N1",
-        "description": "AlignmentService/ColorCorrectionService의 top-level private nonisolated func는 전역 함수에 무의미 어노테이션. enum 내부 static으로 이동 (Matching/Heatmap 패턴과 통일)",
-        "files": ["AlignmentService.swift:33,89,99,117,138", "ColorCorrectionService.swift:30,62,108"]
+        "id": "PN1",
+        "file": "PairShot/PairShot/Views/Camera/ZoomControlView.swift",
+        "line": "280-283, 406-412",
+        "agent": "A5",
+        "description": "CircleDialOverlay.body 진입 시 local let center/circleRadius + Canvas 내부 if-expression zoomLabel 3-way branch + tickLabel(_:)/fixedLabel(_:)와 3중 중복 로직"
       },
       {
-        "id": "N2",
-        "description": "AlignmentError/ColorCorrectionError 세부 case는 호출부(try?)에서 축약되어 구분 이득 없음 — 단일 case로 축소 또는 타입 제거",
-        "files": ["AlignmentService.swift:9-14", "ColorCorrectionService.swift:7-11"]
+        "id": "PN2",
+        "file": "PairShot/PairShot/Views/Gallery/PairGalleryView.swift",
+        "line": "33",
+        "agent": "A4",
+        "description": "displayedPairs computed가 body 재평가마다 project.pairs.sorted + filter 실행. SwiftData relationship fault 유발 가능. O(n log n) 반복."
       },
       {
-        "id": "N3",
-        "description": "ColorCorrectionService의 import UIKit + UIImage.jpegData → ImageIO 경로로 대체 가능 (불필요 의존)",
-        "files": ["ColorCorrectionService.swift:4,48-51"]
+        "id": "PN3",
+        "file": "PairShot/PairShot/Views/Archive/ArchiveView.swift",
+        "line": "5, 227-233",
+        "agent": "A4",
+        "description": "@Query에 fetchLimit 없음 + ProjectRowView의 completedCount/totalCount computed가 row body마다 project.pairs.count(where:) 실행. 현장 누적 시 cold start 영향."
       },
       {
-        "id": "N4",
-        "description": "ImageProcessingContext.shared의 useSoftwareRenderer: false는 기본값 no-op — 제거 또는 cacheIntermediates: false로 교체",
-        "files": ["ImageProcessingContext.swift:5"]
+        "id": "PN4",
+        "file": "PairShot/PairShot/Views/Gallery/PairGalleryView.swift",
+        "line": "74-75",
+        "agent": "A3",
+        "description": "갤러리 onAppear에서 sensorManager.startUpdates() 호출 → 센서가 카메라 전환 전에도 상시 가동. 배터리 낭비."
       },
       {
-        "id": "N5",
-        "description": "MatchingScoreService.percentMatch의 정규화 상수 20은 매직 넘버 — 이름 지정 또는 주석",
-        "files": ["MatchingScoreService.swift:32-34"]
+        "id": "PN5",
+        "file": "PairShot/PairShot/Views/Camera/UnifiedCameraView.swift",
+        "line": "112-120",
+        "agent": "A3",
+        "description": "switchMode에서 하드코딩된 Task.sleep(800ms)로 세션 전환 오버레이 표시. 실제 AVCaptureSession.isRunning 관찰이 아님."
       },
       {
-        "id": "N6",
-        "description": "ComparisonContainerView 공유 버튼에 print('TODO: F12 share') 잔존 — .disabled(true)지만 프로덕션 로그 노이즈",
-        "files": ["ComparisonContainerView.swift:73"]
+        "id": "PN6",
+        "file": "PairShot/PairShot/Views/Comparison/SideBySideView.swift",
+        "line": "90-100",
+        "agent": "A2",
+        "description": "MagnifyGesture.Value의 startAnchor(iOS 17+) 미사용. 중앙 확대만 수행하여 F07 'same region' 체감 UX 저하."
       },
       {
-        "id": "N7",
-        "description": "비교 뷰 4개 #Preview 누락 (특히 MatchingScoreBadge는 상태별 프리뷰 가치 높음)",
-        "files": ["Views/Comparison/*.swift"]
+        "id": "PN7",
+        "file": "PairShot/PairShot/Views/Comparison/SliderCompareView.swift",
+        "line": "64-68, 99-107",
+        "agent": "A2",
+        "description": "onAppear sliderX 초기화가 첫 프레임 visual flash 가능. handleDragStartX sentinel 0이 옵셔널보다 불명확."
       },
       {
-        "id": "N8",
-        "description": "loadDownscaled가 Task.detached라 부모 .task(id:) 취소 전파 안 됨 — 빠른 pair 전환 시 CPU/메모리 낭비",
-        "files": ["SideBySideView.swift:83-97", "SliderCompareView.swift:70-84", "AnimationCompareView.swift:56-70"]
+        "id": "PN8",
+        "file": "PairShot/PairShot/Views/Comparison/HeatmapView.swift",
+        "line": "3, 46",
+        "agent": "A2",
+        "description": "@MainActor 재선언(프로젝트 기본 격리와 중복), 에러 메시지 하드코딩 + 세부 에러 구분 없음."
       },
       {
-        "id": "N9",
-        "description": "AnimationCompareView/SliderCompareView는 task(id:) 재로딩 시 이미지 nil 리셋 누락. SideBySide는 리셋 있음 — 일관성 부재",
-        "files": ["SliderCompareView.swift:49-54", "AnimationCompareView.swift:48-53"]
+        "id": "PN9",
+        "file": "PairShot/PairShot/Views/Comparison/ComparisonContainerView.swift",
+        "line": "78",
+        "agent": "A2",
+        "description": "Share 버튼 F12 placeholder 주석 잔존. .disabled(true)라 F005 위반은 아니나 UI completeness 관점 minor."
       },
       {
-        "id": "N10",
-        "description": "ComparisonContainerView.alignedBeforeURL 폴백이 파일 존재 체크 없이 DB 경로만 확인 — 파일 유실 시 무한 ProgressView",
-        "files": ["ComparisonContainerView.swift:40-45"]
+        "id": "PN10",
+        "file": "PairShot/PairShot/Views/Comparison/AnimationCompareView.swift",
+        "line": "14-25",
+        "agent": "A2",
+        "description": "contentMode .fit — 다른 비교 모드는 .fill 사용. 모드 전환 시 크롭/레터박스 불일치로 시각 연속성 저하."
       },
       {
-        "id": "N11",
-        "description": "PairGalleryView에 .fullScreenCover 2개 중첩(cameraDestination + comparisonPair) — 단일 enum GalleryPresentation으로 통합 권장",
-        "files": ["PairGalleryView.swift:86-96"]
+        "id": "PN11",
+        "file": "PairShot/PairShot/Views/Gallery/PairGalleryView.swift",
+        "line": "236-245",
+        "agent": "A3",
+        "description": "deletePairs가 각 pair마다 unstructured Task 생성. PhotoStorageService.deletePair는 동기 작업을 async로 감싸고 있어 불필요한 suspension."
       },
       {
-        "id": "N12",
-        "description": "PairCellView onTapGesture가 if-else 분기 — switch로 전환하여 컴파일러 완전성 검사",
-        "files": ["PairCellView.swift:53-59"]
+        "id": "PN12",
+        "file": "PairShot/PairShot/Views/Gallery/PairGalleryView.swift",
+        "line": "196-206",
+        "agent": "A3",
+        "description": "'모두 완료' 브랜치의 '내보내기' 버튼이 빈 closure + .disabled(true). F12 placeholder."
       },
       {
-        "id": "N13",
-        "description": "CGColorSpaceCreateDeviceRGB()를 매 호출 생성 (AlignmentService/HeatmapService) — static let 캐시 가능"
+        "id": "PN13",
+        "file": "PairShot/PairShot/Models/Project.swift",
+        "line": "1-9",
+        "agent": "A3",
+        "description": "파일 헤더 + MARK 섹션 주석 잔존. CLAUDE.md 'No file headers, no MARK sections' 규칙 위반."
+      },
+      {
+        "id": "PN14",
+        "file": "PairShot/PairShot/Views/Camera/ZoomControlView.swift",
+        "line": 195,
+        "agent": "A5",
+        "description": "is05 ? .soft : .soft 삼항 양쪽이 동일 값 (의도 불명확, 아마 intensity 파라미터만 다르게 의도한 오타)"
       }
     ],
-    "passes": [
-      "SDK API 이름이 모두 CIFilterBuiltins.h/Vision 헤더와 일치 (F001/F004 재발 없음)",
-      "F006 재발 없음: ComparisonContainerView switch 4-way 분기에 실제 자식 뷰 4개 모두 삽입",
-      "F005 재발 없음: PairCellView onTapCompare/PairGalleryView 네비게이션 모두 실제 액션 연결",
-      "PhotoPair 신규 optional 필드 3개는 SwiftData 자동 마이그레이션 호환",
-      "ImageProcessingContext.shared는 4개 서비스 모두 실제 사용 중 (죽은 싱글톤 아님)",
-      "VNGenerateImageFeaturePrintRequestRevision2 iOS 17+ 적용",
-      "Vision perform 블로킹 호출이 Task.detached 내부에서 실행 (HeatmapService C1 제외)"
+    "passes_verified": [
+      "F005 재발 없음 (PairCellView/PairGalleryView 모든 네비게이션 실제 액션 연결)",
+      "F006 재발 없음 (ComparisonContainerView switch 4분기 실제 자식 뷰 4개 모두 삽입)",
+      "이전 audit의 C1~C5 해결 유지 (Heatmap Task.detached, ModelContext Sendable)",
+      "이전 audit의 M1~M17 대부분 해결 유지 (AI 서비스 품질 개선)",
+      "N1~N13 중 13건 해결 확인 (에러 타입 단순화, UIKit 의존 제거, deviceRGB 캐시 등)"
     ]
   },
-  "dead_code_and_boilerplate_summary": [
-    "loadDownscaled 5중 복제 (SideBySide/Slider/Animation/Alignment/Matching) — 최우선 공통화",
-    "AlignmentService/ColorCorrectionService top-level private nonisolated func — 무의미 어노테이션 + enum 외부 배치",
-    "AlignmentError/ColorCorrectionError 세부 case 사용처 없음",
-    "ColorCorrectionService의 UIKit import 불필요",
-    "ImageProcessingContext의 useSoftwareRenderer: false는 기본값 no-op",
-    "PhotoStorageService throws 중 StorageError.documentsDirectoryUnavailable 사실상 unreachable",
-    "ComparisonContainerView의 print('TODO: F12 share') 잔존",
-    "MatchingScoreService의 nonisolated static — enum 값 타입에 불필요",
-    "CGColorSpaceCreateDeviceRGB() 반복 생성",
-    "PhotoPair init 신규 필드 파라미터 누락"
-  ],
+  "reference_based_verification": {
+    "note": "모든 리뷰 에이전트가 project-versions.md(iOS 26.4 deployment target)의 버전 제약을 준수하고 Apple 공식 문서 URL 또는 SDK 헤더 경로로 인용 제공함. 추측성 findings 없음.",
+    "cited_sources": [
+      "https://developer.apple.com/videos/play/wwdc2023/10160/ (Demystify SwiftUI performance)",
+      "https://developer.apple.com/videos/play/wwdc2024/10137/ (What's new in SwiftData)",
+      "https://developer.apple.com/documentation/xcode/improving-app-responsiveness",
+      "https://developer.apple.com/documentation/swiftui/viewbuilder",
+      "https://developer.apple.com/documentation/swiftdata/query",
+      "https://developer.apple.com/documentation/swiftdata/persistentmodel",
+      "https://developer.apple.com/documentation/swiftui/reducing-view-modifier-maintenance",
+      "https://developer.apple.com/documentation/coremotion/getting-processed-device-motion-data",
+      ".claude/apple-sdk-refs/SwiftData/arm64e-apple-ios.swiftinterface:796",
+      ".claude/apple-sdk-refs/SwiftUI/arm64e-apple-ios.swiftinterface:9378-9394",
+      ".claude/apple-sdk-refs/ImageIO/CGImageSource.h:42-48"
+    ]
+  },
   "device_test_items": [
-    "iPhone 15 Pro 실기기에서 P5 핵심 경로 검증",
-    "After 촬영 직후 AI 분석이 백그라운드에서 자동 실행되어 카메라 dismiss를 차단하지 않는지",
-    "complete 페어 탭 시 비교 뷰 진입 + 4개 모드 전환 (나란히/슬라이더/히트맵/애니메이션)",
-    "SideBySideView 동기 줌/패닝 + 더블탭 리셋",
-    "SliderCompareView 드래그 + (수정 후) pinch zoom",
-    "HeatmapView 변화율 표시 + (C1 수정 후) 메인 스레드 블로킹 없음",
-    "AnimationCompareView 0.3초 크로스페이드",
-    "매칭 스코어 배지가 nil → 값으로 업데이트되는 실시간 전환",
-    "pendingAfter/complete 페어 탭 분기가 각각 올바르게 동작",
-    "LiDAR 없는 iPhone에서 AI 분석 동작 및 성능",
-    "48MP 원본 이미지 처리 시 메모리 안정성 (R3 수정 후)",
-    "네트워크 없는 상태에서 전체 파이프라인 동작"
+    "실기기(iPhone 15 Pro / iPhone 17 Pro)에서 앱 cold start 시간 측정 (Instruments Time Profiler)",
+    "카메라 뷰 첫 진입 시 first-frame latency 측정 (ZoomControlView 리팩토링 전/후 비교)",
+    "갤러리 스크롤 시 hitch 발생 여부 (Instruments Animation Hitches 템플릿)",
+    "비교 뷰에서 4개 모드 전환 시 이미지 재디코딩 지연 체감",
+    "SideBySideView 고배율 줌 시 메모리 피크 (Instruments Allocations)",
+    "After 촬영 직후 카메라 즉시 dismiss → AI 분석 백그라운드 완주 여부",
+    "48MP 원본 이미지 처리 시 메모리 안정성 (PM3 수정 전/후)",
+    "저사양 기기 (LiDAR 없는 모델)에서 전체 파이프라인 동작"
   ],
-  "next_step": "NEEDS_WORK → status 'developing'으로 롤백, retry_count 증가, /w-auto-fix 실행. requires_design_decision: true 항목(M6/M8/M15/M16)은 auto-fix 보류 후 수동 검토 권장"
+  "next_step": "NEEDS_WORK. 주요 수정 대상: PERF1/PC1(ZoomControlView 서브뷰 추출), PM1(ThumbnailCache async), PM2(fileExists body 이탈), PM3(CGImageSourceShouldCache), PM4(이미지 상위 로드), PM5(경로 single source of truth), PM6(Task 수명). /w-auto-fix 실행 권장 — A5 제시 리팩토링 가이드가 상세하므로 Phase 3 fix-worker에 컨텍스트 제공 가능."
 }

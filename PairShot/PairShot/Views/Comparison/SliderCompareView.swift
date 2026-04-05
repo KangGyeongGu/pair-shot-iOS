@@ -3,19 +3,22 @@ import SwiftUI
 struct SliderCompareView: View {
     let beforeURL: URL
     let afterURL: URL
+    var injectedBeforeImage: UIImage?
+    var injectedAfterImage: UIImage?
 
     @State private var beforeImage: UIImage?
     @State private var afterImage: UIImage?
-    @State private var sliderX: CGFloat = 0
+    @State private var sliderX: CGFloat?
     @State private var zoomScale: CGFloat = 1.0
     @State private var offset: CGSize = .zero
     @State private var lastScale: CGFloat = 1.0
     @State private var lastOffset: CGSize = .zero
-    /// Captures sliderX at the moment a handle drag begins
-    @GestureState private var handleDragStartX: CGFloat = 0
+    /// Captures sliderX at the moment a handle drag begins; nil means use current sliderX as base
+    @GestureState private var handleDragStartX: CGFloat?
 
     var body: some View {
         GeometryReader { geo in
+            let currentSliderX = sliderX ?? geo.size.width / 2
             ZStack {
                 imageView(afterImage)
                     .frame(width: geo.size.width, height: geo.size.height)
@@ -30,13 +33,13 @@ struct SliderCompareView: View {
                     .offset(offset)
                     .mask(alignment: .leading) {
                         Rectangle()
-                            .frame(width: sliderX)
+                            .frame(width: currentSliderX)
                     }
 
                 Rectangle()
                     .fill(.white)
                     .frame(width: 2)
-                    .position(x: sliderX, y: geo.size.height / 2)
+                    .position(x: currentSliderX, y: geo.size.height / 2)
 
                 // Enlarged hit area — only this controls sliderX
                 Color.clear
@@ -47,8 +50,8 @@ struct SliderCompareView: View {
                             .foregroundStyle(.white)
                             .background(.black.opacity(0.5), in: .circle)
                     )
-                    .position(x: sliderX, y: geo.size.height / 2)
-                    .gesture(handleDragGesture(viewWidth: geo.size.width))
+                    .position(x: currentSliderX, y: geo.size.height / 2)
+                    .gesture(handleDragGesture(viewWidth: geo.size.width, currentSliderX: currentSliderX))
             }
             .background(.black)
             .simultaneousGesture(magnifyGesture)
@@ -62,12 +65,16 @@ struct SliderCompareView: View {
                 }
             }
             .onAppear {
-                if sliderX == 0 {
+                if sliderX == nil {
                     sliderX = geo.size.width / 2
                 }
             }
         }
         .task(id: beforeURL) {
+            if let injected = injectedBeforeImage {
+                beforeImage = injected
+                return
+            }
             beforeImage = nil
             let cgImage = await Task.detached(priority: .userInitiated) {
                 ImageThumbnailLoader.load(url: beforeURL)
@@ -75,6 +82,10 @@ struct SliderCompareView: View {
             beforeImage = cgImage.map { UIImage(cgImage: $0) }
         }
         .task(id: afterURL) {
+            if let injected = injectedAfterImage {
+                afterImage = injected
+                return
+            }
             afterImage = nil
             let cgImage = await Task.detached(priority: .userInitiated) {
                 ImageThumbnailLoader.load(url: afterURL)
@@ -95,13 +106,13 @@ struct SliderCompareView: View {
         }
     }
 
-    private func handleDragGesture(viewWidth: CGFloat) -> some Gesture {
+    private func handleDragGesture(viewWidth: CGFloat, currentSliderX: CGFloat) -> some Gesture {
         DragGesture(minimumDistance: 0)
             .updating($handleDragStartX) { _, state, _ in
-                if state == 0 { state = sliderX }
+                if state == nil { state = currentSliderX }
             }
             .onChanged { value in
-                let base = handleDragStartX == 0 ? sliderX : handleDragStartX
+                let base = handleDragStartX ?? currentSliderX
                 let proposed = base + value.translation.width
                 sliderX = min(max(proposed, 0), viewWidth)
             }

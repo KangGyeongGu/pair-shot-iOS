@@ -1,4 +1,3 @@
-import SwiftData
 import SwiftUI
 
 struct UnifiedCameraView: View {
@@ -7,7 +6,6 @@ struct UnifiedCameraView: View {
     let sensorManager: SensorManager
 
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.modelContext) private var modelContext
     @State private var selectedMode: CaptureMode = .precision
     @State private var arManager = ARSessionManager()
     @State private var isSwitching = false
@@ -74,13 +72,6 @@ struct UnifiedCameraView: View {
                     .flatMap(CaptureMode.init(rawValue:)) ?? .precision
             }
         }
-        .onChange(of: existingPair?.status) { _, newStatus in
-            if newStatus == .complete, let pair = existingPair {
-                Task { @MainActor in
-                    await AIAnalysisCoordinator.analyze(pairID: pair.id, in: modelContext)
-                }
-            }
-        }
     }
 
     private var modeSwitcher: some View {
@@ -113,8 +104,9 @@ struct UnifiedCameraView: View {
         isSwitching = true
         selectedMode = mode
         UserDefaults.standard.set(mode.rawValue, forKey: "lastCaptureMode")
+        // TODO: ARSession/AVCaptureSession 실제 준비 완료 콜백으로 교체
         Task {
-            try? await Task.sleep(for: .milliseconds(800))
+            try? await Task.sleep(for: .milliseconds(400))
             isSwitching = false
         }
     }

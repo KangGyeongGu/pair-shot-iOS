@@ -3,6 +3,8 @@ import SwiftUI
 struct AnimationCompareView: View {
     let beforeURL: URL
     let afterURL: URL
+    var injectedBeforeImage: UIImage?
+    var injectedAfterImage: UIImage?
 
     @State private var beforeImage: UIImage?
     @State private var afterImage: UIImage?
@@ -13,14 +15,16 @@ struct AnimationCompareView: View {
             if let before = beforeImage {
                 Image(uiImage: before)
                     .resizable()
-                    .scaledToFit()
+                    .aspectRatio(contentMode: .fill)
+                    .clipped()
                     .opacity(showingAfter ? 0 : 1)
             }
 
             if let after = afterImage {
                 Image(uiImage: after)
                     .resizable()
-                    .scaledToFit()
+                    .aspectRatio(contentMode: .fill)
+                    .clipped()
                     .opacity(showingAfter ? 1 : 0)
             }
 
@@ -45,6 +49,10 @@ struct AnimationCompareView: View {
             }
         }
         .task(id: beforeURL) {
+            if let injected = injectedBeforeImage {
+                beforeImage = injected
+                return
+            }
             beforeImage = nil
             let cgImage = await Task.detached(priority: .userInitiated) {
                 ImageThumbnailLoader.load(url: beforeURL)
@@ -52,6 +60,10 @@ struct AnimationCompareView: View {
             beforeImage = cgImage.map { UIImage(cgImage: $0) }
         }
         .task(id: afterURL) {
+            if let injected = injectedAfterImage {
+                afterImage = injected
+                return
+            }
             afterImage = nil
             let cgImage = await Task.detached(priority: .userInitiated) {
                 ImageThumbnailLoader.load(url: afterURL)
