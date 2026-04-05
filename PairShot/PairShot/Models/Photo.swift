@@ -1,39 +1,31 @@
-//
-//  Photo.swift
-//  PairShot
-//
-//  Created by KKK on 3/31/26.
-//
-
 import Foundation
 import SwiftData
 
-/// 촬영된 단일 사진 및 센서 데이터
 @Model
 final class Photo {
     var id: UUID
-    /// Documents 기준 상대 경로 (예: projects/{project_id}/pairs/{pair_id}/before.jpg)
     var filePath: String
-    /// Documents 기준 상대 경로 (예: projects/{project_id}/thumbs/{pair_id}_before.jpg)
     var thumbnailPath: String
     var timestamp: Date
-
-    // MARK: - GPS
 
     var latitude: Double?
     var longitude: Double?
     var altitude: Double?
-
-    // MARK: - 방향/자세 (Core Motion)
 
     var heading: Double?
     var pitch: Double?
     var roll: Double?
     var yaw: Double?
 
-    // MARK: - 메모
-
     var notes: String?
+
+    var worldMapPath: String?
+    var arTransformData: Data?
+    var depthAtCenter: Double?
+    var relativeAltitude: Double?
+    var referenceImagePath: String?
+    var focalLength: Double?
+    var zoomFactor: Double?
 
     init(
         id: UUID = UUID(),
@@ -47,7 +39,14 @@ final class Photo {
         pitch: Double? = nil,
         roll: Double? = nil,
         yaw: Double? = nil,
-        notes: String? = nil
+        notes: String? = nil,
+        worldMapPath: String? = nil,
+        arTransformData: Data? = nil,
+        depthAtCenter: Double? = nil,
+        relativeAltitude: Double? = nil,
+        referenceImagePath: String? = nil,
+        focalLength: Double? = nil,
+        zoomFactor: Double? = nil
     ) {
         self.id = id
         self.filePath = filePath
@@ -61,5 +60,12 @@ final class Photo {
         self.roll = roll
         self.yaw = yaw
         self.notes = notes
+        self.worldMapPath = worldMapPath
+        self.arTransformData = arTransformData
+        self.depthAtCenter = depthAtCenter
+        self.relativeAltitude = relativeAltitude
+        self.referenceImagePath = referenceImagePath
+        self.focalLength = focalLength
+        self.zoomFactor = zoomFactor
     }
 }

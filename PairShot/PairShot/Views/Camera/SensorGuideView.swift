@@ -1,44 +1,76 @@
 import SwiftUI
 
+enum GuidanceStage {
+    case locating
+    case positioning
+    case aligning
+}
+
 struct SensorAlignment {
-    static let pitchTolerance: Double = 0.0349
+    static let pitchTolerance: Double = 0.0349 // ±2° in radians
     static let rollTolerance: Double = 0.0349
-    static let yawTolerance: Double = 0.0873
+    static let headingTolerance: Double = 5.0 // ±5° in degrees
+
+    static let positioningThresholdRad: Double = 0.1745 // ±10° in radians
+    static let positioningThresholdDeg: Double = 10.0 // ±10° in degrees
 
     private static let weightPitch: Double = 1.0
     private static let weightRoll: Double = 1.0
-    private static let weightYaw: Double = 0.5
+    private static let weightHeading: Double = 0.5
 
-    let deltaPitch: Double
-    let deltaRoll: Double
-    let deltaYaw: Double
+    let deltaPitch: Double // radians
+    let deltaRoll: Double // radians
+    let deltaHeading: Double // degrees, wraparound-corrected
 
     init(
         currentPitch: Double,
         currentRoll: Double,
-        currentYaw: Double,
+        currentHeading: Double,
         targetPitch: Double,
         targetRoll: Double,
-        targetYaw: Double
+        targetHeading: Double
     ) {
         deltaPitch = currentPitch - targetPitch
         deltaRoll = currentRoll - targetRoll
-        deltaYaw = currentYaw - targetYaw
+        var hDelta = currentHeading - targetHeading
+        if hDelta > 180 { hDelta -= 360 }
+        if hDelta < -180 { hDelta += 360 }
+        deltaHeading = hDelta
+    }
+
+    var stage: GuidanceStage {
+        if abs(deltaPitch) <= Self.pitchTolerance,
+           abs(deltaRoll) <= Self.rollTolerance,
+           abs(deltaHeading) <= Self.headingTolerance
+        {
+            .aligning
+        } else if abs(deltaPitch) <= Self.positioningThresholdRad,
+                  abs(deltaRoll) <= Self.positioningThresholdRad,
+                  abs(deltaHeading) <= Self.positioningThresholdDeg
+        {
+            .positioning
+        } else {
+            .locating
+        }
+    }
+
+    var isPositioning: Bool {
+        stage == .positioning || stage == .aligning
     }
 
     var isAligned: Bool {
         abs(deltaPitch) <= Self.pitchTolerance &&
             abs(deltaRoll) <= Self.rollTolerance &&
-            abs(deltaYaw) <= Self.yawTolerance
+            abs(deltaHeading) <= Self.headingTolerance
     }
 
     var alignmentScore: Double {
         let dp = deltaPitch / Self.pitchTolerance
         let dr = deltaRoll / Self.rollTolerance
-        let dy = deltaYaw / Self.yawTolerance
+        let dh = deltaHeading / Self.headingTolerance
         let weighted = Self.weightPitch * dp * dp +
             Self.weightRoll * dr * dr +
-            Self.weightYaw * dy * dy
+            Self.weightHeading * dh * dh
         return max(0.0, 1.0 - sqrt(weighted))
     }
 }
@@ -46,25 +78,28 @@ struct SensorAlignment {
 struct SensorGuideView: View {
     let currentPitch: Double
     let currentRoll: Double
-    let currentYaw: Double
+    let currentHeading: Double
     let targetPitch: Double
     let targetRoll: Double
-    let targetYaw: Double
+    let targetHeading: Double
 
     private enum Constants {
-        static let outerRadius: CGFloat = 44
-        static let scale: CGFloat = 200
-        static let dotRadius: CGFloat = 7
+        static let totalSize: CGFloat = 120
+        static let sphereRadius: CGFloat = 34
+        static let ringRadiusX: CGFloat = 54
+        static let ringRadiusY: CGFloat = 14
+        static let gridLines: Int = 5
+        static let markerRadius: CGFloat = 5
     }
 
     private var alignment: SensorAlignment {
         SensorAlignment(
             currentPitch: currentPitch,
             currentRoll: currentRoll,
-            currentYaw: currentYaw,
+            currentHeading: currentHeading,
             targetPitch: targetPitch,
             targetRoll: targetRoll,
-            targetYaw: targetYaw
+            targetHeading: targetHeading
         )
     }
 
@@ -76,8 +111,8 @@ struct SensorGuideView: View {
         alignment.deltaRoll
     }
 
-    var deltaYaw: Double {
-        alignment.deltaYaw
+    var deltaHeading: Double {
+        alignment.deltaHeading
     }
 
     var isAligned: Bool {
@@ -88,116 +123,129 @@ struct SensorGuideView: View {
         alignment.alignmentScore
     }
 
-    private var indicatorColor: Color {
-        isAligned ? .green : .red
+    private var guideColor: Color {
+        alignment.stage == .aligning ? .green : .red
     }
 
-    private var dotOffset: CGSize {
-        let clampedX = max(-Constants.outerRadius, min(
-            Constants.outerRadius,
-            CGFloat(deltaRoll) * Constants.scale
-        ))
-        let clampedY = max(-Constants.outerRadius, min(
-            Constants.outerRadius,
-            CGFloat(-deltaPitch) * Constants.scale
-        ))
-        return CGSize(width: clampedX, height: clampedY)
+    private var pitchFraction: CGFloat {
+        CGFloat(max(-1.0, min(1.0, deltaPitch / (.pi / 4))))
+    }
+
+    private var rollFraction: CGFloat {
+        CGFloat(max(-1.0, min(1.0, deltaRoll / (.pi / 4))))
+    }
+
+    private var headingAngle: Double {
+        max(-.pi, min(.pi, deltaHeading * .pi / 180.0))
     }
 
     var body: some View {
         ZStack {
             Canvas { context, size in
                 let center = CGPoint(x: size.width / 2, y: size.height / 2)
-                let outerRadius = Constants.outerRadius
-
-                let outerCircle = Path(ellipseIn: CGRect(
-                    x: center.x - outerRadius,
-                    y: center.y - outerRadius,
-                    width: outerRadius * 2,
-                    height: outerRadius * 2
-                ))
-                context.stroke(
-                    outerCircle,
-                    with: .color(indicatorColor.opacity(0.7)),
-                    lineWidth: 1.5
-                )
-
-                let yawDelta = deltaYaw
-                if abs(yawDelta) > 0.01 {
-                    let arcRadius = outerRadius + 10
-                    let sweepAngle = min(abs(yawDelta) / SensorAlignment.yawTolerance, 1.0) * .pi / 2
-                    let startAngle = Angle(radians: -.pi / 2)
-                    let endAngle = yawDelta > 0
-                        ? Angle(radians: -.pi / 2 + sweepAngle)
-                        : Angle(radians: -.pi / 2 - sweepAngle)
-                    var arcPath = Path()
-                    arcPath.addArc(
-                        center: center,
-                        radius: arcRadius,
-                        startAngle: startAngle,
-                        endAngle: endAngle,
-                        clockwise: yawDelta < 0
-                    )
-                    context.stroke(
-                        arcPath,
-                        with: .color(indicatorColor.opacity(0.8)),
-                        style: StrokeStyle(lineWidth: 2.5, lineCap: .round)
-                    )
-
-                    let arrowAngle = endAngle.radians
-                    let arrowTip = CGPoint(
-                        x: center.x + arcRadius * cos(arrowAngle),
-                        y: center.y + arcRadius * sin(arrowAngle)
-                    )
-                    let tangentSign: Double = yawDelta > 0 ? 1.0 : -1.0
-                    let tangent = CGPoint(
-                        x: -sin(arrowAngle) * tangentSign,
-                        y: cos(arrowAngle) * tangentSign
-                    )
-                    let arrowLen: CGFloat = 6
-                    let perp = CGPoint(x: -tangent.y, y: tangent.x)
-                    let p1 = CGPoint(
-                        x: arrowTip.x - tangent.x * arrowLen + perp.x * arrowLen * 0.5,
-                        y: arrowTip.y - tangent.y * arrowLen + perp.y * arrowLen * 0.5
-                    )
-                    let p2 = CGPoint(
-                        x: arrowTip.x - tangent.x * arrowLen - perp.x * arrowLen * 0.5,
-                        y: arrowTip.y - tangent.y * arrowLen - perp.y * arrowLen * 0.5
-                    )
-                    var arrowPath = Path()
-                    arrowPath.move(to: p1)
-                    arrowPath.addLine(to: arrowTip)
-                    arrowPath.addLine(to: p2)
-                    context.stroke(
-                        arrowPath,
-                        with: .color(indicatorColor.opacity(0.8)),
-                        style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round)
-                    )
-                }
-
-                let crossLen: CGFloat = 6
-                var crossPath = Path()
-                crossPath.move(to: CGPoint(x: center.x - crossLen, y: center.y))
-                crossPath.addLine(to: CGPoint(x: center.x + crossLen, y: center.y))
-                crossPath.move(to: CGPoint(x: center.x, y: center.y - crossLen))
-                crossPath.addLine(to: CGPoint(x: center.x, y: center.y + crossLen))
-                context.stroke(
-                    crossPath,
-                    with: .color(.white.opacity(0.4)),
-                    lineWidth: 1
-                )
+                drawYawRing(context: context, center: center)
+                drawSphere(context: context, center: center)
             }
-            .frame(
-                width: (Constants.outerRadius + 20) * 2,
-                height: (Constants.outerRadius + 20) * 2
-            )
-
-            Circle()
-                .fill(indicatorColor)
-                .frame(width: Constants.dotRadius * 2, height: Constants.dotRadius * 2)
-                .offset(dotOffset)
-                .animation(.interactiveSpring(response: 0.1, dampingFraction: 0.8), value: dotOffset)
+            .frame(width: Constants.totalSize, height: Constants.totalSize)
         }
+        .animation(.interactiveSpring(response: 0.1, dampingFraction: 0.8), value: deltaPitch)
+        .animation(.interactiveSpring(response: 0.1, dampingFraction: 0.8), value: deltaRoll)
+        .animation(.interactiveSpring(response: 0.1, dampingFraction: 0.8), value: deltaHeading)
+    }
+
+    private func drawSphere(context: GraphicsContext, center: CGPoint) {
+        let radius = Constants.sphereRadius
+        // 기울기 방향으로 구체 중심 이동 (roll → X축, pitch → Y축)
+        let shiftX = rollFraction * radius * 0.5
+        let shiftY = pitchFraction * radius * 0.5
+        let sphereCenter = CGPoint(x: center.x + shiftX, y: center.y + shiftY)
+
+        // 구체 외곽선
+        let outline = Path(ellipseIn: CGRect(
+            x: sphereCenter.x - radius,
+            y: sphereCenter.y - radius,
+            width: radius * 2,
+            height: radius * 2
+        ))
+        context.stroke(outline, with: .color(guideColor.opacity(0.85)), lineWidth: 1.5)
+
+        // 위도선 (수평 타원): 기울기에 따라 압축
+        let latCount = Constants.gridLines
+        for idx in 1 ..< latCount {
+            let fraction = CGFloat(idx) / CGFloat(latCount) // 0~1 (극점 제외)
+            let normalized = fraction * 2 - 1 // -1 ~ 1
+            // pitch 기울기에 따라 위도선 간격 왜곡
+            let yOffset = normalized * radius * (1.0 - abs(pitchFraction) * 0.3)
+            let latY = sphereCenter.y + yOffset
+            guard abs(latY - sphereCenter.y) < radius else { continue }
+            let halfW = sqrt(max(0, radius * radius - yOffset * yOffset))
+            // roll이 있으면 타원 높이 압축
+            let ellipseH = halfW * 0.35 * (1.0 - abs(rollFraction) * 0.5)
+            let latPath = Path(ellipseIn: CGRect(
+                x: sphereCenter.x - halfW,
+                y: latY - ellipseH,
+                width: halfW * 2,
+                height: ellipseH * 2
+            ))
+            context.stroke(latPath, with: .color(guideColor.opacity(0.25)), lineWidth: 0.8)
+        }
+
+        // 경도선 (수직 타원): 기울기에 따라 압축
+        let lonCount = Constants.gridLines
+        for idx in 1 ..< lonCount {
+            let fraction = CGFloat(idx) / CGFloat(lonCount)
+            let normalized = fraction * 2 - 1 // -1 ~ 1
+            let xOffset = normalized * radius * (1.0 - abs(rollFraction) * 0.3)
+            let lonX = sphereCenter.x + xOffset
+            guard abs(lonX - sphereCenter.x) < radius else { continue }
+            let halfH = sqrt(max(0, radius * radius - xOffset * xOffset))
+            let ellipseW = halfH * 0.35 * (1.0 - abs(pitchFraction) * 0.5)
+            let lonPath = Path(ellipseIn: CGRect(
+                x: lonX - ellipseW,
+                y: sphereCenter.y - halfH,
+                width: ellipseW * 2,
+                height: halfH * 2
+            ))
+            context.stroke(lonPath, with: .color(guideColor.opacity(0.25)), lineWidth: 0.8)
+        }
+
+        // 중심 십자선
+        let crossLen: CGFloat = 5
+        var crossPath = Path()
+        crossPath.move(to: CGPoint(x: sphereCenter.x - crossLen, y: sphereCenter.y))
+        crossPath.addLine(to: CGPoint(x: sphereCenter.x + crossLen, y: sphereCenter.y))
+        crossPath.move(to: CGPoint(x: sphereCenter.x, y: sphereCenter.y - crossLen))
+        crossPath.addLine(to: CGPoint(x: sphereCenter.x, y: sphereCenter.y + crossLen))
+        context.stroke(crossPath, with: .color(.white.opacity(0.5)), lineWidth: 1)
+    }
+
+    private func drawYawRing(context: GraphicsContext, center: CGPoint) {
+        let ringRX = Constants.ringRadiusX
+        let ringRY = Constants.ringRadiusY
+
+        // 링 타원 (3D 원반처럼 보이도록 수평으로 납작)
+        let ringPath = Path(ellipseIn: CGRect(
+            x: center.x - ringRX,
+            y: center.y - ringRY,
+            width: ringRX * 2,
+            height: ringRY * 2
+        ))
+        context.stroke(ringPath, with: .color(guideColor.opacity(0.4)), lineWidth: 1.2)
+
+        // yaw 각도로 마커 위치 계산 (정렬 시 12시 방향)
+        let angle = headingAngle - .pi / 2
+        let markerX = center.x + ringRX * cos(angle)
+        let markerY = center.y + ringRY * sin(angle)
+        let markerR = Constants.markerRadius
+
+        let markerPath = Path(ellipseIn: CGRect(
+            x: markerX - markerR,
+            y: markerY - markerR,
+            width: markerR * 2,
+            height: markerR * 2
+        ))
+        context.fill(markerPath, with: .color(guideColor))
+        context.stroke(markerPath, with: .color(.white.opacity(0.6)), lineWidth: 1)
     }
 }
 
@@ -207,10 +255,10 @@ struct SensorGuideView: View {
         SensorGuideView(
             currentPitch: 0.02,
             currentRoll: 0.03,
-            currentYaw: 0.05,
+            currentHeading: 95.0,
             targetPitch: 0.0,
             targetRoll: 0.0,
-            targetYaw: 0.0
+            targetHeading: 90.0
         )
     }
 }

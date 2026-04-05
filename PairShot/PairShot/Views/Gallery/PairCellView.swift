@@ -5,13 +5,14 @@ struct PairCellView: View {
     let projectId: UUID
     var onTapAfter: ((PhotoPair) -> Void)?
 
-    private let storage = PhotoStorageService()
+    @State private var beforeThumb: UIImage?
+    @State private var afterThumb: UIImage?
 
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 2) {
-                thumbnailSlot(isBefore: true)
-                thumbnailSlot(isBefore: false)
+                thumbnailSlot(image: beforeThumb, isBefore: true)
+                thumbnailSlot(image: afterThumb, isBefore: false)
             }
             .clipShape(RoundedRectangle(cornerRadius: 10))
             .overlay(
@@ -21,6 +22,19 @@ struct PairCellView: View {
                         lineWidth: 2
                     )
             )
+            .overlay(alignment: .topLeading) {
+                HStack(spacing: 3) {
+                    Image(systemName: pair.captureMode.iconName)
+                        .font(.system(size: 9, weight: .bold))
+                    Text(pair.captureMode.label)
+                        .font(.system(size: 9, weight: .semibold))
+                }
+                .foregroundStyle(.white)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 3)
+                .background(.black.opacity(0.6), in: Capsule())
+                .padding(6)
+            }
 
             if pair.status == .pendingAfter {
                 HStack(spacing: 4) {
@@ -40,11 +54,15 @@ struct PairCellView: View {
                 onTapAfter?(pair)
             }
         }
+        .task(id: pair.beforePhoto?.thumbnailPath) {
+            beforeThumb = await loadThumbnailAsync(isBefore: true)
+        }
+        .task(id: pair.afterPhoto?.thumbnailPath) {
+            afterThumb = await loadThumbnailAsync(isBefore: false)
+        }
     }
 
-    @ViewBuilder
-    private func thumbnailSlot(isBefore: Bool) -> some View {
-        let image = loadThumbnail(isBefore: isBefore)
+    private func thumbnailSlot(image: UIImage?, isBefore: Bool) -> some View {
         Group {
             if let image {
                 Image(uiImage: image)
@@ -55,7 +73,7 @@ struct PairCellView: View {
                     Color(.systemGray5)
                     if !isBefore {
                         VStack(spacing: 4) {
-                            Image(systemName: "camera.badge.plus")
+                            Image(systemName: "camera.fill")
                                 .font(.system(size: 20, weight: .light))
                                 .foregroundStyle(.secondary)
                             Text("After")
@@ -75,7 +93,8 @@ struct PairCellView: View {
         .clipped()
     }
 
-    private func loadThumbnail(isBefore: Bool) -> UIImage? {
+    private func loadThumbnailAsync(isBefore: Bool) async -> UIImage? {
+        let storage = PhotoStorageService()
         guard let url = try? storage.thumbnailURL(
             projectId: projectId,
             pairId: pair.id,

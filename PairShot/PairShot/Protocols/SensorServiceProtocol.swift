@@ -8,6 +8,7 @@ struct SensorSnapshot {
     let latitude: Double?
     let longitude: Double?
     let altitude: Double?
+    let relativeAltitude: Double?
     let timestamp: Date
 }
 

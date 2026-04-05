@@ -52,6 +52,7 @@ final class SensorManager: NSObject, SensorServiceProtocol {
             latitude: currentLocation?.latitude,
             longitude: currentLocation?.longitude,
             altitude: currentAltitude,
+            relativeAltitude: nil,
             timestamp: Date()
         )
     }

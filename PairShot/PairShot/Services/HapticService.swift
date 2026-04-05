@@ -40,11 +40,11 @@ final class HapticService {
             try engine.start()
             let intensity = CHHapticEventParameter(
                 parameterID: .hapticIntensity,
-                value: 1.0
+                value: 0.3
             )
             let sharpness = CHHapticEventParameter(
                 parameterID: .hapticSharpness,
-                value: 0.5
+                value: 0.2
             )
             let event = CHHapticEvent(
                 eventType: .hapticContinuous,
@@ -63,7 +63,7 @@ final class HapticService {
     }
 
     static func clampedIntensity(_ score: Double) -> Float {
-        Float(max(0.0, min(score, 1.0)))
+        Float(max(0.0, min(1.0 - score, 1.0)))
     }
 
     func updateIntensity(alignmentScore: Double) {

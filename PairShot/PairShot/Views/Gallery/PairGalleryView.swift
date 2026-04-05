@@ -9,6 +9,7 @@ struct PairGalleryView: View {
     @State private var pairsToDelete: [PhotoPair] = []
     @State private var showDeleteConfirm = false
     @State private var cameraDestination: GalleryCameraDestination?
+    @State private var sensorManager = SensorManager()
 
     private let storage = PhotoStorageService()
     private let columns = [GridItem(.flexible()), GridItem(.flexible())]
@@ -63,6 +64,8 @@ struct PairGalleryView: View {
         }
         .navigationTitle(project.title)
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear { sensorManager.startUpdates() }
+        .onDisappear { sensorManager.stopUpdates() }
         .confirmationDialog("페어를 삭제하시겠습니까?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
             Button("삭제", role: .destructive) {
                 deletePairs(pairsToDelete)
@@ -75,9 +78,9 @@ struct PairGalleryView: View {
         .fullScreenCover(item: $cameraDestination) { destination in
             switch destination {
                 case .before:
-                    CameraView(project: project)
+                    UnifiedCameraView(project: project, sensorManager: sensorManager)
                 case let .after(pair):
-                    CameraView(project: project, existingPair: pair)
+                    UnifiedCameraView(project: project, existingPair: pair, sensorManager: sensorManager)
             }
         }
     }
