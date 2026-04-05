@@ -46,11 +46,17 @@ struct AnimationCompareView: View {
         }
         .task(id: beforeURL) {
             beforeImage = nil
-            beforeImage = await ImageThumbnailLoader.loadUIImage(url: beforeURL)
+            let cgImage = await Task.detached(priority: .userInitiated) {
+                ImageThumbnailLoader.load(url: beforeURL)
+            }.value
+            beforeImage = cgImage.map { UIImage(cgImage: $0) }
         }
         .task(id: afterURL) {
             afterImage = nil
-            afterImage = await ImageThumbnailLoader.loadUIImage(url: afterURL)
+            let cgImage = await Task.detached(priority: .userInitiated) {
+                ImageThumbnailLoader.load(url: afterURL)
+            }.value
+            afterImage = cgImage.map { UIImage(cgImage: $0) }
         }
     }
 }

@@ -6,6 +6,8 @@ import ImageIO
 import Vision
 
 nonisolated enum AlignmentService {
+    private static let deviceRGBColorSpace = CGColorSpaceCreateDeviceRGB()
+
     enum AlignmentError: Error {
         case loadFailed
         case visionFailed
@@ -99,7 +101,7 @@ nonisolated enum AlignmentService {
             height: height,
             bitsPerComponent: 8,
             bytesPerRow: 0,
-            space: CGColorSpaceCreateDeviceRGB(),
+            space: deviceRGBColorSpace,
             bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue
         ) else { return nil }
         context.draw(image, in: CGRect(origin: .zero, size: size))

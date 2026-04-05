@@ -11,6 +11,8 @@ struct SliderCompareView: View {
     @State private var offset: CGSize = .zero
     @State private var lastScale: CGFloat = 1.0
     @State private var lastOffset: CGSize = .zero
+    /// Captures sliderX at the moment a handle drag begins
+    @GestureState private var handleDragStartX: CGFloat = 0
 
     var body: some View {
         GeometryReader { geo in
@@ -36,30 +38,29 @@ struct SliderCompareView: View {
                     .frame(width: 2)
                     .position(x: sliderX, y: geo.size.height / 2)
 
-                Image(systemName: "arrow.left.and.right.circle.fill")
-                    .font(.title)
-                    .foregroundStyle(.white)
-                    .background(.black.opacity(0.5), in: .circle)
+                // Enlarged hit area — only this controls sliderX
+                Color.clear
+                    .frame(width: 44, height: 88)
+                    .overlay(
+                        Image(systemName: "arrow.left.and.right.circle.fill")
+                            .font(.title)
+                            .foregroundStyle(.white)
+                            .background(.black.opacity(0.5), in: .circle)
+                    )
                     .position(x: sliderX, y: geo.size.height / 2)
+                    .gesture(handleDragGesture(viewWidth: geo.size.width))
             }
             .background(.black)
-            .gesture(
-                SimultaneousGesture(
-                    DragGesture(minimumDistance: 0)
-                        .onChanged { value in
-                            sliderX = min(max(value.location.x, 0), geo.size.width)
-                        },
-                    MagnifyGesture()
-                        .onChanged { value in
-                            let newScale = lastScale * value.magnification
-                            zoomScale = min(max(newScale, 1.0), 4.0)
-                        }
-                        .onEnded { value in
-                            lastScale = min(max(lastScale * value.magnification, 1.0), 4.0)
-                            zoomScale = lastScale
-                        }
-                )
-            )
+            .simultaneousGesture(magnifyGesture)
+            .simultaneousGesture(panGesture(viewSize: geo.size))
+            .onTapGesture(count: 2) {
+                withAnimation {
+                    zoomScale = 1.0
+                    lastScale = 1.0
+                    offset = .zero
+                    lastOffset = .zero
+                }
+            }
             .onAppear {
                 if sliderX == 0 {
                     sliderX = geo.size.width / 2
@@ -68,11 +69,17 @@ struct SliderCompareView: View {
         }
         .task(id: beforeURL) {
             beforeImage = nil
-            beforeImage = await ImageThumbnailLoader.loadUIImage(url: beforeURL)
+            let cgImage = await Task.detached(priority: .userInitiated) {
+                ImageThumbnailLoader.load(url: beforeURL)
+            }.value
+            beforeImage = cgImage.map { UIImage(cgImage: $0) }
         }
         .task(id: afterURL) {
             afterImage = nil
-            afterImage = await ImageThumbnailLoader.loadUIImage(url: afterURL)
+            let cgImage = await Task.detached(priority: .userInitiated) {
+                ImageThumbnailLoader.load(url: afterURL)
+            }.value
+            afterImage = cgImage.map { UIImage(cgImage: $0) }
         }
     }
 
@@ -86,5 +93,47 @@ struct SliderCompareView: View {
             ProgressView()
                 .tint(.white)
         }
+    }
+
+    private func handleDragGesture(viewWidth: CGFloat) -> some Gesture {
+        DragGesture(minimumDistance: 0)
+            .updating($handleDragStartX) { _, state, _ in
+                if state == 0 { state = sliderX }
+            }
+            .onChanged { value in
+                let base = handleDragStartX == 0 ? sliderX : handleDragStartX
+                let proposed = base + value.translation.width
+                sliderX = min(max(proposed, 0), viewWidth)
+            }
+    }
+
+    private var magnifyGesture: some Gesture {
+        MagnifyGesture()
+            .onChanged { value in
+                let newScale = lastScale * value.magnification
+                zoomScale = min(max(newScale, 1.0), 4.0)
+            }
+            .onEnded { value in
+                lastScale = min(max(lastScale * value.magnification, 1.0), 4.0)
+                zoomScale = lastScale
+            }
+    }
+
+    private func panGesture(viewSize: CGSize) -> some Gesture {
+        DragGesture(minimumDistance: 10)
+            .onChanged { value in
+                guard zoomScale > 1.0 else { return }
+                let maxOffsetX = viewSize.width * (zoomScale - 1) / 2
+                let maxOffsetY = viewSize.height * (zoomScale - 1) / 2
+                let newX = lastOffset.width + value.translation.width
+                let newY = lastOffset.height + value.translation.height
+                offset = CGSize(
+                    width: min(max(newX, -maxOffsetX), maxOffsetX),
+                    height: min(max(newY, -maxOffsetY), maxOffsetY)
+                )
+            }
+            .onEnded { _ in
+                lastOffset = offset
+            }
     }
 }

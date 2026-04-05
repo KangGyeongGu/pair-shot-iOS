@@ -3,6 +3,8 @@ import CoreImage.CIFilterBuiltins
 import Foundation
 
 nonisolated enum HeatmapService {
+    private static let deviceRGBColorSpace = CGColorSpaceCreateDeviceRGB()
+
     enum HeatmapError: Error { case loadFailed, filterFailed }
 
     struct HeatmapResult {
@@ -101,7 +103,7 @@ nonisolated enum HeatmapService {
             rowBytes: 4,
             bounds: renderRect,
             format: .RGBA8,
-            colorSpace: CGColorSpaceCreateDeviceRGB()
+            colorSpace: deviceRGBColorSpace
         )
 
         // 이진 마스크 평균 = 임계 초과 픽셀 비율

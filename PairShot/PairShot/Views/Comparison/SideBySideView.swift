@@ -19,20 +19,20 @@ struct SideBySideView: View {
                 imagePanel(image: beforeImage, size: geo.size)
                     // M8: task id encodes both url and resolution tier so reload fires on tier change
                     .task(id: "\(beforeURL)|\(currentMaxPixelSize)") {
-                        let loaded = await ImageThumbnailLoader.loadUIImage(
-                            url: beforeURL,
-                            maxPixelSize: currentMaxPixelSize
-                        )
-                        if let loaded { beforeImage = loaded }
+                        let pixelSize = currentMaxPixelSize
+                        let cgImage = await Task.detached(priority: .userInitiated) {
+                            ImageThumbnailLoader.load(url: beforeURL, maxPixelSize: pixelSize)
+                        }.value
+                        if let cgImage { beforeImage = UIImage(cgImage: cgImage) }
                     }
 
                 imagePanel(image: afterImage, size: geo.size)
                     .task(id: "\(afterURL)|\(currentMaxPixelSize)") {
-                        let loaded = await ImageThumbnailLoader.loadUIImage(
-                            url: afterURL,
-                            maxPixelSize: currentMaxPixelSize
-                        )
-                        if let loaded { afterImage = loaded }
+                        let pixelSize = currentMaxPixelSize
+                        let cgImage = await Task.detached(priority: .userInitiated) {
+                            ImageThumbnailLoader.load(url: afterURL, maxPixelSize: pixelSize)
+                        }.value
+                        if let cgImage { afterImage = UIImage(cgImage: cgImage) }
                     }
             }
             .background(.black)
@@ -44,19 +44,25 @@ struct SideBySideView: View {
                     offset = .zero
                     lastScale = 1.0
                     lastOffset = .zero
+                    currentMaxPixelSize = 1600
                 }
             }
-            // M8: promote/demote resolution tier based on zoom level
+            // Hysteresis: upgrade threshold > downgrade threshold to prevent tier flapping
             .onChange(of: zoomScale) { _, newScale in
-                let tier = if newScale > 3.0 {
-                    4800
-                } else if newScale > 2.0 {
-                    3200
+                let target: Int
+                if newScale >= 3.0 {
+                    target = 4800
+                } else if newScale <= 2.5, currentMaxPixelSize == 4800 {
+                    target = 3200
+                } else if newScale >= 2.0 {
+                    target = max(currentMaxPixelSize, 3200)
+                } else if newScale <= 1.5, currentMaxPixelSize > 1600 {
+                    target = 1600
                 } else {
-                    1600
+                    return
                 }
-                if tier != currentMaxPixelSize {
-                    currentMaxPixelSize = tier
+                if target != currentMaxPixelSize {
+                    currentMaxPixelSize = target
                 }
             }
         }

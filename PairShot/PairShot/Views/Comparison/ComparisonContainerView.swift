@@ -40,10 +40,13 @@ struct ComparisonContainerView: View {
     }
 
     private var alignedBeforeURL: URL? {
-        guard let projectId = pair.project?.id,
-              pair.alignedBeforeImagePath != nil
-        else { return beforeURL }
-        return try? storage.alignedPhotoURL(projectId: projectId, pairId: pair.id)
+        guard let path = pair.alignedBeforeImagePath, !path.isEmpty else { return beforeURL }
+        guard let projectId = pair.project?.id else { return beforeURL }
+        guard let url = try? storage.alignedPhotoURL(projectId: projectId, pairId: pair.id) else { return beforeURL }
+        if FileManager.default.fileExists(atPath: url.path) {
+            return url
+        }
+        return beforeURL
     }
 
     var body: some View {
@@ -83,11 +86,11 @@ struct ComparisonContainerView: View {
             .ignoresSafeArea(edges: .bottom)
         }
         .task(id: pair.id) {
-            if pair.status == .complete, pair.alignedBeforeImagePath == nil {
-                AIAnalysisCoordinator.analyze(
-                    pairID: pair.id,
-                    modelContainer: modelContext.container
-                )
+            if pair.status == .complete,
+               pair.alignedBeforeImagePath == nil || pair.matchingScore == nil || pair
+               .colorCorrectedBeforeImagePath == nil
+            {
+                await AIAnalysisCoordinator.analyze(pairID: pair.id, in: modelContext)
             }
         }
     }

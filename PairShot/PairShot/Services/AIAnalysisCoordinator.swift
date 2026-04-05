@@ -2,101 +2,96 @@ import Foundation
 import OSLog
 import SwiftData
 
-nonisolated enum AIAnalysisCoordinator {
-    private static let logger = Logger(subsystem: "com.pairshot", category: "AIAnalysis")
+@MainActor
+enum AIAnalysisCoordinator {
+    private nonisolated static let logger = Logger(subsystem: "com.pairshot", category: "AIAnalysis")
+    private static var inFlight: Set<UUID> = []
 
-    static func analyze(pairID: UUID, modelContainer: ModelContainer) {
-        Task.detached(priority: .userInitiated) {
-            await runAnalysis(pairID: pairID, modelContainer: modelContainer)
+    static func analyze(pairID: UUID, in modelContext: ModelContext) async {
+        guard !inFlight.contains(pairID) else {
+            logger.info("already in flight: \(pairID)")
+            return
         }
-    }
+        inFlight.insert(pairID)
+        defer { inFlight.remove(pairID) }
 
-    private static func runAnalysis(pairID: UUID, modelContainer: ModelContainer) async {
-        let context = ModelContext(modelContainer)
         let descriptor = FetchDescriptor<PhotoPair>(predicate: #Predicate { $0.id == pairID })
-        guard let pair = try? context.fetch(descriptor).first,
-              let projectID = pair.project?.id,
-              let urls = makeURLs(projectID: projectID, pairID: pairID)
+        guard let pair = try? modelContext.fetch(descriptor).first,
+              let projectID = pair.project?.id
         else { return }
 
         let needsAlign = pair.alignedBeforeImagePath == nil
         let needsScore = pair.matchingScore == nil
         let needsCorrected = pair.colorCorrectedBeforeImagePath == nil
-
         guard needsAlign || needsScore || needsCorrected else { return }
 
-        async let aligned = runAlignment(urls: urls, needed: needsAlign)
-        async let score = runMatchingScore(urls: urls, needed: needsScore)
-        async let corrected = runColorCorrection(urls: urls, needed: needsCorrected)
+        let storage = PhotoStorageService()
+        guard
+            let beforeURL = try? storage.photoURL(projectId: projectID, pairId: pairID, isBefore: true),
+            let afterURL = try? storage.photoURL(projectId: projectID, pairId: pairID, isBefore: false),
+            let alignedURL = try? storage.alignedPhotoURL(projectId: projectID, pairId: pairID),
+            let correctedURL = try? storage.colorCorrectedPhotoURL(projectId: projectID, pairId: pairID)
+        else {
+            logger.error("URL 생성 실패")
+            return
+        }
 
-        let (alignedResult, scoreResult, correctedResult) = await (aligned, score, corrected)
+        async let alignedResult: URL? = needsAlign
+            ? Self.runAlign(beforeURL: beforeURL, afterURL: afterURL, outputURL: alignedURL)
+            : nil
+        async let distanceResult: Float? = needsScore
+            ? Self.runScore(beforeURL: beforeURL, afterURL: afterURL)
+            : nil
+        async let correctedResult: URL? = needsCorrected
+            ? Self.runCorrect(beforeURL: beforeURL, afterURL: afterURL, outputURL: correctedURL)
+            : nil
 
-        let refetch = FetchDescriptor<PhotoPair>(predicate: #Predicate { $0.id == pairID })
-        guard let fetched = try? context.fetch(refetch).first else { return }
-        if let alignedResult { fetched.alignedBeforeImagePath = alignedResult.path }
-        if let scoreResult { fetched.matchingScore = scoreResult }
-        if let correctedResult { fetched.colorCorrectedBeforeImagePath = correctedResult.path }
-        try? context.save()
+        let (aligned, distance, corrected) = await (alignedResult, distanceResult, correctedResult)
+
+        if needsAlign, let aligned {
+            pair.alignedBeforeImagePath = "projects/\(projectID.uuidString)/pairs/\(pairID.uuidString)/\(aligned.lastPathComponent)"
+        }
+        if needsScore, let distance {
+            pair.matchingScore = distance
+        }
+        if needsCorrected, let corrected {
+            pair.colorCorrectedBeforeImagePath = "projects/\(projectID.uuidString)/pairs/\(pairID.uuidString)/\(corrected.lastPathComponent)"
+        }
+        do {
+            try modelContext.save()
+        } catch {
+            logger.error("save failed: \(error)")
+        }
     }
 
-    private static func runAlignment(urls: PairURLs, needed: Bool) async -> URL? {
-        guard needed else { return nil }
+    private nonisolated static func runAlign(beforeURL: URL, afterURL: URL, outputURL: URL) async -> URL? {
         do {
-            return try await AlignmentService.align(
-                beforeURL: urls.before,
-                afterURL: urls.after,
-                outputURL: urls.aligned
-            )
+            return try await AlignmentService.align(beforeURL: beforeURL, afterURL: afterURL, outputURL: outputURL)
         } catch {
-            logger.error("AlignmentService failed: \(error)")
+            logger.error("align failed: \(error)")
             return nil
         }
     }
 
-    private static func runMatchingScore(urls: PairURLs, needed: Bool) async -> Float? {
-        guard needed else { return nil }
+    private nonisolated static func runScore(beforeURL: URL, afterURL: URL) async -> Float? {
         do {
-            return try await MatchingScoreService.computeDistance(
-                beforeURL: urls.before,
-                afterURL: urls.after
-            )
+            return try await MatchingScoreService.computeDistance(beforeURL: beforeURL, afterURL: afterURL)
         } catch {
-            logger.error("MatchingScoreService failed: \(error)")
+            logger.error("score failed: \(error)")
             return nil
         }
     }
 
-    private static func runColorCorrection(urls: PairURLs, needed: Bool) async -> URL? {
-        guard needed else { return nil }
+    private nonisolated static func runCorrect(beforeURL: URL, afterURL: URL, outputURL: URL) async -> URL? {
         do {
             return try await ColorCorrectionService.correct(
-                beforeURL: urls.before,
-                referenceAfterURL: urls.after,
-                outputURL: urls.corrected
+                beforeURL: beforeURL,
+                referenceAfterURL: afterURL,
+                outputURL: outputURL
             )
         } catch {
-            logger.error("ColorCorrectionService failed: \(error)")
+            logger.error("correct failed: \(error)")
             return nil
         }
-    }
-
-    private struct PairURLs {
-        let before: URL
-        let after: URL
-        let aligned: URL
-        let corrected: URL
-    }
-
-    private static func makeURLs(projectID: UUID, pairID: UUID) -> PairURLs? {
-        guard let docsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
-        else { return nil }
-        let pairDir = docsURL
-            .appendingPathComponent("projects/\(projectID.uuidString)/pairs/\(pairID.uuidString)")
-        return PairURLs(
-            before: pairDir.appendingPathComponent("before.jpg"),
-            after: pairDir.appendingPathComponent("after.jpg"),
-            aligned: pairDir.appendingPathComponent("aligned_before.jpg"),
-            corrected: pairDir.appendingPathComponent("corrected_before.jpg")
-        )
     }
 }

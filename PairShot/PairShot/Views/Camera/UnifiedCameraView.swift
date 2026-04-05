@@ -76,10 +76,9 @@ struct UnifiedCameraView: View {
         }
         .onChange(of: existingPair?.status) { _, newStatus in
             if newStatus == .complete, let pair = existingPair {
-                AIAnalysisCoordinator.analyze(
-                    pairID: pair.id,
-                    modelContainer: modelContext.container
-                )
+                Task { @MainActor in
+                    await AIAnalysisCoordinator.analyze(pairID: pair.id, in: modelContext)
+                }
             }
         }
     }

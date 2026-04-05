@@ -38,6 +38,7 @@ struct HeatmapView: View {
         .background(.black)
         .task(id: "\(beforeURL.path)|\(afterURL.path)") {
             isLoading = true
+            result = nil
             errorMessage = nil
             do {
                 result = try await HeatmapService.generateHeatmap(beforeURL: beforeURL, afterURL: afterURL)

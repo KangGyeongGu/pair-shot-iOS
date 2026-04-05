@@ -4,7 +4,7 @@ import Vision
 
 nonisolated enum MatchingScoreService {
     enum MatchingGrade { case excellent, good, retake }
-    enum ScoreError: Error { case loadFailed, visionFailed, noFeaturePrint }
+    enum ScoreError: Error { case loadFailed, noFeaturePrint }
 
     static func computeDistance(beforeURL: URL, afterURL: URL) async throws -> Float {
         try await Task.detached(priority: .userInitiated) {

@@ -8,8 +8,7 @@ struct PairGalleryView: View {
     @State private var filter: PairFilter = .all
     @State private var pairsToDelete: [PhotoPair] = []
     @State private var showDeleteConfirm = false
-    @State private var cameraDestination: GalleryCameraDestination?
-    @State private var comparisonPair: PhotoPair?
+    @State private var presentation: GalleryPresentation?
     @State private var sensorManager = SensorManager()
 
     private let storage = PhotoStorageService()
@@ -41,10 +40,10 @@ struct PairGalleryView: View {
                                         pair: pair,
                                         projectId: project.id,
                                         onTapAfter: { tappedPair in
-                                            cameraDestination = .after(pair: tappedPair)
+                                            presentation = .camera(.after(pair: tappedPair))
                                         },
                                         onTapCompare: { tappedPair in
-                                            comparisonPair = tappedPair
+                                            presentation = .comparison(tappedPair)
                                         }
                                     )
                                     .contextMenu {
@@ -83,16 +82,18 @@ struct PairGalleryView: View {
                 pairsToDelete = []
             }
         }
-        .fullScreenCover(item: $cameraDestination) { destination in
-            switch destination {
-                case .before:
-                    UnifiedCameraView(project: project, sensorManager: sensorManager)
-                case let .after(pair):
-                    UnifiedCameraView(project: project, existingPair: pair, sensorManager: sensorManager)
+        .fullScreenCover(item: $presentation) { mode in
+            switch mode {
+                case let .camera(destination):
+                    switch destination {
+                        case .before:
+                            UnifiedCameraView(project: project, sensorManager: sensorManager)
+                        case let .after(pair):
+                            UnifiedCameraView(project: project, existingPair: pair, sensorManager: sensorManager)
+                    }
+                case let .comparison(pair):
+                    ComparisonContainerView(pair: pair)
             }
-        }
-        .fullScreenCover(item: $comparisonPair) { pair in
-            ComparisonContainerView(pair: pair)
         }
     }
 
@@ -164,7 +165,7 @@ struct PairGalleryView: View {
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
             Button {
-                cameraDestination = .before
+                presentation = .camera(.before)
             } label: {
                 Label("첫 사진 촬영하기", systemImage: "camera.fill")
                     .font(.body.weight(.semibold))
@@ -206,7 +207,7 @@ struct PairGalleryView: View {
         } else {
             HStack(spacing: 12) {
                 Button {
-                    cameraDestination = .before
+                    presentation = .camera(.before)
                 } label: {
                     Label("Before 추가", systemImage: "plus.circle")
                         .font(.subheadline.weight(.semibold))
@@ -218,7 +219,7 @@ struct PairGalleryView: View {
                 Button {
                     let firstPending = project.pairs.first { $0.status == .pendingAfter }
                     if let pair = firstPending {
-                        cameraDestination = .after(pair: pair)
+                        presentation = .camera(.after(pair: pair))
                     }
                 } label: {
                     Label("After 촬영", systemImage: "camera.fill")
@@ -252,6 +253,18 @@ private enum GalleryCameraDestination: Identifiable {
         switch self {
             case .before: "before"
             case let .after(pair): "after-\(pair.id.uuidString)"
+        }
+    }
+}
+
+private enum GalleryPresentation: Identifiable {
+    case camera(GalleryCameraDestination)
+    case comparison(PhotoPair)
+
+    var id: String {
+        switch self {
+            case let .camera(dest): "camera_\(dest.id)"
+            case let .comparison(pair): "comparison_\(pair.id.uuidString)"
         }
     }
 }

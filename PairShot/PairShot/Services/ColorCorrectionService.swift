@@ -4,6 +4,8 @@ import Foundation
 import ImageIO
 
 nonisolated enum ColorCorrectionService {
+    private static let deviceRGBColorSpace = CGColorSpaceCreateDeviceRGB()
+
     enum ColorCorrectionError: Error {
         case loadFailed
         case filterFailed
@@ -127,7 +129,7 @@ nonisolated enum ColorCorrectionService {
             rowBytes: 4,
             bounds: CGRect(x: 0, y: 0, width: 1, height: 1),
             format: .RGBA8,
-            colorSpace: CGColorSpaceCreateDeviceRGB()
+            colorSpace: deviceRGBColorSpace
         )
 
         guard bitmap[3] > 0 else { return nil }

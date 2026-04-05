@@ -7,7 +7,7 @@ struct MatchingScoreBadge: View {
         if let score {
             let grade = MatchingScoreService.grade(for: score)
             let percent = MatchingScoreService.percentMatch(for: score)
-            let accent = color(for: grade)
+            let accent = Self.color(for: grade)
             HStack(spacing: 6) {
                 Circle()
                     .fill(accent)
@@ -34,12 +34,12 @@ struct MatchingScoreBadge: View {
             .clipShape(Capsule())
         }
     }
-}
 
-private func color(for grade: MatchingScoreService.MatchingGrade) -> Color {
-    switch grade {
-        case .excellent: .green
-        case .good: .yellow
-        case .retake: .red
+    private static func color(for grade: MatchingScoreService.MatchingGrade) -> Color {
+        switch grade {
+            case .excellent: .green
+            case .good: .yellow
+            case .retake: .red
+        }
     }
 }
