@@ -6,7 +6,7 @@ final class PhotoPair {
     var id: UUID
     var createdAt: Date
     var status: PairStatus
-    var captureModeRaw: String
+    var captureModeRaw: String?
 
     @Relationship(deleteRule: .cascade)
     var beforePhoto: Photo?
@@ -17,7 +17,7 @@ final class PhotoPair {
     var project: Project?
 
     var captureMode: CaptureMode {
-        get { CaptureMode(rawValue: captureModeRaw) ?? .precision }
+        get { CaptureMode(rawValue: captureModeRaw ?? "") ?? .precision }
         set { captureModeRaw = newValue.rawValue }
     }
 
