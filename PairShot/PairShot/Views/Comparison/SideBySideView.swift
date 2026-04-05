@@ -10,20 +10,29 @@ struct SideBySideView: View {
     @State private var offset: CGSize = .zero
     @State private var lastScale: CGFloat = 1.0
     @State private var lastOffset: CGSize = .zero
+    // M8: dynamic resolution — upgrades on zoom, downgrades on zoom-out
+    @State private var currentMaxPixelSize: Int = 1600
 
     var body: some View {
         GeometryReader { geo in
             HStack(spacing: 0) {
                 imagePanel(image: beforeImage, size: geo.size)
-                    .task(id: beforeURL) {
-                        beforeImage = nil
-                        beforeImage = await ImageThumbnailLoader.loadUIImage(url: beforeURL)
+                    // M8: task id encodes both url and resolution tier so reload fires on tier change
+                    .task(id: "\(beforeURL)|\(currentMaxPixelSize)") {
+                        let loaded = await ImageThumbnailLoader.loadUIImage(
+                            url: beforeURL,
+                            maxPixelSize: currentMaxPixelSize
+                        )
+                        if let loaded { beforeImage = loaded }
                     }
 
                 imagePanel(image: afterImage, size: geo.size)
-                    .task(id: afterURL) {
-                        afterImage = nil
-                        afterImage = await ImageThumbnailLoader.loadUIImage(url: afterURL)
+                    .task(id: "\(afterURL)|\(currentMaxPixelSize)") {
+                        let loaded = await ImageThumbnailLoader.loadUIImage(
+                            url: afterURL,
+                            maxPixelSize: currentMaxPixelSize
+                        )
+                        if let loaded { afterImage = loaded }
                     }
             }
             .background(.black)
@@ -37,6 +46,19 @@ struct SideBySideView: View {
                     lastOffset = .zero
                 }
             }
+            // M8: promote/demote resolution tier based on zoom level
+            .onChange(of: zoomScale) { _, newScale in
+                let tier = if newScale > 3.0 {
+                    4800
+                } else if newScale > 2.0 {
+                    3200
+                } else {
+                    1600
+                }
+                if tier != currentMaxPixelSize {
+                    currentMaxPixelSize = tier
+                }
+            }
         }
     }
 
@@ -46,7 +68,9 @@ struct SideBySideView: View {
                 Image(uiImage: image)
                     .resizable()
                     .aspectRatio(contentMode: .fill)
-                    .scaleEffect(zoomScale)
+                    // M6: anchor .center ensures both panels scale from the same normalised centre point;
+                    // equal-width frames + .fill means the same (u,v) region is visible on both sides.
+                    .scaleEffect(zoomScale, anchor: .center)
                     .offset(offset)
             } else {
                 ProgressView()

@@ -68,11 +68,22 @@ nonisolated enum HeatmapService {
         let extent = diffImage.extent
         guard extent.width > 0, extent.height > 0 else { return 0 }
 
+        // grayscale (max of R/G/B channels)
+        let maxCompFilter = CIFilter.maximumComponent()
+        maxCompFilter.inputImage = diffImage
+        guard let grayImage = maxCompFilter.outputImage else { return 0 }
+
+        // 임계값(0.1) 이진화 → 임계 초과 픽셀은 1, 이하는 0
+        let thresholdFilter = CIFilter.colorThreshold()
+        thresholdFilter.inputImage = grayImage
+        thresholdFilter.threshold = 0.1
+        guard let binaryImage = thresholdFilter.outputImage else { return 0 }
+
         let maxDimension: CGFloat = 512
         let scale = min(maxDimension / max(extent.width, extent.height), 1.0)
 
         let scaleFilter = CIFilter.lanczosScaleTransform()
-        scaleFilter.inputImage = diffImage
+        scaleFilter.inputImage = binaryImage
         scaleFilter.scale = Float(scale)
         scaleFilter.aspectRatio = 1.0
         guard let scaledImage = scaleFilter.outputImage else { return 0 }
@@ -93,9 +104,7 @@ nonisolated enum HeatmapService {
             colorSpace: CGColorSpaceCreateDeviceRGB()
         )
 
-        let avgR = Double(pixel[0]) / 255.0
-        let avgG = Double(pixel[1]) / 255.0
-        let avgB = Double(pixel[2]) / 255.0
-        return min((avgR + avgG + avgB) / 3.0, 1.0)
+        // 이진 마스크 평균 = 임계 초과 픽셀 비율
+        return Double(pixel[0]) / 255.0
     }
 }

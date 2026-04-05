@@ -1,4 +1,3 @@
-import OSLog
 import SwiftData
 import SwiftUI
 
@@ -77,70 +76,11 @@ struct UnifiedCameraView: View {
         }
         .onChange(of: existingPair?.status) { _, newStatus in
             if newStatus == .complete, let pair = existingPair {
-                triggerAIAnalysis(for: pair)
+                AIAnalysisCoordinator.analyze(
+                    pairID: pair.id,
+                    modelContainer: modelContext.container
+                )
             }
-        }
-    }
-
-    private func triggerAIAnalysis(for pair: PhotoPair) {
-        let pairID = pair.id
-        let projectID = project.id
-        let storage = PhotoStorageService()
-
-        guard
-            let beforeURL = try? storage.photoURL(projectId: projectID, pairId: pairID, isBefore: true),
-            let afterURL = try? storage.photoURL(projectId: projectID, pairId: pairID, isBefore: false),
-            let alignedOutputURL = try? storage.alignedPhotoURL(projectId: projectID, pairId: pairID),
-            let correctedOutputURL = try? storage.colorCorrectedPhotoURL(projectId: projectID, pairId: pairID)
-        else { return }
-
-        let logger = Logger(subsystem: "com.pairshot", category: "AIAnalysis")
-
-        Task {
-            async let alignedURL: URL? = {
-                do {
-                    return try await AlignmentService.align(
-                        beforeURL: beforeURL,
-                        afterURL: afterURL,
-                        outputURL: alignedOutputURL
-                    )
-                } catch {
-                    logger.error("AlignmentService failed: \(error)")
-                    return nil
-                }
-            }()
-            async let distance: Float? = {
-                do {
-                    return try await MatchingScoreService.computeDistance(
-                        beforeURL: beforeURL,
-                        afterURL: afterURL
-                    )
-                } catch {
-                    logger.error("MatchingScoreService failed: \(error)")
-                    return nil
-                }
-            }()
-            async let correctedURL: URL? = {
-                do {
-                    return try await ColorCorrectionService.correct(
-                        beforeURL: beforeURL,
-                        referenceAfterURL: afterURL,
-                        outputURL: correctedOutputURL
-                    )
-                } catch {
-                    logger.error("ColorCorrectionService failed: \(error)")
-                    return nil
-                }
-            }()
-
-            let (aligned, score, corrected) = await (alignedURL, distance, correctedURL)
-
-            let descriptor = FetchDescriptor<PhotoPair>(predicate: #Predicate { $0.id == pairID })
-            guard let fetched = try? modelContext.fetch(descriptor).first else { return }
-            fetched.alignedBeforeImagePath = aligned?.path
-            fetched.matchingScore = score
-            fetched.colorCorrectedBeforeImagePath = corrected?.path
-            try? modelContext.save()
         }
     }
 

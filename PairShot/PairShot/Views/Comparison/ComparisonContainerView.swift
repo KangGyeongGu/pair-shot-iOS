@@ -1,8 +1,10 @@
+import SwiftData
 import SwiftUI
 
 struct ComparisonContainerView: View {
     let pair: PhotoPair
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
     @State private var mode: Mode = .sideBySide
 
     enum Mode: String, CaseIterable, Identifiable {
@@ -79,6 +81,14 @@ struct ComparisonContainerView: View {
                 }
             }
             .ignoresSafeArea(edges: .bottom)
+        }
+        .task(id: pair.id) {
+            if pair.status == .complete, pair.alignedBeforeImagePath == nil {
+                AIAnalysisCoordinator.analyze(
+                    pairID: pair.id,
+                    modelContainer: modelContext.container
+                )
+            }
         }
     }
 
