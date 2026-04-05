@@ -108,7 +108,9 @@ nonisolated enum AlignmentService {
         return context.makeImage()
     }
 
-    /// Multiply each corner by matrix_float3x3, divide by homogeneous z to get Cartesian coords
+    /// Vision warpTransform은 top-left origin 픽셀 좌표계.
+    /// CIFilter.perspectiveTransform의 코너는 CIImage 좌표계(bottom-left origin).
+    /// 두 좌표계의 Y축이 반대이므로 Vision 결과를 CI 코너에 할당하기 전 Y flip 필요.
     private static func applyWarp(
         cgImage: CGImage,
         warpTransform: matrix_float3x3,
@@ -117,19 +119,23 @@ nonisolated enum AlignmentService {
     ) -> CGImage? {
         let width = Float(cgImage.width)
         let height = Float(cgImage.height)
+        let heightCG = CGFloat(height)
 
-        func toPoint(_ x: Float, _ y: Float) -> CGPoint {
+        func warpedCornerInCI(_ x: Float, _ y: Float) -> CGPoint {
             let vec = warpTransform * simd_float3(x, y, 1)
-            guard vec.z != 0 else { return CGPoint(x: CGFloat(x), y: CGFloat(y)) }
-            return CGPoint(x: CGFloat(vec.x / vec.z), y: CGFloat(vec.y / vec.z))
+            let (warpedX, warpedY): (CGFloat, CGFloat) = vec.z != 0
+                ? (CGFloat(vec.x / vec.z), CGFloat(vec.y / vec.z))
+                : (CGFloat(x), CGFloat(y))
+            return CGPoint(x: warpedX, y: heightCG - warpedY)
         }
 
         let filter = CIFilter.perspectiveTransform()
         filter.inputImage = CIImage(cgImage: cgImage)
-        filter.topLeft = toPoint(0, 0)
-        filter.topRight = toPoint(width, 0)
-        filter.bottomRight = toPoint(width, height)
-        filter.bottomLeft = toPoint(0, height)
+        // Vision pixel 좌표의 각 visual corner에 warp 적용 후 Y-flip해서 CI 좌표로 전달.
+        filter.topLeft = warpedCornerInCI(0, 0)
+        filter.topRight = warpedCornerInCI(width, 0)
+        filter.bottomRight = warpedCornerInCI(width, height)
+        filter.bottomLeft = warpedCornerInCI(0, height)
 
         guard let outputImage = filter.outputImage else { return nil }
         let outputRect = CGRect(x: 0, y: 0, width: afterSize.width, height: afterSize.height)
