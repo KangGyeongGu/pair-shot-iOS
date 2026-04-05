@@ -1,0 +1,36 @@
+{
+  "phase": "P5",
+  "phase_name": "비교 뷰 + AI 분석",
+  "feature_branch": "feature/p5-comparison-ai",
+  "base_branch": "develop",
+  "work_items": [
+    { "id": "W1", "title": "PhotoPair 필드 확장", "commit": "8ff7aa1", "status": "completed" },
+    { "id": "W2", "title": "PhotoStorageService URL 메서드", "commit": "9fc438d", "status": "completed" },
+    { "id": "W3", "title": "공유 CIContext 싱글톤", "commit": "a261f05", "status": "completed" },
+    { "id": "W4", "title": "AlignmentService (F14)", "commit": "3447156", "status": "completed" },
+    { "id": "W5", "title": "MatchingScoreService (F15)", "commit": "6159a66", "status": "completed" },
+    { "id": "W6", "title": "ColorCorrectionService (F17)", "commit": "c8f6ba7", "status": "completed" },
+    { "id": "W7", "title": "HeatmapService (F16)", "commit": "35f3959", "status": "completed" },
+    { "id": "W9", "title": "ComparisonContainerView 컨테이너", "commit": "9a6e175", "status": "completed" },
+    { "id": "W10", "title": "SideBySideView (F07)", "commit": "9413d83", "status": "completed" },
+    { "id": "W11", "title": "SliderCompareView (F11)", "commit": "a6e74d6", "status": "completed" },
+    { "id": "W12", "title": "HeatmapView (F16 UI)", "commit": "ef42466", "status": "completed" },
+    { "id": "W13", "title": "AnimationCompareView (F25)", "commit": "f280960", "status": "completed" },
+    { "id": "W14", "title": "MatchingScoreBadge (F15 UI)", "commit": "69490c1", "status": "completed" },
+    { "id": "W9-wire", "title": "ComparisonContainerView placeholder → 실제 자식 뷰 통합", "commit": "79afde8", "status": "completed" },
+    { "id": "W8", "title": "갤러리 → 비교 뷰 진입 연결", "commit": "67c24a6", "status": "completed" },
+    { "id": "W15", "title": "After 저장 후 AI 백그라운드 트리거", "commit": "1396f1a", "status": "completed" }
+  ],
+  "build_status": "BUILD SUCCEEDED",
+  "warnings": 0,
+  "notes": [
+    "Layer 0 (W1/W2/W3) 병렬 실행 성공",
+    "Layer 1 (W4~W7) 중 W4/W6 워커가 rate limit에 걸렸으나 파일은 저장된 상태였고 빌드 검증 성공",
+    "MatchingScoreService에서 프로젝트 SWIFT_DEFAULT_ACTOR_ISOLATION=MainActor 설정으로 인한 concurrency 경고를 `nonisolated` 키워드로 해결",
+    "ImageProcessingContext도 동일 이유로 `nonisolated enum`으로 선언",
+    "ComparisonContainerView는 placeholder → 실제 뷰 교체 단계를 별도 작업으로 분리하여 Layer 3 병렬성 확보",
+    "PhotoPair는 SwiftData PersistentModel이 Identifiable을 자동 채택하므로 `.fullScreenCover(item:)` 직접 사용 가능",
+    "W15에서 PhotoPair Sendable 우회: pairID(UUID)만 Task 경계 넘긴 후 MainActor.run 내 FetchDescriptor로 재조회",
+    "F006 재발 방지 확인: ComparisonContainerView의 switch mode 4개 분기에 실제 자식 뷰 4개가 모두 삽입됨 (W9-wire 커밋)"
+  ]
+}
