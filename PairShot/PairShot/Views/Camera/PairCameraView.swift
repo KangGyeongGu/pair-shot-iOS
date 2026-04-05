@@ -265,6 +265,13 @@ extension PairCameraView {
         cameraSettings.zoomDivisor = info.displayMultiplier
         cameraSettings.minZoomFactor = info.minFactor
         cameraSettings.maxZoomFactor = info.recommendedMaxFactor
+
+        // After 모드: Before 촬영 시 저장된 zoom factor 복원
+        if !isBefore, let savedZoom = existingPair?.beforePhoto?.zoomFactor {
+            let clamped = max(info.minFactor, min(CGFloat(savedZoom), info.recommendedMaxFactor))
+            cameraManager.setZoomDirect(factor: clamped)
+            cameraSettings.currentZoomFactor = clamped
+        }
     }
 
     func handleSensorUpdate() {
@@ -314,7 +321,8 @@ extension PairCameraView {
             depthAtCenter: result.isBefore ? depthService.centerDepth : nil,
             relativeAltitude: snapshot.relativeAltitude,
             referenceImagePath: refImagePath,
-            focalLength: result.isBefore ? depthService.focalLengthPixels : nil
+            focalLength: result.isBefore ? depthService.focalLengthPixels : nil,
+            zoomFactor: Double(cameraSettings.currentZoomFactor)
         )
         modelContext.insert(photo)
 
