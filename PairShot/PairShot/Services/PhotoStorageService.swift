@@ -39,6 +39,16 @@ struct PhotoStorageService {
             .appendingPathComponent(filename)
     }
 
+    func alignedPhotoURL(projectId: UUID, pairId: UUID) throws -> URL {
+        try pairDirectoryURL(for: projectId, pairId: pairId)
+            .appendingPathComponent("aligned_before.jpg")
+    }
+
+    func colorCorrectedPhotoURL(projectId: UUID, pairId: UUID) throws -> URL {
+        try pairDirectoryURL(for: projectId, pairId: pairId)
+            .appendingPathComponent("corrected_before.jpg")
+    }
+
     func thumbnailURL(projectId: UUID, pairId: UUID, isBefore: Bool) throws -> URL {
         let suffix = isBefore ? "before" : "after"
         return try thumbnailDirectoryURL(for: projectId)
@@ -63,6 +73,8 @@ struct PhotoStorageService {
             try? photoURL(projectId: projectId, pairId: pairId, isBefore: false),
             try? thumbnailURL(projectId: projectId, pairId: pairId, isBefore: true),
             try? thumbnailURL(projectId: projectId, pairId: pairId, isBefore: false),
+            try? alignedPhotoURL(projectId: projectId, pairId: pairId),
+            try? colorCorrectedPhotoURL(projectId: projectId, pairId: pairId),
         ]
         for url in urls.compactMap(\.self) {
             try? fileManager.removeItem(at: url)
