@@ -7,6 +7,7 @@ struct UnifiedCameraView: View {
     let sensorManager: SensorManager
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
     @State private var selectedMode: CaptureMode = .precision
     @State private var arManager = ARSessionManager()
     @State private var isSwitching = false
@@ -71,6 +72,52 @@ struct UnifiedCameraView: View {
             } else {
                 selectedMode = UserDefaults.standard.string(forKey: "lastCaptureMode")
                     .flatMap(CaptureMode.init(rawValue:)) ?? .precision
+            }
+        }
+        .onChange(of: existingPair?.status) { _, newStatus in
+            if newStatus == .complete, let pair = existingPair {
+                triggerAIAnalysis(for: pair)
+            }
+        }
+    }
+
+    private func triggerAIAnalysis(for pair: PhotoPair) {
+        let pairID = pair.id
+        let projectID = project.id
+        let storage = PhotoStorageService()
+
+        guard
+            let beforeURL = try? storage.photoURL(projectId: projectID, pairId: pairID, isBefore: true),
+            let afterURL = try? storage.photoURL(projectId: projectID, pairId: pairID, isBefore: false),
+            let alignedOutputURL = try? storage.alignedPhotoURL(projectId: projectID, pairId: pairID),
+            let correctedOutputURL = try? storage.colorCorrectedPhotoURL(projectId: projectID, pairId: pairID)
+        else { return }
+
+        Task.detached(priority: .userInitiated) {
+            async let alignedURL: URL? = try? await AlignmentService.align(
+                beforeURL: beforeURL,
+                afterURL: afterURL,
+                outputURL: alignedOutputURL
+            )
+            async let distance: Float? = try? await MatchingScoreService.computeDistance(
+                beforeURL: beforeURL,
+                afterURL: afterURL
+            )
+            async let correctedURL: URL? = try? await ColorCorrectionService.correct(
+                beforeURL: beforeURL,
+                referenceAfterURL: afterURL,
+                outputURL: correctedOutputURL
+            )
+
+            let (aligned, score, corrected) = await (alignedURL, distance, correctedURL)
+
+            await MainActor.run {
+                let descriptor = FetchDescriptor<PhotoPair>(predicate: #Predicate { $0.id == pairID })
+                guard let fetched = try? modelContext.fetch(descriptor).first else { return }
+                fetched.alignedBeforeImagePath = aligned?.path
+                fetched.matchingScore = score
+                fetched.colorCorrectedBeforeImagePath = corrected?.path
+                try? modelContext.save()
             }
         }
     }
