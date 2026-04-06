@@ -44,18 +44,18 @@ nonisolated enum AlignmentService {
             throw AlignmentError.loadFailed
         }
 
-        guard let beforeResized = resize(
-            image: beforeCG,
-            to: CGSize(width: afterCG.width, height: afterCG.height)
+        guard let afterResized = resize(
+            image: afterCG,
+            to: CGSize(width: beforeCG.width, height: beforeCG.height)
         ) else { throw AlignmentError.loadFailed }
 
         let request = VNHomographicImageRegistrationRequest(
-            targetedCGImage: beforeResized,
+            targetedCGImage: afterResized,
             options: [:]
         )
 
         let handler = VNImageRequestHandler(
-            cgImage: afterCG,
+            cgImage: beforeCG,
             options: [.ciContext: context]
         )
 
@@ -70,9 +70,9 @@ nonisolated enum AlignmentService {
         }
 
         guard let warped = applyWarp(
-            cgImage: beforeResized,
+            cgImage: afterResized,
             warpTransform: observation.warpTransform,
-            afterSize: CGSize(width: afterCG.width, height: afterCG.height),
+            afterSize: CGSize(width: beforeCG.width, height: beforeCG.height),
             context: context
         ) else {
             throw AlignmentError.warpFailed

@@ -3,8 +3,8 @@
 ## Requirements
 - Runs automatically after After capture (no user action required)
 - Compute homography between before-after using Vision `VNHomographicImageRegistrationRequest`
-- Warp the before image with the computed matrix to pixel-align with after
-- Use aligned image in comparison views (F07, F11, F16)
+- Warp the **after** image with the computed matrix to pixel-align with **before** (before = reference)
+- Use aligned_after.jpg in comparison view (F25)
 
 ## Non-functional Requirements
 - Processing within 2 seconds on A14 or later
@@ -15,9 +15,9 @@
 - Scene significantly changed (construction completed) → Insufficient matching points → Use original
 
 ## Implementation Points
-- `VNHomographicImageRegistrationRequest(targetedCGImage: after)`
-- `VNImageRequestHandler(cgImage: before).perform([request])`
-- `observation.warpTransform` → Warp before using `CIPerspectiveTransform`
+- `VNHomographicImageRegistrationRequest(targetedCGImage: afterResized)`
+- `VNImageRequestHandler(cgImage: beforeCG).perform([request])`
+- `observation.warpTransform` → Warp afterResized using `CIPerspectiveTransform` → aligned_after.jpg
 - Cache warped image (prevent recomputation)
 
 ## Apple SDK References

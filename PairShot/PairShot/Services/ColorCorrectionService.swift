@@ -13,15 +13,15 @@ nonisolated enum ColorCorrectionService {
     }
 
     static func correct(
-        beforeURL: URL,
-        referenceAfterURL: URL,
+        afterURL: URL,
+        referenceBeforeURL: URL,
         outputURL: URL
     ) async throws -> URL? {
         let ctx = ImageProcessingContext.shared
         return try await Task.detached(priority: .userInitiated) {
             try performCorrection(
-                beforeURL: beforeURL,
-                referenceAfterURL: referenceAfterURL,
+                afterURL: afterURL,
+                referenceBeforeURL: referenceBeforeURL,
                 outputURL: outputURL,
                 context: ctx
             )
@@ -29,22 +29,22 @@ nonisolated enum ColorCorrectionService {
     }
 
     private static func performCorrection(
-        beforeURL: URL,
-        referenceAfterURL: URL,
+        afterURL: URL,
+        referenceBeforeURL: URL,
         outputURL: URL,
         context: CIContext
     ) throws -> URL? {
         guard
-            let beforeCG = ImageThumbnailLoader.load(url: beforeURL, maxPixelSize: 1200),
-            let afterCG = ImageThumbnailLoader.load(url: referenceAfterURL, maxPixelSize: 1200)
+            let afterCG = ImageThumbnailLoader.load(url: afterURL, maxPixelSize: 1200),
+            let beforeCG = ImageThumbnailLoader.load(url: referenceBeforeURL, maxPixelSize: 1200)
         else {
             throw ColorCorrectionError.loadFailed
         }
 
-        let beforeImage = CIImage(cgImage: beforeCG)
         let afterImage = CIImage(cgImage: afterCG)
+        let beforeImage = CIImage(cgImage: beforeCG)
 
-        let corrected = applyColorCorrection(to: beforeImage, reference: afterImage, context: context)
+        let corrected = applyColorCorrection(to: afterImage, reference: beforeImage, context: context)
 
         guard let cgImage = context.createCGImage(corrected, from: corrected.extent) else {
             throw ColorCorrectionError.filterFailed

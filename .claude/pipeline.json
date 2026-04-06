@@ -51,10 +51,10 @@
     {
       "id": "P5",
       "name": "비교 뷰 + AI 분석",
-      "features": ["F07", "F11", "F14", "F15", "F16", "F17", "F25"],
+      "features": ["F14", "F15", "F17", "F25"],
       "depends_on": ["P2"],
       "device_test": true,
-      "device_test_items": ["나란히 비교", "슬라이더 비교", "AI 정렬 품질", "히트맵", "매칭 점수"]
+      "device_test_items": ["애니메이션 비교", "AI 정렬 품질", "색보정", "매칭 점수"]
     },
     {
       "id": "P6",

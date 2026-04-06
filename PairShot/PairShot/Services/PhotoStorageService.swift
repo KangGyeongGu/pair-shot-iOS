@@ -40,21 +40,21 @@ struct PhotoStorageService {
     }
 
     func alignedPhotoRelativePath(projectId: UUID, pairId: UUID) -> String {
-        "projects/\(projectId.uuidString)/pairs/\(pairId.uuidString)/aligned_before.jpg"
+        "projects/\(projectId.uuidString)/pairs/\(pairId.uuidString)/aligned_after.jpg"
     }
 
     func colorCorrectedPhotoRelativePath(projectId: UUID, pairId: UUID) -> String {
-        "projects/\(projectId.uuidString)/pairs/\(pairId.uuidString)/corrected_before.jpg"
+        "projects/\(projectId.uuidString)/pairs/\(pairId.uuidString)/corrected_after.jpg"
     }
 
     func alignedPhotoURL(projectId: UUID, pairId: UUID) throws -> URL {
         try pairDirectoryURL(for: projectId, pairId: pairId)
-            .appendingPathComponent("aligned_before.jpg")
+            .appendingPathComponent("aligned_after.jpg")
     }
 
     func colorCorrectedPhotoURL(projectId: UUID, pairId: UUID) throws -> URL {
         try pairDirectoryURL(for: projectId, pairId: pairId)
-            .appendingPathComponent("corrected_before.jpg")
+            .appendingPathComponent("corrected_after.jpg")
     }
 
     func thumbnailURL(projectId: UUID, pairId: UUID, isBefore: Bool) throws -> URL {

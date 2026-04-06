@@ -2,13 +2,15 @@
 
 ## Requirements
 - Auto-correct lighting differences between before (morning) and after (afternoon)
-- Use corrected images in comparison views and heatmap
+- **before is the reference; after is corrected to match before's color/lighting**
+- Use corrected_after.jpg in comparison view (F25)
 - Preserve originals, generate corrected versions separately
 
 ## Implementation Points
-- `CIFilter.temperatureAndTint()` white balance matching
-- Compare average colors → Correct with `CIFilter.colorMatrix()`
-- `CIImage.autoAdjustmentFilters()` auto correction
+- Input: after image. Reference: before image.
+- `CIImage.autoAdjustmentFilters()` applied to **after**
+- Average color extracted from **before** as reference
+- `CIFilter.colorMatrix()` applied to **after** to match **before**
 
 ## Apple SDK References
 - .claude/apple-sdk-refs/CoreImage/CIFilter.h (CITemperatureAndTint, CIColorMatrix)

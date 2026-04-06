@@ -8,8 +8,8 @@ final class PhotoPair {
     var status: PairStatus
     var captureModeRaw: String?
     var matchingScore: Float?
-    var alignedBeforeImagePath: String?
-    var colorCorrectedBeforeImagePath: String?
+    var alignedAfterImagePath: String?
+    var colorCorrectedAfterImagePath: String?
 
     @Relationship(deleteRule: .cascade)
     var beforePhoto: Photo?
@@ -31,8 +31,8 @@ final class PhotoPair {
         captureMode: CaptureMode = .precision,
         project: Project? = nil,
         matchingScore: Float? = nil,
-        alignedBeforeImagePath: String? = nil,
-        colorCorrectedBeforeImagePath: String? = nil
+        alignedAfterImagePath: String? = nil,
+        colorCorrectedAfterImagePath: String? = nil
     ) {
         self.id = id
         self.createdAt = createdAt
@@ -40,7 +40,7 @@ final class PhotoPair {
         captureModeRaw = captureMode.rawValue
         self.project = project
         self.matchingScore = matchingScore
-        self.alignedBeforeImagePath = alignedBeforeImagePath
-        self.colorCorrectedBeforeImagePath = colorCorrectedBeforeImagePath
+        self.alignedAfterImagePath = alignedAfterImagePath
+        self.colorCorrectedAfterImagePath = colorCorrectedAfterImagePath
     }
 }

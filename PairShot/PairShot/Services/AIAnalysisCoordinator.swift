@@ -20,9 +20,9 @@ enum AIAnalysisCoordinator {
               let projectID = pair.project?.id
         else { return }
 
-        let needsAlign = pair.alignedBeforeImagePath == nil
+        let needsAlign = pair.alignedAfterImagePath == nil
         let needsScore = pair.matchingScore == nil
-        let needsCorrected = pair.colorCorrectedBeforeImagePath == nil
+        let needsCorrected = pair.colorCorrectedAfterImagePath == nil
         guard needsAlign || needsScore || needsCorrected else { return }
 
         let storage = PhotoStorageService()
@@ -49,13 +49,13 @@ enum AIAnalysisCoordinator {
         let (aligned, distance, corrected) = await (alignedResult, distanceResult, correctedResult)
 
         if needsAlign, aligned != nil {
-            pair.alignedBeforeImagePath = storage.alignedPhotoRelativePath(projectId: projectID, pairId: pairID)
+            pair.alignedAfterImagePath = storage.alignedPhotoRelativePath(projectId: projectID, pairId: pairID)
         }
         if needsScore, let distance {
             pair.matchingScore = distance
         }
         if needsCorrected, corrected != nil {
-            pair.colorCorrectedBeforeImagePath = storage.colorCorrectedPhotoRelativePath(
+            pair.colorCorrectedAfterImagePath = storage.colorCorrectedPhotoRelativePath(
                 projectId: projectID,
                 pairId: pairID
             )
@@ -88,8 +88,8 @@ enum AIAnalysisCoordinator {
     private nonisolated static func runCorrect(beforeURL: URL, afterURL: URL, outputURL: URL) async -> URL? {
         do {
             return try await ColorCorrectionService.correct(
-                beforeURL: beforeURL,
-                referenceAfterURL: afterURL,
+                afterURL: afterURL,
+                referenceBeforeURL: beforeURL,
                 outputURL: outputURL
             )
         } catch {

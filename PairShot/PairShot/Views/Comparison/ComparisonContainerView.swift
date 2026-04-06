@@ -5,26 +5,9 @@ struct ComparisonContainerView: View {
     let pair: PhotoPair
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
-    @State private var mode: Mode = .sideBySide
     @State private var resolvedAlignedURL: URL??
     @State private var beforeImage: UIImage?
     @State private var afterImage: UIImage?
-
-    enum Mode: String, CaseIterable, Identifiable {
-        case sideBySide, slider, heatmap, animation
-        var id: String {
-            rawValue
-        }
-
-        var title: String {
-            switch self {
-                case .sideBySide: "나란히"
-                case .slider: "슬라이더"
-                case .heatmap: "히트맵"
-                case .animation: "애니메이션"
-            }
-        }
-    }
 
     private let storage = PhotoStorageService()
 
@@ -43,62 +26,55 @@ struct ComparisonContainerView: View {
     }
 
     /// resolvedAlignedURL: nil = 미검증, .some(nil) = 존재X, .some(url) = 존재O
-    private var effectiveBeforeURL: URL? {
+    private var effectiveAfterURL: URL? {
         switch resolvedAlignedURL {
-            case .none: beforeURL
-            case let .some(url): url ?? beforeURL
+            case .none: afterURL
+            case let .some(url): url ?? afterURL
         }
     }
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
-                modeContent
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-                modePicker
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
-                    .background(.bar)
-            }
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button {
-                        dismiss()
-                    } label: {
-                        Image(systemName: "xmark")
-                            .font(.body.weight(.medium))
+            modeContent
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarLeading) {
+                        Button {
+                            dismiss()
+                        } label: {
+                            Image(systemName: "xmark")
+                                .font(.body.weight(.medium))
+                        }
+                    }
+                    ToolbarItem(placement: .principal) {
+                        MatchingScoreBadge(score: pair.matchingScore)
+                    }
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button {
+                            // F12 share — 미구현
+                        } label: {
+                            Image(systemName: "square.and.arrow.up")
+                                .font(.body.weight(.medium))
+                        }
+                        .disabled(true)
                     }
                 }
-                ToolbarItem(placement: .principal) {
-                    MatchingScoreBadge(score: pair.matchingScore)
-                }
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
-                        // F12 share — 미구현
-                    } label: {
-                        Image(systemName: "square.and.arrow.up")
-                            .font(.body.weight(.medium))
-                    }
-                    .disabled(true)
-                }
-            }
-            .ignoresSafeArea(edges: .bottom)
+                .ignoresSafeArea(edges: .bottom)
         }
         .task(id: pair.id) {
             if pair.status == .complete,
-               pair.alignedBeforeImagePath == nil || pair.matchingScore == nil || pair
-               .colorCorrectedBeforeImagePath == nil
+               pair.alignedAfterImagePath == nil || pair.matchingScore == nil || pair
+               .colorCorrectedAfterImagePath == nil
             {
                 await AIAnalysisCoordinator.analyze(pairID: pair.id, in: modelContext)
             }
         }
-        .task(id: pair.alignedBeforeImagePath) {
-            let path = pair.alignedBeforeImagePath
+        .task(id: pair.alignedAfterImagePath) {
+            let path = pair.alignedAfterImagePath
             let projectId = pair.project?.id
             let pairId = pair.id
-            let fallback = beforeURL
+            let fallback = afterURL
             let candidateURL: URL? = {
                 guard let path, !path.isEmpty, let projectId else { return nil }
                 return try? storage.alignedPhotoURL(projectId: projectId, pairId: pairId)
@@ -109,9 +85,9 @@ struct ComparisonContainerView: View {
             )
         }
         .task(
-            id: "\(effectiveBeforeURL?.absoluteString ?? beforeURL?.absoluteString ?? "")|\(afterURL?.absoluteString ?? "")"
+            id: "\(beforeURL?.absoluteString ?? "")|\(effectiveAfterURL?.absoluteString ?? afterURL?.absoluteString ?? "")"
         ) {
-            guard let bURL = effectiveBeforeURL ?? beforeURL, let aURL = afterURL else { return }
+            guard let bURL = beforeURL, let aURL = effectiveAfterURL ?? afterURL else { return }
             async let bLoad = Task.detached(priority: .userInitiated) {
                 ImageThumbnailLoader.load(url: bURL, maxPixelSize: 1200)
             }.value
@@ -126,47 +102,19 @@ struct ComparisonContainerView: View {
 
     @ViewBuilder
     private var modeContent: some View {
-        if let before = effectiveBeforeURL ?? beforeURL, let after = afterURL {
-            switch mode {
-                case .sideBySide:
-                    SideBySideView(
-                        beforeURL: before,
-                        afterURL: after,
-                        injectedBeforeImage: beforeImage,
-                        injectedAfterImage: afterImage
-                    )
-                case .slider:
-                    SliderCompareView(
-                        beforeURL: before,
-                        afterURL: after,
-                        injectedBeforeImage: beforeImage,
-                        injectedAfterImage: afterImage
-                    )
-                case .heatmap:
-                    HeatmapView(beforeURL: before, afterURL: after)
-                case .animation:
-                    AnimationCompareView(
-                        beforeURL: before,
-                        afterURL: after,
-                        injectedBeforeImage: beforeImage,
-                        injectedAfterImage: afterImage
-                    )
-            }
+        if let before = beforeURL, let after = effectiveAfterURL ?? afterURL {
+            AnimationCompareView(
+                beforeURL: before,
+                afterURL: after,
+                injectedBeforeImage: beforeImage,
+                injectedAfterImage: afterImage
+            )
         } else {
             Text("사진을 불러올 수 없습니다")
                 .font(.body)
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-    }
-
-    private var modePicker: some View {
-        Picker("비교 모드", selection: $mode) {
-            ForEach(Mode.allCases) { item in
-                Text(item.title).tag(item)
-            }
-        }
-        .pickerStyle(.segmented)
     }
 
     nonisolated static func resolveAlignedURL(
