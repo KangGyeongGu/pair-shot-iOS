@@ -8,7 +8,7 @@ struct AnimationCompareView: View {
 
     @State private var beforeImage: UIImage?
     @State private var afterImage: UIImage?
-    @State private var showingAfter = true
+    @State private var showingAfter = false
 
     var body: some View {
         ZStack {
