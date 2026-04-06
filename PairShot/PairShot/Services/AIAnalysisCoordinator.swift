@@ -1,5 +1,6 @@
 import Foundation
 import OSLog
+import simd
 import SwiftData
 
 @MainActor
@@ -36,9 +37,11 @@ enum AIAnalysisCoordinator {
             return
         }
 
-        async let alignedResult: URL? = needsAlign
-            ? Self.runAlign(beforeURL: beforeURL, afterURL: afterURL, outputURL: alignedURL)
-            : nil
+        let alignContext = needsAlign ? extractContext(from: pair) : nil
+
+        async let alignedResult: (URL?, String) = needsAlign
+            ? Self.runAlign(beforeURL: beforeURL, afterURL: afterURL, outputURL: alignedURL, context: alignContext)
+            : (nil, "none")
         async let distanceResult: Float? = needsScore
             ? Self.runScore(beforeURL: beforeURL, afterURL: afterURL)
             : nil
@@ -46,10 +49,12 @@ enum AIAnalysisCoordinator {
             ? Self.runCorrect(beforeURL: beforeURL, afterURL: afterURL, outputURL: correctedURL)
             : nil
 
-        let (aligned, distance, corrected) = await (alignedResult, distanceResult, correctedResult)
+        let (alignTuple, distance, corrected) = await (alignedResult, distanceResult, correctedResult)
+        let (aligned, alignTier) = alignTuple
 
         if needsAlign, aligned != nil {
             pair.alignedAfterImagePath = storage.alignedPhotoRelativePath(projectId: projectID, pairId: pairID)
+            pair.alignmentTierRaw = alignTier
         }
         if needsScore, let distance {
             pair.matchingScore = distance
@@ -67,12 +72,63 @@ enum AIAnalysisCoordinator {
         }
     }
 
-    private nonisolated static func runAlign(beforeURL: URL, afterURL: URL, outputURL: URL) async -> URL? {
+    private static func extractContext(from pair: PhotoPair) -> AlignmentService.AlignmentContext? {
+        guard let before = pair.beforePhoto, let after = pair.afterPhoto else { return nil }
+
+        let beforeTransform: simd_float4x4? = before.arTransformData.flatMap { data in
+            guard data.count == MemoryLayout<simd_float4x4>.size else { return nil }
+            return data.withUnsafeBytes { $0.load(as: simd_float4x4.self) }
+        }
+        let afterTransform: simd_float4x4? = after.arTransformData.flatMap { data in
+            guard data.count == MemoryLayout<simd_float4x4>.size else { return nil }
+            return data.withUnsafeBytes { $0.load(as: simd_float4x4.self) }
+        }
+        let beforeIntrinsics: matrix_float3x3? = before.arIntrinsicsData.flatMap { data in
+            guard data.count == MemoryLayout<matrix_float3x3>.size else { return nil }
+            return data.withUnsafeBytes { $0.load(as: matrix_float3x3.self) }
+        }
+        let afterIntrinsics: matrix_float3x3? = after.arIntrinsicsData.flatMap { data in
+            guard data.count == MemoryLayout<matrix_float3x3>.size else { return nil }
+            return data.withUnsafeBytes { $0.load(as: matrix_float3x3.self) }
+        }
+
+        var depthMapURL: URL?
+        if let depthPath = before.depthMapPath, !depthPath.isEmpty,
+           let docsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
+        {
+            depthMapURL = docsURL.appendingPathComponent(depthPath)
+        }
+
+        let worldMapAvailable = (before.worldMapPath ?? "").isEmpty == false
+
+        return AlignmentService.AlignmentContext(
+            beforeTransform: beforeTransform,
+            afterTransform: afterTransform,
+            beforeIntrinsics: beforeIntrinsics,
+            afterIntrinsics: afterIntrinsics,
+            beforeDepthMapURL: depthMapURL,
+            depthAtCenter: before.depthAtCenter,
+            worldMapRelocalized: worldMapAvailable
+        )
+    }
+
+    private nonisolated static func runAlign(
+        beforeURL: URL,
+        afterURL: URL,
+        outputURL: URL,
+        context: AlignmentService.AlignmentContext?
+    ) async -> (URL?, String) {
         do {
-            return try await AlignmentService.align(beforeURL: beforeURL, afterURL: afterURL, outputURL: outputURL)
+            let result = try await AlignmentService.align(
+                beforeURL: beforeURL,
+                afterURL: afterURL,
+                outputURL: outputURL,
+                context: context
+            )
+            return (result.url, result.tier)
         } catch {
             logger.error("align failed: \(error)")
-            return nil
+            return (nil, "failed")
         }
     }
 
