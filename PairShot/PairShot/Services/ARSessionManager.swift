@@ -13,6 +13,15 @@ enum ARSessionError: Error {
     case pixelBufferConversionFailed
 }
 
+struct ARCaptureResult: @unchecked Sendable {
+    let image: UIImage
+    let transform: simd_float4x4
+    let intrinsics: matrix_float3x3
+    let sceneDepthMap: Data?
+    let sceneDepthWidth: Int
+    let sceneDepthHeight: Int
+}
+
 @Observable
 @MainActor
 final class ARSessionManager: NSObject {
@@ -127,6 +136,9 @@ final class ARSessionManager: NSObject {
 
         if hasLiDAR {
             config.sceneReconstruction = .mesh
+            if ARWorldTrackingConfiguration.supportsFrameSemantics(.sceneDepth) {
+                config.frameSemantics.insert(.sceneDepth)
+            }
         }
 
         if let worldMap {
@@ -186,7 +198,7 @@ final class ARSessionManager: NSObject {
         return worldMap
     }
 
-    func capturePhoto() async throws -> (UIImage, simd_float4x4) {
+    func capturePhoto() async throws -> ARCaptureResult {
         guard isSessionRunning else { throw ARSessionError.sessionNotRunning }
         let frame: ARFrame = try await withCheckedThrowingContinuation { continuation in
             session.captureHighResolutionFrame { frame, error in
@@ -207,7 +219,30 @@ final class ARSessionManager: NSObject {
             throw ARSessionError.pixelBufferConversionFailed
         }
         let image = UIImage(cgImage: cgImage)
-        return (image, frame.camera.transform)
+        let intrinsics = frame.camera.intrinsics
+
+        var depthData: Data?
+        var depthW = 0
+        var depthH = 0
+        if let sceneDepth = frame.sceneDepth {
+            let depthMap = sceneDepth.depthMap
+            depthW = CVPixelBufferGetWidth(depthMap)
+            depthH = CVPixelBufferGetHeight(depthMap)
+            CVPixelBufferLockBaseAddress(depthMap, .readOnly)
+            defer { CVPixelBufferUnlockBaseAddress(depthMap, .readOnly) }
+            if let base = CVPixelBufferGetBaseAddress(depthMap) {
+                depthData = Data(bytes: base, count: depthW * depthH * MemoryLayout<Float32>.size)
+            }
+        }
+
+        return ARCaptureResult(
+            image: image,
+            transform: frame.camera.transform,
+            intrinsics: intrinsics,
+            sceneDepthMap: depthData,
+            sceneDepthWidth: depthW,
+            sceneDepthHeight: depthH
+        )
     }
 
     func raycast(_ query: ARRaycastQuery) -> [ARRaycastResult] {

@@ -10,6 +10,7 @@ final class PhotoPair {
     var matchingScore: Float?
     var alignedAfterImagePath: String?
     var colorCorrectedAfterImagePath: String?
+    var alignmentTierRaw: String?
 
     @Relationship(deleteRule: .cascade)
     var beforePhoto: Photo?
@@ -32,7 +33,8 @@ final class PhotoPair {
         project: Project? = nil,
         matchingScore: Float? = nil,
         alignedAfterImagePath: String? = nil,
-        colorCorrectedAfterImagePath: String? = nil
+        colorCorrectedAfterImagePath: String? = nil,
+        alignmentTierRaw: String? = nil
     ) {
         self.id = id
         self.createdAt = createdAt
@@ -42,5 +44,6 @@ final class PhotoPair {
         self.matchingScore = matchingScore
         self.alignedAfterImagePath = alignedAfterImagePath
         self.colorCorrectedAfterImagePath = colorCorrectedAfterImagePath
+        self.alignmentTierRaw = alignmentTierRaw
     }
 }

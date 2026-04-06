@@ -27,6 +27,9 @@ final class Photo {
     var focalLength: Double?
     var zoomFactor: Double?
 
+    var arIntrinsicsData: Data?
+    var depthMapPath: String?
+
     init(
         id: UUID = UUID(),
         filePath: String,
@@ -46,7 +49,9 @@ final class Photo {
         relativeAltitude: Double? = nil,
         referenceImagePath: String? = nil,
         focalLength: Double? = nil,
-        zoomFactor: Double? = nil
+        zoomFactor: Double? = nil,
+        arIntrinsicsData: Data? = nil,
+        depthMapPath: String? = nil
     ) {
         self.id = id
         self.filePath = filePath
@@ -67,5 +72,7 @@ final class Photo {
         self.referenceImagePath = referenceImagePath
         self.focalLength = focalLength
         self.zoomFactor = zoomFactor
+        self.arIntrinsicsData = arIntrinsicsData
+        self.depthMapPath = depthMapPath
     }
 }

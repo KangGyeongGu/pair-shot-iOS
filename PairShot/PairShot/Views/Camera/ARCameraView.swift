@@ -187,7 +187,9 @@ struct ARCameraView: View {
                 if arManager.trackingState == .normal { break }
                 try? await Task.sleep(for: .milliseconds(100))
             }
-            let (image, transform) = try await arManager.capturePhoto()
+            let result = try await arManager.capturePhoto()
+            let image = result.image
+            let transform = result.transform
             capturedPhoto = image
             let (pair, pairId) = try resolvePair()
             let photo = try savePhotoFiles(image: image, transform: transform, pairId: pairId)
