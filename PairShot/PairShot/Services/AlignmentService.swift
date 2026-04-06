@@ -38,8 +38,8 @@ nonisolated enum AlignmentService {
         context: CIContext
     ) throws -> URL? {
         guard
-            let beforeCG = ImageThumbnailLoader.load(url: beforeURL, maxPixelSize: 1200),
-            let afterCG = ImageThumbnailLoader.load(url: afterURL, maxPixelSize: 1200)
+            let beforeCG = ImageThumbnailLoader.load(url: beforeURL, maxPixelSize: 3000),
+            let afterCG = ImageThumbnailLoader.load(url: afterURL, maxPixelSize: 3000)
         else {
             throw AlignmentError.loadFailed
         }
@@ -108,36 +108,44 @@ nonisolated enum AlignmentService {
         return context.makeImage()
     }
 
-    /// Vision warpTransform은 top-left origin 픽셀 좌표계.
-    /// CIFilter.perspectiveTransform의 코너는 CIImage 좌표계(bottom-left origin).
-    /// 두 좌표계의 Y축이 반대이므로 Vision 결과를 CI 코너에 할당하기 전 Y flip 필요.
+    /// Vision warpTransform은 reference→targeted(before→after) 방향 매핑.
+    /// after를 before에 맞추려면 역행렬(after→before)이 필요.
+    /// CIFilter.perspectiveTransform 코너는 CI 좌표계(bottom-left origin, Y up).
     private static func applyWarp(
         cgImage: CGImage,
         warpTransform: matrix_float3x3,
         afterSize: CGSize,
         context: CIContext
     ) -> CGImage? {
+        let inverseWarp = warpTransform.inverse
         let width = Float(cgImage.width)
         let height = Float(cgImage.height)
         let heightCG = CGFloat(height)
 
         func warpedCornerInCI(_ x: Float, _ y: Float) -> CGPoint {
-            let vec = warpTransform * simd_float3(x, y, 1)
+            let vec = inverseWarp * simd_float3(x, y, 1)
             let (warpedX, warpedY): (CGFloat, CGFloat) = vec.z != 0
                 ? (CGFloat(vec.x / vec.z), CGFloat(vec.y / vec.z))
                 : (CGFloat(x), CGFloat(y))
             return CGPoint(x: warpedX, y: heightCG - warpedY)
         }
 
+        let tl = warpedCornerInCI(0, 0)
+        let tr = warpedCornerInCI(width, 0)
+        let br = warpedCornerInCI(width, height)
+        let bl = warpedCornerInCI(0, height)
+        print("[ALIGN] CI corners — TL:\(tl), TR:\(tr), BR:\(br), BL:\(bl)")
+        print("[ALIGN] expected identity — TL:(0,\(heightCG)), TR:(\(width),\(heightCG)), BR:(\(width),0), BL:(0,0)")
+
         let filter = CIFilter.perspectiveTransform()
         filter.inputImage = CIImage(cgImage: cgImage)
-        // Vision pixel 좌표의 각 visual corner에 warp 적용 후 Y-flip해서 CI 좌표로 전달.
-        filter.topLeft = warpedCornerInCI(0, 0)
-        filter.topRight = warpedCornerInCI(width, 0)
-        filter.bottomRight = warpedCornerInCI(width, height)
-        filter.bottomLeft = warpedCornerInCI(0, height)
+        filter.topLeft = tl
+        filter.topRight = tr
+        filter.bottomRight = br
+        filter.bottomLeft = bl
 
         guard let outputImage = filter.outputImage else { return nil }
+        print("[ALIGN] output extent: \(outputImage.extent)")
         let outputRect = CGRect(x: 0, y: 0, width: afterSize.width, height: afterSize.height)
         return context.createCGImage(outputImage, from: outputRect)
     }

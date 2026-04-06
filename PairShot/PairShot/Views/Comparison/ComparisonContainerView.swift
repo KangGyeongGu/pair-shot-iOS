@@ -5,9 +5,6 @@ struct ComparisonContainerView: View {
     let pair: PhotoPair
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
-    @State private var resolvedAlignedURL: URL??
-    @State private var beforeImage: UIImage?
-    @State private var afterImage: UIImage?
 
     private let storage = PhotoStorageService()
 
@@ -25,12 +22,14 @@ struct ComparisonContainerView: View {
         return try? storage.photoURL(projectId: projectId, pairId: pair.id, isBefore: false)
     }
 
-    /// resolvedAlignedURL: nil = 미검증, .some(nil) = 존재X, .some(url) = 존재O
-    private var effectiveAfterURL: URL? {
-        switch resolvedAlignedURL {
-            case .none: afterURL
-            case let .some(url): url ?? afterURL
-        }
+    private var alignedAfterURL: URL? {
+        guard let path = pair.alignedAfterImagePath, !path.isEmpty,
+              let projectId = pair.project?.id
+        else { return nil }
+        guard let url = try? storage.alignedPhotoURL(projectId: projectId, pairId: pair.id),
+              FileManager.default.fileExists(atPath: url.path)
+        else { return nil }
+        return url
     }
 
     var body: some View {
@@ -40,9 +39,7 @@ struct ComparisonContainerView: View {
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .navigationBarLeading) {
-                        Button {
-                            dismiss()
-                        } label: {
+                        Button { dismiss() } label: {
                             Image(systemName: "xmark")
                                 .font(.body.weight(.medium))
                         }
@@ -70,44 +67,15 @@ struct ComparisonContainerView: View {
                 await AIAnalysisCoordinator.analyze(pairID: pair.id, in: modelContext)
             }
         }
-        .task(id: pair.alignedAfterImagePath) {
-            let path = pair.alignedAfterImagePath
-            let projectId = pair.project?.id
-            let pairId = pair.id
-            let fallback = afterURL
-            let candidateURL: URL? = {
-                guard let path, !path.isEmpty, let projectId else { return nil }
-                return try? storage.alignedPhotoURL(projectId: projectId, pairId: pairId)
-            }()
-            resolvedAlignedURL = await Self.resolveAlignedURL(
-                candidateURL: candidateURL,
-                fallback: fallback
-            )
-        }
-        .task(
-            id: "\(beforeURL?.absoluteString ?? "")|\(effectiveAfterURL?.absoluteString ?? afterURL?.absoluteString ?? "")"
-        ) {
-            guard let bURL = beforeURL, let aURL = effectiveAfterURL ?? afterURL else { return }
-            async let bLoad = Task.detached(priority: .userInitiated) {
-                ImageThumbnailLoader.load(url: bURL, maxPixelSize: 1200)
-            }.value
-            async let aLoad = Task.detached(priority: .userInitiated) {
-                ImageThumbnailLoader.load(url: aURL, maxPixelSize: 1200)
-            }.value
-            let (bCG, aCG) = await (bLoad, aLoad)
-            beforeImage = bCG.map { UIImage(cgImage: $0) }
-            afterImage = aCG.map { UIImage(cgImage: $0) }
-        }
     }
 
     @ViewBuilder
     private var modeContent: some View {
-        if let before = beforeURL, let after = effectiveAfterURL ?? afterURL {
+        if let before = beforeURL, let after = afterURL {
             AnimationCompareView(
                 beforeURL: before,
                 afterURL: after,
-                injectedBeforeImage: beforeImage,
-                injectedAfterImage: afterImage
+                alignedAfterURL: alignedAfterURL
             )
         } else {
             Text("사진을 불러올 수 없습니다")
@@ -115,16 +83,5 @@ struct ComparisonContainerView: View {
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-    }
-
-    nonisolated static func resolveAlignedURL(
-        candidateURL: URL?,
-        fallback: URL?
-    ) async -> URL? {
-        guard let url = candidateURL else { return fallback }
-        let exists = await Task.detached {
-            FileManager.default.fileExists(atPath: url.path)
-        }.value
-        return exists ? url : fallback
     }
 }

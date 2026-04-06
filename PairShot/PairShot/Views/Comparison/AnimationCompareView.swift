@@ -3,38 +3,45 @@ import SwiftUI
 struct AnimationCompareView: View {
     let beforeURL: URL
     let afterURL: URL
-    var injectedBeforeImage: UIImage?
-    var injectedAfterImage: UIImage?
+    let alignedAfterURL: URL?
 
+    enum DisplayMode: String, CaseIterable {
+        case before, afterOriginal, afterAligned
+        var label: String {
+            switch self {
+                case .before: "Before"
+                case .afterOriginal: "After(원본)"
+                case .afterAligned: "After(보정)"
+            }
+        }
+    }
+
+    @State private var mode: DisplayMode = .before
     @State private var beforeImage: UIImage?
-    @State private var afterImage: UIImage?
-    @State private var showingAfter = false
+    @State private var afterOriginalImage: UIImage?
+    @State private var afterAlignedImage: UIImage?
+
+    private var currentImage: UIImage? {
+        switch mode {
+            case .before: beforeImage
+            case .afterOriginal: afterOriginalImage
+            case .afterAligned: afterAlignedImage ?? afterOriginalImage
+        }
+    }
 
     var body: some View {
         ZStack {
-            if let before = beforeImage {
-                Image(uiImage: before)
+            if let image = currentImage {
+                Image(uiImage: image)
                     .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .clipped()
-                    .opacity(showingAfter ? 0 : 1)
-            }
-
-            if let after = afterImage {
-                Image(uiImage: after)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .clipped()
-                    .opacity(showingAfter ? 1 : 0)
-            }
-
-            if beforeImage == nil || afterImage == nil {
+                    .scaledToFit()
+            } else {
                 ProgressView()
                     .tint(.white)
             }
 
             VStack {
-                Text(showingAfter ? "After" : "Before")
+                Text(mode.label)
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(.white)
                     .padding(.horizontal, 14)
@@ -44,40 +51,57 @@ struct AnimationCompareView: View {
 
                 Spacer()
 
-                Text("탭하여 전환")
-                    .font(.footnote)
-                    .foregroundStyle(.white.opacity(0.7))
-                    .padding(.bottom, 16)
+                HStack(spacing: 8) {
+                    ForEach(availableModes, id: \.rawValue) { m in
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.3)) { mode = m }
+                        } label: {
+                            Text(m.label)
+                                .font(.system(size: 12, weight: mode == m ? .bold : .regular))
+                                .foregroundStyle(mode == m ? .yellow : .white.opacity(0.7))
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 6)
+                                .background(mode == m ? Color.white.opacity(0.15) : .clear, in: Capsule())
+                        }
+                    }
+                }
+                .padding(.bottom, 16)
             }
         }
         .background(.black)
         .contentShape(Rectangle())
         .onTapGesture {
-            withAnimation(.easeInOut(duration: 0.3)) {
-                showingAfter.toggle()
-            }
+            let modes = availableModes
+            guard let idx = modes.firstIndex(of: mode) else { return }
+            let next = modes[(idx + 1) % modes.count]
+            withAnimation(.easeInOut(duration: 0.3)) { mode = next }
         }
-        .task(id: beforeURL) {
-            if let injected = injectedBeforeImage {
-                beforeImage = injected
+        .task(id: "before|\(beforeURL)") {
+            beforeImage = await loadImage(url: beforeURL)
+        }
+        .task(id: "afterOrig|\(afterURL)") {
+            afterOriginalImage = await loadImage(url: afterURL)
+        }
+        .task(id: "afterAligned|\(alignedAfterURL?.absoluteString ?? "nil")") {
+            guard let url = alignedAfterURL else {
+                afterAlignedImage = nil
                 return
             }
-            beforeImage = nil
-            let cgImage = await Task.detached(priority: .userInitiated) {
-                ImageThumbnailLoader.load(url: beforeURL)
-            }.value
-            beforeImage = cgImage.map { UIImage(cgImage: $0) }
+            afterAlignedImage = await loadImage(url: url)
         }
-        .task(id: afterURL) {
-            if let injected = injectedAfterImage {
-                afterImage = injected
-                return
-            }
-            afterImage = nil
-            let cgImage = await Task.detached(priority: .userInitiated) {
-                ImageThumbnailLoader.load(url: afterURL)
-            }.value
-            afterImage = cgImage.map { UIImage(cgImage: $0) }
+    }
+
+    private var availableModes: [DisplayMode] {
+        if alignedAfterURL != nil {
+            return DisplayMode.allCases
         }
+        return [.before, .afterOriginal]
+    }
+
+    private func loadImage(url: URL) async -> UIImage? {
+        await Task.detached(priority: .userInitiated) {
+            guard let cg = ImageThumbnailLoader.load(url: url, maxPixelSize: 2000) else { return nil }
+            return UIImage(cgImage: cg)
+        }.value
     }
 }
