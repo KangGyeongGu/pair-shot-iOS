@@ -45,7 +45,14 @@ struct ComparisonContainerView: View {
                         }
                     }
                     ToolbarItem(placement: .principal) {
-                        MatchingScoreBadge(score: pair.matchingScore)
+                        VStack(spacing: 2) {
+                            MatchingScoreBadge(score: pair.matchingScore)
+                            if let tier = pair.alignmentTierRaw {
+                                Text(tier)
+                                    .font(.system(size: 10, design: .monospaced))
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
                     }
                     ToolbarItem(placement: .navigationBarTrailing) {
                         Button {
