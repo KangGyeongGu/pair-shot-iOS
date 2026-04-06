@@ -34,8 +34,17 @@ struct AnimationCompareView: View {
             }
 
             VStack {
+                Text(showingAfter ? "After" : "Before")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 6)
+                    .background(.black.opacity(0.5), in: Capsule())
+                    .padding(.top, 12)
+
                 Spacer()
-                Text("탭하여 Before/After 전환")
+
+                Text("탭하여 전환")
                     .font(.footnote)
                     .foregroundStyle(.white.opacity(0.7))
                     .padding(.bottom, 16)
