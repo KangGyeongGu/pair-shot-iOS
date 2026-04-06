@@ -122,7 +122,7 @@ struct ARCameraView: View {
         .statusBarHidden(true)
         .task {
             if !arManager.isSessionRunning {
-                arManager.startSession()
+                await startARSession()
             }
 
             if !isBefore {
@@ -188,18 +188,33 @@ struct ARCameraView: View {
                 try? await Task.sleep(for: .milliseconds(100))
             }
             let result = try await arManager.capturePhoto()
-            let image = result.image
-            let transform = result.transform
-            capturedPhoto = image
+            capturedPhoto = result.image
             let (pair, pairId) = try resolvePair()
-            let photo = try savePhotoFiles(image: image, transform: transform, pairId: pairId)
+            let photo = try savePhotoFiles(result: result, pairId: pairId)
             photo.pitch = Double(arManager.pitchDelta)
             photo.roll = Double(arManager.rollDelta)
             photo.yaw = Double(arManager.yawDelta)
+            if isBefore {
+                await saveWorldMap(to: photo, pairId: pairId)
+            }
             modelContext.insert(photo)
-            await applyPhotoToPair(pair: pair, photo: photo, image: image)
+            await applyPhotoToPair(pair: pair, photo: photo, image: result.image)
         } catch {
             // Capture failed — user can retry
+        }
+    }
+
+    private func saveWorldMap(to photo: Photo, pairId: UUID) async {
+        guard arManager.worldMappingStatus == .mapped || arManager.worldMappingStatus == .extending else { return }
+        do {
+            let worldMap = try await arManager.captureWorldMap()
+            let docsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            let wmRelPath = "projects/\(project.id)/pairs/\(pairId)/worldmap.armap"
+            let wmURL = docsURL.appendingPathComponent(wmRelPath)
+            try arManager.saveWorldMap(worldMap, to: wmURL)
+            photo.worldMapPath = wmRelPath
+        } catch {
+            // WorldMap 캡처 실패 시 worldMapPath = nil → Tier 2/3 불가, Tier 1 폴백
         }
     }
 
@@ -214,11 +229,7 @@ struct ARCameraView: View {
         return (existing, existing.id)
     }
 
-    private func savePhotoFiles(
-        image: UIImage,
-        transform: simd_float4x4,
-        pairId: UUID
-    ) throws -> Photo {
+    private func savePhotoFiles(result: ARCaptureResult, pairId: UUID) throws -> Photo {
         let docsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         let subDir = isBefore ? "before" : "after"
         let photoPath = "projects/\(project.id)/pairs/\(pairId)/\(subDir).jpg"
@@ -231,19 +242,36 @@ struct ARCameraView: View {
         try FileManager.default.createDirectory(
             at: thumbURL.deletingLastPathComponent(), withIntermediateDirectories: true
         )
-        if let data = image.jpegData(compressionQuality: 0.9) {
+        if let data = result.image.jpegData(compressionQuality: 0.9) {
             try data.write(to: photoURL)
         }
-        let thumbImage = image.arThumbnailImage(maxDimension: 300)
+        let thumbImage = result.image.arThumbnailImage(maxDimension: 300)
         if let thumbData = thumbImage.jpegData(compressionQuality: 0.8) {
             try thumbData.write(to: thumbURL)
         }
-        var transformCopy = transform
+        var transformCopy = result.transform
         let transformData = Data(bytes: &transformCopy, count: MemoryLayout<simd_float4x4>.size)
+
+        var intrinsicsCopy = result.intrinsics
+        let intrinsicsData = Data(bytes: &intrinsicsCopy, count: MemoryLayout<matrix_float3x3>.size)
+
+        var depthMapRelPath: String?
+        if isBefore, let depthData = result.sceneDepthMap {
+            let depthWidth = result.sceneDepthWidth
+            let depthHeight = result.sceneDepthHeight
+            let depthFileName = "before_depth_\(depthWidth)x\(depthHeight).bin"
+            let depthRelPath = "projects/\(project.id)/pairs/\(pairId)/\(depthFileName)"
+            let depthURL = docsURL.appendingPathComponent(depthRelPath)
+            try? depthData.write(to: depthURL)
+            depthMapRelPath = depthRelPath
+        }
+
         return Photo(
             filePath: photoPath,
             thumbnailPath: thumbPath,
-            arTransformData: transformData
+            arTransformData: transformData,
+            arIntrinsicsData: intrinsicsData,
+            depthMapPath: depthMapRelPath
         )
     }
 
@@ -255,6 +283,32 @@ struct ARCameraView: View {
             pair.afterPhoto = photo
             pair.status = .complete
         }
+    }
+
+    private func startARSession() async {
+        guard !isBefore, let wmRelPath = existingPair?.beforePhoto?.worldMapPath else {
+            arManager.startSession()
+            return
+        }
+        let docsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        let wmURL = docsURL.appendingPathComponent(wmRelPath)
+        do {
+            let worldMap = try arManager.loadWorldMap(from: wmURL)
+            arManager.startSession(withWorldMap: worldMap)
+            await waitForRelocalize()
+        } catch {
+            arManager.startSession()
+        }
+    }
+
+    private func waitForRelocalize() async {
+        let deadline = Date().addingTimeInterval(10)
+        while Date() < deadline {
+            if arManager.trackingState == .normal { return }
+            if case let .limited(reason) = arManager.trackingState, reason != .relocalizing { return }
+            try? await Task.sleep(for: .milliseconds(200))
+        }
+        // 타임아웃 — relocalize 실패, 세션은 계속 (Tier 1 폴백)
     }
 
     private func restoreSavedPose() {
