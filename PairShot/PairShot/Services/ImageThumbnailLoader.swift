@@ -3,7 +3,7 @@ import Foundation
 import ImageIO
 
 nonisolated enum ImageThumbnailLoader {
-    static func load(url: URL, maxPixelSize: Int = 1200) -> CGImage? {
+    static func load(url: URL, maxPixelSize: Int = 1200, applyTransform: Bool = true) -> CGImage? {
         guard url.isFileURL else { return nil }
         let sourceOptions: [CFString: Any] = [kCGImageSourceShouldCache: false]
         guard let source = CGImageSourceCreateWithURL(url as CFURL, sourceOptions as CFDictionary)
@@ -11,7 +11,7 @@ nonisolated enum ImageThumbnailLoader {
         let options: [CFString: Any] = [
             kCGImageSourceThumbnailMaxPixelSize: maxPixelSize,
             kCGImageSourceCreateThumbnailFromImageAlways: true,
-            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceCreateThumbnailWithTransform: applyTransform,
         ]
         return CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary)
     }

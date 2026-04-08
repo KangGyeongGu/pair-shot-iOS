@@ -51,10 +51,12 @@ enum AIAnalysisCoordinator {
 
         let (alignTuple, distance, corrected) = await (alignedResult, distanceResult, correctedResult)
         let (aligned, alignTier) = alignTuple
+        logger.debug("needsAlign=\(needsAlign), aligned=\(aligned?.lastPathComponent ?? "nil"), tier=\(alignTier)")
 
         if needsAlign, aligned != nil {
             pair.alignedAfterImagePath = storage.alignedPhotoRelativePath(projectId: projectID, pairId: pairID)
             pair.alignmentTierRaw = alignTier
+            logger.debug("saved tierRaw=\(pair.alignmentTierRaw ?? "nil")")
         }
         if needsScore, let distance {
             pair.matchingScore = distance
@@ -99,8 +101,6 @@ enum AIAnalysisCoordinator {
             depthMapURL = docsURL.appendingPathComponent(depthPath)
         }
 
-        let worldMapAvailable = (before.worldMapPath ?? "").isEmpty == false
-
         return AlignmentService.AlignmentContext(
             beforeTransform: beforeTransform,
             afterTransform: afterTransform,
@@ -108,7 +108,7 @@ enum AIAnalysisCoordinator {
             afterIntrinsics: afterIntrinsics,
             beforeDepthMapURL: depthMapURL,
             depthAtCenter: before.depthAtCenter,
-            worldMapRelocalized: worldMapAvailable
+            worldMapRelocalized: after.arRelocalized
         )
     }
 

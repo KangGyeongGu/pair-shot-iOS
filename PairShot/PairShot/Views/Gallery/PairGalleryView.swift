@@ -113,11 +113,11 @@ struct PairGalleryView: View {
     }
 
     private var completedCount: Int {
-        project.pairs.count(where: { $0.status == .complete })
+        project.completePairCount
     }
 
     private var totalCount: Int {
-        project.pairs.count
+        project.totalPairCount
     }
 
     private var allComplete: Bool {

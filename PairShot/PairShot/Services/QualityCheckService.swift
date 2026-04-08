@@ -20,15 +20,17 @@ final class QualityCheckService {
         let issue = await Task.detached(priority: .utility) {
             var result: QualityIssue?
 
-            if let blurScore = Self.calculateBlurScore(ciImage: ciImage, context: ciContext) {
-                let threshold: Double = isLowLight ? 30 : 80
-                if blurScore < threshold {
-                    result = .blurry
-                }
+            if case .none = result {
+                result = Self.checkExposure(ciImage: ciImage, context: ciContext)
             }
 
             if case .none = result {
-                result = Self.checkExposure(ciImage: ciImage, context: ciContext)
+                if let blurScore = Self.calculateBlurScore(ciImage: ciImage, context: ciContext) {
+                    let threshold: Double = isLowLight ? 30 : 80
+                    if blurScore < threshold {
+                        result = .blurry
+                    }
+                }
             }
 
             return result

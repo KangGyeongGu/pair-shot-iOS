@@ -213,12 +213,13 @@ final class ARSessionManager: NSObject {
         }
 
         let pixelBuffer = frame.capturedImage
-        let ciImage = CIImage(cvPixelBuffer: pixelBuffer).oriented(.right)
-        let ciContext = CIContext()
+        let ciImage = CIImage(cvPixelBuffer: pixelBuffer)
         guard let cgImage = ciContext.createCGImage(ciImage, from: ciImage.extent) else {
             throw ARSessionError.pixelBufferConversionFailed
         }
-        let image = UIImage(cgImage: cgImage)
+        // 픽셀은 가로(landscape) 그대로, EXIF orientation .right으로 세로 표시
+        // UIImage.jpegData()가 EXIF orientation을 JPEG에 자동 포함
+        let image = UIImage(cgImage: cgImage, scale: 1.0, orientation: .right)
         let intrinsics = frame.camera.intrinsics
 
         var depthData: Data?
@@ -251,6 +252,8 @@ final class ARSessionManager: NSObject {
 
     @ObservationIgnored
     private nonisolated(unsafe) var lastFrameUpdate: CFTimeInterval = 0
+
+    @ObservationIgnored private let ciContext = CIContext()
 }
 
 extension ARSessionManager: ARSessionDelegate {
@@ -263,8 +266,8 @@ extension ARSessionManager: ARSessionDelegate {
         let transform = frame.camera.transform
         Task { @MainActor [weak self] in
             guard let self else { return }
-            worldMappingStatus = status
-            trackingState = tracking
+            if worldMappingStatus != status { worldMappingStatus = status }
+            if trackingState != tracking { trackingState = tracking }
             cameraTransform = transform
         }
     }

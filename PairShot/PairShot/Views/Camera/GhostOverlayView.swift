@@ -48,7 +48,7 @@ struct GhostOpacitySlider: View {
 }
 
 extension UIImage {
-    func downscaledTo1080p() -> UIImage {
+    nonisolated func downscaledTo1080p() -> UIImage {
         let maxDimension: CGFloat = 1920
         let scale = min(maxDimension / size.width, maxDimension / size.height, 1.0)
         guard scale < 1.0 else { return self }

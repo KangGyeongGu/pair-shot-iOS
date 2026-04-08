@@ -20,6 +20,8 @@ struct ARCameraView: View {
     @State private var ghostOpacity: Double = 0.0
     @State private var ghostVisible: Bool = false
     @State private var isSaving = false
+    @State private var didLoadWorldMap = false
+    @State private var captureErrorMessage: String?
 
     var body: some View {
         ZStack {
@@ -38,7 +40,9 @@ struct ARCameraView: View {
                                 .allowsHitTesting(false)
                         }
 
-                        if arManager.savedTransform != nil, !arManager.isFullyAligned {
+                        if arManager.savedTransform != nil, !arManager.isFullyAligned,
+                           arManager.trackingState == .normal
+                        {
                             SixDOFGuideView(
                                 lateralDeltaCm: Double(arManager.positionDelta.x) * 100,
                                 heightDeltaCm: Double(arManager.positionDelta.y) * 100,
@@ -46,7 +50,7 @@ struct ARCameraView: View {
                                 yawDeltaDeg: Double(arManager.yawDelta) * 180 / .pi,
                                 pitchDeltaDeg: Double(arManager.pitchDelta) * 180 / .pi,
                                 rollDeltaDeg: Double(arManager.rollDelta) * 180 / .pi,
-                                hasLiDAR: true,
+                                hasLiDAR: arManager.hasLiDAR,
                                 positionThresholdCm: Double(arManager.positionThreshold) * 100,
                                 orientationThresholdDeg: Double(arManager.orientationThreshold) * 180 / .pi
                             )
@@ -120,6 +124,14 @@ struct ARCameraView: View {
             }
         }
         .statusBarHidden(true)
+        .alert("촬영 실패", isPresented: Binding(
+            get: { captureErrorMessage != nil },
+            set: { if !$0 { captureErrorMessage = nil } }
+        )) {
+            Button("확인") { captureErrorMessage = nil }
+        } message: {
+            Text(captureErrorMessage ?? "")
+        }
         .task {
             if !arManager.isSessionRunning {
                 await startARSession()
@@ -132,10 +144,9 @@ struct ARCameraView: View {
             if !isBefore, let filePath = existingPair?.beforePhoto?.filePath {
                 let docsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
                 let fullURL = docsURL.appendingPathComponent(filePath)
-                let rawImage = await Task.detached(priority: .userInitiated) {
-                    UIImage(contentsOfFile: fullURL.path)
+                let loaded = await Task.detached(priority: .userInitiated) {
+                    UIImage(contentsOfFile: fullURL.path)?.downscaledTo1080p()
                 }.value
-                let loaded = rawImage?.downscaledTo1080p()
                 if let loaded {
                     beforeImage = loaded
                     ghostOpacity = 0.35
@@ -148,33 +159,12 @@ struct ARCameraView: View {
         }
     }
 
-    @ViewBuilder
     private var trackingStatusBadge: some View {
-        switch arManager.trackingState {
-            case .normal:
-                EmptyView()
-            case .notAvailable:
-                Label("AR 초기화 중", systemImage: "circle.dashed")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 4)
-                    .background(.black.opacity(0.5), in: Capsule())
-            case let .limited(reason):
-                let text = switch reason {
-                    case .initializing: "환경 인식 중..."
-                    case .relocalizing: "이전 위치 찾는 중..."
-                    case .excessiveMotion: "너무 빠르게 움직이고 있습니다"
-                    case .insufficientFeatures: "특징점 부족 — 주변을 비춰주세요"
-                    @unknown default: "제한적 트래킹"
-                }
-                Label(text, systemImage: "exclamationmark.triangle")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(.yellow)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 4)
-                    .background(.black.opacity(0.5), in: Capsule())
-        }
+        ARTrackingStatusBadge(
+            isBefore: isBefore,
+            worldMappingStatus: arManager.worldMappingStatus,
+            trackingState: arManager.trackingState
+        )
     }
 
     private func handleCapture() async {
@@ -184,23 +174,37 @@ struct ARCameraView: View {
 
         do {
             for _ in 0 ..< 30 {
+                guard !Task.isCancelled else { return }
                 if arManager.trackingState == .normal { break }
                 try? await Task.sleep(for: .milliseconds(100))
             }
             let result = try await arManager.capturePhoto()
             capturedPhoto = result.image
+            let capturedPitch = Double(arManager.pitchDelta)
+            let capturedRoll = Double(arManager.rollDelta)
+            let capturedYaw = Double(arManager.yawDelta)
+            let capturedRelocalized = didLoadWorldMap && arManager.trackingState == .normal
             let (pair, pairId) = try resolvePair()
-            let photo = try savePhotoFiles(result: result, pairId: pairId)
-            photo.pitch = Double(arManager.pitchDelta)
-            photo.roll = Double(arManager.rollDelta)
-            photo.yaw = Double(arManager.yawDelta)
+            let photo = try await savePhotoFiles(result: result, pairId: pairId)
+            photo.pitch = capturedPitch
+            photo.roll = capturedRoll
+            photo.yaw = capturedYaw
             if isBefore {
                 await saveWorldMap(to: photo, pairId: pairId)
+            } else {
+                photo.arRelocalized = capturedRelocalized
             }
             modelContext.insert(photo)
-            await applyPhotoToPair(pair: pair, photo: photo, image: result.image)
+            if isBefore {
+                pair.beforePhoto = photo
+                pair.status = .pendingAfter
+            } else {
+                pair.afterPhoto = photo
+                pair.status = .complete
+                Task { await AIAnalysisCoordinator.analyze(pairID: pair.id, in: modelContext) }
+            }
         } catch {
-            // Capture failed — user can retry
+            captureErrorMessage = "촬영에 실패했습니다. 다시 시도해주세요."
         }
     }
 
@@ -229,7 +233,7 @@ struct ARCameraView: View {
         return (existing, existing.id)
     }
 
-    private func savePhotoFiles(result: ARCaptureResult, pairId: UUID) throws -> Photo {
+    private func savePhotoFiles(result: ARCaptureResult, pairId: UUID) async throws -> Photo {
         let docsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         let subDir = isBefore ? "before" : "after"
         let photoPath = "projects/\(project.id)/pairs/\(pairId)/\(subDir).jpg"
@@ -242,47 +246,40 @@ struct ARCameraView: View {
         try FileManager.default.createDirectory(
             at: thumbURL.deletingLastPathComponent(), withIntermediateDirectories: true
         )
-        if let data = result.image.jpegData(compressionQuality: 0.9) {
-            try data.write(to: photoURL)
-        }
-        let thumbImage = result.image.arThumbnailImage(maxDimension: 300)
-        if let thumbData = thumbImage.jpegData(compressionQuality: 0.8) {
-            try thumbData.write(to: thumbURL)
-        }
+
+        let isBeforeCapture = isBefore
+        let projectId = project.id
+        let sceneDepth = result.sceneDepthMap
+        let depthW = result.sceneDepthWidth
+        let depthH = result.sceneDepthHeight
+
+        let depthRelPath: String? = try await Task.detached(priority: .userInitiated) {
+            if let data = result.image.jpegData(compressionQuality: 0.9) {
+                try data.write(to: photoURL)
+            }
+            let thumb = result.image.arThumbnailImage(maxDimension: 300)
+            if let thumbData = thumb.jpegData(compressionQuality: 0.8) {
+                try thumbData.write(to: thumbURL)
+            }
+            guard isBeforeCapture, let depthData = sceneDepth else { return nil }
+            let rel = "projects/\(projectId)/pairs/\(pairId)/before_depth_\(depthW)x\(depthH).bin"
+            try? depthData.write(to: docsURL.appendingPathComponent(rel))
+            return rel
+        }.value
+
         var transformCopy = result.transform
         let transformData = Data(bytes: &transformCopy, count: MemoryLayout<simd_float4x4>.size)
 
         var intrinsicsCopy = result.intrinsics
         let intrinsicsData = Data(bytes: &intrinsicsCopy, count: MemoryLayout<matrix_float3x3>.size)
 
-        var depthMapRelPath: String?
-        if isBefore, let depthData = result.sceneDepthMap {
-            let depthWidth = result.sceneDepthWidth
-            let depthHeight = result.sceneDepthHeight
-            let depthFileName = "before_depth_\(depthWidth)x\(depthHeight).bin"
-            let depthRelPath = "projects/\(project.id)/pairs/\(pairId)/\(depthFileName)"
-            let depthURL = docsURL.appendingPathComponent(depthRelPath)
-            try? depthData.write(to: depthURL)
-            depthMapRelPath = depthRelPath
-        }
-
         return Photo(
             filePath: photoPath,
             thumbnailPath: thumbPath,
             arTransformData: transformData,
             arIntrinsicsData: intrinsicsData,
-            depthMapPath: depthMapRelPath
+            depthMapPath: depthRelPath
         )
-    }
-
-    private func applyPhotoToPair(pair: PhotoPair, photo: Photo, image _: UIImage) async {
-        if isBefore {
-            pair.beforePhoto = photo
-            pair.status = .pendingAfter
-        } else {
-            pair.afterPhoto = photo
-            pair.status = .complete
-        }
     }
 
     private func startARSession() async {
@@ -295,6 +292,7 @@ struct ARCameraView: View {
         do {
             let worldMap = try arManager.loadWorldMap(from: wmURL)
             arManager.startSession(withWorldMap: worldMap)
+            didLoadWorldMap = true
             await waitForRelocalize()
         } catch {
             arManager.startSession()
@@ -304,6 +302,7 @@ struct ARCameraView: View {
     private func waitForRelocalize() async {
         let deadline = Date().addingTimeInterval(10)
         while Date() < deadline {
+            guard !Task.isCancelled else { return }
             if arManager.trackingState == .normal { return }
             if case let .limited(reason) = arManager.trackingState, reason != .relocalizing { return }
             try? await Task.sleep(for: .milliseconds(200))
@@ -321,8 +320,59 @@ struct ARCameraView: View {
     }
 }
 
+private struct ARTrackingStatusBadge: View {
+    let isBefore: Bool
+    let worldMappingStatus: ARFrame.WorldMappingStatus
+    let trackingState: ARCamera.TrackingState
+
+    var body: some View {
+        VStack(spacing: 6) {
+            if isBefore {
+                switch worldMappingStatus {
+                    case .limited:
+                        Label("AR 맵 구성 중...", systemImage: "map")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(.orange)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 4)
+                            .background(.black.opacity(0.5), in: Capsule())
+                    case .notAvailable, .extending, .mapped:
+                        EmptyView()
+                    @unknown default:
+                        EmptyView()
+                }
+            }
+            switch trackingState {
+                case .normal:
+                    EmptyView()
+                case .notAvailable:
+                    Label("AR 초기화 중", systemImage: "circle.dashed")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 4)
+                        .background(.black.opacity(0.5), in: Capsule())
+                case let .limited(reason):
+                    let text = switch reason {
+                        case .initializing: "환경 인식 중..."
+                        case .relocalizing: "이전 위치 찾는 중..."
+                        case .excessiveMotion: "너무 빠르게 움직이고 있습니다"
+                        case .insufficientFeatures: "특징점 부족 — 주변을 비춰주세요"
+                        @unknown default: "제한적 트래킹"
+                    }
+                    Label(text, systemImage: "exclamationmark.triangle")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(.yellow)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 4)
+                        .background(.black.opacity(0.5), in: Capsule())
+            }
+        }
+    }
+}
+
 private extension UIImage {
-    func arThumbnailImage(maxDimension: CGFloat) -> UIImage {
+    nonisolated func arThumbnailImage(maxDimension: CGFloat) -> UIImage {
         let scale = min(maxDimension / size.width, maxDimension / size.height, 1.0)
         guard scale < 1.0 else { return self }
         let newSize = CGSize(width: size.width * scale, height: size.height * scale)

@@ -36,8 +36,16 @@ nonisolated enum AlignmentService {
         let (tier, resolvedCtx) = resolveTier(context: context)
 
         let resultURL: URL? = try await Task.detached(priority: .userInitiated) {
+            let tier1Fallback = {
+                try performTier1(
+                    beforeURL: beforeURL,
+                    afterURL: afterURL,
+                    outputURL: outputURL,
+                    ciContext: ciCtx
+                )
+            }
             if let ctx = resolvedCtx, tier == "tier3" {
-                try performTier3(
+                return try performTier3(
                     beforeURL: beforeURL,
                     afterURL: afterURL,
                     outputURL: outputURL,
@@ -45,20 +53,15 @@ nonisolated enum AlignmentService {
                     ciContext: ciCtx
                 )
             } else if let ctx = resolvedCtx, tier == "tier2" {
-                try performTier2(
+                return try (try? performTier2(
                     beforeURL: beforeURL,
                     afterURL: afterURL,
                     outputURL: outputURL,
                     context: ctx,
                     ciContext: ciCtx
-                )
+                )) ?? tier1Fallback()
             } else {
-                try performTier1(
-                    beforeURL: beforeURL,
-                    afterURL: afterURL,
-                    outputURL: outputURL,
-                    ciContext: ciCtx
-                )
+                return try tier1Fallback()
             }
         }.value
 
@@ -76,6 +79,7 @@ nonisolated enum AlignmentService {
         return (tier, ctx)
     }
 
+    /// Tier 1: 모든 기기. Vision homography(전역) → optical flow(세부 보정).
     private static func performTier1(
         beforeURL: URL,
         afterURL: URL,
@@ -83,56 +87,44 @@ nonisolated enum AlignmentService {
         ciContext: CIContext
     ) throws -> URL? {
         guard
-            let beforeCG = ImageThumbnailLoader.load(url: beforeURL, maxPixelSize: 3000),
-            let afterCG = ImageThumbnailLoader.load(url: afterURL, maxPixelSize: 3000)
-        else {
+            let beforeCG = ImageThumbnailLoader.load(url: beforeURL, maxPixelSize: 2000, applyTransform: false),
+            let afterCG = ImageThumbnailLoader.load(url: afterURL, maxPixelSize: 2000, applyTransform: false)
+        else { throw AlignmentError.loadFailed }
+
+        let outputOrientation: CGImagePropertyOrientation = beforeCG.width > beforeCG.height ? .right : .up
+        let targetSize = CGSize(width: beforeCG.width, height: beforeCG.height)
+        guard let afterResized = resize(image: afterCG, to: targetSize) else {
             throw AlignmentError.loadFailed
         }
 
-        guard let afterResized = resize(
-            image: afterCG,
-            to: CGSize(width: beforeCG.width, height: beforeCG.height)
-        ) else { throw AlignmentError.loadFailed }
+        // Step 1: Vision homography — 전역 시점 차이 보정 (대규모 이동 처리)
+        let homogRequest = VNHomographicImageRegistrationRequest(targetedCGImage: afterResized, options: [:])
+        let homogHandler = VNImageRequestHandler(cgImage: beforeCG, options: [.ciContext: ciContext])
+        let coarseAligned: CGImage = if (try? homogHandler.perform([homogRequest])) != nil,
+                                        let obs = homogRequest.results?.first,
+                                        let coarseWarped = applyWarp(
+                                            cgImage: afterResized,
+                                            warpTransform: obs.warpTransform,
+                                            afterSize: targetSize,
+                                            context: ciContext
+                                        )
+        {
+            coarseWarped
+        } else {
+            afterResized
+        }
 
-        let request = VNHomographicImageRegistrationRequest(
-            targetedCGImage: afterResized,
-            options: [:]
+        // Step 2: optical flow 세부 보정 (coarse 정렬 후 잔여 오차 제거)
+        let result = refineWithOpticalFlow(
+            before: beforeCG,
+            coarseAligned: coarseAligned,
+            targetSize: targetSize,
+            ciContext: ciContext
         )
 
-        let handler = VNImageRequestHandler(
-            cgImage: beforeCG,
-            options: [.ciContext: ciContext]
-        )
-
-        do {
-            try handler.perform([request])
-        } catch {
-            throw AlignmentError.visionFailed
-        }
-
-        guard let observation = request.results?.first else {
-            return nil
-        }
-
-        guard let warped = applyWarp(
-            cgImage: afterResized,
-            warpTransform: observation.warpTransform,
-            afterSize: CGSize(width: beforeCG.width, height: beforeCG.height),
-            context: ciContext
-        ) else {
-            throw AlignmentError.warpFailed
-        }
-
-        guard let jpeg = makeJpegData(from: warped) else {
-            throw AlignmentError.warpFailed
-        }
-
-        do {
-            try jpeg.write(to: outputURL)
-        } catch {
-            throw AlignmentError.saveFailed
-        }
-
+        guard let jpeg = makeJpegData(from: result, orientation: outputOrientation)
+        else { throw AlignmentError.warpFailed }
+        do { try jpeg.write(to: outputURL) } catch { throw AlignmentError.saveFailed }
         return outputURL
     }
 
@@ -152,19 +144,32 @@ nonisolated enum AlignmentService {
         else { throw AlignmentError.loadFailed }
 
         guard
-            let beforeCG = ImageThumbnailLoader.load(url: beforeURL, maxPixelSize: 3000),
-            let afterCG = ImageThumbnailLoader.load(url: afterURL, maxPixelSize: 3000)
+            let beforeCG = ImageThumbnailLoader.load(url: beforeURL, maxPixelSize: 3000, applyTransform: false),
+            let afterCG = ImageThumbnailLoader.load(url: afterURL, maxPixelSize: 3000, applyTransform: false)
         else { throw AlignmentError.loadFailed }
 
+        let outputOrientation: CGImagePropertyOrientation = beforeCG.width > beforeCG.height ? .right : .up
         let targetSize = CGSize(width: beforeCG.width, height: beforeCG.height)
         guard let afterResized = resize(image: afterCG, to: targetSize) else {
             throw AlignmentError.loadFailed
         }
 
+        // intrinsics를 실제 로드된 이미지 크기로 스케일 (full-res로 저장된 intrinsics 보정)
+        let intrinsicsScale = Float(targetSize.width) / (intrinsics.columns.2.x * 2)
+        let scaledIntrinsics = matrix_float3x3(
+            simd_float3(intrinsics.columns.0.x * intrinsicsScale, 0, 0),
+            simd_float3(0, intrinsics.columns.1.y * intrinsicsScale, 0),
+            simd_float3(
+                intrinsics.columns.2.x * intrinsicsScale,
+                intrinsics.columns.2.y * intrinsicsScale,
+                1
+            )
+        )
+
         let homography = buildPoseHomography(
             beforeTransform: beforeTransform,
             afterTransform: afterTransform,
-            intrinsics: intrinsics,
+            intrinsics: scaledIntrinsics,
             depth: Float(context.depthAtCenter ?? 2.0)
         )
 
@@ -175,7 +180,15 @@ nonisolated enum AlignmentService {
             context: ciContext
         ) else { throw AlignmentError.warpFailed }
 
-        guard let jpeg = makeJpegData(from: warped) else { throw AlignmentError.saveFailed }
+        let result = refineWithOpticalFlow(
+            before: beforeCG,
+            coarseAligned: warped,
+            targetSize: targetSize,
+            ciContext: ciContext
+        )
+
+        guard let jpeg = makeJpegData(from: result, orientation: outputOrientation)
+        else { throw AlignmentError.saveFailed }
         do {
             try jpeg.write(to: outputURL)
         } catch {
@@ -184,9 +197,9 @@ nonisolated enum AlignmentService {
         return outputURL
     }
 
-    /// Tier 3: VNGenerateOpticalFlowRequest 기반 per-pixel displacement Warp.
-    /// 4코너 optical flow displacement로 homography를 계산하여 적용.
-    /// 실패 시 Tier 2로 자동 폴백.
+    /// Tier 3: LiDAR Pro 기기 전용.
+    /// 1순위: depth + pose 3D reprojection(coarse) → optical flow 세부 보정
+    /// 2순위: Tier 1 폴백 (Vision homography + optical flow)
     private static func performTier3(
         beforeURL: URL,
         afterURL: URL,
@@ -195,199 +208,246 @@ nonisolated enum AlignmentService {
         ciContext: CIContext
     ) throws -> URL? {
         guard
-            let beforeCG = ImageThumbnailLoader.load(url: beforeURL, maxPixelSize: 2000),
-            let afterCG = ImageThumbnailLoader.load(url: afterURL, maxPixelSize: 2000)
+            let beforeCG = ImageThumbnailLoader.load(url: beforeURL, maxPixelSize: 2000, applyTransform: false),
+            let afterCG = ImageThumbnailLoader.load(url: afterURL, maxPixelSize: 2000, applyTransform: false)
         else { throw AlignmentError.loadFailed }
 
+        let outputOrientation: CGImagePropertyOrientation = beforeCG.width > beforeCG.height ? .right : .up
         let targetSize = CGSize(width: beforeCG.width, height: beforeCG.height)
         guard let afterResized = resize(image: afterCG, to: targetSize) else {
             throw AlignmentError.loadFailed
         }
 
-        if let warpMatrix = computeOpticalFlowWarp(before: beforeCG, after: afterResized, size: targetSize) {
-            guard let warped = applyWarp(
-                cgImage: afterResized,
-                warpTransform: warpMatrix,
-                afterSize: targetSize,
+        // 1순위: depth + pose 3D reprojection → optical flow 세부 보정
+        if let depthURL = context.beforeDepthMapURL,
+           let beforeTransform = context.beforeTransform,
+           let afterTransform = context.afterTransform,
+           let beforeIntrinsics = context.beforeIntrinsics
+        {
+            let effectiveAfterIntrinsics = context.afterIntrinsics ?? beforeIntrinsics
+            if let depthBuffer = buildDepthDisplacementField(
+                depthURL: depthURL,
+                beforeIntrinsics: beforeIntrinsics,
+                afterIntrinsics: effectiveAfterIntrinsics,
+                beforeTransform: beforeTransform,
+                afterTransform: afterTransform,
+                imageSize: targetSize
+            ), let coarseWarped = applyFullOpticalFlow(
+                after: afterResized,
+                flowBuffer: depthBuffer,
+                imageSize: targetSize,
                 context: ciContext
-            ) else { throw AlignmentError.warpFailed }
-
-            guard let jpeg = makeJpegData(from: warped) else { throw AlignmentError.saveFailed }
-            do {
-                try jpeg.write(to: outputURL)
-            } catch {
-                throw AlignmentError.saveFailed
+            ) {
+                let result = refineWithOpticalFlow(
+                    before: beforeCG,
+                    coarseAligned: coarseWarped,
+                    targetSize: targetSize,
+                    ciContext: ciContext
+                )
+                guard let jpeg = makeJpegData(from: result, orientation: outputOrientation)
+                else { throw AlignmentError.warpFailed }
+                do { try jpeg.write(to: outputURL) } catch { throw AlignmentError.saveFailed }
+                return outputURL
             }
-            return outputURL
         }
 
-        return try performTier2(
+        // 2순위: Tier 1 폴백 (Vision homography + optical flow)
+        return try performTier1(
             beforeURL: beforeURL,
             afterURL: afterURL,
             outputURL: outputURL,
-            context: context,
             ciContext: ciContext
         )
     }
+}
 
-    /// VNGenerateOpticalFlowRequest로 4코너 displacement를 계산해 homography 반환.
-    /// 실패 시 nil 반환하여 폴백 유도.
-    /// applyWarp는 warpTransform.inverse를 취하므로, after→before 방향 행렬의 inverse를 전달.
-    private static func computeOpticalFlowWarp(
+private extension AlignmentService {
+    /// 이미 coarse 정렬된 이미지 위에 optical flow로 세부 보정. 실패 시 coarseAligned 반환.
+    nonisolated static func refineWithOpticalFlow(
+        before: CGImage,
+        coarseAligned: CGImage,
+        targetSize: CGSize,
+        ciContext: CIContext
+    ) -> CGImage {
+        guard let flowBuffer = computeOpticalFlowBuffer(before: before, after: coarseAligned, ciContext: ciContext),
+              let refined = applyFullOpticalFlow(
+                  after: coarseAligned,
+                  flowBuffer: flowBuffer,
+                  imageSize: targetSize,
+                  context: ciContext
+              )
+        else { return coarseAligned }
+        return refined
+    }
+
+    nonisolated static func computeOpticalFlowBuffer(
         before: CGImage,
         after: CGImage,
-        size: CGSize
-    ) -> matrix_float3x3? {
+        ciContext: CIContext
+    ) -> CVPixelBuffer? {
         let request = VNGenerateOpticalFlowRequest(targetedCGImage: after, options: [:])
-        if #available(iOS 16.0, *) {
-            request.revision = VNGenerateOpticalFlowRequestRevision2
-        }
-        request.computationAccuracy = .medium
+        request.revision = VNGenerateOpticalFlowRequestRevision2
+        request.computationAccuracy = .high
 
-        let handler = VNImageRequestHandler(cgImage: before, options: [:])
+        let handler = VNImageRequestHandler(cgImage: before, options: [.ciContext: ciContext])
         guard (try? handler.perform([request])) != nil,
               let flow = request.results?.first
         else { return nil }
+        return flow.pixelBuffer
+    }
 
-        let buffer = flow.pixelBuffer
-        let bufW = CVPixelBufferGetWidth(buffer)
-        let bufH = CVPixelBufferGetHeight(buffer)
+    /// flow buffer(kCVPixelFormatType_TwoComponent32Float)를 CIDisplacementDistortion으로 per-pixel 적용.
+    /// R=x displacement, G=y displacement (Y축은 CIImage bottom-left origin 맞게 반전).
+    nonisolated static func applyFullOpticalFlow(
+        after: CGImage,
+        flowBuffer: CVPixelBuffer,
+        imageSize: CGSize,
+        context: CIContext
+    ) -> CGImage? {
+        let bufW = CVPixelBufferGetWidth(flowBuffer)
+        let bufH = CVPixelBufferGetHeight(flowBuffer)
         guard bufW > 0, bufH > 0 else { return nil }
 
-        CVPixelBufferLockBaseAddress(buffer, .readOnly)
-        defer { CVPixelBufferUnlockBaseAddress(buffer, .readOnly) }
+        // flow 버퍼를 CIImage로 변환 후 입력 이미지 크기로 스케일
+        var flowCI = CIImage(cvPixelBuffer: flowBuffer, options: [.colorSpace: NSNull()])
+        flowCI = flowCI.transformed(by: CGAffineTransform(
+            scaleX: imageSize.width / CGFloat(bufW),
+            y: imageSize.height / CGFloat(bufH)
+        ))
 
-        guard let base = CVPixelBufferGetBaseAddress(buffer) else { return nil }
+        // flow 값을 [0,1]로 정규화 (CIDisplacementDistortion: 0.5 = 무변위, scale=최대변위*2)
+        // Y축 반전: flow 버퍼는 top-left origin, CIImage는 bottom-left origin
+        let maxDisp: CGFloat = 300
+        let nScale = 1.0 / (2.0 * maxDisp)
+        let normalizedFlow = flowCI.applyingFilter("CIColorMatrix", parameters: [
+            "inputRVector": CIVector(x: nScale, y: 0, z: 0, w: 0),
+            "inputGVector": CIVector(x: 0, y: -nScale, z: 0, w: 0),
+            "inputBVector": CIVector(x: 0, y: 0, z: 0, w: 0),
+            "inputAVector": CIVector(x: 0, y: 0, z: 0, w: 0),
+            "inputBiasVector": CIVector(x: 0.5, y: 0.5, z: 0, w: 1),
+        ])
 
-        let bytesPerRow = CVPixelBufferGetBytesPerRow(buffer)
-        let floats = base.assumingMemoryBound(to: Float.self)
-        let scaleX = Float(bufW) / Float(size.width)
-        let scaleY = Float(bufH) / Float(size.height)
-        let imgW = Float(size.width)
-        let imgH = Float(size.height)
+        let warped = CIImage(cgImage: after).clampedToExtent().applyingFilter("CIDisplacementDistortion", parameters: [
+            "inputDisplacementImage": normalizedFlow,
+            "inputScale": 2.0 * maxDisp,
+        ])
 
-        func sample(col: Int, row: Int) -> (Float, Float) {
-            let cl = max(0, min(col, bufW - 1))
-            let rw = max(0, min(row, bufH - 1))
-            let offset = rw * (bytesPerRow / MemoryLayout<Float>.size) + cl * 2
-            return (floats[offset], floats[offset + 1])
-        }
-
-        let (dx0, dy0) = sample(col: 0, row: 0)
-        let (dx1, dy1) = sample(col: Int(imgW * scaleX), row: 0)
-        let (dx2, dy2) = sample(col: Int(imgW * scaleX), row: Int(imgH * scaleY))
-        let (dx3, dy3) = sample(col: 0, row: Int(imgH * scaleY))
-
-        // after 코너 → before 코너: before_pos = after_pos + displacement
-        let srcPts: [(Float, Float)] = [(0, 0), (imgW, 0), (imgW, imgH), (0, imgH)]
-        let dstPts: [(Float, Float)] = [
-            (dx0, dy0),
-            (imgW + dx1, dy1),
-            (imgW + dx2, imgH + dy2),
-            (dx3, imgH + dy3),
-        ]
-
-        // afterToBeforeH: after → before 방향 homography
-        guard let afterToBeforeH = computeHomography(src: srcPts, dst: dstPts) else { return nil }
-        // applyWarp는 내부에서 inverse를 취하므로 beforeToAfterH를 전달해야 afterToBeforeH가 적용됨
-        return safeInverse(afterToBeforeH)
+        return context.createCGImage(warped, from: CGRect(origin: .zero, size: imageSize))
     }
 
-    /// 4점 대응으로 homography 행렬 계산 (DLT, src → dst 방향)
-    private static func computeHomography(
-        src: [(Float, Float)],
-        dst: [(Float, Float)]
-    ) -> matrix_float3x3? {
-        guard src.count == 4, dst.count == 4 else { return nil }
-
-        var equations = [[Float]](repeating: [Float](repeating: 0, count: 9), count: 8)
-        for idx in 0 ..< 4 {
-            let (sx, sy) = src[idx]
-            let (dx, dy) = dst[idx]
-            equations[2 * idx] = [-sx, -sy, -1, 0, 0, 0, dx * sx, dx * sy, dx]
-            equations[2 * idx + 1] = [0, 0, 0, -sx, -sy, -1, dy * sx, dy * sy, dy]
-        }
-
-        guard var coefficients = solveHomographySystem(equations: equations) else { return nil }
-        guard abs(coefficients[8]) > 1e-10 else { return nil }
-        let normalizer = coefficients[8]
-        coefficients = coefficients.map { $0 / normalizer }
-
-        return matrix_float3x3(
-            simd_float3(coefficients[0], coefficients[3], coefficients[6]),
-            simd_float3(coefficients[1], coefficients[4], coefficients[7]),
-            simd_float3(coefficients[2], coefficients[5], coefficients[8])
-        )
+    /// depth map URL 파일명에서 해상도 파싱. 형식: before_depth_{W}x{H}.bin
+    nonisolated static func parseDimensions(from url: URL) -> (Int, Int)? {
+        let name = url.deletingPathExtension().lastPathComponent
+        let parts = name.components(separatedBy: "_")
+        guard let dimStr = parts.last,
+              let xIdx = dimStr.firstIndex(of: "x")
+        else { return nil }
+        let width = Int(String(dimStr[dimStr.startIndex ..< xIdx]))
+        let height = Int(String(dimStr[dimStr.index(after: xIdx)...]))
+        guard let width, let height, width > 0, height > 0 else { return nil }
+        return (width, height)
     }
 
-    /// 8x9 시스템의 최소자승해 (h[8]=1 고정하고 8x8 Gaussian elimination)
-    private static func solveHomographySystem(equations: [[Float]]) -> [Float]? {
-        let size = 9
-        let rowCount = equations.count
-        var normal = [[Float]](repeating: [Float](repeating: 0, count: size), count: size)
-        for kk in 0 ..< rowCount {
-            for ii in 0 ..< size {
-                for jj in 0 ..< size {
-                    normal[ii][jj] += equations[kk][ii] * equations[kk][jj]
+    /// LiDAR depth map + ARKit pose를 이용해 per-pixel displacement buffer 생성.
+    /// before 각 픽셀을 3D로 unproject → after 카메라로 reproject → 픽셀 변위 계산.
+    /// 출력: kCVPixelFormatType_TwoComponent32Float (applyFullOpticalFlow와 동일 포맷)
+    nonisolated static func buildDepthDisplacementField(
+        depthURL: URL,
+        beforeIntrinsics: matrix_float3x3,
+        afterIntrinsics: matrix_float3x3,
+        beforeTransform: simd_float4x4,
+        afterTransform: simd_float4x4,
+        imageSize: CGSize
+    ) -> CVPixelBuffer? {
+        guard let (depthW, depthH) = parseDimensions(from: depthURL),
+              let depthData = try? Data(contentsOf: depthURL),
+              depthData.count >= depthW * depthH * MemoryLayout<Float32>.size
+        else { return nil }
+
+        // before-cam → after-cam 변환 (T_after^{-1} * T_before)
+        let beforeToAfter = afterTransform.inverse * beforeTransform
+
+        // intrinsics를 depth map 해상도로 스케일 (cx*2 ≈ 원본 width 추정)
+        let approxFullW = beforeIntrinsics.columns.2.x * 2
+        let approxFullH = beforeIntrinsics.columns.2.y * 2
+        let fx = beforeIntrinsics.columns.0.x * (Float(depthW) / approxFullW)
+        let fy = beforeIntrinsics.columns.1.y * (Float(depthH) / approxFullH)
+        let cx = beforeIntrinsics.columns.2.x * (Float(depthW) / approxFullW)
+        let cy = beforeIntrinsics.columns.2.y * (Float(depthH) / approxFullH)
+
+        // after intrinsics를 alignment image 해상도로 스케일
+        let approxAfterW = afterIntrinsics.columns.2.x * 2
+        let approxAfterH = afterIntrinsics.columns.2.y * 2
+        let afx = afterIntrinsics.columns.0.x * (Float(imageSize.width) / approxAfterW)
+        let afy = afterIntrinsics.columns.1.y * (Float(imageSize.height) / approxAfterH)
+        let acx = afterIntrinsics.columns.2.x * (Float(imageSize.width) / approxAfterW)
+        let acy = afterIntrinsics.columns.2.y * (Float(imageSize.height) / approxAfterH)
+
+        // depth map → alignment image 좌표 스케일
+        let pixScaleX = Float(imageSize.width) / Float(depthW)
+        let pixScaleY = Float(imageSize.height) / Float(depthH)
+
+        var pixelBuffer: CVPixelBuffer?
+        let bufferAttrs = [kCVPixelBufferIOSurfacePropertiesKey as String: [:]] as CFDictionary
+        guard CVPixelBufferCreate(
+            kCFAllocatorDefault,
+            depthW,
+            depthH,
+            kCVPixelFormatType_TwoComponent32Float,
+            bufferAttrs,
+            &pixelBuffer
+        ) == kCVReturnSuccess, let buffer = pixelBuffer else { return nil }
+
+        CVPixelBufferLockBaseAddress(buffer, [])
+        defer { CVPixelBufferUnlockBaseAddress(buffer, []) }
+
+        guard let outBase = CVPixelBufferGetBaseAddress(buffer) else { return nil }
+        let outFloats = outBase.assumingMemoryBound(to: Float32.self)
+        let outFloatsPerRow = CVPixelBufferGetBytesPerRow(buffer) / MemoryLayout<Float32>.size
+
+        depthData.withUnsafeBytes { rawPtr in
+            guard let depthFloats = rawPtr.baseAddress?.assumingMemoryBound(to: Float32.self) else { return }
+            for row in 0 ..< depthH {
+                for col in 0 ..< depthW {
+                    let depth = depthFloats[row * depthW + col]
+                    let idx = row * outFloatsPerRow + col * 2
+                    guard depth > 0.05, depth < 20.0, depth.isFinite else {
+                        outFloats[idx] = 0; outFloats[idx + 1] = 0
+                        continue
+                    }
+
+                    // depth map pixel → before camera space
+                    let xCam = (Float(col) - cx) * depth / fx
+                    let yCam = (Float(row) - cy) * depth / fy
+
+                    // before-cam → after-cam
+                    let pAfter = beforeToAfter * simd_float4(xCam, yCam, depth, 1)
+                    guard pAfter.z > 0.01 else {
+                        outFloats[idx] = 0; outFloats[idx + 1] = 0
+                        continue
+                    }
+
+                    // after-cam → after image (alignment size)
+                    let uAfter = afx * (pAfter.x / pAfter.z) + acx
+                    let vAfter = afy * (pAfter.y / pAfter.z) + acy
+
+                    // before pixel position in alignment image
+                    outFloats[idx] = Float(col) * pixScaleX - uAfter
+                    outFloats[idx + 1] = Float(row) * pixScaleY - vAfter
                 }
             }
         }
 
-        var system = [[Float]](repeating: [Float](repeating: 0, count: 9), count: 8)
-        var rhs = [Float](repeating: 0, count: 8)
-        for ii in 0 ..< 8 {
-            for jj in 0 ..< 8 {
-                system[ii][jj] = normal[ii][jj]
-            }
-            rhs[ii] = -normal[ii][8]
-        }
-
-        guard var solution = gaussianElimination(system: system, rhs: rhs) else { return nil }
-        solution.append(1.0)
-        return solution
+        return buffer
     }
 
-    /// 8x8 선형 시스템 Gauss-Jordan elimination
-    private static func gaussianElimination(system: [[Float]], rhs: [Float]) -> [Float]? {
-        let size = 8
-        var aug = system
-        for ii in 0 ..< size {
-            aug[ii].append(rhs[ii])
-        }
-
-        for col in 0 ..< size {
-            var pivotRow = col
-            var pivotVal = abs(aug[col][col])
-            for row in (col + 1) ..< size where abs(aug[row][col]) > pivotVal {
-                pivotVal = abs(aug[row][col])
-                pivotRow = row
-            }
-            guard pivotVal > 1e-10 else { return nil }
-            aug.swapAt(col, pivotRow)
-
-            let pivot = aug[col][col]
-            for jj in col ..< (size + 1) {
-                aug[col][jj] /= pivot
-            }
-
-            for row in 0 ..< size where row != col {
-                let factor = aug[row][col]
-                for jj in col ..< (size + 1) {
-                    aug[row][jj] -= factor * aug[col][jj]
-                }
-            }
-        }
-
-        return (0 ..< size).map { aug[$0][size] }
-    }
-
-    private static func buildPoseHomography(
+    nonisolated static func buildPoseHomography(
         beforeTransform: simd_float4x4,
         afterTransform: simd_float4x4,
         intrinsics: matrix_float3x3,
         depth: Float
     ) -> matrix_float3x3 {
-        let tRelative = simd_mul(beforeTransform, afterTransform.inverse)
+        let tRelative = simd_mul(afterTransform.inverse, beforeTransform)
         let rotation = simd_float3x3(
             simd_float3(tRelative.columns.0.x, tRelative.columns.0.y, tRelative.columns.0.z),
             simd_float3(tRelative.columns.1.x, tRelative.columns.1.y, tRelative.columns.1.z),
@@ -418,15 +478,7 @@ nonisolated enum AlignmentService {
         return simd_mul(simd_mul(intrinsics, compensated), intrinsics.inverse)
     }
 
-    private static func safeInverse(_ mat: matrix_float3x3) -> matrix_float3x3? {
-        let det = mat.columns.0.x * (mat.columns.1.y * mat.columns.2.z - mat.columns.2.y * mat.columns.1.z)
-            - mat.columns.1.x * (mat.columns.0.y * mat.columns.2.z - mat.columns.2.y * mat.columns.0.z)
-            + mat.columns.2.x * (mat.columns.0.y * mat.columns.1.z - mat.columns.1.y * mat.columns.0.z)
-        guard abs(det) > 1e-10 else { return nil }
-        return mat.inverse
-    }
-
-    private static func resize(image: CGImage, to size: CGSize) -> CGImage? {
+    nonisolated static func resize(image: CGImage, to size: CGSize) -> CGImage? {
         let width = Int(size.width)
         let height = Int(size.height)
         guard width > 0, height > 0 else { return nil }
@@ -443,7 +495,7 @@ nonisolated enum AlignmentService {
         return context.makeImage()
     }
 
-    private static func applyWarp(
+    nonisolated static func applyWarp(
         cgImage: CGImage,
         warpTransform: matrix_float3x3,
         afterSize: CGSize,
@@ -468,7 +520,7 @@ nonisolated enum AlignmentService {
         let bl = warpedCornerInCI(0, height)
 
         let filter = CIFilter.perspectiveTransform()
-        filter.inputImage = CIImage(cgImage: cgImage)
+        filter.inputImage = CIImage(cgImage: cgImage).clampedToExtent()
         filter.topLeft = tl
         filter.topRight = tr
         filter.bottomRight = br
@@ -478,21 +530,30 @@ nonisolated enum AlignmentService {
         let outputRect = CGRect(x: 0, y: 0, width: afterSize.width, height: afterSize.height)
         return context.createCGImage(outputImage, from: outputRect)
     }
+}
 
-    static func makeJpegData(from cgImage: CGImage) -> Data? {
-        let data = NSMutableData()
-        guard let destination = CGImageDestinationCreateWithData(
-            data as CFMutableData,
-            "public.jpeg" as CFString,
-            1,
-            nil
-        ) else { return nil }
+extension AlignmentService {
+    nonisolated static func makeJpegData(
+        from cgImage: CGImage,
+        orientation: CGImagePropertyOrientation = .up
+    ) -> Data? {
+        let mutableData = CFDataCreateMutable(nil, 0)
+        guard let mutableData,
+              let destination = CGImageDestinationCreateWithData(
+                  mutableData,
+                  "public.jpeg" as CFString,
+                  1,
+                  nil
+              ) else { return nil }
         CGImageDestinationAddImage(
             destination,
             cgImage,
-            [kCGImageDestinationLossyCompressionQuality: 0.85] as CFDictionary
+            [
+                kCGImageDestinationLossyCompressionQuality: 0.85,
+                kCGImagePropertyOrientation: orientation.rawValue,
+            ] as CFDictionary
         )
         guard CGImageDestinationFinalize(destination) else { return nil }
-        return data as Data
+        return mutableData as Data
     }
 }

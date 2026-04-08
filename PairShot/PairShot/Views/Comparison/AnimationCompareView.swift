@@ -52,16 +52,17 @@ struct AnimationCompareView: View {
                 Spacer()
 
                 HStack(spacing: 8) {
-                    ForEach(availableModes, id: \.rawValue) { m in
+                    ForEach(availableModes, id: \.rawValue) { availableMode in
                         Button {
-                            withAnimation(.easeInOut(duration: 0.3)) { mode = m }
+                            withAnimation(.easeInOut(duration: 0.3)) { mode = availableMode }
                         } label: {
-                            Text(m.label)
-                                .font(.system(size: 12, weight: mode == m ? .bold : .regular))
-                                .foregroundStyle(mode == m ? .yellow : .white.opacity(0.7))
+                            Text(availableMode.label)
+                                .font(.system(size: 12, weight: mode == availableMode ? .bold : .regular))
+                                .foregroundStyle(mode == availableMode ? .yellow : .white.opacity(0.7))
                                 .padding(.horizontal, 10)
                                 .padding(.vertical, 6)
-                                .background(mode == m ? Color.white.opacity(0.15) : .clear, in: Capsule())
+                                .background(mode == availableMode ? Color.white.opacity(0.15) : .clear, in: Capsule())
+                                .frame(minHeight: 44)
                         }
                     }
                 }

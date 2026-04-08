@@ -8,6 +8,16 @@ struct ComparisonContainerView: View {
 
     private let storage = PhotoStorageService()
 
+    private var alignmentTierLabel: String? {
+        switch pair.alignmentTierRaw {
+            case "tier1": "기본 보정"
+            case "tier2": "포즈 보정"
+            case "tier3": "정밀 보정"
+            case "failed": "보정 실패"
+            default: nil
+        }
+    }
+
     private var beforeURL: URL? {
         guard pair.beforePhoto != nil,
               let projectId = pair.project?.id
@@ -47,21 +57,12 @@ struct ComparisonContainerView: View {
                     ToolbarItem(placement: .principal) {
                         VStack(spacing: 2) {
                             MatchingScoreBadge(score: pair.matchingScore)
-                            if let tier = pair.alignmentTierRaw {
-                                Text(tier)
+                            if let tierLabel = alignmentTierLabel {
+                                Text(tierLabel)
                                     .font(.system(size: 10, design: .monospaced))
                                     .foregroundStyle(.secondary)
                             }
                         }
-                    }
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        Button {
-                            // F12 share — 미구현
-                        } label: {
-                            Image(systemName: "square.and.arrow.up")
-                                .font(.body.weight(.medium))
-                        }
-                        .disabled(true)
                     }
                 }
                 .ignoresSafeArea(edges: .bottom)

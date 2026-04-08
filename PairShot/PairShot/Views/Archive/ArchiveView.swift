@@ -227,8 +227,8 @@ private struct ProjectRowView: View {
     let project: Project
 
     var body: some View {
-        let total = project.pairs.count
-        let completed = project.pairs.count(where: { $0.status == .complete })
+        let total = project.totalPairCount
+        let completed = project.completePairCount
 
         VStack(alignment: .leading, spacing: 4) {
             Text(project.title)

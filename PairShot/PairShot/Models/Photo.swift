@@ -29,6 +29,7 @@ final class Photo {
 
     var arIntrinsicsData: Data?
     var depthMapPath: String?
+    var arRelocalized: Bool = false
 
     init(
         id: UUID = UUID(),
@@ -51,7 +52,8 @@ final class Photo {
         focalLength: Double? = nil,
         zoomFactor: Double? = nil,
         arIntrinsicsData: Data? = nil,
-        depthMapPath: String? = nil
+        depthMapPath: String? = nil,
+        arRelocalized: Bool = false
     ) {
         self.id = id
         self.filePath = filePath
@@ -74,5 +76,6 @@ final class Photo {
         self.zoomFactor = zoomFactor
         self.arIntrinsicsData = arIntrinsicsData
         self.depthMapPath = depthMapPath
+        self.arRelocalized = arRelocalized
     }
 }
