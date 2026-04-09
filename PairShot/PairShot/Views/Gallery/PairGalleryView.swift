@@ -2,7 +2,7 @@ import SwiftData
 import SwiftUI
 
 struct PairGalleryView: View {
-    @Bindable var project: Project
+    let project: Project
 
     @Environment(\.modelContext) private var modelContext
     @State private var filter: PairFilter = .all
@@ -11,12 +11,24 @@ struct PairGalleryView: View {
     @State private var presentation: GalleryPresentation?
     @State private var sensorManager = SensorManager()
 
-    private let storage = PhotoStorageService()
+    @Query private var allPairs: [PhotoPair]
+
     private let columns = [GridItem(.flexible()), GridItem(.flexible())]
+
+    init(project: Project) {
+        self.project = project
+        let projectID = project.id
+        var descriptor = FetchDescriptor<PhotoPair>(
+            predicate: #Predicate { $0.project?.id == projectID },
+            sortBy: [SortDescriptor(\.createdAt, order: .forward)]
+        )
+        descriptor.relationshipKeyPathsForPrefetching = [\PhotoPair.beforePhoto, \PhotoPair.afterPhoto]
+        _allPairs = Query(descriptor)
+    }
 
     var body: some View {
         ZStack(alignment: .bottom) {
-            if project.pairs.isEmpty {
+            if allPairs.isEmpty {
                 emptyStateView
             } else {
                 ScrollView {
@@ -63,7 +75,7 @@ struct PairGalleryView: View {
                 }
             }
 
-            if !project.pairs.isEmpty {
+            if !allPairs.isEmpty {
                 floatingButtons
                     .padding(.horizontal, 16)
                     .padding(.bottom, 24)
@@ -96,7 +108,7 @@ struct PairGalleryView: View {
     }
 
     private var displayedPairs: [PhotoPair] {
-        let sorted = project.pairs.sorted { lhs, rhs in
+        let sorted = allPairs.sorted { lhs, rhs in
             if lhs.status == rhs.status {
                 return lhs.createdAt < rhs.createdAt
             }
@@ -113,11 +125,11 @@ struct PairGalleryView: View {
     }
 
     private var completedCount: Int {
-        project.completePairCount
+        allPairs.count(where: { $0.status == .complete })
     }
 
     private var totalCount: Int {
-        project.totalPairCount
+        allPairs.count
     }
 
     private var allComplete: Bool {
@@ -205,7 +217,7 @@ struct PairGalleryView: View {
                 }
 
                 Button {
-                    let firstPending = project.pairs.first { $0.status == .pendingAfter }
+                    let firstPending = allPairs.first { $0.status == .pendingAfter }
                     if let pair = firstPending {
                         presentation = .camera(.after(pair: pair))
                     }
@@ -222,9 +234,16 @@ struct PairGalleryView: View {
     }
 
     private func deletePairs(_ pairs: [PhotoPair]) {
+        let projectId = project.id
+        let pairIds = pairs.map(\.id)
         for pair in pairs {
-            storage.deletePair(projectId: project.id, pairId: pair.id)
             modelContext.delete(pair)
+        }
+        Task.detached(priority: .utility) {
+            let service = PhotoStorageService()
+            for id in pairIds {
+                service.deletePair(projectId: projectId, pairId: id)
+            }
         }
     }
 }

@@ -3,6 +3,8 @@ import Foundation
 struct PhotoStorageService {
     private let fileManager = FileManager.default
 
+    nonisolated init() {}
+
     private var documentsURL: URL {
         get throws {
             guard let url = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
@@ -70,21 +72,25 @@ struct PhotoStorageService {
         try fileManager.createDirectory(at: thumbDir, withIntermediateDirectories: true)
     }
 
-    func deleteProject(projectId: UUID) {
-        guard let projectDir = try? projectDirectoryURL(for: projectId) else { return }
-        try? fileManager.removeItem(at: projectDir)
+    nonisolated func deleteProject(projectId: UUID) {
+        let fm = FileManager.default
+        guard let docs = fm.urls(for: .documentDirectory, in: .userDomainMask).first else { return }
+        let projectDir = docs
+            .appendingPathComponent("projects", isDirectory: true)
+            .appendingPathComponent(projectId.uuidString, isDirectory: true)
+        try? fm.removeItem(at: projectDir)
     }
 
-    func deletePair(projectId: UUID, pairId: UUID) {
-        if let pairDir = try? pairDirectoryURL(for: projectId, pairId: pairId) {
-            try? fileManager.removeItem(at: pairDir)
-        }
-        let thumbURLs = [
-            try? thumbnailURL(projectId: projectId, pairId: pairId, isBefore: true),
-            try? thumbnailURL(projectId: projectId, pairId: pairId, isBefore: false),
-        ]
-        for url in thumbURLs.compactMap(\.self) {
-            try? fileManager.removeItem(at: url)
+    nonisolated func deletePair(projectId: UUID, pairId: UUID) {
+        let fm = FileManager.default
+        guard let docs = fm.urls(for: .documentDirectory, in: .userDomainMask).first else { return }
+        let base = docs.appendingPathComponent("projects/\(projectId.uuidString)", isDirectory: true)
+        let pairDir = base.appendingPathComponent("pairs/\(pairId.uuidString)", isDirectory: true)
+        try? fm.removeItem(at: pairDir)
+        let thumbsDir = base.appendingPathComponent("thumbs", isDirectory: true)
+        for suffix in ["before", "after"] {
+            let thumbURL = thumbsDir.appendingPathComponent("\(pairId.uuidString)_\(suffix).jpg")
+            try? fm.removeItem(at: thumbURL)
         }
     }
 

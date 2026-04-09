@@ -7,6 +7,8 @@ final class QualityCheckService {
     private(set) var lastIssue: QualityIssue?
     private(set) var isAnalyzing: Bool = false
 
+    private nonisolated static let deviceRGBColorSpace = CGColorSpaceCreateDeviceRGB()
+
     private let context = CIContext()
 
     func analyze(_ image: UIImage, isLowLight: Bool = false) async -> QualityIssue? {
@@ -75,7 +77,7 @@ final class QualityCheckService {
             rowBytes: 4,
             bounds: CGRect(x: 0, y: 0, width: 1, height: 1),
             format: .RGBA8,
-            colorSpace: CGColorSpaceCreateDeviceRGB()
+            colorSpace: Self.deviceRGBColorSpace
         )
 
         return Double(pixel[0]) + Double(pixel[1]) + Double(pixel[2])
@@ -97,7 +99,7 @@ final class QualityCheckService {
             rowBytes: 64 * 4,
             bounds: CGRect(x: 0, y: 0, width: 64, height: 1),
             format: .RGBA8,
-            colorSpace: CGColorSpaceCreateDeviceRGB()
+            colorSpace: Self.deviceRGBColorSpace
         )
 
         var totalLuminance: Double = 0

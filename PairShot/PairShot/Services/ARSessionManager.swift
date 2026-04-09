@@ -33,6 +33,7 @@ final class ARSessionManager: NSObject {
     private(set) var cameraTransform: simd_float4x4 = matrix_identity_float4x4
     private(set) var hasLiDAR: Bool = false
     private(set) var isARSupported: Bool = false
+    private(set) var sessionErrorMessage: String?
 
     private(set) var savedTransform: simd_float4x4?
 
@@ -127,8 +128,10 @@ final class ARSessionManager: NSObject {
 
     func startSession(withWorldMap worldMap: ARWorldMap? = nil) {
         guard isARSupported else { return }
+        sessionErrorMessage = nil
+        session.pause()
         let config = ARWorldTrackingConfiguration()
-        config.worldAlignment = .gravityAndHeading
+        config.worldAlignment = .gravity
 
         if let hiResFormat = ARWorldTrackingConfiguration.recommendedVideoFormatForHighResolutionFrameCapturing {
             config.videoFormat = hiResFormat
@@ -268,14 +271,18 @@ extension ARSessionManager: ARSessionDelegate {
             guard let self else { return }
             if worldMappingStatus != status { worldMappingStatus = status }
             if trackingState != tracking { trackingState = tracking }
-            cameraTransform = transform
+            if !simd_equal(cameraTransform, transform) { cameraTransform = transform }
         }
     }
 
-    nonisolated func session(_: ARSession, didFailWithError _: Error) {
+    nonisolated func session(_: ARSession, didFailWithError error: Error) {
         Task { @MainActor [weak self] in
             guard let self else { return }
             isSessionRunning = false
+            let nsError = error as NSError
+            sessionErrorMessage = nsError.code == 102
+                ? "나침반/위치 서비스 없이는 AR을 시작할 수 없습니다."
+                : "AR 세션 오류: \(error.localizedDescription)"
         }
     }
 }

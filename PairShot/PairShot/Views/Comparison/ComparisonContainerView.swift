@@ -6,6 +6,8 @@ struct ComparisonContainerView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
 
+    @State private var alignedAfterURLResolved: URL?
+
     private let storage = PhotoStorageService()
 
     private var alignmentTierLabel: String? {
@@ -32,14 +34,14 @@ struct ComparisonContainerView: View {
         return try? storage.photoURL(projectId: projectId, pairId: pair.id, isBefore: false)
     }
 
-    private var alignedAfterURL: URL? {
+    private func resolvedAlignedAfterURL() async -> URL? {
         guard let path = pair.alignedAfterImagePath, !path.isEmpty,
               let projectId = pair.project?.id
         else { return nil }
-        guard let url = try? storage.alignedPhotoURL(projectId: projectId, pairId: pair.id),
-              FileManager.default.fileExists(atPath: url.path)
+        guard let url = try? storage.alignedPhotoURL(projectId: projectId, pairId: pair.id)
         else { return nil }
-        return url
+        let exists = await Task.detached { FileManager.default.fileExists(atPath: url.path) }.value
+        return exists ? url : nil
     }
 
     var body: some View {
@@ -48,7 +50,7 @@ struct ComparisonContainerView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
-                    ToolbarItem(placement: .navigationBarLeading) {
+                    ToolbarItem(placement: .topBarLeading) {
                         Button { dismiss() } label: {
                             Image(systemName: "xmark")
                                 .font(.body.weight(.medium))
@@ -74,6 +76,7 @@ struct ComparisonContainerView: View {
             {
                 await AIAnalysisCoordinator.analyze(pairID: pair.id, in: modelContext)
             }
+            alignedAfterURLResolved = await resolvedAlignedAfterURL()
         }
     }
 
@@ -83,7 +86,7 @@ struct ComparisonContainerView: View {
             AnimationCompareView(
                 beforeURL: before,
                 afterURL: after,
-                alignedAfterURL: alignedAfterURL
+                alignedAfterURL: alignedAfterURLResolved
             )
         } else {
             Text("사진을 불러올 수 없습니다")

@@ -132,6 +132,11 @@ struct ARCameraView: View {
         } message: {
             Text(captureErrorMessage ?? "")
         }
+        .overlay {
+            ARSessionErrorOverlay(errorMessage: arManager.sessionErrorMessage) {
+                Task { await startARSession() }
+            }
+        }
         .task {
             if !arManager.isSessionRunning {
                 await startARSession()
@@ -366,6 +371,35 @@ private struct ARTrackingStatusBadge: View {
                         .padding(.horizontal, 10)
                         .padding(.vertical, 4)
                         .background(.black.opacity(0.5), in: Capsule())
+            }
+        }
+    }
+}
+
+private struct ARSessionErrorOverlay: View {
+    let errorMessage: String?
+    let onRetry: () -> Void
+
+    var body: some View {
+        if let msg = errorMessage {
+            ZStack {
+                Color.black.opacity(0.75).ignoresSafeArea()
+                VStack(spacing: 16) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 44))
+                        .foregroundStyle(.yellow)
+                    Text(msg)
+                        .font(.subheadline)
+                        .foregroundStyle(.white)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 32)
+                    Button("다시 시도", action: onRetry)
+                        .font(.body.weight(.semibold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 32)
+                        .padding(.vertical, 12)
+                        .background(Color.accentColor, in: Capsule())
+                }
             }
         }
     }

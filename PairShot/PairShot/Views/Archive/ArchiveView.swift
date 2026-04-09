@@ -5,6 +5,7 @@ struct ArchiveView: View {
     @Query({
         var descriptor = FetchDescriptor<Project>(sortBy: [.init(\.createdAt, order: .reverse)])
         descriptor.fetchLimit = 200
+        descriptor.relationshipKeyPathsForPrefetching = [\Project.pairs]
         return descriptor
     }()) private var projects: [Project]
     @Environment(\.modelContext) private var modelContext
@@ -20,8 +21,6 @@ struct ArchiveView: View {
     @State private var isSelectionMode = false
     @State private var selectedProjects: Set<UUID> = []
 
-    private let storage = PhotoStorageService()
-
     var body: some View {
         NavigationStack(path: $navigationPath) {
             Group {
@@ -34,27 +33,26 @@ struct ArchiveView: View {
             .navigationTitle("현장 목록")
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
-                    if isSelectionMode {
-                        Button("완료") {
-                            isSelectionMode = false
-                            selectedProjects.removeAll()
-                        }
-                    } else {
-                        Menu {
-                            Button {
-                                showNewProjectSheet = true
-                            } label: {
-                                Label("새 현장 추가", systemImage: "plus")
-                            }
-                            Button {
-                                isSelectionMode = true
-                            } label: {
-                                Label("선택", systemImage: "checkmark.circle")
-                            }
-                        } label: {
-                            Image(systemName: "ellipsis.circle")
-                        }
+                    Button("완료") {
+                        isSelectionMode = false
+                        selectedProjects.removeAll()
                     }
+                    .opacity(isSelectionMode ? 1 : 0)
+                    .allowsHitTesting(isSelectionMode)
+                }
+                ToolbarItem(placement: .primaryAction) {
+                    Menu {
+                        Button { showNewProjectSheet = true } label: {
+                            Label("새 현장 추가", systemImage: "plus")
+                        }
+                        Button { isSelectionMode = true } label: {
+                            Label("선택", systemImage: "checkmark.circle")
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                    }
+                    .opacity(isSelectionMode ? 0 : 1)
+                    .allowsHitTesting(!isSelectionMode)
                 }
                 if isSelectionMode, !selectedProjects.isEmpty {
                     ToolbarItem(placement: .bottomBar) {
@@ -208,18 +206,27 @@ struct ArchiveView: View {
     }
 
     private func deleteProject(_ project: Project) {
-        storage.deleteProject(projectId: project.id)
+        let projectId = project.id
         modelContext.delete(project)
+        Task.detached(priority: .utility) {
+            PhotoStorageService().deleteProject(projectId: projectId)
+        }
     }
 
     private func deleteSelectedProjects() {
         let toDelete = projects.filter { selectedProjects.contains($0.id) }
+        let ids = toDelete.map(\.id)
         for project in toDelete {
-            storage.deleteProject(projectId: project.id)
             modelContext.delete(project)
         }
         selectedProjects.removeAll()
         isSelectionMode = false
+        Task.detached(priority: .utility) {
+            let service = PhotoStorageService()
+            for id in ids {
+                service.deleteProject(projectId: id)
+            }
+        }
     }
 }
 
