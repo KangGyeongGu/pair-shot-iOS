@@ -34,3 +34,10 @@ playground.xcworkspace
 
 # Claude Code local settings
 .claude/settings.local.json
+
+# AI orchestration assets (local-only)
+/.claude/
+/CLAUDE.md
+/AGENTS.md
+/docs/
+/scripts/claude-hooks/
