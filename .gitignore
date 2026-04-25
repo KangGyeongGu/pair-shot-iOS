@@ -41,3 +41,8 @@ playground.xcworkspace
 /AGENTS.md
 /docs/
 /scripts/claude-hooks/
+
+# IDE / build artifacts (local-only)
+/.idea/
+/PairShot/build/
+/archive/
