@@ -81,8 +81,12 @@ struct PairGalleryView: View {
                 )
             }
         }
-        .sheet(item: $preview) { pair in
-            ComparisonPlaceholderView(pair: pair, storage: storage)
+        .fullScreenCover(item: $preview) { pair in
+            ComparisonView(
+                pairs: filteredPairs,
+                startIndex: filteredPairs.firstIndex(where: { $0.id == pair.id }) ?? 0,
+                storage: storage
+            )
         }
     }
 
@@ -223,47 +227,6 @@ private struct PairThumbnailCell: View {
             ThumbnailCache.shared.loadThumbnail(forRelativePath: path, storage: storage)
         }.value
         thumbnail = decoded
-    }
-}
-
-/// **Placeholder** for the comparison modal — P5.1 will replace with the real
-/// before/after split-view + horizontal swipe traversal.
-///
-/// Renders a minimal sheet so the gallery's `.sheet(item:)` plumbing is
-/// already wired and the only Phase 5 change is swapping the View body.
-private struct ComparisonPlaceholderView: View {
-    let pair: PhotoPair
-    let storage: PhotoStorageService
-
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        NavigationStack {
-            VStack(spacing: 16) {
-                if let image = ThumbnailCache.shared.loadThumbnail(
-                    forRelativePath: pair.beforePath,
-                    storage: storage,
-                    pixelSize: 1200
-                ) {
-                    Image(uiImage: image)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(maxWidth: .infinity)
-                }
-                Text(String(localized: "비교 화면은 Phase 5 에서 구현됩니다"))
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal)
-            }
-            .padding()
-            .navigationTitle(String(localized: "비교"))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button(String(localized: "닫기")) { dismiss() }
-                }
-            }
-        }
     }
 }
 
