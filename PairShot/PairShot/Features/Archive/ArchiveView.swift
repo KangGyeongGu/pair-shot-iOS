@@ -23,8 +23,11 @@ enum ArchiveSortOption: String, CaseIterable, Identifiable {
 }
 
 struct ArchiveView: View {
+    @Environment(\.modelContext) private var modelContext
     @State private var sortOption: ArchiveSortOption = .updatedAtDesc
     @State private var showingNewProject: Bool = false
+    @State private var renameTarget: Project?
+    @State private var selection = ProjectSelection()
 
     private let locationServiceFactory: @Sendable @MainActor () -> any LocationProviding
 
@@ -34,40 +37,86 @@ struct ArchiveView: View {
 
     var body: some View {
         NavigationStack {
-            ProjectListContent(sortOption: sortOption)
-                .navigationTitle("프로젝트")
-                .toolbar {
-                    ToolbarItem(placement: .topBarLeading) {
-                        Menu {
-                            Picker("정렬", selection: $sortOption) {
-                                ForEach(ArchiveSortOption.allCases) { option in
-                                    Label(option.label, systemImage: option.systemImage)
-                                        .tag(option)
-                                }
+            ProjectListContent(
+                sortOption: sortOption,
+                selection: selection,
+                onLongPress: { project in
+                    if !selection.isSelectionMode {
+                        selection.enterSelection(with: project.id)
+                    }
+                },
+                onTap: { project in
+                    if selection.isSelectionMode {
+                        selection.toggle(project.id)
+                    }
+                },
+                onRename: { project in
+                    renameTarget = project
+                }
+            )
+            .navigationTitle("프로젝트")
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Menu {
+                        Picker("정렬", selection: $sortOption) {
+                            ForEach(ArchiveSortOption.allCases) { option in
+                                Label(option.label, systemImage: option.systemImage)
+                                    .tag(option)
                             }
-                        } label: {
-                            Label("정렬", systemImage: "arrow.up.arrow.down")
                         }
+                    } label: {
+                        Label("정렬", systemImage: "arrow.up.arrow.down")
                     }
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button {
-                            showingNewProject = true
-                        } label: {
-                            Label("새 프로젝트", systemImage: "plus")
-                        }
+                    .disabled(selection.isSelectionMode)
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showingNewProject = true
+                    } label: {
+                        Label("새 프로젝트", systemImage: "plus")
+                    }
+                    .disabled(selection.isSelectionMode)
+                }
+            }
+            .safeAreaInset(edge: .bottom) {
+                if selection.isSelectionMode {
+                    MultiSelectBottomBar(selection: selection) {
+                        deleteSelected()
                     }
                 }
-                .sheet(isPresented: $showingNewProject) {
-                    NewProjectSheet(locationService: locationServiceFactory())
-                }
+            }
+            .sheet(isPresented: $showingNewProject) {
+                NewProjectSheet(locationService: locationServiceFactory())
+            }
+            .sheet(item: $renameTarget) { project in
+                EditProjectSheet(project: project)
+            }
         }
+    }
+
+    private func deleteSelected() {
+        let ids = selection.selectedIds
+        guard !ids.isEmpty else { return }
+        _ = try? ProjectDeletionService.deleteProjects(ids: ids, in: modelContext)
+        selection.exit()
     }
 }
 
 private struct ProjectListContent: View {
     @Query private var projects: [Project]
 
-    init(sortOption: ArchiveSortOption) {
+    let selection: ProjectSelection
+    let onLongPress: (Project) -> Void
+    let onTap: (Project) -> Void
+    let onRename: (Project) -> Void
+
+    init(
+        sortOption: ArchiveSortOption,
+        selection: ProjectSelection,
+        onLongPress: @escaping (Project) -> Void,
+        onTap: @escaping (Project) -> Void,
+        onRename: @escaping (Project) -> Void
+    ) {
         let descriptor: SortDescriptor<Project>
         switch sortOption {
         case .updatedAtDesc:
@@ -76,6 +125,10 @@ private struct ProjectListContent: View {
             descriptor = SortDescriptor(\.createdAt, order: .reverse)
         }
         _projects = Query(sort: [descriptor])
+        self.selection = selection
+        self.onLongPress = onLongPress
+        self.onTap = onTap
+        self.onRename = onRename
     }
 
     var body: some View {
@@ -88,7 +141,24 @@ private struct ProjectListContent: View {
                 )
             } else {
                 List(projects) { project in
-                    ProjectRow(project: project)
+                    ProjectRow(
+                        project: project,
+                        isSelectionMode: selection.isSelectionMode,
+                        isSelected: selection.contains(project.id)
+                    )
+                    .contentShape(.rect)
+                    .onTapGesture { onTap(project) }
+                    .onLongPressGesture(minimumDuration: 0.4) { onLongPress(project) }
+                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                        if !selection.isSelectionMode {
+                            Button {
+                                onRename(project)
+                            } label: {
+                                Label("이름 변경", systemImage: "pencil")
+                            }
+                            .tint(.indigo)
+                        }
+                    }
                 }
             }
         }
@@ -97,6 +167,8 @@ private struct ProjectListContent: View {
 
 private struct ProjectRow: View {
     let project: Project
+    let isSelectionMode: Bool
+    let isSelected: Bool
 
     private var displayTitle: String {
         project.title.isEmpty ? "(이름 없음)" : project.title
@@ -107,18 +179,25 @@ private struct ProjectRow: View {
     private var combinedCount: Int { project.pairs.filter { $0.combinedPath != nil }.count }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Text(displayTitle).font(.headline)
-                Spacer()
-                Text(project.updatedAt, format: .dateTime.month().day())
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+        HStack(spacing: 12) {
+            if isSelectionMode {
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .foregroundStyle(isSelected ? Color.accentColor : .secondary)
+                    .font(.title3)
             }
-            HStack(spacing: 8) {
-                CountBadge(label: "페어", count: pairCount, tint: .blue)
-                CountBadge(label: "완료", count: completedCount, tint: .green)
-                CountBadge(label: "합성", count: combinedCount, tint: .purple)
+            VStack(alignment: .leading, spacing: 6) {
+                HStack {
+                    Text(displayTitle).font(.headline)
+                    Spacer()
+                    Text(project.updatedAt, format: .dateTime.month().day())
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                HStack(spacing: 8) {
+                    CountBadge(label: "페어", count: pairCount, tint: .blue)
+                    CountBadge(label: "완료", count: completedCount, tint: .green)
+                    CountBadge(label: "합성", count: combinedCount, tint: .purple)
+                }
             }
         }
         .padding(.vertical, 4)
