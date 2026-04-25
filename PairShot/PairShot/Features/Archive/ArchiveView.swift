@@ -24,6 +24,13 @@ enum ArchiveSortOption: String, CaseIterable, Identifiable {
 
 struct ArchiveView: View {
     @State private var sortOption: ArchiveSortOption = .updatedAtDesc
+    @State private var showingNewProject: Bool = false
+
+    private let locationServiceFactory: @Sendable @MainActor () -> any LocationProviding
+
+    init(locationServiceFactory: @escaping @Sendable @MainActor () -> any LocationProviding = { CoreLocationService() }) {
+        self.locationServiceFactory = locationServiceFactory
+    }
 
     var body: some View {
         NavigationStack {
@@ -42,6 +49,16 @@ struct ArchiveView: View {
                             Label("정렬", systemImage: "arrow.up.arrow.down")
                         }
                     }
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            showingNewProject = true
+                        } label: {
+                            Label("새 프로젝트", systemImage: "plus")
+                        }
+                    }
+                }
+                .sheet(isPresented: $showingNewProject) {
+                    NewProjectSheet(locationService: locationServiceFactory())
                 }
         }
     }
