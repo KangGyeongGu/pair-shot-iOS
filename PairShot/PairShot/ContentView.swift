@@ -1,61 +1,35 @@
-//
-//  ContentView.swift
-//  PairShot
-//
-//  Created by KKK on 3/31/26.
-//
-
-import SwiftUI
 import SwiftData
+import SwiftUI
 
 struct ContentView: View {
-    @Environment(\.modelContext) private var modelContext
-    @Query private var items: [Item]
+    @Query(sort: \Project.updatedAt, order: .reverse) private var projects: [Project]
 
     var body: some View {
-        NavigationSplitView {
-            List {
-                ForEach(items) { item in
-                    NavigationLink {
-                        Text("Item at \(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))")
-                    } label: {
-                        Text(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))
+        NavigationStack {
+            Group {
+                if projects.isEmpty {
+                    ContentUnavailableView(
+                        "프로젝트 없음",
+                        systemImage: "folder.badge.plus",
+                        description: Text("Phase 1.2에서 프로젝트 생성 UI 추가 예정")
+                    )
+                } else {
+                    List(projects) { project in
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(project.title).font(.headline)
+                            Text(project.createdAt, format: .dateTime)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
                     }
                 }
-                .onDelete(perform: deleteItems)
             }
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
-                }
-                ToolbarItem {
-                    Button(action: addItem) {
-                        Label("Add Item", systemImage: "plus")
-                    }
-                }
-            }
-        } detail: {
-            Text("Select an item")
-        }
-    }
-
-    private func addItem() {
-        withAnimation {
-            let newItem = Item(timestamp: Date())
-            modelContext.insert(newItem)
-        }
-    }
-
-    private func deleteItems(offsets: IndexSet) {
-        withAnimation {
-            for index in offsets {
-                modelContext.delete(items[index])
-            }
+            .navigationTitle("PairShot")
         }
     }
 }
 
 #Preview {
     ContentView()
-        .modelContainer(for: Item.self, inMemory: true)
+        .modelContainer(for: [Project.self, PhotoPair.self], inMemory: true)
 }

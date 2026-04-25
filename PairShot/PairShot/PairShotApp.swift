@@ -1,23 +1,13 @@
-//
-//  PairShotApp.swift
-//  PairShot
-//
-//  Created by KKK on 3/31/26.
-//
-
-import SwiftUI
 import SwiftData
+import SwiftUI
 
 @main
 struct PairShotApp: App {
-    var sharedModelContainer: ModelContainer = {
-        let schema = Schema([
-            Item.self,
-        ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
-
+    let sharedModelContainer: ModelContainer = {
+        let schema = Schema([Project.self, PhotoPair.self])
+        let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
         do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
+            return try ModelContainer(for: schema, configurations: [configuration])
         } catch {
             fatalError("Could not create ModelContainer: \(error)")
         }
