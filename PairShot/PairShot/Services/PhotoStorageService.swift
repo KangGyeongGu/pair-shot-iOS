@@ -45,6 +45,18 @@ struct PhotoStorageService {
         return "\(Self.photosDirectoryName)/\(fileName)"
     }
 
+    /// Writes `jpegData` to `photos/<UUID>.jpg` and returns the relative path
+    /// `photos/<UUID>.jpg` for storage in `PhotoPair.afterPath`. Uses the same
+    /// directory layout as `saveBeforeJPEG` — the `before` / `after` distinction
+    /// is purely semantic at the call site.
+    nonisolated func saveAfterJPEG(_ jpegData: Data, fileID: UUID = UUID()) throws -> String {
+        try ensureDirectoryExists()
+        let fileName = "\(fileID.uuidString).jpg"
+        let fileURL = photosDirectory.appendingPathComponent(fileName)
+        try jpegData.write(to: fileURL, options: .atomic)
+        return "\(Self.photosDirectoryName)/\(fileName)"
+    }
+
     /// Resolves a relative path produced by `saveBeforeJPEG` back to an
     /// absolute URL. Returns `nil` if `relativePath` is blank.
     nonisolated func resolve(relativePath: String) -> URL? {
