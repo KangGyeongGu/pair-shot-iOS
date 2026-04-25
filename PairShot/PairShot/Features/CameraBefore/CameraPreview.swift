@@ -7,11 +7,11 @@ import UIKit
 struct CameraPreview: UIViewRepresentable {
     let session: AVCaptureSession
 
-    func makeUIView(context: Context) -> CameraPreviewView {
+    func makeUIView(context _: Context) -> CameraPreviewView {
         CameraPreviewView(session: session)
     }
 
-    func updateUIView(_ uiView: CameraPreviewView, context: Context) {
+    func updateUIView(_: CameraPreviewView, context _: Context) {
         // Session reference is stable for the view's lifetime — no update needed.
     }
 }
@@ -37,7 +37,7 @@ final class CameraPreviewView: UIView {
     }
 
     @available(*, unavailable)
-    required init?(coder: NSCoder) {
+    required init?(coder _: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
 }
