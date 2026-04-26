@@ -22,6 +22,7 @@ struct AfterCameraView: View {
 
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.scenePhase) private var scenePhase
     @Environment(AppSettings.self) private var appSettings
 
     @State private var sessionHolder = CameraSessionHolder()
@@ -89,6 +90,27 @@ struct AfterCameraView: View {
         }
         .onDisappear {
             Task { await sessionHolder.session.stop() }
+        }
+        // Audit-B — same scenePhase handling as ``BeforeCameraView``:
+        // background → stop the session, .active → restart so the
+        // user returns to a live preview without having to dismiss
+        // and re-enter the screen.
+        .onChange(of: scenePhase) { _, newPhase in
+            handleScenePhaseChange(newPhase)
+        }
+    }
+
+    private func handleScenePhaseChange(_ newPhase: ScenePhase) {
+        guard cameraPermissionGranted == true else { return }
+        switch CameraScenePhaseGate.action(for: newPhase) {
+            case .stop:
+                Task { await sessionHolder.session.stop() }
+
+            case .start:
+                Task { await sessionHolder.session.start() }
+
+            case nil:
+                break
         }
     }
 

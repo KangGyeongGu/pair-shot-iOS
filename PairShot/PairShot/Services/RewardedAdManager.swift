@@ -1,3 +1,4 @@
+import AppTrackingTransparency
 import Foundation
 import Observation
 import UIKit
@@ -104,8 +105,13 @@ final class RewardedAdManager {
         guard !isLoaded, !isLoading else { return }
         let resolvedUnitID = adUnitID ?? AdsConfig.rewarded
         #if canImport(GoogleMobileAds)
+            // Audit-B — funnel through `AdRequestBuilder` so the npa
+            // signal is attached when ATT is denied / restricted.
+            guard let request = AdRequestBuilder.build(
+                isAdFree: adFreeStore?.isAdFree ?? false,
+                attStatus: ATTrackingManager.trackingAuthorizationStatus
+            ) else { return }
             isLoading = true
-            let request = GADRequest()
             GADRewardedAd.load(
                 withAdUnitID: resolvedUnitID,
                 request: request

@@ -1,3 +1,4 @@
+import AppTrackingTransparency
 import Foundation
 import Observation
 import UIKit
@@ -97,8 +98,15 @@ final class InterstitialAdManager {
         guard !isLoaded, !isLoading else { return }
         let resolvedUnitID = adUnitID ?? AdsConfig.interstitial
         #if canImport(GoogleMobileAds)
+            // Audit-B — funnel through `AdRequestBuilder` so the npa
+            // signal is attached when the user has denied / restricted
+            // ATT. The helper also re-asserts the AdFree guard so a
+            // future caller wiring won't accidentally bypass it.
+            guard let request = AdRequestBuilder.build(
+                isAdFree: adFreeStore?.isAdFree ?? false,
+                attStatus: ATTrackingManager.trackingAuthorizationStatus
+            ) else { return }
             isLoading = true
-            let request = GADRequest()
             GADInterstitialAd.load(
                 withAdUnitID: resolvedUnitID,
                 request: request

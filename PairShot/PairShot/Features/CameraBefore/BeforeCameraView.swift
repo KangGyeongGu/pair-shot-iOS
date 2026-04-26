@@ -11,6 +11,7 @@ struct BeforeCameraView: View {
 
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.scenePhase) private var scenePhase
     @Environment(AppSettings.self) private var appSettings
 
     @State private var sessionHolder = CameraSessionHolder()
@@ -100,6 +101,30 @@ struct BeforeCameraView: View {
         .onDisappear {
             Task { await sessionHolder.session.stop() }
             motion.stop()
+        }
+        // Audit-B — release the AVCaptureSession when the app is sent
+        // to the background so it doesn't keep the camera lit / drain
+        // battery while the user is elsewhere. Re-start when the app
+        // returns to .active. The view's own .task handles the
+        // very first start-up so we deliberately skip it here.
+        .onChange(of: scenePhase) { _, newPhase in
+            handleScenePhaseChange(newPhase)
+        }
+    }
+
+    private func handleScenePhaseChange(_ newPhase: ScenePhase) {
+        guard cameraPermissionGranted == true else { return }
+        switch CameraScenePhaseGate.action(for: newPhase) {
+            case .stop:
+                Task { await sessionHolder.session.stop() }
+                motion.stop()
+
+            case .start:
+                Task { await sessionHolder.session.start() }
+                if isLevelOn { motion.start() }
+
+            case nil:
+                break
         }
     }
 
@@ -195,34 +220,5 @@ struct BeforeCameraView: View {
     }
 }
 
-/// Holds the actor + cached, view-side capability snapshots so the SwiftUI
-/// gesture closures can read them synchronously without `await`.
-@MainActor
-@Observable
-final class CameraSessionHolder {
-    let session: CameraSession
-    var cachedExposureRange: ClosedRange<Float>?
-    private var supportedPresets: Set<ZoomPreset> = []
-
-    init() {
-        session = CameraSession()
-    }
-
-    func refreshCapabilities() async {
-        cachedExposureRange = await session.exposureBiasRange
-
-        var supported: Set<ZoomPreset> = []
-        for preset in ZoomPreset.allCases {
-            if await session.isPresetSupported(preset) {
-                supported.insert(preset)
-            }
-        }
-        supportedPresets = supported
-    }
-
-    nonisolated func isPresetSupported(_ preset: ZoomPreset) -> Bool {
-        // SwiftUI calls this from view body — read the cached snapshot.
-        // Captured via MainActor.assumeIsolated to satisfy strict concurrency.
-        MainActor.assumeIsolated { supportedPresets.contains(preset) }
-    }
-}
+// CameraSessionHolder lives in `CameraSessionHolder.swift` (Audit-B
+// extraction) so this file stays under the 250-line view cap.

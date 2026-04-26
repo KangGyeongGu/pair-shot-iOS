@@ -30,6 +30,14 @@ struct PairShotApp: App {
     @State private var hasPresentedColdStartAppOpen = false
     /// Audit-A — surfaces the in-memory fallback alert via `ContentView`.
     @State private var showFallbackAlert: Bool
+    /// Audit-B — most recent observed scene phase. Used by
+    /// ``handleScenePhaseChange(_:)`` to distinguish a true
+    /// `.background → .active` foreground re-entry (where an App Open
+    /// ad is appropriate) from an `.inactive → .active` transient
+    /// (e.g. dismissing a system alert / control centre / phone call
+    /// banner) where presenting an App Open ad would interrupt the
+    /// user mid-task.
+    @State private var lastScenePhase: ScenePhase = .background
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
@@ -118,30 +126,54 @@ struct PairShotApp: App {
     }
 
     private func handleScenePhaseChange(_ phase: ScenePhase) {
-        switch phase {
-            case .active:
-                Task { @MainActor in
-                    adFreeStore.refresh()
-                    interstitialManager.loadIfNeeded(adFreeStore: adFreeStore)
-                    appOpenManager.loadIfNeeded(adFreeStore: adFreeStore)
-                    rewardedManager.loadIfNeeded(adFreeStore: adFreeStore)
-                    nativeAdLoader.prefetch(count: 5, adFreeStore: adFreeStore)
-                    // Skip the App Open ad on the very first `.active`
-                    // event after launch — that's covered by the
-                    // cold-start path in `.task` above.
-                    guard hasPresentedColdStartAppOpen else { return }
-                    await appOpenManager.presentIfReady(
-                        coldStart: false,
-                        from: BannerAdView.resolveRootViewController(),
-                        coordinator: coordinator,
-                        adFreeStore: adFreeStore
-                    )
-                }
-            case .background, .inactive:
-                break
-            @unknown default:
-                break
+        // Audit-B — record the previous phase before any branching so
+        // both early returns and the async block see a consistent
+        // `previous` snapshot.
+        let previous = lastScenePhase
+        defer { lastScenePhase = phase }
+
+        guard phase == .active else { return }
+
+        Task { @MainActor in
+            adFreeStore.refresh()
+            interstitialManager.loadIfNeeded(adFreeStore: adFreeStore)
+            appOpenManager.loadIfNeeded(adFreeStore: adFreeStore)
+            rewardedManager.loadIfNeeded(adFreeStore: adFreeStore)
+            nativeAdLoader.prefetch(count: 5, adFreeStore: adFreeStore)
+            // Skip the App Open ad on the very first `.active` event
+            // after launch — that's covered by the cold-start path in
+            // `.task` above.
+            guard hasPresentedColdStartAppOpen else { return }
+            // Audit-B — only present on a real foreground re-entry
+            // (`.background → .active`). `.inactive → .active`
+            // returning from a transient interruption (control
+            // centre / phone banner / system alert) must NOT trigger
+            // an ad.
+            guard AppOpenScenePhaseGate.shouldPresent(previous: previous, current: phase) else {
+                return
+            }
+            await appOpenManager.presentIfReady(
+                coldStart: false,
+                from: BannerAdView.resolveRootViewController(),
+                coordinator: coordinator,
+                adFreeStore: adFreeStore
+            )
         }
+    }
+}
+
+/// Audit-B — pure decision: should an App Open ad fire on the given
+/// scene-phase transition?
+///
+/// The App Open surface should only follow a real foreground re-entry
+/// (`.background → .active`), never a transient interruption
+/// (`.inactive → .active` from a system alert / control centre / phone
+/// call banner). Pulling this out keeps the policy unit-testable
+/// without spinning up a SwiftUI scene.
+enum AppOpenScenePhaseGate {
+    static func shouldPresent(previous: ScenePhase, current: ScenePhase) -> Bool {
+        guard current == .active else { return false }
+        return previous == .background
     }
 }
 
@@ -165,12 +197,12 @@ struct ModelContainerBootstrap {
     let container: ModelContainer
     let fallbackActive: Bool
 
-    static func bootstrap() -> ModelContainerBootstrap {
+    static func bootstrap() -> Self {
         let schema = Schema([Project.self, PhotoPair.self, Coupon.self])
         do {
             let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
             let container = try ModelContainer(for: schema, configurations: [configuration])
-            return ModelContainerBootstrap(container: container, fallbackActive: false)
+            return Self(container: container, fallbackActive: false)
         } catch {
             // Disk-backed open failed — likely corrupt store or
             // incompatible migration. Try an in-memory fallback so we
@@ -178,7 +210,7 @@ struct ModelContainerBootstrap {
             do {
                 let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
                 let container = try ModelContainer(for: schema, configurations: [configuration])
-                return ModelContainerBootstrap(container: container, fallbackActive: true)
+                return Self(container: container, fallbackActive: true)
             } catch {
                 // Both stores failed — system is in a state we cannot
                 // recover from in-process. Re-emit the original error

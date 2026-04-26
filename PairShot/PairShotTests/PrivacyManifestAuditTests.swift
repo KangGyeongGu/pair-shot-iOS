@@ -124,26 +124,57 @@ final class PrivacyManifestAuditTests: XCTestCase {
         )
     }
 
-    func testCollectedDataTypesAreNotTrackingAndIncludeAppFunctionality() throws {
+    func testCollectedDataTypesEachDeclareTrackingAndPurposes() throws {
+        // Audit-B: previously every collected entry asserted
+        // `Tracking=NO` + `AppFunctionality`, which was correct for
+        // the original Photo/Location pair. The Audit-B AdvertisingData
+        // entry (Google Mobile Ads IDFA) intentionally declares
+        // `Tracking=YES` + `ThirdPartyAdvertising`, so the audit now
+        // only verifies *presence* of both fields and asserts the
+        // type-specific policy below.
         let manifest = try XCTUnwrap(loadManifest())
         let collected = try XCTUnwrap(manifest["NSPrivacyCollectedDataTypes"] as? [[String: Any]])
         for (index, entry) in collected.enumerated() {
-            let tracking = try XCTUnwrap(
+            _ = try XCTUnwrap(
                 entry["NSPrivacyCollectedDataTypeTracking"] as? Bool,
                 "entry \(index) missing NSPrivacyCollectedDataTypeTracking"
-            )
-            XCTAssertFalse(
-                tracking,
-                "entry \(index): we never use Photo/Location for cross-app tracking"
             )
             let purposes = try XCTUnwrap(
                 entry["NSPrivacyCollectedDataTypePurposes"] as? [String],
                 "entry \(index) missing NSPrivacyCollectedDataTypePurposes"
             )
-            XCTAssertTrue(
-                purposes.contains("NSPrivacyCollectedDataTypePurposeAppFunctionality"),
-                "entry \(index): all collected data is for app functionality only"
+            XCTAssertGreaterThan(
+                purposes.count,
+                0,
+                "entry \(index): purposes array must be non-empty"
             )
+        }
+    }
+
+    func testPhotoAndLocationCollectedTypesAreNotTracking() throws {
+        // Photo + Location are app-internal — they must never be
+        // marked as tracking. This guard preserves the original
+        // policy after the AdvertisingData entry was added.
+        let manifest = try XCTUnwrap(loadManifest())
+        let collected = try XCTUnwrap(manifest["NSPrivacyCollectedDataTypes"] as? [[String: Any]])
+        for entry in collected {
+            guard
+                let type = entry["NSPrivacyCollectedDataType"] as? String,
+                let tracking = entry["NSPrivacyCollectedDataTypeTracking"] as? Bool
+            else {
+                continue
+            }
+            switch type {
+                case "NSPrivacyCollectedDataTypePreciseLocation",
+                     "NSPrivacyCollectedDataTypePhotosorVideos":
+                    XCTAssertFalse(
+                        tracking,
+                        "\(type) must declare Tracking=NO — never used for cross-app tracking"
+                    )
+
+                default:
+                    continue
+            }
         }
     }
 }

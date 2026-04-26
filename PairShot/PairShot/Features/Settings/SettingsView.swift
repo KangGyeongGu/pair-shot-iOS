@@ -61,7 +61,16 @@ struct SettingsView: View {
     private var compositionSection: some View {
         Section {
             NavigationLink {
-                CompositionSettingsView()
+                // Audit-B (P6.7 wire-up) — wrap the destination in
+                // ``CompositionSettingsGate`` so non-AdFree users must
+                // watch a rewarded ad before reaching the screen. The
+                // gate itself short-circuits to the child view when
+                // AdFree is active or the unlock has already been
+                // granted this session, so the AdFree path stays
+                // identical.
+                CompositionSettingsGate {
+                    CompositionSettingsView()
+                }
             } label: {
                 SettingsRow(
                     title: String(localized: "합성"),
@@ -168,6 +177,8 @@ private struct SettingsViewPreviewWrapper: View {
             .modelContainer(container)
             .environment(AppSettings(defaults: UserDefaults(suiteName: "preview") ?? .standard))
             .environment(AdFreeStore(context: container.mainContext))
+            .environment(RewardedAdManager())
+            .environment(\.fullscreenAdCoordinator, FullscreenAdCoordinator())
     }
 }
 

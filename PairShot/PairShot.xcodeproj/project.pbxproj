@@ -6,6 +6,11 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		6349589A2F7C17CA00622982 /* GoogleMobileAds in Frameworks */ = {isa = PBXBuildFile; productRef = 6349589B2F7C17CA00622982 /* GoogleMobileAds */; };
+		7A0000012F7C20000000ZIP1 /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = 7A0000022F7C20000000ZIP2 /* ZIPFoundation */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		6349584A2F7C17CA00622982 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -23,11 +28,6 @@
 		};
 /* End PBXContainerItemProxy section */
 
-/* Begin PBXBuildFile section */
-		6349589A2F7C17CA00622982 /* GoogleMobileAds in Frameworks */ = {isa = PBXBuildFile; productRef = 6349589B2F7C17CA00622982 /* GoogleMobileAds */; };
-		7A0000012F7C20000000ZIP1 /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = 7A0000022F7C20000000ZIP2 /* ZIPFoundation */; };
-/* End PBXBuildFile section */
-
 /* Begin PBXFileReference section */
 		6349583A2F7C17C900622982 /* PairShot.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PairShot.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		634958492F7C17CA00622982 /* PairShotTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PairShotTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -37,12 +37,12 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		6349589D2F7C17CA00622982 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+		6349589D2F7C17CA00622982 /* Exceptions for "PairShot" folder in "PairShot" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				Info.plist,
 				Config/Debug.xcconfig,
 				Config/Release.xcconfig,
+				Info.plist,
 			);
 			target = 634958392F7C17C900622982 /* PairShot */;
 		};
@@ -52,7 +52,7 @@
 		6349583C2F7C17C900622982 /* PairShot */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				6349589D2F7C17CA00622982 /* PBXFileSystemSynchronizedBuildFileExceptionSet */,
+				6349589D2F7C17CA00622982 /* Exceptions for "PairShot" folder in "PairShot" target */,
 			);
 			path = PairShot;
 			sourceTree = "<group>";
@@ -107,15 +107,6 @@
 			);
 			sourceTree = "<group>";
 		};
-		7A0000132F7C30000000XCG1 /* Config */ = {
-			isa = PBXGroup;
-			children = (
-				7A0000112F7C30000000XCD1 /* Debug.xcconfig */,
-				7A0000122F7C30000000XCR1 /* Release.xcconfig */,
-			);
-			name = Config;
-			sourceTree = "<group>";
-		};
 		6349583B2F7C17C900622982 /* Products */ = {
 			isa = PBXGroup;
 			children = (
@@ -124,6 +115,15 @@
 				634958532F7C17CA00622982 /* PairShotUITests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		7A0000132F7C30000000XCG1 /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				7A0000112F7C30000000XCD1 /* Debug.xcconfig */,
+				7A0000122F7C30000000XCR1 /* Release.xcconfig */,
+			);
+			name = Config;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */

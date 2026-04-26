@@ -1,3 +1,4 @@
+import AppTrackingTransparency
 import SwiftUI
 import UIKit
 #if canImport(GoogleMobileAds)
@@ -64,7 +65,17 @@ struct BannerAdView: UIViewRepresentable {
             let view = GADBannerView(adSize: GADAdSizeBanner)
             view.adUnitID = adUnitID
             view.rootViewController = Self.resolveRootViewController()
-            view.load(GADRequest())
+            // Audit-B — `BannerAdSlot` already gated the AdFree path,
+            // so by the time we land in `makeUIView` we know
+            // `isAdFree == false`. We still funnel through
+            // `AdRequestBuilder` so the npa extra is attached when
+            // ATT is denied / restricted, mirroring every other ad
+            // surface.
+            let request = AdRequestBuilder.build(
+                isAdFree: false,
+                attStatus: ATTrackingManager.trackingAuthorizationStatus
+            ) ?? GADRequest()
+            view.load(request)
             return view
         }
 

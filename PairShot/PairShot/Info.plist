@@ -51,17 +51,21 @@
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<key>GADApplicationIdentifier</key>
-	<string>ca-app-pub-3940256099942544~1458002511</string>
+	<string>$(GAD_APPLICATION_ID)</string>
 	<key>AdUnitID_Banner</key>
 	<string>$(ADUNIT_ID_BANNER)</string>
 	<key>AdUnitID_Interstitial</key>
 	<string>$(ADUNIT_ID_INTERSTITIAL)</string>
 	<key>AdUnitID_Rewarded</key>
 	<string>$(ADUNIT_ID_REWARDED)</string>
+	<key>AdUnitID_RewardedInterstitial</key>
+	<string>$(ADUNIT_ID_REWARDED_INTERSTITIAL)</string>
 	<key>AdUnitID_Native</key>
 	<string>$(ADUNIT_ID_NATIVE)</string>
 	<key>AdUnitID_AppOpen</key>
 	<string>$(ADUNIT_ID_APP_OPEN)</string>
+	<key>CouponPublicKeyBase64</key>
+	<string>$(COUPON_PUBLIC_KEY)</string>
 	<key>SKAdNetworkItems</key>
 	<array>
 		<dict>

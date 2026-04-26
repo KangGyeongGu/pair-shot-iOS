@@ -1,3 +1,4 @@
+import AppTrackingTransparency
 import Foundation
 import Observation
 import UIKit
@@ -27,21 +28,18 @@ enum AppOpenAdGate {
     ///   - minimumInterval: Minimum elapsed seconds between presentations.
     /// - Returns: `true` when an App Open ad attempt is allowed.
     static func shouldPresent(
-        coldStart: Bool,
+        coldStart _: Bool,
         lastShownAt: Date?,
         now: Date,
         minimumInterval: TimeInterval = defaultMinimumInterval
     ) -> Bool {
-        // Cold-start uses the same cap so a fast app-quit-and-relaunch
-        // doesn't double-count. Without this, a user can re-trigger the
-        // ad surface intentionally.
+        // Audit-B — `coldStart` is intentionally ignored. Both
+        // lifecycle paths share the same elapsed-since-last cap so a
+        // fast app-quit-and-relaunch can't bypass the gate. The
+        // parameter is kept so callers can still document intent at
+        // the call site, but the policy is symmetric.
         guard let lastShownAt else { return true }
-        let elapsed = now.timeIntervalSince(lastShownAt)
-        if coldStart {
-            return elapsed >= minimumInterval
-        } else {
-            return elapsed >= minimumInterval
-        }
+        return now.timeIntervalSince(lastShownAt) >= minimumInterval
     }
 }
 
@@ -99,8 +97,13 @@ final class AppOpenAdManager {
         guard !isLoaded, !isLoading else { return }
         let resolvedUnitID = adUnitID ?? AdsConfig.appOpen
         #if canImport(GoogleMobileAds)
+            // Audit-B — funnel through `AdRequestBuilder` so the npa
+            // signal is attached when ATT is denied / restricted.
+            guard let request = AdRequestBuilder.build(
+                isAdFree: adFreeStore?.isAdFree ?? false,
+                attStatus: ATTrackingManager.trackingAuthorizationStatus
+            ) else { return }
             isLoading = true
-            let request = GADRequest()
             GADAppOpenAd.load(
                 withAdUnitID: resolvedUnitID,
                 request: request

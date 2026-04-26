@@ -1,3 +1,4 @@
+import AppTrackingTransparency
 import Foundation
 import Observation
 import SwiftUI
@@ -81,6 +82,12 @@ final class NativeAdLoader: NSObject {
         guard !isLoading else { return }
         let resolvedUnitID = adUnitID ?? AdsConfig.native
         #if canImport(GoogleMobileAds)
+            // Audit-B — funnel through `AdRequestBuilder` so the npa
+            // signal is attached when ATT is denied / restricted.
+            guard let request = AdRequestBuilder.build(
+                isAdFree: adFreeStore?.isAdFree ?? false,
+                attStatus: ATTrackingManager.trackingAuthorizationStatus
+            ) else { return }
             isLoading = true
             let multipleOptions = GADMultipleAdsAdLoaderOptions()
             multipleOptions.numberOfAds = count
@@ -92,7 +99,7 @@ final class NativeAdLoader: NSObject {
             )
             loader.delegate = self
             inflightLoader = loader
-            loader.load(GADRequest())
+            loader.load(request)
         #else
             isLoading = false
         #endif
