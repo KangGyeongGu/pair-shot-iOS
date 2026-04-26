@@ -42,6 +42,7 @@ struct PairGalleryView: View {
     @State private var filter: GalleryFilter = .all
     @State private var selection = PairSelection()
     @State private var preview: PhotoPair?
+    @State private var exportPayload: ExportPickerPayload?
 
     private let storage: PhotoStorageService
 
@@ -100,8 +101,8 @@ struct PairGalleryView: View {
             if selection.isSelectionMode {
                 PairMultiSelectBar(
                     selection: selection,
-                    onComposite: { /* P5.2 */ },
-                    onShare: { /* P7.3 */ },
+                    onComposite: { /* multi-pair composite TBD */ },
+                    onShare: presentExportPicker,
                     onDelete: deleteSelected
                 )
             }
@@ -112,6 +113,9 @@ struct PairGalleryView: View {
                 startIndex: filteredPairs.firstIndex(where: { $0.id == pair.id }) ?? 0,
                 storage: storage
             )
+        }
+        .sheet(item: $exportPayload) { payload in
+            ExportPicker(pairs: payload.pairs, storage: storage)
         }
     }
 
@@ -182,6 +186,14 @@ struct PairGalleryView: View {
         guard !ids.isEmpty else { return }
         _ = try? PairDeletionService.deletePairs(ids: ids, in: modelContext, storage: storage)
         selection.exit()
+    }
+
+    private func presentExportPicker() {
+        let ids = selection.selectedIds
+        guard !ids.isEmpty else { return }
+        let selected = filteredPairs.filter { ids.contains($0.id) }
+        guard !selected.isEmpty else { return }
+        exportPayload = ExportPickerPayload(pairs: selected)
     }
 }
 

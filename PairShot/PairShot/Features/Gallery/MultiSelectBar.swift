@@ -45,12 +45,12 @@ final class PairSelection {
 /// Bottom action bar shown via `safeAreaInset(.bottom)` while
 /// `PairSelection.isSelectionMode == true`. Three actions:
 ///
-/// - **합성** (composite): placeholder for P5.2 — disabled in P4.
-/// - **공유** (share): placeholder for P7.3 — disabled in P4.
+/// - **합성** (composite): placeholder slot — wired by `ComparisonView` for
+///   single-pair edits, multi-pair composite is a future enhancement.
+/// - **공유** (share): wired in P7 via `ExportPicker` — bundles the selected
+///   pairs into a ZIP / saves to Photos library / hands UIImage list to the
+///   activity sheet.
 /// - **삭제** (delete): wired in P4.3 via `PairDeletionService`.
-///
-/// Composite/Share buttons render today as `.disabled` so the layout matches
-/// the final UX; activation is a one-line flip in P5/P7.
 struct PairMultiSelectBar: View {
     let selection: PairSelection
     let onComposite: () -> Void
@@ -75,13 +75,13 @@ struct PairMultiSelectBar: View {
             } label: {
                 Label(String(localized: "합성"), systemImage: "square.on.square")
             }
-            .disabled(true) // P5.2 will enable.
+            .disabled(true) // Multi-pair composite is a future enhancement.
             Button {
                 onShare()
             } label: {
                 Label(String(localized: "공유"), systemImage: "square.and.arrow.up")
             }
-            .disabled(true) // P7.3 will enable.
+            .disabled(selection.selectedIds.isEmpty)
             Button(role: .destructive) {
                 onDelete()
             } label: {

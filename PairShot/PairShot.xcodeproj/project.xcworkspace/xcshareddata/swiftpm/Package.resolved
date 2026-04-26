@@ -1,5 +1,5 @@
 {
-  "originHash" : "3b9752ff554d5fdc91a7c01c2322a5d851b0979c36f02eb55188d9ab9e3d7e77",
+  "originHash" : "f9b257b09172b7506854fdbad636c24acce738cd134bfa0a948eaef3aec7db9b",
   "pins" : [
     {
       "identity" : "swift-package-manager-google-mobile-ads",
@@ -17,6 +17,15 @@
       "state" : {
         "revision" : "708a282840c2171ee63bd93b87afa49fe507d70e",
         "version" : "2.7.0"
+      }
+    },
+    {
+      "identity" : "zipfoundation",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/weichsel/ZIPFoundation.git",
+      "state" : {
+        "revision" : "22787ffb59de99e5dc1fbfe80b19c97a904ad48d",
+        "version" : "0.9.20"
       }
     }
   ],

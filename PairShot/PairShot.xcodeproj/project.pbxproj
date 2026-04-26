@@ -25,6 +25,7 @@
 
 /* Begin PBXBuildFile section */
 		6349589A2F7C17CA00622982 /* GoogleMobileAds in Frameworks */ = {isa = PBXBuildFile; productRef = 6349589B2F7C17CA00622982 /* GoogleMobileAds */; };
+		7A0000012F7C20000000ZIP1 /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = 7A0000022F7C20000000ZIP2 /* ZIPFoundation */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -70,6 +71,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				6349589A2F7C17CA00622982 /* GoogleMobileAds in Frameworks */,
+				7A0000012F7C20000000ZIP1 /* ZIPFoundation in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -131,6 +133,7 @@
 			name = PairShot;
 			packageProductDependencies = (
 				6349589B2F7C17CA00622982 /* GoogleMobileAds */,
+				7A0000022F7C20000000ZIP2 /* ZIPFoundation */,
 			);
 			productName = PairShot;
 			productReference = 6349583A2F7C17C900622982 /* PairShot.app */;
@@ -216,6 +219,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				6349589C2F7C17CA00622982 /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */,
+				7A0000032F7C20000000ZIP3 /* XCRemoteSwiftPackageReference "ZIPFoundation" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 6349583B2F7C17C900622982 /* Products */;
@@ -602,6 +606,14 @@
 				minimumVersion = 11.0.0;
 			};
 		};
+		7A0000032F7C20000000ZIP3 /* XCRemoteSwiftPackageReference "ZIPFoundation" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/weichsel/ZIPFoundation.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.9.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -609,6 +621,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 6349589C2F7C17CA00622982 /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */;
 			productName = GoogleMobileAds;
+		};
+		7A0000022F7C20000000ZIP2 /* ZIPFoundation */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 7A0000032F7C20000000ZIP3 /* XCRemoteSwiftPackageReference "ZIPFoundation" */;
+			productName = ZIPFoundation;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
