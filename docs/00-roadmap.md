@@ -33,6 +33,34 @@
 
 ---
 
+## Specification (Ground Truth)
+
+사용자 가시 동작 + 아키텍처의 1차 SoT 는 `docs/10-*.md` ~ `docs/17-*.md`. 본 roadmap 의 Phase Done 조건은 시점별 구현 진행을 기록한 것이며, **현행 코드의 정합성 기준은 항상 다음 spec 문서가 우선**한다 (코드↔spec 충돌 시 코드를 고친다).
+
+| Spec | 영역 | 본 roadmap 매핑 |
+|------|------|----------------|
+| `docs/10-product-overview.md` | 제품 정의·사용자 시나리오·핵심 entity (페어 / 앨범) | 전체 (특히 Phase 1·핵심 원칙 4) |
+| `docs/11-information-architecture.md` | 화면 위계·진입점(시작 화면 = Camera Before)·전이 | Phase 1·Phase 2·Phase 3·Phase 4·전체 navigation |
+| `docs/12-screens.md` § 12.1~12.6 | Camera(Before/After)·Home·AlbumDetail·PairPicker·PairPreview | Phase 2 (12.1)·Phase 3 (12.2)·Phase 4 (12.3·12.6)·신규 AlbumDetail/PairPicker (12.4·12.5) |
+| `docs/12-screens.md` § 12.7~12.11 | Settings·WatermarkSettings·CombineSettings·ExportSettings·License | Phase 8 (12.7)·신규 12.8/12.9 (워터마크/합성 상세)·Phase 7 (12.10)·신규 12.11 (License) |
+| `docs/13-data-model.md` | PhotoPair·Album·Coupon·CameraSettings·AppSettings·파일 명명·EXIF·Stale URI 가드·백업 | Phase 1·Phase 2.6·Phase 3.4·Phase 5.2·Phase 6.3·Phase 8.2·Phase 8.4 |
+| `docs/14-functional-requirements.md` | Capture·Composite·Share/Save/Export·Selection·Sort/Filter·Re-capture·위치·동시성·스낵바·권한 | Phase 2·Phase 3·Phase 4·Phase 5·Phase 7 cross-cutting |
+| `docs/15-non-functional-requirements.md` | 성능·접근성·보안·프라이버시·i18n·다크모드·테스트·코드 품질·출시 기준 | Phase 9·Phase 10·전체 ops |
+| `docs/16-strings.md` | String Catalog·키 컨벤션·하드코딩 금지·검수 grep | Phase 9.3·전체 view 작성 |
+| `docs/17-architecture-and-patterns.md` | Clean Architecture·MVVM·Repository·UseCase·디렉토리 구조·Forbidden 패턴·DI | 전체 — 신규/리팩터 코드의 정합 기준 |
+
+### Phase Done 보강
+
+본 roadmap 의 Phase Done 라인은 **구현 시점의 자체 검증** 만 명시한다. **spec 정합성 검증 (`docs/10~17` 대비 사용자 가시 동작·아키텍처 일치 여부) 은 별도 spec-realign 라운드** 에서 수행한다 (cluster 명명 `realign-{영역}`). spec-realign 라운드의 합격 기준:
+
+- explorer 8종이 docs/10~17 영역별로 dispatch 되어 코드↔spec 차이 0건 (Critical/High 0)
+- `xcodebuild build` / `xcodebuild test` PASS
+- `audit-arch` skill PASS
+- 하드코딩 한국어/색/dp grep = 0
+- reviewer ≥ 70 점, blocking 0
+
+---
+
 ## 현재 상태
 
 - Phase: **✅ PairShot iOS 완전 정밀 audit 종료 — A/B/C/D 4 phase 완주, blocking 0건**
