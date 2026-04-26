@@ -20,33 +20,29 @@ struct PairShotApp: App {
     @State private var coordinator = FullscreenAdCoordinator()
     @State private var interstitialManager = InterstitialAdManager()
     @State private var appOpenManager = AppOpenAdManager()
-    @Environment(\.scenePhase) private var scenePhase
+    @State private var rewardedManager = RewardedAdManager()
+    @State private var nativeAdLoader = NativeAdLoader()
+    @State private var trackingService = TrackingAuthorizationService()
+    @State private var hasBootstrappedAds = false
     @State private var hasPresentedColdStartAppOpen = false
+    @Environment(\.scenePhase) private var scenePhase
 
     init() {
-        // P6.1: bootstrap the Google Mobile Ads SDK as early as possible so
-        // ad surfaces (P6.5+) have a warm SDK by the time they appear. The
-        // call is idempotent and non-blocking — fine to fire-and-forget
-        // from the App initialiser. Wrapped in `canImport` so the project
-        // still compiles in environments where the SPM dependency hasn't
-        // resolved (CI sandboxes, fresh checkouts before package fetch).
-        // v11 SDK exposes `GADMobileAds.sharedInstance().start(...)`; v12+
-        // renames to `MobileAds.shared.start(...)`. We use the v11 names
-        // since that is the resolved minimum version.
+        // P6.1: bootstrap the Google Mobile Ads SDK as early as possible
+        // so ad surfaces have a warm SDK by the time they appear. The
+        // call is idempotent and non-blocking. Wrapped in `canImport` so
+        // the project still compiles in environments where the SPM
+        // dependency hasn't resolved (CI sandboxes).
         //
-        // P6c advisory: an AdFree-aware `start` skip would save the one
-        // network round-trip the SDK does at boot. We don't yet know
-        // `isAdFree` here (the AdFreeStore needs the model context, which
-        // we initialise on the next line). The boot-time call does not
-        // trigger ATT, so deferring this optimisation to P10.5 is fine.
+        // P6c advisory: SDK boot doesn't trigger ATT, so the boot call
+        // can run before the prompt. ATT is requested explicitly inside
+        // `bootstrapAds()` below — *before* the first ad load — so the
+        // SDK has a chance to honour the user's choice on its first
+        // request.
         #if canImport(GoogleMobileAds)
             GADMobileAds.sharedInstance().start(completionHandler: nil)
         #endif
 
-        // Build the AdFreeStore against the same shared container the
-        // views see — the underlying `ModelContext` is the main-context
-        // of `sharedModelContainer`. Captured as `@State` so SwiftUI
-        // observes its `isAdFree` updates.
         let store = AdFreeStore(context: sharedModelContainer.mainContext)
         _adFreeStore = State(initialValue: store)
     }
@@ -58,11 +54,15 @@ struct PairShotApp: App {
                 .environment(\.fullscreenAdCoordinator, coordinator)
                 .environment(interstitialManager)
                 .environment(appOpenManager)
+                .environment(rewardedManager)
+                .environment(nativeAdLoader)
+                .environment(trackingService)
                 .task {
-                    // Cold-start App Open ad surface. Runs once after the
-                    // first frame of `ContentView`, when there is a real
-                    // active scene and a key window for the SDK to
-                    // present from. App.init is too early — no scene yet.
+                    // First-frame bootstrap: ATT prompt → ad loads in
+                    // strict order so the SDK never fires its initial
+                    // request before the user has responded to the
+                    // tracking prompt. Cold-start App Open ad is
+                    // attempted after the bootstrap completes.
                     await bootstrapAds()
                     if !hasPresentedColdStartAppOpen {
                         hasPresentedColdStartAppOpen = true
@@ -81,28 +81,46 @@ struct PairShotApp: App {
         }
     }
 
-    /// Pre-warm interstitial / app-open ads on the first foregrounding.
-    /// Skipped when AdFree — `loadIfNeeded` short-circuits internally so
-    /// no SDK call is made.
-    private func bootstrapAds() async {
-        adFreeStore.refresh()
-        interstitialManager.loadIfNeeded(adFreeStore: adFreeStore)
-        appOpenManager.loadIfNeeded(adFreeStore: adFreeStore)
+    /// P6d — single bootstrap entry point shared by cold-start and
+    /// (idempotently) every foreground re-activation.
+    ///
+    /// Order is load-bearing:
+    /// 1. Refresh `AdFreeStore` so a coupon redeemed while backgrounded
+    ///    is honoured before any ad call.
+    /// 2. Skip the rest entirely if AdFree is active (CLAUDE.md core
+    ///    principle 7 — no unnecessary network or ATT prompt).
+    /// 3. Request ATT permission *if* still `.notDetermined`. The SDK
+    ///    must see the user's decision before its first ad request to
+    ///    honour the IDFA / non-IDFA toggle.
+    /// 4. Pre-load every surface (interstitial / app-open / rewarded)
+    ///    plus the native-ad pool. Each `loadIfNeeded` is internally
+    ///    AdFree-aware too, but the outer guard above means we never
+    ///    even reach this branch when entitled.
+    func bootstrapAds() async {
+        await BootstrapAdsCoordinator.bootstrap(
+            adFreeStore: adFreeStore,
+            tracking: trackingService,
+            ifNotAdFree: { [interstitialManager, appOpenManager, rewardedManager, nativeAdLoader] in
+                interstitialManager.loadIfNeeded(adFreeStore: $0)
+                appOpenManager.loadIfNeeded(adFreeStore: $0)
+                rewardedManager.loadIfNeeded(adFreeStore: $0)
+                nativeAdLoader.prefetch(count: 5, adFreeStore: $0)
+            }
+        )
+        hasBootstrappedAds = true
     }
 
     private func handleScenePhaseChange(_ phase: ScenePhase) {
         switch phase {
             case .active:
-                // Refresh the AdFree status — the user may have redeemed a
-                // coupon while we were backgrounded — then attempt the
-                // App Open ad. The 4-minute cap inside the manager
-                // prevents firing on every brief tap-out.
                 Task { @MainActor in
                     adFreeStore.refresh()
                     interstitialManager.loadIfNeeded(adFreeStore: adFreeStore)
                     appOpenManager.loadIfNeeded(adFreeStore: adFreeStore)
+                    rewardedManager.loadIfNeeded(adFreeStore: adFreeStore)
+                    nativeAdLoader.prefetch(count: 5, adFreeStore: adFreeStore)
                     // Skip the App Open ad on the very first `.active`
-                    // event after launch — that's already covered by the
+                    // event after launch — that's covered by the
                     // cold-start path in `.task` above.
                     guard hasPresentedColdStartAppOpen else { return }
                     await appOpenManager.presentIfReady(
@@ -117,5 +135,36 @@ struct PairShotApp: App {
             @unknown default:
                 break
         }
+    }
+}
+
+/// Pure-ish coordinator extracted from `PairShotApp.bootstrapAds()` so
+/// the ATT-then-load sequencing is unit-testable without spinning up a
+/// SwiftUI scene.
+///
+/// The coordinator does **not** know about Google Mobile Ads — it only
+/// orchestrates the order of `AdFreeStore` refresh → ATT request → load
+/// callback. Callers wire concrete `loadIfNeeded`/`prefetch` calls via
+/// the `ifNotAdFree` closure.
+@MainActor
+enum BootstrapAdsCoordinator {
+    /// Runs the bootstrap sequence.
+    /// - Parameters:
+    ///   - adFreeStore: Refreshed at step 1 so a redeemed coupon short
+    ///     -circuits subsequent steps.
+    ///   - tracking: `TrackingAuthorizationService` — `requestIfUndetermined()`
+    ///     is called only when the user is *not* AdFree.
+    ///   - ifNotAdFree: Closure invoked **after** ATT has returned (or
+    ///     was skipped because already decided). Receives the same
+    ///     `AdFreeStore` instance so individual managers can re-check.
+    static func bootstrap(
+        adFreeStore: AdFreeStore,
+        tracking: TrackingAuthorizationService,
+        ifNotAdFree: (AdFreeStore) -> Void
+    ) async {
+        adFreeStore.refresh()
+        guard !adFreeStore.isAdFree else { return }
+        _ = await tracking.requestIfUndetermined()
+        ifNotAdFree(adFreeStore)
     }
 }

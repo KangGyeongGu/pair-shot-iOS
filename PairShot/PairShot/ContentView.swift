@@ -23,6 +23,9 @@ private struct ContentViewPreviewWrapper: View {
             .environment(\.fullscreenAdCoordinator, FullscreenAdCoordinator())
             .environment(InterstitialAdManager())
             .environment(AppOpenAdManager())
+            .environment(RewardedAdManager())
+            .environment(NativeAdLoader())
+            .environment(TrackingAuthorizationService())
     }
 }
 

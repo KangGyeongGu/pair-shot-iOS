@@ -35,11 +35,14 @@ playground.xcworkspace
 # Claude Code local settings
 .claude/settings.local.json
 
-# AI orchestration assets (local-only)
+# AI orchestration assets (local-only).
+# Note: docs/00-roadmap.md is now git-tracked from P6d onwards — see
+# the entry "P6d 부터 docs/00-roadmap.md 가 git tracked" in that file.
 /.claude/
 /CLAUDE.md
 /AGENTS.md
-/docs/
+/docs/*
+!/docs/00-roadmap.md
 /scripts/claude-hooks/
 
 # IDE / build artifacts (local-only)

@@ -3,24 +3,42 @@ import SwiftData
 import SwiftUI
 import UIKit
 
+/// One slot in the gallery grid — either a real `PhotoPair` or a
+/// native-ad token vended by `NativeAdLoader`. Pulled out of the view so
+/// `NativeAdInsertionStrategy` can build the slot list as a pure
+/// transform unit-testable on its own.
+enum GalleryItem: Identifiable {
+    case pair(PhotoPair)
+    case nativeAd(id: Int, ad: Any?)
+
+    var id: AnyHashable {
+        switch self {
+            case let .pair(pair): pair.id
+            case let .nativeAd(slotID, _): "ad-\(slotID)"
+        }
+    }
+}
+
 /// P4.1 — 2-column grid of `PhotoPair` thumbnails for a single `Project`.
 ///
-/// - 2 columns via `LazyVGrid` (the Android v1.1.3 layout).
-/// - Cell shows the **Before** image (per spec: "Before 우선") with a small
-///   badge in the corner indicating status (pending / complete / composited).
-/// - Tap → comparison modal placeholder (P5 will replace this with the real
-///   `ComparisonView`). The placeholder still conforms to the `.sheet(item:)`
-///   pattern so swapping it later is a one-line change.
-/// - Long-press → enter multi-select mode (P4.3).
+/// Per phase plan:
+/// - 2 columns via `LazyVGrid` (Android v1.1.3 layout).
+/// - Cell shows the **Before** image with a corner status badge.
+/// - Tap → comparison modal (`ComparisonView` since P5.1).
+/// - Long-press → multi-select mode (P4.3).
 /// - Top filter (P4.2) toggles ALL / 합성본.
-/// - Bottom multi-select bar (P4.3) appears via `safeAreaInset` while a
-///   selection is active.
-/// - Thumbnails are decoded once via `ThumbnailCache` (P4.4), so re-mounting
-///   a cell during fast scroll is a memory hit, not a JPEG re-decode.
+/// - Bottom multi-select bar (P4.3) appears via `safeAreaInset`.
+/// - Thumbnails are decoded once via `ThumbnailCache` (P4.4).
+///
+/// P6.8: a native-ad cell is inserted every 6 pairs unless AdFree is
+/// active. Selection mode hides ad cells so the user isn't forced to
+/// scroll past them while picking pairs.
 struct PairGalleryView: View {
     let project: Project
 
     @Environment(\.modelContext) private var modelContext
+    @Environment(AdFreeStore.self) private var adFreeStore
+    @Environment(NativeAdLoader.self) private var nativeAdLoader
     @State private var filter: GalleryFilter = .all
     @State private var selection = PairSelection()
     @State private var preview: PhotoPair?
@@ -35,6 +53,26 @@ struct PairGalleryView: View {
     private var filteredPairs: [PhotoPair] {
         let sorted = project.pairs.sorted(by: { $0.beforeCapturedAt > $1.beforeCapturedAt })
         return filter.apply(to: sorted)
+    }
+
+    /// Build the rendered slot list. Selection mode and AdFree both
+    /// suppress the ad cells — the rest is the filtered pair list.
+    private var galleryItems: [GalleryItem] {
+        let pairs = filteredPairs
+        let suppressAds = adFreeStore.isAdFree || selection.isSelectionMode
+        guard !suppressAds else {
+            return pairs.map(GalleryItem.pair)
+        }
+        let adIndices = Set(NativeAdInsertionStrategy.indices(forPairCount: pairs.count))
+        var items: [GalleryItem] = []
+        items.reserveCapacity(pairs.count + adIndices.count)
+        for (offset, pair) in pairs.enumerated() {
+            items.append(.pair(pair))
+            if adIndices.contains(offset) {
+                items.append(.nativeAd(id: offset, ad: nativeAdLoader.adFor(index: offset)))
+            }
+        }
+        return items
     }
 
     private let columns: [GridItem] = [
@@ -53,20 +91,7 @@ struct PairGalleryView: View {
                 emptyState
                     .padding(.top, 80)
             } else {
-                LazyVGrid(columns: columns, spacing: 4) {
-                    ForEach(filteredPairs) { pair in
-                        PairThumbnailCell(
-                            pair: pair,
-                            storage: storage,
-                            isSelectionMode: selection.isSelectionMode,
-                            isSelected: selection.contains(pair.id)
-                        )
-                        .contentShape(.rect)
-                        .onTapGesture { handleTap(pair) }
-                        .onLongPressGesture(minimumDuration: 0.4) { handleLongPress(pair) }
-                    }
-                }
-                .padding(.horizontal, 4)
+                grid
             }
         }
         .navigationTitle(project.title.isEmpty ? String(localized: "(이름 없음)") : project.title)
@@ -87,6 +112,33 @@ struct PairGalleryView: View {
                 startIndex: filteredPairs.firstIndex(where: { $0.id == pair.id }) ?? 0,
                 storage: storage
             )
+        }
+    }
+
+    private var grid: some View {
+        LazyVGrid(columns: columns, spacing: 4) {
+            ForEach(galleryItems) { item in
+                cell(for: item)
+            }
+        }
+        .padding(.horizontal, 4)
+    }
+
+    @ViewBuilder
+    private func cell(for item: GalleryItem) -> some View {
+        switch item {
+            case let .pair(pair):
+                PairThumbnailCell(
+                    pair: pair,
+                    storage: storage,
+                    isSelectionMode: selection.isSelectionMode,
+                    isSelected: selection.contains(pair.id)
+                )
+                .contentShape(.rect)
+                .onTapGesture { handleTap(pair) }
+                .onLongPressGesture(minimumDuration: 0.4) { handleLongPress(pair) }
+            case let .nativeAd(_, ad):
+                NativeAdCell(ad: ad)
         }
     }
 
@@ -133,103 +185,6 @@ struct PairGalleryView: View {
     }
 }
 
-/// One grid cell. Stays small (<60 lines) so the parent view can remain
-/// declarative.
-private struct PairThumbnailCell: View {
-    let pair: PhotoPair
-    let storage: PhotoStorageService
-    let isSelectionMode: Bool
-    let isSelected: Bool
-
-    @State private var thumbnail: UIImage?
-
-    var body: some View {
-        ZStack(alignment: .topTrailing) {
-            thumbnailLayer
-                .aspectRatio(1, contentMode: .fit)
-                .clipped()
-                .background(Color.gray.opacity(0.15))
-
-            statusBadge
-                .padding(6)
-
-            if isSelectionMode {
-                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                    .font(.title3)
-                    .foregroundStyle(isSelected ? Color.accentColor : .white)
-                    .background(Circle().fill(.black.opacity(0.35)))
-                    .padding(6)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            }
-        }
-        .clipShape(RoundedRectangle(cornerRadius: 8))
-        .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .strokeBorder(
-                    isSelected ? Color.accentColor : Color.clear,
-                    lineWidth: 3
-                )
-        )
-        .task(id: pair.beforePath) {
-            await loadThumbnail()
-        }
-    }
-
-    @ViewBuilder
-    private var thumbnailLayer: some View {
-        if let thumbnail {
-            Image(uiImage: thumbnail)
-                .resizable()
-                .scaledToFill()
-        } else {
-            // Placeholder while decode is in flight, or when the file is gone.
-            Image(systemName: "photo")
-                .resizable()
-                .scaledToFit()
-                .padding(24)
-                .foregroundStyle(.secondary)
-        }
-    }
-
-    @ViewBuilder
-    private var statusBadge: some View {
-        switch pair.status {
-            case .pendingAfter:
-                badgeText(String(localized: "Before"), tint: .orange)
-            case .complete:
-                if let combined = pair.combinedPath, !combined.isEmpty {
-                    badgeText(String(localized: "합성"), tint: .purple)
-                } else {
-                    badgeText(String(localized: "완료"), tint: .green)
-                }
-        }
-    }
-
-    private func badgeText(_ text: String, tint: Color) -> some View {
-        Text(text)
-            .font(.caption2.bold())
-            .padding(.horizontal, 6)
-            .padding(.vertical, 3)
-            .background(tint.opacity(0.85), in: Capsule())
-            .foregroundStyle(.white)
-    }
-
-    private func loadThumbnail() async {
-        // Cheap synchronous cache hit on the main actor.
-        if let cached = ThumbnailCache.shared.cached(forRelativePath: pair.beforePath) {
-            thumbnail = cached
-            return
-        }
-        // Off-main decode to keep scroll smooth.
-        let path = pair.beforePath
-        let storage = storage
-        let decoded = await Task.detached(priority: .userInitiated) {
-            ThumbnailCache.shared.loadThumbnail(forRelativePath: path, storage: storage)
-        }.value
-        thumbnail = decoded
-    }
-}
-
 private struct PairGalleryViewPreviewWrapper: View {
     // swiftlint:disable:next force_try
     let container = try! ModelContainer(
@@ -247,6 +202,7 @@ private struct PairGalleryViewPreviewWrapper: View {
         .environment(AdFreeStore(context: container.mainContext))
         .environment(\.fullscreenAdCoordinator, FullscreenAdCoordinator())
         .environment(InterstitialAdManager())
+        .environment(NativeAdLoader())
     }
 }
 
