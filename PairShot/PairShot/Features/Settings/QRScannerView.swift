@@ -119,8 +119,9 @@ struct QRScannerView: View {
     // MARK: - Actions
 
     private func handleScan(_ payload: String) {
-        let generator = UINotificationFeedbackGenerator()
-        generator.notificationOccurred(.success)
+        // P9.1 — routed through ``HapticService`` so the QR scan and
+        // the subsequent registration emit the same `.success` notif.
+        HapticService.shared.notify(.success)
         onScan(payload)
     }
 

@@ -1,0 +1,145 @@
+/* PairShot iOS — English strings (P9.3)
+ *
+ * First-pass machine-quality translations. The roadmap explicitly
+ * defers final translation polish to P10 (TestFlight Prep). Until then
+ * these provide sufficient coverage for QA on an English-locale device
+ * without falling back to Korean for every label.
+ *
+ * Maintenance:
+ * - Keys MUST match `ko.lproj/Localizable.strings` 1:1.
+ *   `LocalizableKeysAuditTests` enforces parity at build time.
+ * - Format specifiers (%@, %d, %d%%) must remain in the same order
+ *   per Apple's positional argument rules — Swift `String(format:)`
+ *   crashes on mismatched %@/%d.
+ */
+
+"(이름 없음)" = "(Untitled)";
+"%@ (기본)" = "%@ (default)";
+"%d개 파일 삭제 · %@ 회수" = "%d files deleted · %@ reclaimed";
+"After 사진을 찾을 수 없습니다" = "After photo not found";
+"After 촬영이 아직 완료되지 않았습니다" = "After capture not yet complete";
+"After" = "After";
+"Before 사진을 찾을 수 없습니다" = "Before photo not found";
+"Before 왼쪽, After 오른쪽으로 이어 붙입니다." = "Before on the left, After on the right.";
+"Before 위, After 아래로 이어 붙입니다." = "Before on top, After on the bottom.";
+"Before 카메라에서 첫 페어를 만드세요" = "Capture your first Before photo to start a pair";
+"Before 투명도" = "Before opacity";
+"Before" = "Before";
+"JPEG 인코딩 실패" = "JPEG encoding failed";
+"JPEG 품질" = "JPEG quality";
+"QR 스캔" = "QR scan";
+"QR 코드 스캔" = "Scan QR code";
+"QR 코드를 사각형 안에 맞춰주세요" = "Align the QR code inside the square";
+"ZIP 생성 중…" = "Creating ZIP…";
+"ZIP 생성에 실패했습니다" = "Failed to create ZIP";
+"ZIP 으로 공유" = "Share as ZIP";
+"개 선택" = " selected";
+"개 페어" = " pairs";
+"고아 파일 삭제" = "Delete orphan files";
+"고아 파일을 삭제할까요?" = "Delete orphan files?";
+"공유 시점에 옵션을 선택합니다" = "You'll choose options when sharing";
+"공유" = "Share";
+"공유할 이미지가 없습니다" = "No images to share";
+"과거 쿠폰" = "Past coupons";
+"광고 다시 불러오기" = "Reload ad";
+"광고 보고 잠금 해제" = "Watch ad to unlock";
+"광고 제거 비활성" = "Ad removal inactive";
+"광고 제거 상태와 만료일을 보여줍니다." = "Shows ad-removal status and expiry.";
+"광고 제거 활성 · 만료까지 %d일 (%@)" = "Ad removal active · %d days remaining (%@)";
+"광고" = "Ad";
+"광고를 시청하면 이 세션 동안 잠금이 해제됩니다" = "Watching the ad unlocks this session";
+"광고를 표시할 수 없습니다 (%@)" = "Couldn't show ad (%@)";
+"그리드" = "Grid";
+"남은 페어" = "Pending";
+"낮음" = "Low";
+"내보내기 실패" = "Export failed";
+"내보내기" = "Export";
+"높음" = "High";
+"닫기" = "Close";
+"등록" = "Register";
+"렌즈 전환" = "Switch lens";
+"만료" = "Expired";
+"반투명 overlay 기본값·합성 레이아웃·워터마크" = "Default overlay opacity · composite layout · watermark";
+"반투명 overlay" = "Translucent overlay";
+"발급받은 쿠폰 코드를 입력하거나 QR 로 스캔합니다." = "Enter the issued coupon code or scan its QR.";
+"발급받은 쿠폰 토큰을 그대로 붙여넣으세요" = "Paste the coupon token as issued";
+"버전" = "Version";
+"범위" = "Scope";
+"보기" = "View";
+"보상을 받으려면 광고를 끝까지 시청하세요" = "Watch the ad to the end to receive the reward";
+"비교 화면에서 합성을 만들 수 있습니다" = "Create a composite from the comparison screen";
+"비교할 사진이 없습니다" = "No photo to compare";
+"빌드" = "Build";
+"사진 라이브러리 권한이 필요합니다" = "Photo library permission required";
+"사진 앱에 저장 중…" = "Saving to Photos…";
+"사진 앱에 저장" = "Save to Photos";
+"사진 없음" = "No photos";
+"사진 페어 수" = "Pair count";
+"사진 폴더 크기 · 캐시 정리" = "Photo folder size · Clean cache";
+"사진 폴더 크기" = "Photo folder size";
+"삭제 실패: %@" = "Delete failed: %@";
+"삭제" = "Delete";
+"상하" = "Vertical";
+"선택된 페어가 없습니다" = "No pairs selected";
+"설정" = "Settings";
+"설정에서 사진 저장을 허용해 주세요" = "Allow photo saving in Settings";
+"설정에서 카메라 사용을 허용해 주세요" = "Allow camera access in Settings";
+"설정으로 이동" = "Open Settings";
+"수동 입력" = "Manual entry";
+"수평계" = "Level";
+"예: %@<UUID>.jpg (최대 %d자)" = "e.g. %@<UUID>.jpg (max %d chars)";
+"예: site-A_" = "e.g. site-A_";
+"완료" = "Complete";
+"워터마크 꺼짐" = "Watermark off";
+"워터마크 켜짐" = "Watermark on";
+"워터마크 표시" = "Show watermark";
+"워터마크" = "Watermark";
+"원본 파일을 찾을 수 없습니다" = "Source file not found";
+"이미 등록된 쿠폰입니다" = "Coupon already registered";
+"이미지 준비 중…" = "Preparing images…";
+"이미지로 공유" = "Share as image";
+"작업" = "Action";
+"장 저장됨" = " saved";
+"저장 공간" = "Storage";
+"저장 실패" = "Save failed";
+"저장 중 오류가 발생했습니다" = "An error occurred while saving";
+"전체" = "All";
+"정보" = "About";
+"좌우" = "Horizontal";
+"촬영" = "Capture";
+"취소" = "Cancel";
+"카메라 권한이 필요합니다" = "Camera permission required";
+"캐시 정리" = "Clean cache";
+"코드 형식이 올바르지 않습니다" = "Invalid code format";
+"쿠폰 / 광고 제거" = "Coupon / Ad removal";
+"쿠폰 검증 실패" = "Coupon verification failed";
+"쿠폰 데이터를 확인할 수 없습니다" = "Couldn't validate coupon data";
+"쿠폰 등록 실패" = "Coupon registration failed";
+"쿠폰 등록" = "Register coupon";
+"쿠폰 등록·활성/과거 쿠폰 보기" = "Register · view active / past coupons";
+"쿠폰 저장에 실패했습니다" = "Failed to save coupon";
+"쿠폰 코드 등록" = "Register coupon code";
+"쿠폰 토큰 (code.signature)" = "Coupon token (code.signature)";
+"쿠폰·AdFree" = "Coupon · AdFree";
+"쿠폰이 등록되었습니다 · 만료일 %@" = "Coupon registered · expires %@";
+"크기를 계산할 수 없습니다: %@" = "Couldn't calculate size: %@";
+"투명도 %d%% · %@ · %@" = "Opacity %d%% · %@ · %@";
+"파일명 prefix" = "Filename prefix";
+"포함할 사진" = "Photos to include";
+"표준" = "Standard";
+"품질 %@" = "Quality %@";
+"프리미엄 설정" = "Premium settings";
+"플래시 끔" = "Flash off";
+"플래시 자동" = "Flash auto";
+"플래시 켬" = "Flash on";
+"플래시 토치" = "Torch";
+"합성 레이아웃" = "Composite layout";
+"합성 실패" = "Composite failed";
+"합성 중..." = "Compositing...";
+"합성" = "Composite";
+"합성본 없음" = "No composites";
+"합성본" = "Composites";
+"현재 %@ (%d%%) — 합성 사진 저장 시 적용" = "Currently %@ (%d%%) — applied when saving composites";
+"현재 상태" = "Status";
+"확인" = "OK";
+"활성 쿠폰" = "Active coupons";

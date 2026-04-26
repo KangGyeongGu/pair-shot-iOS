@@ -27,6 +27,11 @@ struct BeforeCameraView: View {
     @State private var focusIndicator: FocusIndicatorState?
     @State private var isCapturing: Bool = false
     @State private var capturedThumbnail: UIImage?
+    /// P9.4 — `nil` until the first authorization probe completes.
+    /// `false` on `.denied` / `.restricted` shows the
+    /// `PermissionDeniedView` Settings deep-link instead of starting
+    /// the session (which would just hang on a black preview).
+    @State private var cameraPermissionGranted: Bool?
 
     /// Stable reference to the preview UIView so taps can convert to device space.
     @State private var previewView: CameraPreviewView?
@@ -43,6 +48,39 @@ struct BeforeCameraView: View {
         ZStack {
             Color.black.ignoresSafeArea()
 
+            if cameraPermissionGranted == false {
+                PermissionDeniedView(forCamera: ())
+                    .padding(.horizontal, 32)
+            } else {
+                cameraStack
+            }
+        }
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button(String(localized: "닫기")) { dismiss() }
+                    .tint(.white)
+            }
+        }
+        .task {
+            await checkCameraPermission()
+            guard cameraPermissionGranted == true else { return }
+            await sessionHolder.session.start()
+            await sessionHolder.refreshCapabilities()
+            minZoom = await sessionHolder.session.minZoomFactor
+            maxZoom = await sessionHolder.session.maxZoomFactor
+        }
+        .onDisappear {
+            Task { await sessionHolder.session.stop() }
+            motion.stop()
+        }
+    }
+
+    /// Live-camera content. Extracted so the permission-denied
+    /// fallback short-circuits before we spin up the AVFoundation
+    /// session.
+    private var cameraStack: some View {
+        ZStack {
             BeforeCameraPreviewLayer(
                 session: sessionHolder.session.captureSession,
                 onMakeView: { view in previewView = view }
@@ -113,22 +151,28 @@ struct BeforeCameraView: View {
                 .padding(.bottom, 16)
             }
         }
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                Button(String(localized: "닫기")) { dismiss() }
-                    .tint(.white)
-            }
-        }
-        .task {
-            await sessionHolder.session.start()
-            await sessionHolder.refreshCapabilities()
-            minZoom = await sessionHolder.session.minZoomFactor
-            maxZoom = await sessionHolder.session.maxZoomFactor
-        }
-        .onDisappear {
-            Task { await sessionHolder.session.stop() }
-            motion.stop()
+    }
+
+    /// Probe AVFoundation authorization. We don't request access here
+    /// (that happens implicitly when the user opens this screen the
+    /// very first time, via system prompt) — we only branch on the
+    /// already-decided state. `notDetermined` flips through a request
+    /// so the modal flow stays linear instead of bouncing the user
+    /// out to Settings on first launch.
+    private func checkCameraPermission() async {
+        switch AVCaptureDevice.authorizationStatus(for: .video) {
+            case .authorized:
+                cameraPermissionGranted = true
+
+            case .notDetermined:
+                let granted = await AVCaptureDevice.requestAccess(for: .video)
+                cameraPermissionGranted = granted
+
+            case .denied, .restricted:
+                cameraPermissionGranted = false
+
+            @unknown default:
+                cameraPermissionGranted = false
         }
     }
 

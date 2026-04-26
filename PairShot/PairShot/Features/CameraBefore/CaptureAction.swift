@@ -80,20 +80,19 @@ struct BeforeCaptureCoordinator {
     }
 }
 
-/// Tiny haptics façade so `CaptureAction` doesn't reach into UIKit directly.
-/// `heavy` impact for shutter, `success` notification on completion.
+/// Tiny haptics façade kept for source compatibility — call sites
+/// that previously imported `CaptureHaptics` continue to work.
+/// P9.1: routed through ``HapticService`` so the impact / notification
+/// styles stay centralised. Direct `UIImpactFeedbackGenerator` and
+/// `UINotificationFeedbackGenerator` calls were removed.
 @MainActor
 enum CaptureHaptics {
     static func shutter() async {
-        let impact = UIImpactFeedbackGenerator(style: .heavy)
-        impact.prepare()
-        impact.impactOccurred()
+        HapticService.shared.impact(.heavy)
     }
 
     static func success() {
-        let notif = UINotificationFeedbackGenerator()
-        notif.prepare()
-        notif.notificationOccurred(.success)
+        HapticService.shared.notify(.success)
     }
 }
 

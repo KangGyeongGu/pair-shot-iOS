@@ -161,6 +161,10 @@ struct StorageInfoView: View {
                 result.deletedCount,
                 StorageInfoMath.formatBytes(result.freedBytes)
             )
+            // P9.1 — success haptic so the destructive action gives
+            // the same tactile confirmation users expect from
+            // Settings → "캐시 삭제" in iOS itself.
+            HapticService.shared.notify(.success)
             await refreshDirectorySize()
         } catch {
             lastPurgeResult = String(

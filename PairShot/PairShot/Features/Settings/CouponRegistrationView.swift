@@ -359,6 +359,10 @@ struct CouponRegistrationView: View {
 
     private func handlePostSubmit() async {
         guard let expiration = viewModel.lastSuccessExpiration else { return }
+        // P9.1 — success haptic on registration. Mirrors the QR scan
+        // success haptic so manual paste and QR paths both confirm
+        // the same way before the toast fades.
+        HapticService.shared.notify(.success)
         successMessage = successMessage(for: expiration)
         // Brief pause so the user sees the toast before dismissal.
         try? await Task.sleep(nanoseconds: 900_000_000)

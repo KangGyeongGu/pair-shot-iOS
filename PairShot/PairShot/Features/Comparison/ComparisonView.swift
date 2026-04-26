@@ -270,6 +270,10 @@ struct ComparisonView: View {
                     fileNamePrefix: prefix,
                     in: modelContext
                 )
+                // P9.1 — success haptic *before* an interstitial fires
+                // so the user feels the success even if the ad takes
+                // a beat to present.
+                HapticService.shared.notify(.success)
                 // Successful composite is a "natural transition" — try
                 // an interstitial. Manager handles AdFree + 5-min cap +
                 // coordinator slot internally; failure is silent.

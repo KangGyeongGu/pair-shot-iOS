@@ -209,11 +209,12 @@
 				};
 			};
 			buildConfigurationList = 634958352F7C17C900622982 /* Build configuration list for PBXProject "PairShot" */;
-			developmentRegion = en;
+			developmentRegion = ko;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
 				Base,
+				ko,
 			);
 			mainGroup = 634958312F7C17C900622982;
 			minimizedProjectReferenceProxies = 1;

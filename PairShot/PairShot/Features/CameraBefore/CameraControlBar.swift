@@ -50,12 +50,20 @@ struct CameraControlBar: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
-        .background(
+        // P9.2 — Liquid Glass on iOS 26+, regular material on iOS 17~25.
+        // Mapping is centralised in `AppMaterial.swiftUIMaterial` so future
+        // SDK changes don't ripple into the call sites.
+        .appMaterialBackground(.panel)
+        .overlay(
+            // Preserve the legacy top-down gradient as a tint so the
+            // bar reads against bright preview frames even when the
+            // underlying material is Liquid Glass.
             LinearGradient(
-                colors: [.black.opacity(0.5), .clear],
+                colors: [.black.opacity(0.35), .clear],
                 startPoint: .top,
                 endPoint: .bottom
             )
+            .allowsHitTesting(false)
         )
     }
 
@@ -83,7 +91,12 @@ struct CameraControlBar: View {
         isHighlighted: Bool,
         action: @escaping () -> Void
     ) -> some View {
-        Button(action: action) {
+        Button {
+            // P9.1 — light haptic on every toggle. Cheap and matches
+            // the iOS Camera app's tap-to-toggle response.
+            HapticService.shared.impact(.light)
+            action()
+        } label: {
             Image(systemName: systemName)
                 .font(.system(size: 18, weight: .semibold))
                 .foregroundStyle(isHighlighted ? .yellow : .white)

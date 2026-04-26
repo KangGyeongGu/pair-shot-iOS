@@ -24,6 +24,10 @@ struct AfterCameraView: View {
     @State private var sessionHolder = CameraSessionHolder()
     @State private var currentPair: PhotoPair?
     @State private var ghostImage: UIImage?
+    /// P9.4 — gates the camera stack on the AVFoundation auth probe.
+    /// `nil` = checking, `false` = surface
+    /// ``PermissionDeniedView`` instead.
+    @State private var cameraPermissionGranted: Bool?
     /// Seeded from `appSettings.defaultOverlayAlpha` on first appear (P8.3).
     /// Remains a `@State` rather than a derived binding so the user can
     /// nudge it per-pair without their nudge being clobbered by the
@@ -49,6 +53,34 @@ struct AfterCameraView: View {
         ZStack {
             Color.black.ignoresSafeArea()
 
+            if cameraPermissionGranted == false {
+                PermissionDeniedView(forCamera: ())
+                    .padding(.horizontal, 32)
+            } else {
+                cameraStack
+            }
+        }
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button(String(localized: "닫기")) { dismiss() }
+                    .tint(.white)
+            }
+        }
+        .task {
+            await onEnterScreen()
+        }
+        .onDisappear {
+            Task { await sessionHolder.session.stop() }
+        }
+    }
+
+    /// Live-camera stack. Extracted so the `cameraPermissionGranted ==
+    /// false` branch in `body` short-circuits to
+    /// ``PermissionDeniedView`` without instantiating the AVFoundation
+    /// preview layer.
+    private var cameraStack: some View {
+        ZStack {
             AfterCameraPreviewLayer(
                 session: sessionHolder.session.captureSession,
                 onMakeView: { view in previewView = view }
@@ -91,19 +123,6 @@ struct AfterCameraView: View {
                 .padding(.bottom, 16)
             }
         }
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                Button(String(localized: "닫기")) { dismiss() }
-                    .tint(.white)
-            }
-        }
-        .task {
-            await onEnterScreen()
-        }
-        .onDisappear {
-            Task { await sessionHolder.session.stop() }
-        }
     }
 
     // MARK: - Computed properties (counts + gestures)
@@ -135,9 +154,34 @@ struct AfterCameraView: View {
         // is adopted so the very first frame already shows the user's
         // preferred starting opacity.
         alpha = GhostOverlayMath.clamp(appSettings.defaultOverlayAlpha)
+
+        // P9.4 — gate the AVFoundation session on camera authorization
+        // so the screen surfaces a helpful Settings deep-link instead
+        // of hanging on an opaque black preview when permission is
+        // denied.
+        await checkCameraPermission()
+        guard cameraPermissionGranted == true else { return }
+
         await sessionHolder.session.start()
         await sessionHolder.refreshCapabilities()
         loadFirstPendingOrDismiss()
+    }
+
+    private func checkCameraPermission() async {
+        switch AVCaptureDevice.authorizationStatus(for: .video) {
+            case .authorized:
+                cameraPermissionGranted = true
+
+            case .notDetermined:
+                let granted = await AVCaptureDevice.requestAccess(for: .video)
+                cameraPermissionGranted = granted
+
+            case .denied, .restricted:
+                cameraPermissionGranted = false
+
+            @unknown default:
+                cameraPermissionGranted = false
+        }
     }
 
     private func loadFirstPendingOrDismiss() {
