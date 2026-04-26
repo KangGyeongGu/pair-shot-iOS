@@ -24,6 +24,26 @@ final class AdFreeStore {
     /// `nil` when none are active. Useful for Settings UI (P8.5).
     private(set) var currentExpiration: Date?
 
+    /// All currently-active coupons (status == `.active` and not yet
+    /// past `expirationDate`), ordered by `expirationDate` descending —
+    /// so the row with the most remaining time appears first in the
+    /// settings list (P8.5).
+    ///
+    /// Computed on read: cardinality is small (≤ a handful) and we want
+    /// the value to reflect any ad-hoc inserts since the last
+    /// `refresh()` call without forcing the UI to call refresh again.
+    var activeCoupons: [Coupon] {
+        AdFreeCouponSorter.active(fetchAllCoupons(), now: .now)
+    }
+
+    /// All non-active coupons (expired or revoked), or coupons whose
+    /// status is still `.active` but whose `expirationDate` has already
+    /// elapsed. Ordered by `activatedAt` descending so the most recent
+    /// past coupon shows first.
+    var pastCoupons: [Coupon] {
+        AdFreeCouponSorter.past(fetchAllCoupons(), now: .now)
+    }
+
     private let context: ModelContext
 
     init(context: ModelContext) {
@@ -57,12 +77,47 @@ final class AdFreeStore {
     }
 
     private func fetchActiveCoupons() -> [Coupon] {
+        fetchAllCoupons().filter { $0.status == .active }
+    }
+
+    private func fetchAllCoupons() -> [Coupon] {
         // Fetching all coupons and filtering in-memory keeps the predicate
         // off the `Coupon.status` enum (SwiftData `#Predicate` doesn't
         // support arbitrary `RawRepresentable` enum comparisons reliably
         // across iOS 17/18). Cardinality is tiny — at most a handful.
         let descriptor = FetchDescriptor<Coupon>()
-        let all = (try? context.fetch(descriptor)) ?? []
-        return all.filter { $0.status == .active }
+        return (try? context.fetch(descriptor)) ?? []
+    }
+}
+
+/// Pure helpers for splitting a flat list of `Coupon`s into the active /
+/// past partitions surfaced by ``AdFreeStatusView`` (P8.5). Extracted so
+/// the partitioning logic is unit-testable without spinning up a
+/// ModelContainer.
+///
+/// "Active" mirrors `Coupon.isCurrentlyActive(now:)`: status must be
+/// `.active` *and* the expiration must still be in the future. Anything
+/// that fails either condition lands in "past" — including coupons whose
+/// status is still nominally `.active` but whose expiration has elapsed
+/// (`AdFreeStore.refresh()` will eventually flip them, but the settings
+/// view shouldn't lie if the user opens it before refresh runs).
+enum AdFreeCouponSorter {
+    /// `status == .active && expirationDate >= now`, sorted by
+    /// `expirationDate` descending so the longest-remaining coupon
+    /// surfaces first.
+    static func active(_ all: [Coupon], now: Date) -> [Coupon] {
+        all
+            .filter { $0.status == .active && $0.expirationDate > now }
+            .sorted { $0.expirationDate > $1.expirationDate }
+    }
+
+    /// Inverse partition: anything not currently active. Sorted by
+    /// `activatedAt` descending so the most recent past coupon is on top.
+    static func past(_ all: [Coupon], now: Date) -> [Coupon] {
+        all
+            .filter { coupon in
+                coupon.status != .active || coupon.expirationDate <= now
+            }
+            .sorted { $0.activatedAt > $1.activatedAt }
     }
 }

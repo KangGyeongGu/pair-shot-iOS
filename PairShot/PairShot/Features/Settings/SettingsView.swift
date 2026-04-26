@@ -4,16 +4,17 @@ import SwiftUI
 /// P8.1 — top-level settings screen, reachable from `ArchiveView`'s
 /// toolbar. Hosts the five sections from the Android v1.1.3 reference:
 ///
-/// 1. **촬영** — JPEG quality + filename prefix (P8.2 — wired today).
+/// 1. **촬영** — JPEG quality + filename prefix (P8.2).
 /// 2. **합성** — overlay default alpha + composite layout (P8.3).
-/// 3. **내보내기** — export defaults (P8.x — TBD; the share sheet
-///    currently exposes its own picker).
-/// 4. **쿠폰·AdFree** — current entitlement + redeem button (P8.5).
-/// 5. **정보** — version / build / privacy.
+/// 3. **저장 공간** — disk usage + cache cleanup (P8.4).
+/// 4. **내보내기** — export defaults (the share sheet exposes its own
+///    picker; this row stays informational).
+/// 5. **쿠폰·AdFree** — current entitlement + redeem button (P8.5).
+/// 6. **정보** — version / build / privacy.
 ///
-/// Sections 2/3/4 render disabled placeholder rows in this phase so the
-/// shape of the UI is locked in but no behaviour changes until their
-/// owning phases land. The 정보 section is fully populated.
+/// Row helpers (`SettingsRow`, `DisabledSettingsRow`) and the summary
+/// string derivations live in `SettingsView+Helpers.swift` so this file
+/// stays under the 250-line cap (P8b reviewer advisory).
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(AppSettings.self) private var appSettings
@@ -48,7 +49,7 @@ struct SettingsView: View {
             } label: {
                 SettingsRow(
                     title: String(localized: "촬영"),
-                    subtitle: captureSummary,
+                    subtitle: appSettings.captureSummary,
                     systemImage: "camera"
                 )
             }
@@ -64,7 +65,7 @@ struct SettingsView: View {
             } label: {
                 SettingsRow(
                     title: String(localized: "합성"),
-                    subtitle: compositionSummary,
+                    subtitle: appSettings.compositionSummary,
                     systemImage: "square.on.square"
                 )
             }
@@ -105,11 +106,15 @@ struct SettingsView: View {
 
     private var couponSection: some View {
         Section {
-            DisabledSettingsRow(
-                title: String(localized: "쿠폰 / 광고 제거"),
-                subtitle: String(localized: "곧 추가됩니다"),
-                systemImage: "ticket"
-            )
+            NavigationLink {
+                AdFreeStatusView()
+            } label: {
+                SettingsRow(
+                    title: String(localized: "쿠폰 / 광고 제거"),
+                    subtitle: String(localized: "쿠폰 등록·활성/과거 쿠폰 보기"),
+                    systemImage: "ticket"
+                )
+            }
         } header: {
             Text(String(localized: "쿠폰·AdFree"))
         }
@@ -136,33 +141,7 @@ struct SettingsView: View {
         }
     }
 
-    // MARK: - Helpers
-
-    private var captureSummary: String {
-        let quality = CaptureQualityPreset.nearest(to: appSettings.jpegQuality)
-        let prefix = FileNamePrefixValidator.sanitize(appSettings.fileNamePrefix)
-        if prefix.isEmpty {
-            return String(format: String(localized: "품질 %@"), quality.label)
-        }
-        return String(format: String(localized: "품질 %@ · prefix \"%@\""), quality.label, prefix)
-    }
-
-    /// Localised summary of the active composition defaults shown beneath
-    /// the "합성" row. Mirrors `captureSummary`'s shape so the two rows
-    /// have a consistent visual rhythm.
-    private var compositionSummary: String {
-        let alphaPct = Int((CompositionDefaults.clampAlpha(appSettings.defaultOverlayAlpha) * 100).rounded())
-        let layoutLabel = appSettings.defaultCompositeLayout.label
-        let watermark = appSettings.watermarkEnabled
-            ? String(localized: "워터마크 켜짐")
-            : String(localized: "워터마크 꺼짐")
-        return String(
-            format: String(localized: "투명도 %d%% · %@ · %@"),
-            alphaPct,
-            layoutLabel,
-            watermark
-        )
-    }
+    // MARK: - Bundle metadata
 
     static var appVersionLabel: String {
         let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
@@ -172,61 +151,6 @@ struct SettingsView: View {
     static var buildNumberLabel: String {
         let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String
         return build ?? "—"
-    }
-}
-
-/// Row used by the active 촬영 section. Mirrors `Label` but with a
-/// trailing subtitle, which `Label` itself doesn't expose cleanly.
-private struct SettingsRow: View {
-    let title: String
-    let subtitle: String
-    let systemImage: String
-
-    var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: systemImage)
-                .frame(width: 24)
-                .foregroundStyle(.tint)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title).font(.body)
-                if !subtitle.isEmpty {
-                    Text(subtitle)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-        }
-    }
-}
-
-/// Greyed-out row used for sections whose owning phase hasn't shipped.
-/// Marked with `.disabled(true)` so VoiceOver still announces it but
-/// taps don't push a placeholder destination.
-private struct DisabledSettingsRow: View {
-    let title: String
-    let subtitle: String
-    let systemImage: String
-
-    var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: systemImage)
-                .frame(width: 24)
-                .foregroundStyle(.secondary)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                if !subtitle.isEmpty {
-                    Text(subtitle)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-            Spacer()
-            Image(systemName: "lock.fill")
-                .foregroundStyle(.secondary)
-                .font(.caption)
-        }
-        .foregroundStyle(.secondary)
-        .accessibilityElement(children: .combine)
     }
 }
 
@@ -243,6 +167,7 @@ private struct SettingsViewPreviewWrapper: View {
         SettingsView()
             .modelContainer(container)
             .environment(AppSettings(defaults: UserDefaults(suiteName: "preview") ?? .standard))
+            .environment(AdFreeStore(context: container.mainContext))
     }
 }
 
