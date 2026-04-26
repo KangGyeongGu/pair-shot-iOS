@@ -21,13 +21,13 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>작업 현장의 Before/After 사진을 촬영하기 위해 카메라를 사용합니다</string>
+	<string>현장 작업의 Before/After 사진과 무광고 쿠폰 QR 코드를 인식하기 위해 카메라를 사용합니다.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>촬영 위치를 기록하고 동일 현장 재방문 안내를 위해 위치를 사용합니다</string>
+	<string>새 프로젝트 생성 시 촬영 위치를 자동으로 기록해 같은 현장의 사진을 묶어 보여드리기 위해 위치를 사용합니다.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>촬영한 Before/After 사진을 사진 라이브러리에 저장합니다</string>
+	<string>촬영하거나 합성한 Before/After 사진을 기기 사진 앨범에 저장하기 위해 사진 라이브러리 쓰기 권한을 사용합니다.</string>
 	<key>NSUserTrackingUsageDescription</key>
-	<string>광고를 사용자의 관심사에 맞게 보여주기 위해 추적 권한을 요청합니다. 거부해도 앱 사용에는 제한이 없습니다.</string>
+	<string>관심사에 맞는 광고를 보여드리기 위해 추적 권한을 요청합니다. 거부하셔도 앱의 모든 기능을 정상적으로 사용하실 수 있습니다.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
