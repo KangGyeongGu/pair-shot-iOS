@@ -24,6 +24,10 @@ struct AfterCameraView: View {
     @State private var sessionHolder = CameraSessionHolder()
     @State private var currentPair: PhotoPair?
     @State private var ghostImage: UIImage?
+    /// Seeded from `appSettings.defaultOverlayAlpha` on first appear (P8.3).
+    /// Remains a `@State` rather than a derived binding so the user can
+    /// nudge it per-pair without their nudge being clobbered by the
+    /// stored default.
     @State private var alpha: Double = GhostOverlayMath.defaultAlpha
     @State private var activePreset: ZoomPreset? = .wide
     @State private var isCapturing: Bool = false
@@ -127,6 +131,10 @@ struct AfterCameraView: View {
     // MARK: - Lifecycle
 
     private func onEnterScreen() async {
+        // Seed the slider from the persisted default before the first pair
+        // is adopted so the very first frame already shows the user's
+        // preferred starting opacity.
+        alpha = GhostOverlayMath.clamp(appSettings.defaultOverlayAlpha)
         await sessionHolder.session.start()
         await sessionHolder.refreshCapabilities()
         loadFirstPendingOrDismiss()
@@ -143,7 +151,7 @@ struct AfterCameraView: View {
     private func adopt(pair: PhotoPair) {
         currentPair = pair
         ghostImage = GhostOverlayLoader.loadImage(relativePath: pair.beforePath, storage: storage)
-        alpha = GhostOverlayMath.defaultAlpha
+        alpha = GhostOverlayMath.clamp(appSettings.defaultOverlayAlpha)
         hasRestoredZoom = false
         Task { await restoreZoom(for: pair) }
     }

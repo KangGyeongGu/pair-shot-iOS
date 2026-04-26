@@ -142,11 +142,16 @@ struct ComparisonView: View {
 
     private var compositeMenu: some View {
         Menu {
-            ForEach(CompositeLayout.allCases) { layout in
+            // P8.3 — surface the user's preferred layout first and mark
+            // it with a checkmark so the menu doubles as a "default in
+            // effect" indicator. Tapping any item still composites with
+            // exactly that layout (the picker isn't sticky per-call).
+            let defaultLayout = appSettings.defaultCompositeLayout
+            ForEach(orderedLayouts(default: defaultLayout)) { layout in
                 Button {
                     runComposite(layout: layout)
                 } label: {
-                    Label(layout.label, systemImage: layout.systemImage)
+                    Label(menuLabel(for: layout, default: defaultLayout), systemImage: layout.systemImage)
                 }
             }
         } label: {
@@ -154,6 +159,23 @@ struct ComparisonView: View {
         }
         .disabled(currentPair?.afterPath == nil || isCompositing)
         .accessibilityLabel(String(localized: "합성"))
+    }
+
+    /// Reorders the layout cases so the user's stored default appears
+    /// first in the menu — the standard iOS affordance for "this is the
+    /// default action" within a `Menu`.
+    private func orderedLayouts(default defaultLayout: CompositeLayout) -> [CompositeLayout] {
+        let rest = CompositeLayout.allCases.filter { $0 != defaultLayout }
+        return [defaultLayout] + rest
+    }
+
+    /// Appends "(기본)" to the default layout's row label so screen
+    /// readers and the visual hierarchy both surface the preference.
+    private func menuLabel(for layout: CompositeLayout, default defaultLayout: CompositeLayout) -> String {
+        if layout == defaultLayout {
+            return String(format: String(localized: "%@ (기본)"), layout.label)
+        }
+        return layout.label
     }
 
     // MARK: - Empty / error
@@ -291,8 +313,10 @@ private struct ComparisonImagePane: View {
             switch mode {
                 case .split:
                     splitView
+
                 case .beforeOnly:
                     singleImage(beforeImage, label: String(localized: "Before"))
+
                 case .afterOnly:
                     singleImage(afterImage, label: String(localized: "After"))
             }

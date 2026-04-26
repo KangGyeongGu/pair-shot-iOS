@@ -23,6 +23,7 @@ struct SettingsView: View {
             List {
                 captureSection
                 compositionSection
+                storageSection
                 exportSection
                 couponSection
                 aboutSection
@@ -58,15 +59,35 @@ struct SettingsView: View {
 
     private var compositionSection: some View {
         Section {
-            DisabledSettingsRow(
-                title: String(localized: "합성"),
-                subtitle: String(localized: "곧 추가됩니다"),
-                systemImage: "square.on.square"
-            )
+            NavigationLink {
+                CompositionSettingsView()
+            } label: {
+                SettingsRow(
+                    title: String(localized: "합성"),
+                    subtitle: compositionSummary,
+                    systemImage: "square.on.square"
+                )
+            }
         } header: {
             Text(String(localized: "합성"))
         } footer: {
-            Text(String(localized: "Overlay 기본 투명도와 합성 레이아웃 (다음 업데이트)"))
+            Text(String(localized: "반투명 overlay 기본값·합성 레이아웃·워터마크"))
+        }
+    }
+
+    private var storageSection: some View {
+        Section {
+            NavigationLink {
+                StorageInfoView()
+            } label: {
+                SettingsRow(
+                    title: String(localized: "저장 공간"),
+                    subtitle: String(localized: "사진 폴더 크기 · 캐시 정리"),
+                    systemImage: "internaldrive"
+                )
+            }
+        } header: {
+            Text(String(localized: "저장 공간"))
         }
     }
 
@@ -124,6 +145,23 @@ struct SettingsView: View {
             return String(format: String(localized: "품질 %@"), quality.label)
         }
         return String(format: String(localized: "품질 %@ · prefix \"%@\""), quality.label, prefix)
+    }
+
+    /// Localised summary of the active composition defaults shown beneath
+    /// the "합성" row. Mirrors `captureSummary`'s shape so the two rows
+    /// have a consistent visual rhythm.
+    private var compositionSummary: String {
+        let alphaPct = Int((CompositionDefaults.clampAlpha(appSettings.defaultOverlayAlpha) * 100).rounded())
+        let layoutLabel = appSettings.defaultCompositeLayout.label
+        let watermark = appSettings.watermarkEnabled
+            ? String(localized: "워터마크 켜짐")
+            : String(localized: "워터마크 꺼짐")
+        return String(
+            format: String(localized: "투명도 %d%% · %@ · %@"),
+            alphaPct,
+            layoutLabel,
+            watermark
+        )
     }
 
     static var appVersionLabel: String {

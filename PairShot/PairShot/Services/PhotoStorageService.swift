@@ -86,6 +86,112 @@ struct PhotoStorageService {
         }
     }
 
+    // MARK: - P8.4 — directory size & orphan cleanup
+
+    /// Sum of bytes occupied by every regular file under ``photosDirectory``.
+    /// Returns 0 if the directory hasn't been created yet (fresh install).
+    ///
+    /// Uses `URL.resourceValues(forKeys: [.totalFileAllocatedSizeKey])`
+    /// per Apple's recommendation for accurate on-disk usage (vs. the
+    /// logical size returned by `FileManager.attributesOfItem`).
+    nonisolated func directorySize() throws -> Int64 {
+        let dir = photosDirectory
+        guard FileManager.default.fileExists(atPath: dir.path) else { return 0 }
+        var total: Int64 = 0
+        for url in try enumerateAllFiles() {
+            let values = try url.resourceValues(forKeys: [
+                .totalFileAllocatedSizeKey,
+                .fileAllocatedSizeKey,
+                .fileSizeKey,
+            ])
+            // Prefer allocated size (what the filesystem reserved); fall
+            // back to logical size for filesystems that don't report it.
+            let bytes = values.totalFileAllocatedSize
+                ?? values.fileAllocatedSize
+                ?? values.fileSize
+                ?? 0
+            total += Int64(bytes)
+        }
+        return total
+    }
+
+    /// Lists every regular file under ``photosDirectory``. Returns an
+    /// empty array if the directory doesn't exist. Hidden + package
+    /// descendants are skipped so we don't walk into eg. .DS_Store.
+    nonisolated func enumerateAllFiles() throws -> [URL] {
+        let dir = photosDirectory
+        guard FileManager.default.fileExists(atPath: dir.path) else { return [] }
+        let resourceKeys: [URLResourceKey] = [.isRegularFileKey]
+        guard let enumerator = FileManager.default.enumerator(
+            at: dir,
+            includingPropertiesForKeys: resourceKeys,
+            options: [.skipsHiddenFiles, .skipsPackageDescendants]
+        ) else {
+            return []
+        }
+        var files: [URL] = []
+        for case let url as URL in enumerator {
+            let values = try url.resourceValues(forKeys: Set(resourceKeys))
+            if values.isRegularFile == true {
+                files.append(url)
+            }
+        }
+        return files
+    }
+
+    /// Subset of ``enumerateAllFiles()`` that no `PhotoPair`'s
+    /// `beforePath` / `afterPath` / `combinedPath` references. Pure on
+    /// the input set so the caller (settings UI) can compute the
+    /// reference set with whichever SwiftData query suits it.
+    nonisolated func orphanFiles(referencedRelativePaths: Set<String>) throws -> [URL] {
+        let referencedFilenames = Set(
+            referencedRelativePaths.compactMap { Self.filename(from: $0) }
+        )
+        let all = try enumerateAllFiles()
+        return all.filter { url in
+            !referencedFilenames.contains(url.lastPathComponent)
+        }
+    }
+
+    /// Removes every file in ``orphanFiles(referencedRelativePaths:)``
+    /// and returns `(count, bytes)` of what was deleted. Best-effort:
+    /// individual removal failures are skipped so a single locked file
+    /// doesn't abort the entire sweep.
+    nonisolated func deleteOrphanFiles(
+        referencedRelativePaths: Set<String>
+    ) throws -> (deletedCount: Int, freedBytes: Int64) {
+        let orphans = try orphanFiles(referencedRelativePaths: referencedRelativePaths)
+        var deletedCount = 0
+        var freedBytes: Int64 = 0
+        for url in orphans {
+            let size = (try? url.resourceValues(forKeys: [
+                .totalFileAllocatedSizeKey,
+                .fileAllocatedSizeKey,
+                .fileSizeKey,
+            ]))
+            .flatMap { $0.totalFileAllocatedSize ?? $0.fileAllocatedSize ?? $0.fileSize }
+            ?? 0
+            do {
+                try FileManager.default.removeItem(at: url)
+                deletedCount += 1
+                freedBytes += Int64(size)
+            } catch {
+                // Best-effort sweep — skip files we can't remove.
+                continue
+            }
+        }
+        return (deletedCount, freedBytes)
+    }
+
+    /// Extracts the filename component from a stored relative path. Pure
+    /// helper so tests can verify normalisation without instantiating
+    /// the storage service.
+    nonisolated static func filename(from relativePath: String) -> String? {
+        guard !relativePath.isEmpty else { return nil }
+        let last = (relativePath as NSString).lastPathComponent
+        return last.isEmpty ? nil : last
+    }
+
     private nonisolated func ensureDirectoryExists() throws {
         let dir = photosDirectory
         if !FileManager.default.fileExists(atPath: dir.path) {
