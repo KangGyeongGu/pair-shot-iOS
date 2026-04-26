@@ -3,13 +3,6 @@ import SwiftData
 import SwiftUI
 import UIKit
 
-// P10b — extracted from `ComparisonView.swift` to keep that view
-// under the 250-line cap. The pieces here are display-only and have no
-// state of their own beyond what the parent passes in.
-
-/// Menu surface for triggering the composite render. Reorders the
-/// available layouts so the user's stored default appears first
-/// (mirrors the iOS Menu "default action" affordance).
 struct CompositeMenu: View {
     let defaultLayout: CompositeLayout
     let isDisabled: Bool
@@ -31,15 +24,11 @@ struct CompositeMenu: View {
         .accessibilityLabel(String(localized: "합성"))
     }
 
-    /// Reorder so the stored default appears first — matches iOS'
-    /// expectation that a `Menu`'s top item is the canonical action.
     private var orderedLayouts: [CompositeLayout] {
         let rest = CompositeLayout.allCases.filter { $0 != defaultLayout }
         return [defaultLayout] + rest
     }
 
-    /// Append "(기본)" to the default layout's label for both screen
-    /// reader and visual hierarchy.
     private func label(for layout: CompositeLayout) -> String {
         if layout == defaultLayout {
             return String(format: String(localized: "%@ (기본)"), layout.label)
@@ -48,9 +37,6 @@ struct CompositeMenu: View {
     }
 }
 
-/// Photo display pane (split or single). Split lays Before / After 50/50
-/// with a 1pt black gutter; single shows one image full-bleed with a
-/// "Before" / "After" caption.
 struct ComparisonImagePane: View {
     let pair: PhotoPair
     let mode: ComparisonView.ViewMode
@@ -113,8 +99,6 @@ struct ComparisonImagePane: View {
             ZStack {
                 Color.gray.opacity(0.2)
                 VStack(spacing: 6) {
-                    // Audit-C — replace fixed-size system font with a
-                    // Dynamic-Type friendly text style.
                     Image(systemName: "photo")
                         .font(.title)
                         .imageScale(.large)
@@ -155,23 +139,17 @@ enum ComparisonImageLoader {
     }
 }
 
-/// Pure pager arithmetic. Extracted so the swipe-traversal logic can be
-/// asserted without driving a real `DragGesture`.
 enum ComparisonPager {
-    /// Step the index forward, clamped to the last valid pair.
     static func next(index: Int, count: Int) -> Int {
         guard count > 0 else { return 0 }
         return min(index + 1, count - 1)
     }
 
-    /// Step the index backward, clamped to 0.
     static func previous(index: Int, count: Int) -> Int {
         guard count > 0 else { return 0 }
         return max(index - 1, 0)
     }
 
-    /// "n / N" label. Empty string when `count == 0` so the toolbar collapses
-    /// gracefully.
     static func label(index: Int, count: Int) -> String {
         guard count > 0 else { return "" }
         let bounded = max(0, min(index, count - 1))

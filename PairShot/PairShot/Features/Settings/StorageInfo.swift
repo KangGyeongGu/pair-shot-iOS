@@ -1,22 +1,9 @@
 import SwiftData
 import SwiftUI
 
-/// P8.4 — disk-usage readout + orphan-file cleanup.
-///
-/// Two sections:
-/// - **저장 공간** — total bytes occupied by `Application Support/photos/`
-///   plus the SwiftData `PhotoPair` count for context. Computed in
-///   `.task` so the UI doesn't block on directory enumeration.
-/// - **캐시 정리** — "고아 파일 삭제" runs
-///   ``PhotoStorageService/deleteOrphanFiles(referencedRelativePaths:)``
-///   against the union of every PhotoPair's before/after/combined paths.
-///   Confirmed via alert because the operation is destructive (no
-///   undo); on success a toast announces `(N개 · M MB 회수)`.
-///
-/// View kept ≤ 200 lines; orphan-set computation is delegated to the
-/// pure helper ``StorageInfoMath`` so the calculation is unit-testable.
 struct StorageInfoView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(AppEnvironment.self) private var env
     @Query private var pairs: [PhotoPair]
 
     @State private var directorySizeBytes: Int64?
@@ -25,12 +12,6 @@ struct StorageInfoView: View {
     @State private var showPurgeConfirmation: Bool = false
     @State private var lastPurgeResult: String?
     @State private var loadError: String?
-
-    private let storage: PhotoStorageService
-
-    init(storage: PhotoStorageService = PhotoStorageService()) {
-        self.storage = storage
-    }
 
     var body: some View {
         Form {
@@ -56,8 +37,6 @@ struct StorageInfoView: View {
             ))
         }
     }
-
-    // MARK: - Usage
 
     private var usageSection: some View {
         Section {
@@ -95,8 +74,6 @@ struct StorageInfoView: View {
         }
     }
 
-    // MARK: - Cleanup
-
     private var cleanupSection: some View {
         Section {
             Button(role: .destructive) {
@@ -126,13 +103,12 @@ struct StorageInfoView: View {
         }
     }
 
-    // MARK: - Actions
-
     @MainActor
     private func refreshDirectorySize() async {
         isCalculating = true
         loadError = nil
         defer { isCalculating = false }
+        let storage = env.photoStorageService
         do {
             let bytes = try await Task.detached(priority: .userInitiated) {
                 try storage.directorySize()
@@ -152,6 +128,7 @@ struct StorageInfoView: View {
         isPurging = true
         defer { isPurging = false }
         let referenced = StorageInfoMath.referencedFileNames(in: pairs)
+        let storage = env.photoStorageService
         do {
             let result = try await Task.detached(priority: .userInitiated) {
                 try storage.deleteOrphanFiles(referencedFileNames: referenced)
@@ -161,9 +138,6 @@ struct StorageInfoView: View {
                 result.deletedCount,
                 StorageInfoMath.formatBytes(result.freedBytes)
             )
-            // P9.1 — success haptic so the destructive action gives
-            // the same tactile confirmation users expect from
-            // Settings → "캐시 삭제" in iOS itself.
             HapticService.shared.notify(.success)
             await refreshDirectorySize()
         } catch {
@@ -175,13 +149,7 @@ struct StorageInfoView: View {
     }
 }
 
-/// Pure helpers for the P8.4 storage UI. Extracted so the orphan-set
-/// computation and the bytes-to-string formatting are testable without
-/// SwiftUI / SwiftData / disk.
 enum StorageInfoMath {
-    /// Unions every pair's photo file names into a single set used by
-    /// orphan detection. Empty values are filtered out so a half-captured
-    /// pair doesn't accidentally protect every file with an empty filename.
     static func referencedFileNames(in pairs: [PhotoPair]) -> Set<String> {
         var set: Set<String> = []
         for pair in pairs {
@@ -192,10 +160,6 @@ enum StorageInfoMath {
         return set
     }
 
-    /// Apple's standard byte formatter wired with the `.file` style
-    /// (auto B / KB / MB / GB) — matches the iOS Settings → "사용 가능"
-    /// readout users are familiar with. `0` collapses to "0 KB" rather
-    /// than "Zero bytes" via `zeroPadsFractionDigits = false`.
     static func formatBytes(_ bytes: Int64) -> String {
         let formatter = ByteCountFormatter()
         formatter.countStyle = .file
@@ -207,23 +171,4 @@ enum StorageInfoMath {
         guard let raw, !raw.isEmpty else { return }
         set.insert(raw)
     }
-}
-
-private struct StorageInfoViewPreviewWrapper: View {
-    // swiftlint:disable:next force_try
-    let container = try! ModelContainer(
-        for: Schema(versionedSchema: SchemaV2.self),
-        configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-    )
-
-    var body: some View {
-        NavigationStack {
-            StorageInfoView()
-        }
-        .modelContainer(container)
-    }
-}
-
-#Preview {
-    StorageInfoViewPreviewWrapper()
 }

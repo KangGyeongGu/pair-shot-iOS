@@ -1,35 +1,23 @@
 import SwiftData
 import SwiftUI
 
-/// P8.1 — top-level settings screen, reachable from `ArchiveView`'s
-/// toolbar. Hosts the five sections from the Android v1.1.3 reference:
-///
-/// 1. **촬영** — JPEG quality + filename prefix (P8.2).
-/// 2. **합성** — overlay default alpha + composite layout (P8.3).
-/// 3. **저장 공간** — disk usage + cache cleanup (P8.4).
-/// 4. **내보내기** — export defaults (the share sheet exposes its own
-///    picker; this row stays informational).
-/// 5. **쿠폰·AdFree** — current entitlement + redeem button (P8.5).
-/// 6. **정보** — version / build / privacy.
-///
-/// Row helpers (`SettingsRow`, `DisabledSettingsRow`) and the summary
-/// string derivations live in `SettingsView+Helpers.swift` so this file
-/// stays under the 250-line cap (P8b reviewer advisory).
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
-    @Environment(AppSettings.self) private var appSettings
+    @Environment(\.openURL) private var openURL
+    @Environment(AppEnvironment.self) private var env
+    @Environment(AdFreeStore.self) private var adFreeStore
+    @State private var viewModel: SettingsViewModel?
+    @State private var path: [Route] = []
 
     var body: some View {
-        NavigationStack {
-            List {
-                captureSection
-                compositionSection
-                storageSection
-                exportSection
-                couponSection
-                aboutSection
+        NavigationStack(path: $path) {
+            Group {
+                if let viewModel {
+                    form(for: viewModel)
+                } else {
+                    ProgressView()
+                }
             }
-            .listStyle(.insetGrouped)
             .navigationTitle(String(localized: "설정"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -37,149 +25,115 @@ struct SettingsView: View {
                     Button(String(localized: "완료")) { dismiss() }
                 }
             }
-        }
-    }
-
-    // MARK: - Sections
-
-    private var captureSection: some View {
-        Section {
-            NavigationLink {
-                CaptureSettingsView()
-            } label: {
-                SettingsRow(
-                    title: String(localized: "촬영"),
-                    subtitle: appSettings.captureSummary,
-                    systemImage: "camera"
-                )
+            .navigationDestination(for: Route.self) { route in
+                destination(for: route)
             }
-        } header: {
-            Text(String(localized: "촬영"))
+        }
+        .task { ensureViewModel() }
+        .task { await observeEvents() }
+        .task { await initialStorageRefresh() }
+    }
+
+    private func ensureViewModel() {
+        if viewModel == nil {
+            viewModel = env.makeSettingsViewModel()
         }
     }
 
-    private var compositionSection: some View {
-        Section {
-            NavigationLink {
-                // Audit-B (P6.7 wire-up) — wrap the destination in
-                // ``CompositionSettingsGate`` so non-AdFree users must
-                // watch a rewarded ad before reaching the screen. The
-                // gate itself short-circuits to the child view when
-                // AdFree is active or the unlock has already been
-                // granted this session, so the AdFree path stays
-                // identical.
+    private func observeEvents() async {
+        guard let viewModel else { return }
+        for await event in viewModel.events {
+            switch event {
+                case .dismiss:
+                    dismiss()
+            }
+        }
+    }
+
+    private func initialStorageRefresh() async {
+        guard let viewModel else { return }
+        await viewModel.refreshStorageInfo()
+    }
+
+    @ViewBuilder
+    // swiftlint:disable switch_case_alignment
+    private func destination(for route: Route) -> some View {
+        switch route {
+            case .watermarkSettings:
+                WatermarkSettingsView(viewModel: env.makeWatermarkSettingsViewModel())
+
+            case .combineSettings:
                 CompositionSettingsGate {
-                    CompositionSettingsView()
+                    CombineSettingsView(viewModel: env.makeCombineSettingsViewModel())
                 }
-            } label: {
-                SettingsRow(
-                    title: String(localized: "합성"),
-                    subtitle: appSettings.compositionSummary,
-                    systemImage: "square.on.square"
-                )
-            }
-        } header: {
-            Text(String(localized: "합성"))
-        } footer: {
-            Text(String(localized: "반투명 overlay 기본값·합성 레이아웃·워터마크"))
+
+            case .license:
+                LicenseView()
+
+            default:
+                EmptyView()
         }
     }
 
-    private var storageSection: some View {
-        Section {
-            NavigationLink {
-                StorageInfoView()
-            } label: {
-                SettingsRow(
-                    title: String(localized: "저장 공간"),
-                    subtitle: String(localized: "사진 폴더 크기 · 캐시 정리"),
-                    systemImage: "internaldrive"
-                )
-            }
-        } header: {
-            Text(String(localized: "저장 공간"))
-        }
-    }
+    // swiftlint:enable switch_case_alignment
 
-    private var exportSection: some View {
-        Section {
-            DisabledSettingsRow(
-                title: String(localized: "내보내기"),
-                subtitle: String(localized: "공유 시점에 옵션을 선택합니다"),
-                systemImage: "square.and.arrow.up"
-            )
-        } header: {
-            Text(String(localized: "내보내기"))
-        }
-    }
-
-    private var couponSection: some View {
-        Section {
-            NavigationLink {
-                AdFreeStatusView()
-            } label: {
-                SettingsRow(
-                    title: String(localized: "쿠폰 / 광고 제거"),
-                    subtitle: String(localized: "쿠폰 등록·활성/과거 쿠폰 보기"),
-                    systemImage: "ticket"
-                )
-            }
-        } header: {
-            Text(String(localized: "쿠폰·AdFree"))
-        }
-    }
-
-    private var aboutSection: some View {
-        Section {
-            HStack {
-                Label(String(localized: "버전"), systemImage: "info.circle")
-                Spacer()
-                Text(Self.appVersionLabel)
-                    .foregroundStyle(.secondary)
-                    .monospacedDigit()
-            }
-            HStack {
-                Label(String(localized: "빌드"), systemImage: "hammer")
-                Spacer()
-                Text(Self.buildNumberLabel)
-                    .foregroundStyle(.secondary)
-                    .monospacedDigit()
-            }
-        } header: {
-            Text(String(localized: "정보"))
-        }
-    }
-
-    // MARK: - Bundle metadata
-
-    static var appVersionLabel: String {
-        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
-        return version ?? "—"
-    }
-
-    static var buildNumberLabel: String {
-        let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String
-        return build ?? "—"
+    private func form(for viewModel: SettingsViewModel) -> some View {
+        SettingsFormBody(
+            viewModel: viewModel,
+            adFreeStore: adFreeStore,
+            openURL: openURL
+        )
     }
 }
 
-private struct SettingsViewPreviewWrapper: View {
-    // swiftlint:disable:next force_try
-    let container = try! ModelContainer(
-        for: Schema(versionedSchema: SchemaV2.self),
-        configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-    )
+private struct SettingsFormBody: View {
+    @Bindable var viewModel: SettingsViewModel
+    let adFreeStore: AdFreeStore
+    let openURL: OpenURLAction
 
     var body: some View {
-        SettingsView()
-            .modelContainer(container)
-            .environment(AppSettings(defaults: UserDefaults(suiteName: "preview") ?? .standard))
-            .environment(AdFreeStore(context: container.mainContext))
-            .environment(RewardedAdManager())
-            .environment(\.fullscreenAdCoordinator, FullscreenAdCoordinator())
+        Form {
+            SettingsGeneralSection(viewModel: viewModel)
+            SettingsCaptureFileSection(viewModel: viewModel)
+            SettingsWatermarkSection(viewModel: viewModel)
+            SettingsCombineSection(viewModel: viewModel)
+            SettingsCouponSection(adFreeStore: adFreeStore)
+            SettingsStorageInfoSection(viewModel: viewModel, openURL: openURL)
+        }
+        .listStyle(.insetGrouped)
+        .refreshable { await viewModel.refreshStorageInfo() }
+        .confirmationDialog(
+            String(localized: "언어 선택"),
+            isPresented: $viewModel.showLanguagePicker,
+            titleVisibility: .visible
+        ) {
+            Button(String(localized: "시스템 기본값")) { viewModel.setLanguage(.system) }
+            Button(String(localized: "한국어")) { viewModel.setLanguage(.korean) }
+            Button(String(localized: "English")) { viewModel.setLanguage(.english) }
+            Button(String(localized: "취소"), role: .cancel) {}
+        }
+        .confirmationDialog(
+            String(localized: "테마 선택"),
+            isPresented: $viewModel.showThemePicker,
+            titleVisibility: .visible
+        ) {
+            Button(String(localized: "시스템 기본값")) { viewModel.setTheme(.system) }
+            Button(String(localized: "라이트")) { viewModel.setTheme(.light) }
+            Button(String(localized: "다크")) { viewModel.setTheme(.dark) }
+            Button(String(localized: "취소"), role: .cancel) {}
+        }
+        .alert(
+            String(localized: "캐시 초기화"),
+            isPresented: $viewModel.showCacheClearConfirm
+        ) {
+            Button(String(localized: "초기화"), role: .destructive) {
+                Task { await viewModel.clearCache() }
+            }
+            Button(String(localized: "취소"), role: .cancel) {}
+        } message: {
+            Text(String(
+                localized: "캐시를 초기화하시겠습니까?\n썸네일이 삭제되며, 다시 생성됩니다."
+            ))
+        }
     }
-}
-
-#Preview {
-    SettingsViewPreviewWrapper()
 }

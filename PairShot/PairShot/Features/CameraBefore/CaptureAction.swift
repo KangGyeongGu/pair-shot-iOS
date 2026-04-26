@@ -119,12 +119,15 @@ struct CaptureShutterButton: View {
         Button(action: action) {
             ZStack {
                 Circle()
-                    .stroke(Color.white, lineWidth: 4)
-                    .frame(width: 72, height: 72)
+                    .stroke(Color.white, lineWidth: 3)
+                    .frame(width: 56, height: 56)
                 Circle()
                     .fill(Color.white)
-                    .frame(width: 60, height: 60)
+                    .frame(width: 48, height: 48)
                     .opacity(isCapturing ? 0.4 : 1.0)
+                if isCapturing {
+                    ProgressView().tint(.gray)
+                }
             }
             .accessibilityLabel(String(localized: "촬영"))
         }

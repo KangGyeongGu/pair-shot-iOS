@@ -1,215 +1,176 @@
-@preconcurrency import AVFoundation
 import SwiftData
 import SwiftUI
 import UIKit
 
 struct AfterCameraView: View {
     let albumId: UUID?
+    let initialPairId: UUID?
+    let retakeMode: Bool
 
-    @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var scenePhase
-    @Environment(AppSettings.self) private var appSettings
+    @Environment(AppEnvironment.self) private var env
 
-    @State private var sessionHolder = CameraSessionHolder()
-    @State private var currentPair: PhotoPair?
-    @State private var ghostImage: UIImage?
-    @State private var cameraPermissionGranted: Bool?
-    @State private var alpha: Double = GhostOverlayMath.defaultAlpha
-    @State private var activePreset: ZoomPreset? = .wide
-    @State private var isCapturing: Bool = false
-    @State private var pinchBaseFactor: Double = 1.0
-    @State private var hasRestoredZoom: Bool = false
-    @State private var previewView: CameraPreviewView?
-    @State private var captureErrorMessage: String?
-    @State private var ghostWarningToast: String?
+    @State private var viewModel: AfterCameraViewModel?
 
-    private let storage = PhotoStorageService()
-
-    init(albumId: UUID? = nil) {
+    init(
+        albumId: UUID? = nil,
+        initialPairId: UUID? = nil,
+        retakeMode: Bool = false
+    ) {
         self.albumId = albumId
-    }
-
-    private var coordinator: AfterCaptureCoordinator {
-        AfterCaptureCoordinator(
-            session: sessionHolder.session,
-            storage: storage,
-            fileNamePrefix: FileNamePrefixValidator.sanitize(appSettings.fileNamePrefix)
-        )
+        self.initialPairId = initialPairId
+        self.retakeMode = retakeMode
     }
 
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
 
-            if cameraPermissionGranted == false {
-                PermissionDeniedView(forCamera: ())
-                    .padding(.horizontal, 32)
+            if let viewModel {
+                content(for: viewModel)
             } else {
-                AfterCameraStack(
-                    captureSession: sessionHolder.session.captureSession,
-                    onMakePreviewView: { view in previewView = view },
-                    ghostImage: ghostImage,
-                    alpha: $alpha,
-                    pendingCount: pendingPairCount,
-                    completedCount: completedPairCount,
-                    activePreset: activePreset,
-                    isPresetSupported: sessionHolder.isPresetSupported(_:),
-                    isCapturing: isCapturing,
-                    canCapture: currentPair != nil,
-                    pinchGesture: AnyGesture(pinchGesture.map { _ in () }),
-                    onApplyPreset: applyPreset,
-                    onShutter: shutter
-                )
+                ProgressView().tint(.white)
             }
         }
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                Button(String(localized: "닫기")) { dismiss() }
-                    .tint(.white)
-            }
-        }
-        .task {
-            await onEnterScreen()
-        }
-        .onDisappear {
-            Task { await sessionHolder.session.stop() }
-        }
+        .toolbar(.hidden, for: .navigationBar)
+        .preferredColorScheme(.dark)
+        .statusBarHidden(false)
+        .task { await ensureViewModel() }
+        .task { await observeEvents() }
+        .task { await observeOrientation() }
+        .onDisappear { viewModel?.onDisappear() }
         .onChange(of: scenePhase) { _, newPhase in
-            handleScenePhaseChange(newPhase)
+            viewModel?.handleScenePhaseAction(CameraScenePhaseGate.action(for: newPhase))
         }
-        .captureErrorAlert(message: $captureErrorMessage)
-        .ghostWarningToast(message: $ghostWarningToast)
-    }
-
-    private func handleScenePhaseChange(_ newPhase: ScenePhase) {
-        guard cameraPermissionGranted == true else { return }
-        switch CameraScenePhaseGate.action(for: newPhase) {
-            case .stop:
-                Task { await sessionHolder.session.stop() }
-
-            case .start:
-                Task { await sessionHolder.session.start() }
-
-            case nil:
-                break
-        }
-    }
-
-    private var scopedPairs: [PhotoPair] {
-        let descriptor = FetchDescriptor<PhotoPair>()
-        let all = (try? modelContext.fetch(descriptor)) ?? []
-        guard let albumId else { return all }
-        return all.filter { pair in
-            pair.albums.contains(where: { $0.id == albumId })
-        }
-    }
-
-    private var pendingPairCount: Int {
-        AfterCameraPairLoader.pendingPairs(in: scopedPairs).count
-    }
-
-    private var completedPairCount: Int {
-        scopedPairs.count(where: { $0.afterFileName != nil })
-    }
-
-    private var pinchGesture: some Gesture {
-        MagnificationGesture()
-            .onChanged { value in
-                let target = pinchBaseFactor * Double(value)
-                Task { await sessionHolder.session.ramp(toZoomFactor: target, rate: 6.0) }
-                activePreset = matchingPreset(for: target)
+        .sheet(isPresented: settingsSheetBinding) {
+            if let viewModel {
+                AfterCameraSettingsSheet(viewModel: viewModel)
             }
-            .onEnded { value in
-                pinchBaseFactor *= Double(value)
-            }
-    }
-
-    private func onEnterScreen() async {
-        alpha = GhostOverlayMath.clamp(appSettings.defaultOverlayAlpha)
-
-        await checkCameraPermission()
-        guard cameraPermissionGranted == true else { return }
-
-        await sessionHolder.session.start()
-        await sessionHolder.refreshCapabilities()
-        loadFirstPendingOrDismiss()
-    }
-
-    private func checkCameraPermission() async {
-        cameraPermissionGranted = await Self.resolveCameraPermission()
-    }
-
-    private func loadFirstPendingOrDismiss() {
-        guard let pair = AfterCameraPairLoader.firstPendingPair(in: scopedPairs) else {
-            dismiss()
-            return
         }
-        adopt(pair: pair)
+        .captureErrorAlert(message: Binding(
+            get: { viewModel?.captureErrorMessage },
+            set: { viewModel?.captureErrorMessage = $0 }
+        ))
+        .ghostWarningToast(message: Binding(
+            get: { viewModel?.ghostWarningToast },
+            set: { viewModel?.ghostWarningToast = $0 }
+        ))
     }
 
-    private func adopt(pair: PhotoPair) {
-        currentPair = pair
-        let loaded = GhostOverlayLoader.loadImage(beforeFileName: pair.beforeFileName, storage: storage)
-        ghostImage = loaded
-        if loaded == nil {
-            ghostWarningToast = String(
-                localized: "Before 사진을 찾을 수 없어 overlay 없이 진행합니다."
+    @ViewBuilder
+    private func content(for viewModel: AfterCameraViewModel) -> some View {
+        if viewModel.cameraPermissionGranted == false {
+            PermissionDeniedView(forCamera: ())
+                .padding(.horizontal, 32)
+        } else {
+            AfterCameraStack(
+                captureSession: viewModel.captureSession,
+                onMakePreviewView: { _ in },
+                ghostImage: ghostImage(for: viewModel),
+                alpha: viewModel.alpha,
+                overlayEnabled: viewModel.overlayEnabled,
+                pairs: viewModel.pairs,
+                selectedPairId: selectedPairIdBinding(for: viewModel),
+                storage: env.photoStorageService,
+                stripProgress: viewModel.stripProgress,
+                rotationDirection: viewModel.rotationDirection,
+                activePreset: viewModel.activePreset,
+                isPresetSupported: viewModel.isPresetSupported(_:),
+                isDraggingZoom: viewModel.isDraggingZoom,
+                currentZoomRatio: viewModel.currentZoomRatio,
+                minZoomRatio: viewModel.minZoom,
+                maxZoomRatio: viewModel.maxZoom,
+                isCapturing: viewModel.isCapturing,
+                canCapture: viewModel.currentPair != nil,
+                pinchGesture: AnyGesture(pinchGesture(for: viewModel).map { _ in () }),
+                onApplyPreset: viewModel.applyPreset,
+                onZoomDragChanged: viewModel.onZoomDragChanged(deltaPx:),
+                onZoomDragEnded: viewModel.onZoomDragEnded,
+                onShutter: { handleShutter(viewModel: viewModel) },
+                onSettingsTap: viewModel.onSettingsTap,
+                onLeadingTap: { dismiss() },
+                onToggleLens: viewModel.toggleLens
             )
         }
-        alpha = GhostOverlayMath.clamp(appSettings.defaultOverlayAlpha)
-        hasRestoredZoom = false
-        Task { await restoreZoom(for: pair) }
     }
 
-    private func restoreZoom(for pair: PhotoPair) async {
-        guard !hasRestoredZoom else { return }
-        let target = pair.cameraSettings?.zoomFactor ?? 1.0
-        await sessionHolder.session.setZoomFactor(target)
-        let actual = await sessionHolder.session.currentZoomFactor
-        await MainActor.run {
-            pinchBaseFactor = actual
-            activePreset = matchingPreset(for: actual)
-            hasRestoredZoom = true
+    private var settingsSheetBinding: Binding<Bool> {
+        Binding(
+            get: { viewModel?.showSettingsSheet ?? false },
+            set: { viewModel?.showSettingsSheet = $0 }
+        )
+    }
+
+    private func selectedPairIdBinding(for viewModel: AfterCameraViewModel) -> Binding<UUID?> {
+        Binding(
+            get: { viewModel.selectedPairId },
+            set: { newValue in
+                viewModel.selectedPairId = newValue
+                viewModel.onSelectionChanged(newValue)
+            }
+        )
+    }
+
+    private func ghostImage(for viewModel: AfterCameraViewModel) -> UIImage? {
+        guard let data = viewModel.ghostImageData else { return nil }
+        return UIImage(data: data)
+    }
+
+    private func pinchGesture(for viewModel: AfterCameraViewModel) -> some Gesture {
+        MagnificationGesture()
+            .onChanged { value in viewModel.onPinchChanged(Double(value)) }
+            .onEnded { value in viewModel.onPinchEnded(Double(value)) }
+    }
+
+    private func handleShutter(viewModel: AfterCameraViewModel) {
+        HapticService.shared.impact(.heavy)
+        Task { await viewModel.shutter() }
+    }
+
+    private func ensureViewModel() async {
+        if viewModel == nil {
+            viewModel = env.makeAfterCameraViewModel(
+                albumId: albumId,
+                initialPairId: initialPairId,
+                retakeMode: retakeMode
+            )
+        }
+        await viewModel?.onAppear()
+    }
+
+    private func observeEvents() async {
+        while viewModel == nil {
+            try? await Task.sleep(nanoseconds: 50_000_000)
+        }
+        guard let viewModel else { return }
+        for await event in viewModel.events {
+            switch event {
+                case .dismiss:
+                    dismiss()
+
+                case .snackbarSuccess:
+                    CaptureHaptics.success()
+
+                case .snackbarAllCompleted:
+                    CaptureHaptics.success()
+            }
         }
     }
 
-    private func matchingPreset(for factor: Double) -> ZoomPreset? {
-        let tolerance = 0.05
-        return ZoomPreset.allCases.first { abs($0.factor - factor) <= tolerance }
-    }
-
-    private func applyPreset(_ preset: ZoomPreset) {
-        activePreset = preset
-        pinchBaseFactor = preset.factor
-        Task { await sessionHolder.session.setZoomFactor(preset.factor) }
-    }
-
-    private func shutter() {
-        guard !isCapturing, let pair = currentPair else { return }
-        HapticService.shared.impact(.heavy)
-        isCapturing = true
-        Task {
-            defer { isCapturing = false }
-            do {
-                let outcome = try await coordinator.captureAfter(
-                    for: pair,
-                    into: modelContext,
-                    pendingScope: scopedPairs
-                )
-                CaptureHaptics.success()
-                await MainActor.run {
-                    if let next = outcome.nextPendingPair {
-                        adopt(pair: next)
-                    } else {
-                        currentPair = nil
-                        ghostImage = nil
-                        dismiss()
-                    }
-                }
-            } catch {
-                captureErrorMessage = Self.afterCaptureErrorText(for: error)
+    private func observeOrientation() async {
+        while viewModel == nil {
+            try? await Task.sleep(nanoseconds: 50_000_000)
+        }
+        guard let viewModel else { return }
+        await MainActor.run {
+            UIDevice.current.beginGeneratingDeviceOrientationNotifications()
+            viewModel.updateRotation(orientation: UIDevice.current.orientation)
+        }
+        let stream = NotificationCenter.default.notifications(named: UIDevice.orientationDidChangeNotification)
+        for await _ in stream {
+            await MainActor.run {
+                viewModel.updateRotation(orientation: UIDevice.current.orientation)
             }
         }
     }

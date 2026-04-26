@@ -1,64 +1,52 @@
 import SwiftData
 import SwiftUI
 
-/// P8.5 — AdFree entitlement readout + coupon registration entry point
-/// + active / past coupon ledger.
-///
-/// Sections (each conditionally visible):
-/// 1. **현재 상태** — headline produced by
-///    ``AdFreeStatusFormatter/headline(isAdFree:latestExpiration:now:)``.
-/// 2. **쿠폰 등록** — sheet-presents ``CouponRegistrationView``; on
-///    dismiss we re-`refresh()` defensively (the registration view also
-///    refreshes on success — second call is idempotent).
-/// 3. **활성 / 과거 쿠폰** — visible only when non-empty. Codes are
-///    masked to the last 4 characters via
-///    ``AdFreeStatusFormatter/maskCode(_:)``.
-///
-/// View stays ≤ 250 lines; formatter math lives in
-/// ``AdFreeStatusFormatter`` so it's testable without driving SwiftUI.
 struct AdFreeStatusView: View {
-    @Environment(AdFreeStore.self) private var adFreeStore
-    @Environment(\.modelContext) private var modelContext
+    @Environment(AppEnvironment.self) private var env
+    @State private var viewModel: AdFreeStatusViewModel?
     @State private var isShowingRegistration = false
 
     var body: some View {
-        Form {
-            statusSection
-            registrationSection
-            activeCouponsSection
-            pastCouponsSection
+        ZStack {
+            if let viewModel {
+                content(for: viewModel)
+            } else {
+                ProgressView()
+            }
         }
         .navigationTitle(String(localized: "쿠폰·AdFree"))
         .navigationBarTitleDisplayMode(.inline)
+        .task { ensureViewModel() }
+    }
+
+    private func ensureViewModel() {
+        if viewModel == nil {
+            viewModel = env.makeAdFreeStatusViewModel()
+        }
+    }
+
+    private func content(for viewModel: AdFreeStatusViewModel) -> some View {
+        Form {
+            statusSection(viewModel: viewModel)
+            registrationSection
+            activeCouponsSection(viewModel: viewModel)
+            pastCouponsSection(viewModel: viewModel)
+        }
         .sheet(
             isPresented: $isShowingRegistration,
-            onDismiss: {
-                // Defence in depth: the registration view already calls
-                // refresh on success, but if the user dismisses mid-flow
-                // the headline below should still pick up any persisted
-                // change.
-                adFreeStore.refresh()
-            },
-            content: {
-                CouponRegistrationView()
-            }
+            onDismiss: { viewModel.refresh() },
+            content: { CouponRegistrationView() }
         )
     }
 
-    // MARK: - Sections
-
-    private var statusSection: some View {
+    private func statusSection(viewModel: AdFreeStatusViewModel) -> some View {
         Section {
             HStack(spacing: 12) {
-                Image(systemName: adFreeStore.isAdFree ? "checkmark.seal.fill" : "lock.open.fill")
-                    .foregroundStyle(adFreeStore.isAdFree ? .green : .secondary)
+                Image(systemName: viewModel.isAdFree ? "checkmark.seal.fill" : "lock.open.fill")
+                    .foregroundStyle(viewModel.isAdFree ? .green : .secondary)
                     .frame(width: 24)
-                Text(AdFreeStatusFormatter.headline(
-                    isAdFree: adFreeStore.isAdFree,
-                    latestExpiration: adFreeStore.currentExpiration,
-                    now: .now
-                ))
-                .multilineTextAlignment(.leading)
+                Text(viewModel.headline())
+                    .multilineTextAlignment(.leading)
             }
         } header: {
             Text(String(localized: "현재 상태"))
@@ -85,15 +73,16 @@ struct AdFreeStatusView: View {
     }
 
     @ViewBuilder
-    private var activeCouponsSection: some View {
-        let active = adFreeStore.activeCoupons
+    private func activeCouponsSection(viewModel: AdFreeStatusViewModel) -> some View {
+        let active = viewModel.activeCoupons
         if !active.isEmpty {
             Section {
                 ForEach(active) { coupon in
                     CouponLedgerRow(
                         coupon: coupon,
                         statusLabel: nil,
-                        statusTint: .green
+                        statusTint: .green,
+                        viewModel: viewModel
                     )
                 }
             } header: {
@@ -103,15 +92,16 @@ struct AdFreeStatusView: View {
     }
 
     @ViewBuilder
-    private var pastCouponsSection: some View {
-        let past = adFreeStore.pastCoupons
+    private func pastCouponsSection(viewModel: AdFreeStatusViewModel) -> some View {
+        let past = viewModel.pastCoupons
         if !past.isEmpty {
             Section {
                 ForEach(past) { coupon in
                     CouponLedgerRow(
                         coupon: coupon,
-                        statusLabel: AdFreeStatusFormatter.pastStatusLabel(for: coupon),
-                        statusTint: .secondary
+                        statusLabel: viewModel.pastStatusLabel(for: coupon),
+                        statusTint: .secondary,
+                        viewModel: viewModel
                     )
                 }
             } header: {
@@ -121,13 +111,9 @@ struct AdFreeStatusView: View {
     }
 }
 
-/// Pure helpers for the `AdFreeStatusView` text surfaces. Deterministic
-/// and side-effect-free so formatting/clamping is unit-testable.
 enum AdFreeStatusFormatter {
-    /// ISO-style date stamp used in headline + ledger rows.
     static let dateFormat = "yyyy-MM-dd"
 
-    /// Whole days between `now` and `expiration`. Negative clamps to 0.
     static func remainingDays(until expiration: Date, now: Date) -> Int {
         let calendar = Calendar.current
         let startOfNow = calendar.startOfDay(for: now)
@@ -136,9 +122,6 @@ enum AdFreeStatusFormatter {
         return max(0, components.day ?? 0)
     }
 
-    /// Headline for the "현재 상태" section. Returns the inactive
-    /// variant when `isAdFree == false` *or* when `latestExpiration` is
-    /// `nil` — both signal the same user-visible state.
     static func headline(isAdFree: Bool, latestExpiration: Date?, now: Date) -> String {
         guard isAdFree, let latestExpiration else {
             return String(localized: "광고 제거 비활성")
@@ -149,9 +132,6 @@ enum AdFreeStatusFormatter {
         return String(format: template, days, formatted)
     }
 
-    /// Mask all but the last 4 characters of a coupon code (`****-WXYZ`).
-    /// Strings ≤ 4 characters are returned unchanged; empty/whitespace
-    /// collapses to `****`.
     static func maskCode(_ raw: String) -> String {
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return "****" }
@@ -161,42 +141,33 @@ enum AdFreeStatusFormatter {
     }
 
     static func formatDate(_ date: Date) -> String {
-        // Audit-C — the `yyyy-MM-dd` template needs `en_US_POSIX` to
-        // resolve consistently on devices configured for non-Gregorian
-        // calendars (Buddhist, Japanese, etc.). Without it, the year
-        // segment drifts and the formatted string no longer round-trips
-        // through `DateFormatter.date(from:)`.
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.dateFormat = dateFormat
         return formatter.string(from: date)
     }
 
-    /// Status badge text for a row in the "과거 쿠폰" section.
     static func pastStatusLabel(for coupon: Coupon) -> String {
         switch coupon.status {
             case .revoked:
                 String(localized: "취소")
 
-            // `.active` here = past expiration but not yet rolled over.
             case .expired, .active:
                 String(localized: "만료")
         }
     }
 }
 
-/// Single coupon row used in both the active and past sections. Rendered
-/// here (vs. inlining in the section) so both sections share spacing /
-/// accessibility wiring without copy-paste drift.
 private struct CouponLedgerRow: View {
     let coupon: Coupon
     let statusLabel: String?
     let statusTint: Color
+    let viewModel: AdFreeStatusViewModel
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
-                Text(AdFreeStatusFormatter.maskCode(coupon.code))
+                Text(viewModel.maskedCode(for: coupon))
                     .font(.body.monospaced())
                 Spacer()
                 if let statusLabel {
@@ -210,12 +181,12 @@ private struct CouponLedgerRow: View {
             }
             HStack(spacing: 12) {
                 Label {
-                    Text(AdFreeStatusFormatter.formatDate(coupon.activatedAt))
+                    Text(viewModel.formattedDate(coupon.activatedAt))
                 } icon: {
                     Image(systemName: "play.circle")
                 }
                 Label {
-                    Text(AdFreeStatusFormatter.formatDate(coupon.expirationDate))
+                    Text(viewModel.formattedDate(coupon.expirationDate))
                 } icon: {
                     Image(systemName: "hourglass")
                 }
@@ -225,24 +196,4 @@ private struct CouponLedgerRow: View {
         }
         .accessibilityElement(children: .combine)
     }
-}
-
-private struct AdFreeStatusViewPreviewWrapper: View {
-    // swiftlint:disable:next force_try
-    let container = try! ModelContainer(
-        for: Schema(versionedSchema: SchemaV2.self),
-        configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-    )
-
-    var body: some View {
-        NavigationStack {
-            AdFreeStatusView()
-        }
-        .modelContainer(container)
-        .environment(AdFreeStore(context: container.mainContext))
-    }
-}
-
-#Preview {
-    AdFreeStatusViewPreviewWrapper()
 }

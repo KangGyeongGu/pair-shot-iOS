@@ -104,3 +104,35 @@ enum AfterCameraPairLoader {
             .min { $0.createdAt < $1.createdAt }
     }
 }
+
+struct AfterCameraScopeFetch {
+    let pairRepo: PhotoPairRepository
+    let albumId: UUID?
+
+    func fetch() async -> AfterCameraScopeSnapshot {
+        let fetched = try? await pairRepo.fetchAll()
+        let all = fetched ?? []
+        let scoped: [PhotoPair] = if let albumId {
+            all.filter { pair in pair.albums.contains(where: { $0.id == albumId }) }
+        } else {
+            all
+        }
+        let pending = AfterCameraPairLoader.pendingPairs(in: scoped)
+        let completed = scoped.count(where: { $0.afterFileName != nil })
+        return AfterCameraScopeSnapshot(pending: pending, completedCount: completed)
+    }
+}
+
+struct AfterCameraScopeSnapshot {
+    let pending: [PhotoPair]
+    let completedCount: Int
+}
+
+enum AfterCameraInitialPairResolver {
+    static func resolve(initialPairId: UUID?, pending: [PhotoPair]) -> PhotoPair? {
+        if let id = initialPairId, let match = pending.first(where: { $0.id == id }) {
+            return match
+        }
+        return pending.first
+    }
+}

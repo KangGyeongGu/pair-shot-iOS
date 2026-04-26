@@ -2,8 +2,6 @@
 import SwiftUI
 import UIKit
 
-/// SwiftUI bridge for `AVCaptureVideoPreviewLayer`.
-/// Owned by the camera feature; the underlying session is provided by `CameraSession`.
 struct CameraPreview: UIViewRepresentable {
     let session: AVCaptureSession
 
@@ -11,19 +9,14 @@ struct CameraPreview: UIViewRepresentable {
         CameraPreviewView(session: session)
     }
 
-    func updateUIView(_: CameraPreviewView, context _: Context) {
-        // Session reference is stable for the view's lifetime — no update needed.
-    }
+    func updateUIView(_: CameraPreviewView, context _: Context) {}
 }
 
-/// `UIView` whose backing layer is `AVCaptureVideoPreviewLayer`.
-/// Using `layerClass` avoids creating a separate sublayer for the preview.
 final class CameraPreviewView: UIView {
     override class var layerClass: AnyClass {
         AVCaptureVideoPreviewLayer.self
     }
 
-    /// Convenience cast to the typed preview layer.
     var previewLayer: AVCaptureVideoPreviewLayer {
         // swiftlint:disable:next force_cast
         layer as! AVCaptureVideoPreviewLayer

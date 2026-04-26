@@ -1,15 +1,7 @@
 @preconcurrency import AVFoundation
 import SwiftUI
+import UIKit
 
-// P10b — extracted from `BeforeCameraView.swift` so the top-level view
-// stays under the 250-line cap. This file holds the camera-layer
-// composite (preview + overlays + control bars + shutter row) plus the
-// small helper subviews it needs.
-
-/// Live-camera content for the Before flow. The parent passes in every
-/// piece of state and every callback — `BeforeCameraStack` itself owns
-/// no `@State`, which lets the parent retain the gesture-base values
-/// across rebuilds.
 struct BeforeCameraStack: View {
     let captureSession: AVCaptureSession
     let onMakePreviewView: (CameraPreviewView) -> Void
@@ -18,39 +10,76 @@ struct BeforeCameraStack: View {
     let isGridOn: Bool
     let isLevelOn: Bool
     let rollDegrees: Double
-    let flashMode: CameraFlashMode
-    let lensPosition: CameraLensPosition
 
     let activePreset: ZoomPreset?
     let isPresetSupported: (ZoomPreset) -> Bool
+    let isDraggingZoom: Bool
+    let currentZoomRatio: Double
+    let minZoomRatio: Double
+    let maxZoomRatio: Double
     let exposureRangeProvider: () -> ClosedRange<Float>?
     let focusIndicator: Binding<FocusIndicatorState?>
 
     let isCapturing: Bool
-    let capturedThumbnail: UIImage?
+    let lastThumbnail: UIImage?
+    let canShowHomeIcon: Bool
+
+    let pendingPairs: [PhotoPair]
+    let storage: PhotoStorageService
 
     let onTapFocus: (CGPoint) -> Void
     let onExposureBias: (Float) -> Void
     let pinchGesture: AnyGesture<Void>
 
-    let onCycleFlash: () -> Void
-    let onToggleLens: () -> Void
-    let onToggleGrid: () -> Void
-    let onToggleLevel: () -> Void
     let onApplyPreset: (ZoomPreset) -> Void
+    let onZoomDragChanged: (Double) -> Void
+    let onZoomDragEnded: () -> Void
     let onShutter: () -> Void
+    let onSettingsTap: () -> Void
+    let onLeadingTap: () -> Void
+    let onStripPairTap: (PhotoPair) -> Void
+    let onToggleLens: () -> Void
 
     var body: some View {
+        VStack(spacing: 0) {
+            BannerAdSlot()
+
+            previewArea
+
+            BeforeCameraStrip(
+                pendingPairs: pendingPairs,
+                storage: storage,
+                onTapPair: onStripPairTap
+            )
+
+            CameraBottomBar(
+                lastThumbnail: lastThumbnail,
+                isCapturing: isCapturing,
+                canShowHomeIcon: canShowHomeIcon,
+                onLeadingTap: onLeadingTap,
+                onShutter: onShutter,
+                onSettingsTap: onSettingsTap
+            )
+
+            Spacer(minLength: 0)
+                .frame(height: 32)
+        }
+        .background(Color.black.ignoresSafeArea())
+    }
+
+    private var previewArea: some View {
         ZStack {
             BeforeCameraPreviewLayer(
                 session: captureSession,
                 onMakeView: onMakePreviewView
             )
-            .ignoresSafeArea()
+            .aspectRatio(3.0 / 4.0, contentMode: .fit)
+            .clipped()
 
             if isGridOn {
                 GridOverlay()
-                    .ignoresSafeArea()
+                    .aspectRatio(3.0 / 4.0, contentMode: .fit)
+                    .allowsHitTesting(false)
             }
 
             FocusGestureView(
@@ -60,59 +89,61 @@ struct BeforeCameraStack: View {
                 exposureRangeProvider: exposureRangeProvider,
                 indicator: focusIndicator
             )
-            .ignoresSafeArea()
+            .aspectRatio(3.0 / 4.0, contentMode: .fit)
             .gesture(pinchGesture)
 
             if let indicator = focusIndicator.wrappedValue {
                 FocusReticleView(state: indicator)
             }
 
-            VStack {
-                CameraControlBar(
-                    flashMode: flashMode,
-                    lensPosition: lensPosition,
-                    isGridOn: isGridOn,
-                    isLevelOn: isLevelOn,
-                    onCycleFlash: onCycleFlash,
-                    onToggleLens: onToggleLens,
-                    onToggleGrid: onToggleGrid,
-                    onToggleLevel: onToggleLevel
-                )
-
-                if isLevelOn {
+            if isLevelOn {
+                VStack {
                     LevelIndicator(rollDegrees: rollDegrees)
-                        .padding(.top, 4)
+                        .padding(.top, 12)
+                    Spacer()
                 }
+            }
 
+            VStack {
                 Spacer()
-
-                ZoomControl(
-                    activePreset: activePreset,
-                    isSupported: isPresetSupported,
-                    onSelect: onApplyPreset
-                )
-                .padding(.bottom, 12)
-
-                HStack(alignment: .center) {
-                    ThumbnailWell(image: capturedThumbnail)
-                        .padding(.leading, 24)
-
-                    Spacer()
-
-                    CaptureShutterButton(isCapturing: isCapturing, action: onShutter)
-
-                    Spacer()
-
-                    Color.clear.frame(width: 56, height: 56).padding(.trailing, 24)
+                HStack(alignment: .center, spacing: 8) {
+                    Spacer(minLength: 0)
+                    ZoomControl(
+                        activePreset: activePreset,
+                        isSupported: isPresetSupported,
+                        isDragging: isDraggingZoom,
+                        currentRatio: currentZoomRatio,
+                        minRatio: minZoomRatio,
+                        maxRatio: maxZoomRatio,
+                        onSelect: onApplyPreset,
+                        onDragChanged: onZoomDragChanged,
+                        onDragEnded: onZoomDragEnded
+                    )
+                    Spacer(minLength: 0)
+                    lensFlipButton
+                        .opacity(isDraggingZoom ? 0 : 1)
                 }
-                .padding(.bottom, 16)
+                .padding(.horizontal, 12)
+                .padding(.bottom, 12)
             }
         }
+        .frame(maxWidth: .infinity)
+        .background(Color.black)
+    }
+
+    private var lensFlipButton: some View {
+        Button(action: onToggleLens) {
+            Image(systemName: "arrow.triangle.2.circlepath.camera")
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(width: 36, height: 36)
+                .background(Circle().fill(Color.black.opacity(0.45)))
+                .accessibilityLabel(String(localized: "전후면 전환"))
+        }
+        .buttonStyle(.plain)
     }
 }
 
-/// Small wrapper around `CameraPreview` that reports the underlying UIView
-/// up to the parent so it can be used for tap-to-device-point conversion.
 struct BeforeCameraPreviewLayer: UIViewRepresentable {
     let session: AVCaptureSession
     let onMakeView: (CameraPreviewView) -> Void
@@ -124,25 +155,4 @@ struct BeforeCameraPreviewLayer: UIViewRepresentable {
     }
 
     func updateUIView(_: CameraPreviewView, context _: Context) {}
-}
-
-/// Last-captured thumbnail. Round corner placeholder when nil.
-struct ThumbnailWell: View {
-    let image: UIImage?
-
-    var body: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(Color.white, lineWidth: 1.5)
-                .frame(width: 48, height: 48)
-
-            if let image {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: 44, height: 44)
-                    .clipShape(RoundedRectangle(cornerRadius: 6))
-            }
-        }
-    }
 }

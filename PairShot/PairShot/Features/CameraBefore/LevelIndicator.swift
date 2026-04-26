@@ -1,13 +1,7 @@
 import SwiftUI
 
-/// Pill-shaped level indicator that rotates with the device's roll angle.
-///
-/// Displays `±X°` where X is rounded to the nearest integer, and goes green
-/// when within `tolerance` of zero. Reads `rollDegrees` directly so callers
-/// can drive it from `MotionService` or any other source.
 struct LevelIndicator: View {
     let rollDegrees: Double
-    /// How close to 0° counts as "level" — drives the green tint.
     var tolerance: Double = 1.5
 
     private var rounded: Int {

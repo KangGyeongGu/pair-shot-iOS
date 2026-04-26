@@ -1,26 +1,8 @@
 import SwiftUI
 
-/// P8.2 — capture-settings detail view, pushed from `SettingsView` →
-/// "촬영" row. Two knobs:
-///
-/// - **JPEG 품질** — segmented picker over the three discrete
-///   ``CaptureQualityPreset`` cases. Writing into `appSettings.jpegQuality`
-///   updates UserDefaults synchronously (the wrapper does the persisting),
-///   so the next composite/save call respects the change immediately.
-/// - **파일명 prefix** — text field. Local `prefixDraft` mirrors the
-///   committed value so the user can type freely (eg. paste with a
-///   trailing slash) before the sanitiser runs on `onChange`. Footer
-///   shows a live preview of the resulting filename so the rules are
-///   discoverable without a help screen.
-///
-/// Per CLAUDE.md the view is kept ≤ 200 lines (currently ~140) so the
-/// reviewer rubric on `swiftui-patterns.md` doesn't trip.
 struct CaptureSettingsView: View {
     @Environment(AppSettings.self) private var appSettings
 
-    /// Local mirror of the persisted prefix so the text field can debounce
-    /// sanitisation: the user types the raw bytes and `onChange` strips
-    /// forbidden chars before forwarding to ``AppSettings``.
     @State private var prefixDraft: String = ""
 
     var body: some View {
@@ -34,8 +16,6 @@ struct CaptureSettingsView: View {
             prefixDraft = appSettings.fileNamePrefix
         }
     }
-
-    // MARK: - JPEG quality
 
     private var qualitySection: some View {
         Section {
@@ -68,8 +48,6 @@ struct CaptureSettingsView: View {
             percent
         )
     }
-
-    // MARK: - Filename prefix
 
     private var prefixSection: some View {
         Section {

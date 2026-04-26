@@ -1,20 +1,5 @@
 import SwiftUI
 
-/// P6.7 — Rewarded-ad gate for the composition-settings detail screen
-/// (P8.3, not yet wired up — `CompositionSettingsView` will adopt this
-/// wrapper when it lands).
-///
-/// Wraps any `Content` view: the wrapper inspects `RewardedSessionGate`
-/// and either renders the child directly (ad-free, or already unlocked
-/// this session) or replaces it with a lock screen + "광고 보고 잠금
-/// 해제" button. Tapping the button presents a rewarded ad through
-/// `RewardedAdManager`; on `.granted` / `.skipped(adFree:)` the lock
-/// flips and the child renders.
-///
-/// Why this lives in `Features/Settings` ahead of P8.3: the gate is a
-/// reusable wrapper and unit-testable on its own; deferring it would
-/// duplicate the work later. The symbol is referenced by tests today,
-/// so it is not dead code from a build-warning perspective.
 struct CompositionSettingsGate<Content: View>: View {
     @Environment(AdFreeStore.self) private var adFreeStore
     @Environment(RewardedAdManager.self) private var rewardedManager
@@ -90,8 +75,6 @@ struct CompositionSettingsGate<Content: View>: View {
         }
         .padding()
         .task {
-            // Best-effort prefetch the moment the user reaches the gate
-            // — minimises perceived spin between tap and ad surface.
             rewardedManager.loadIfNeeded(adFreeStore: adFreeStore)
         }
     }
@@ -110,8 +93,6 @@ struct CompositionSettingsGate<Content: View>: View {
         )
         switch outcome {
             case .granted, .skipped:
-                // sessionUnlocks already updated inside the manager —
-                // SwiftUI re-renders and the child appears.
                 lastFailureReason = nil
 
             case .userClosed:

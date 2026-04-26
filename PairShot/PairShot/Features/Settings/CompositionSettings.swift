@@ -1,22 +1,5 @@
 import SwiftUI
 
-/// P8.3 — composition-related defaults exposed in the settings UI.
-///
-/// Three knobs:
-/// - **반투명 overlay** (`appSettings.defaultOverlayAlpha`) — alpha used
-///   when the After camera adopts a fresh `PhotoPair`. Slider over the
-///   full 0.0~1.0 range so the user can dial the field-friendly opacity
-///   they prefer; the After view re-clamps on read for safety.
-/// - **합성 레이아웃** (`appSettings.defaultCompositeLayout`) — chosen
-///   first in `ComparisonView`'s composite menu. Stored as the enum's
-///   raw `String`; ``CompositionDefaults/layout(forRawValue:)`` handles
-///   migration / corruption.
-/// - **워터마크** (`appSettings.watermarkEnabled`) — mirrors the legacy
-///   `WatermarkOverlay.userDefaultsKey` so `CompositeRenderer` reads
-///   through `WatermarkOverlay.isEnabled` without changes.
-///
-/// View kept ≤ 200 lines; the slider, picker and toggle each render as
-/// their own `Section` so adding a new knob later is mechanical.
 struct CompositionSettingsView: View {
     @Environment(AppSettings.self) private var appSettings
 
@@ -29,8 +12,6 @@ struct CompositionSettingsView: View {
         .navigationTitle(String(localized: "합성"))
         .navigationBarTitleDisplayMode(.inline)
     }
-
-    // MARK: - Overlay alpha
 
     private var overlayAlphaSection: some View {
         Section {
@@ -69,8 +50,6 @@ struct CompositionSettingsView: View {
         return "\(pct)%"
     }
 
-    // MARK: - Composite layout
-
     private var layoutSection: some View {
         Section {
             Picker(String(localized: "합성 레이아웃"), selection: layoutBinding) {
@@ -103,8 +82,6 @@ struct CompositionSettingsView: View {
                 String(localized: "Before 위, After 아래로 이어 붙입니다.")
         }
     }
-
-    // MARK: - Watermark
 
     private var watermarkSection: some View {
         Section {

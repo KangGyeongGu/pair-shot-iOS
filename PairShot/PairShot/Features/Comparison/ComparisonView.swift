@@ -3,57 +3,30 @@ import SwiftData
 import SwiftUI
 import UIKit
 
-/// P5.1 — fullscreen comparison modal. Drag-down → dismiss, drag-left/right
-/// → pager. Toolbar exposes the P5.2 composite menu. Supporting types live
-/// in ``CompositeMenu.swift``. No homography / no auto color correction.
 struct ComparisonView: View {
-    /// All pairs in the project the user opened the comparison from. The
-    /// view tracks the index locally so a delete/change in the underlying
-    /// `@Query` doesn't yank the modal out from under the user mid-swipe.
     let pairs: [PhotoPair]
-    @State var index: Int
+    let startIndex: Int
 
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
-    // P6c — interstitial firing on composite-result dismissal. The
-    // managers are AdFree-aware internally, so the call sites below
-    // don't need to guard.
-    @Environment(InterstitialAdManager.self) private var interstitialManager
-    @Environment(\.fullscreenAdCoordinator) private var coordinator
-    @Environment(AdFreeStore.self) private var adFreeStore
-    @Environment(AppSettings.self) private var appSettings
-    @State private var mode: ViewMode = .split
-    @State private var dragOffset: CGSize = .zero
-    @State private var compositeError: String?
-    @State private var isCompositing = false
+    @Environment(AppEnvironment.self) private var env
 
-    private let storage: PhotoStorageService
+    @State private var viewModel: ComparisonViewModel?
 
-    init(
-        pairs: [PhotoPair],
-        startIndex: Int,
-        storage: PhotoStorageService = PhotoStorageService()
-    ) {
+    init(pairs: [PhotoPair], startIndex: Int) {
         self.pairs = pairs
-        _index = State(initialValue: max(0, min(startIndex, pairs.count - 1)))
-        self.storage = storage
+        self.startIndex = startIndex
     }
 
-    /// Toggle between split and full-image display. Tracked in `@State` so a
-    /// single tap on the photo can flip it without touching the parent.
     enum ViewMode: String, Hashable, CaseIterable {
         case split
         case beforeOnly
         case afterOnly
     }
 
-    private var currentPair: PhotoPair? {
-        guard pairs.indices.contains(index) else { return nil }
-        return pairs[index]
-    }
-
-    private var pagerLabel: String {
-        ComparisonPager.label(index: index, count: pairs.count)
+    var index: Int {
+        if pairs.isEmpty { return 0 }
+        return max(0, min(startIndex, pairs.count - 1))
     }
 
     var body: some View {
@@ -61,24 +34,13 @@ struct ComparisonView: View {
             ZStack {
                 Color.black.ignoresSafeArea()
 
-                if let pair = currentPair {
-                    ComparisonImagePane(pair: pair, mode: mode, storage: storage)
-                        .id(pair.id)
-                        .offset(dragOffset)
-                        .gesture(swipeGesture)
-                        .onTapGesture { advanceMode() }
+                if let viewModel {
+                    content(for: viewModel)
                 } else {
-                    emptyState
-                }
-
-                if isCompositing {
-                    ProgressView(String(localized: "합성 중..."))
-                        .controlSize(.large)
-                        .padding(20)
-                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
+                    ProgressView().tint(.white)
                 }
             }
-            .navigationTitle(pagerLabel)
+            .navigationTitle(viewModel?.pagerLabel ?? "")
             .navigationBarTitleDisplayMode(.inline)
             .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbarBackground(.black.opacity(0.6), for: .navigationBar)
@@ -87,23 +49,70 @@ struct ComparisonView: View {
             .alert(
                 String(localized: "합성 실패"),
                 isPresented: errorBinding,
-                presenting: compositeError
+                presenting: viewModel?.compositeError
             ) { _ in
-                Button(String(localized: "확인"), role: .cancel) { compositeError = nil }
+                Button(String(localized: "확인"), role: .cancel) { viewModel?.clearError() }
             } message: { message in
                 Text(message)
             }
         }
+        .task { ensureViewModel() }
+        .task { await observeEvents() }
         .preferredColorScheme(.dark)
     }
 
-    // MARK: - Toolbar
+    private func ensureViewModel() {
+        if viewModel == nil {
+            viewModel = env.makeComparisonViewModel(pairs: pairs, startIndex: startIndex)
+        }
+    }
+
+    private func observeEvents() async {
+        while viewModel == nil {
+            try? await Task.sleep(nanoseconds: 50_000_000)
+        }
+        guard let viewModel else { return }
+        for await event in viewModel.events {
+            switch event {
+                case .dismiss:
+                    dismiss()
+
+                case .compositeCompleted:
+                    HapticService.shared.notify(.success)
+                    await env.interstitialAdManager.presentIfReady(
+                        from: BannerAdView.resolveRootViewController(),
+                        coordinator: env.fullscreenAdCoordinator,
+                        adFreeStore: env.adFreeStore
+                    )
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func content(for viewModel: ComparisonViewModel) -> some View {
+        if let pair = viewModel.currentPair {
+            ComparisonImagePane(pair: pair, mode: viewModel.mode, storage: viewModel.storage)
+                .id(pair.id)
+                .offset(viewModel.dragOffset)
+                .gesture(swipeGesture(for: viewModel))
+                .onTapGesture { viewModel.advanceMode() }
+        } else {
+            emptyState
+        }
+
+        if viewModel.isCompositing {
+            ProgressView(String(localized: "합성 중..."))
+                .controlSize(.large)
+                .padding(20)
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
+        }
+    }
 
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
         ToolbarItem(placement: .topBarLeading) {
             Button {
-                dismiss()
+                viewModel?.dismiss()
             } label: {
                 Image(systemName: "xmark")
             }
@@ -114,15 +123,19 @@ struct ComparisonView: View {
         }
         ToolbarItem(placement: .topBarTrailing) {
             CompositeMenu(
-                defaultLayout: appSettings.defaultCompositeLayout,
-                isDisabled: currentPair?.afterFileName == nil || isCompositing,
-                onSelect: { layout in runComposite(layout: layout) }
+                defaultLayout: viewModel?.defaultLayout ?? .horizontal,
+                isDisabled: viewModel?.canComposite != true,
+                onSelect: { layout in handleComposite(layout: layout) }
             )
         }
     }
 
     private var modePicker: some View {
-        Picker(String(localized: "보기"), selection: $mode) {
+        let binding = Binding<ViewMode>(
+            get: { viewModel?.mode ?? .split },
+            set: { viewModel?.mode = $0 }
+        )
+        return Picker(String(localized: "보기"), selection: binding) {
             Image(systemName: "rectangle.split.2x1").tag(ViewMode.split)
             Image(systemName: "1.square").tag(ViewMode.beforeOnly)
             Image(systemName: "2.square").tag(ViewMode.afterOnly)
@@ -131,13 +144,8 @@ struct ComparisonView: View {
         .frame(width: 140)
     }
 
-    // MARK: - Empty / error
-
     private var emptyState: some View {
         VStack(spacing: 12) {
-            // Audit-C — replace fixed-size system font with a Dynamic-Type
-            // friendly text style + scaled image so the icon scales for
-            // accessibility text sizes.
             Image(systemName: "photo.on.rectangle")
                 .font(.largeTitle)
                 .imageScale(.large)
@@ -149,101 +157,25 @@ struct ComparisonView: View {
 
     private var errorBinding: Binding<Bool> {
         Binding(
-            get: { compositeError != nil },
-            set: { if !$0 { compositeError = nil } }
+            get: { viewModel?.compositeError != nil },
+            set: { if !$0 { viewModel?.clearError() } }
         )
     }
 
-    // MARK: - Gestures
-
-    private var swipeGesture: some Gesture {
+    private func swipeGesture(for viewModel: ComparisonViewModel) -> some Gesture {
         DragGesture(minimumDistance: 20)
             .onChanged { value in
-                dragOffset = value.translation
+                viewModel.onDragChanged(value.translation)
             }
             .onEnded { value in
-                let horizontal = value.translation.width
-                let vertical = value.translation.height
-
-                // Vertical drag-down → dismiss. 120pt threshold matches the
-                // standard `.sheet` swipe affordance.
-                if vertical > 120, abs(vertical) > abs(horizontal) {
-                    dismiss()
-                    return
-                }
-
-                // Horizontal drag → step the pager. 80pt threshold is loose
-                // enough that a confident flick triggers but a finger drift
-                // doesn't.
-                if abs(horizontal) > 80, abs(horizontal) > abs(vertical) {
-                    if horizontal < 0 {
-                        index = ComparisonPager.next(index: index, count: pairs.count)
-                    } else {
-                        index = ComparisonPager.previous(index: index, count: pairs.count)
-                    }
-                }
-
-                withAnimation(.spring(response: 0.3)) {
-                    dragOffset = .zero
-                }
+                viewModel.onDragEnded(value.translation)
             }
     }
 
-    private func advanceMode() {
-        let cases = ViewMode.allCases
-        let currentIdx = cases.firstIndex(of: mode) ?? 0
-        mode = cases[(currentIdx + 1) % cases.count]
-    }
-
-    // MARK: - Composite action
-
-    private func runComposite(layout: CompositeLayout) {
-        guard let pair = currentPair, !isCompositing else { return }
-        isCompositing = true
-        let options = CompositeOptions(
-            layout: layout,
-            jpegQuality: CGFloat(appSettings.jpegQuality),
-            watermarkEnabled: WatermarkOverlay.isEnabled
-        )
-        let prefix = FileNamePrefixValidator.sanitize(appSettings.fileNamePrefix)
+    private func handleComposite(layout: CompositeLayout) {
+        guard let viewModel else { return }
         Task { @MainActor in
-            defer { isCompositing = false }
-            do {
-                // Audit-D — `makeComposite` is async because the heavy
-                // render now runs on a detached priority-userInitiated
-                // task with autoreleasepool isolation.
-                _ = try await CompositeRenderer.makeComposite(
-                    for: pair,
-                    options: options,
-                    storage: storage,
-                    fileNamePrefix: prefix,
-                    in: modelContext
-                )
-                // P9.1 — haptic before the interstitial fires.
-                HapticService.shared.notify(.success)
-                // Composite success = "natural transition" → try interstitial.
-                // Manager handles AdFree + 5-min cap internally.
-                await interstitialManager.presentIfReady(
-                    from: BannerAdView.resolveRootViewController(),
-                    coordinator: coordinator,
-                    adFreeStore: adFreeStore
-                )
-            } catch {
-                compositeError = errorMessage(for: error)
-            }
-        }
-    }
-
-    private func errorMessage(for error: Error) -> String {
-        guard let renderError = error as? CompositeRenderer.RenderError else {
-            return error.localizedDescription
-        }
-        return switch renderError {
-            case .beforeImageMissing: String(localized: "Before 사진을 찾을 수 없습니다")
-            case .afterImageMissing: String(localized: "After 사진을 찾을 수 없습니다")
-            case .afterPathNotSet: String(localized: "After 촬영이 아직 완료되지 않았습니다")
-            case .encodeFailed: String(localized: "JPEG 인코딩 실패")
-            case .persistFailed: String(localized: "저장 실패")
+            await viewModel.runComposite(layout: layout, in: modelContext)
         }
     }
 }
