@@ -35,38 +35,40 @@ struct PhotoStorageService {
         baseDirectory.appendingPathComponent(Self.photosDirectoryName, isDirectory: true)
     }
 
-    /// Writes `jpegData` to `photos/<UUID>.jpg` and returns the relative path
-    /// `photos/<UUID>.jpg` for storage in `PhotoPair`.
-    nonisolated func saveBeforeJPEG(_ jpegData: Data, fileID: UUID = UUID()) throws -> String {
-        try ensureDirectoryExists()
-        let fileName = "\(fileID.uuidString).jpg"
-        let fileURL = photosDirectory.appendingPathComponent(fileName)
-        try jpegData.write(to: fileURL, options: .atomic)
-        return "\(Self.photosDirectoryName)/\(fileName)"
+    /// Writes `jpegData` to `photos/<prefix><UUID>.jpg` and returns the
+    /// relative path for storage in `PhotoPair.beforePath`. P8.2 added the
+    /// optional `fileNamePrefix` so users can tag exports with a project
+    /// or crew code; pass an empty string for the default behaviour.
+    nonisolated func saveBeforeJPEG(
+        _ jpegData: Data,
+        fileID: UUID = UUID(),
+        fileNamePrefix: String = ""
+    ) throws -> String {
+        try writeJPEG(jpegData, fileID: fileID, fileNamePrefix: fileNamePrefix)
     }
 
-    /// Writes `jpegData` to `photos/<UUID>.jpg` and returns the relative path
-    /// `photos/<UUID>.jpg` for storage in `PhotoPair.afterPath`. Uses the same
-    /// directory layout as `saveBeforeJPEG` — the `before` / `after` distinction
-    /// is purely semantic at the call site.
-    nonisolated func saveAfterJPEG(_ jpegData: Data, fileID: UUID = UUID()) throws -> String {
-        try ensureDirectoryExists()
-        let fileName = "\(fileID.uuidString).jpg"
-        let fileURL = photosDirectory.appendingPathComponent(fileName)
-        try jpegData.write(to: fileURL, options: .atomic)
-        return "\(Self.photosDirectoryName)/\(fileName)"
+    /// Writes `jpegData` to `photos/<prefix><UUID>.jpg` and returns the
+    /// relative path for storage in `PhotoPair.afterPath`. Same on-disk
+    /// shape as ``saveBeforeJPEG(_:fileID:fileNamePrefix:)``; the
+    /// before/after distinction is encoded by the calling field, not the
+    /// filename.
+    nonisolated func saveAfterJPEG(
+        _ jpegData: Data,
+        fileID: UUID = UUID(),
+        fileNamePrefix: String = ""
+    ) throws -> String {
+        try writeJPEG(jpegData, fileID: fileID, fileNamePrefix: fileNamePrefix)
     }
 
-    /// Writes `jpegData` to `photos/<UUID>.jpg` and returns the relative path
-    /// for storage in `PhotoPair.combinedPath`. P5.2 — composite renderer.
-    /// Same directory + filename scheme as Before/After; the file's purpose
-    /// is encoded in `PhotoPair`'s field, not the path.
-    nonisolated func saveCombinedJPEG(_ jpegData: Data, fileID: UUID = UUID()) throws -> String {
-        try ensureDirectoryExists()
-        let fileName = "\(fileID.uuidString).jpg"
-        let fileURL = photosDirectory.appendingPathComponent(fileName)
-        try jpegData.write(to: fileURL, options: .atomic)
-        return "\(Self.photosDirectoryName)/\(fileName)"
+    /// Writes `jpegData` to `photos/<prefix><UUID>.jpg` and returns the
+    /// relative path for storage in `PhotoPair.combinedPath`. P5.2
+    /// composite renderer.
+    nonisolated func saveCombinedJPEG(
+        _ jpegData: Data,
+        fileID: UUID = UUID(),
+        fileNamePrefix: String = ""
+    ) throws -> String {
+        try writeJPEG(jpegData, fileID: fileID, fileNamePrefix: fileNamePrefix)
     }
 
     /// Resolves a relative path produced by `saveBeforeJPEG` back to an
@@ -92,5 +94,23 @@ struct PhotoStorageService {
                 withIntermediateDirectories: true
             )
         }
+    }
+
+    /// Shared writer for the three save entry points. Centralises the
+    /// `<prefix><UUID>.jpg` filename pattern so future tweaks (eg. a date
+    /// prefix) only touch one place. The `fileNamePrefix` is sanitised
+    /// here defensively even though the typical call site already feeds
+    /// ``FileNamePrefixValidator/sanitize(_:)`` output — hardening cheap.
+    private nonisolated func writeJPEG(
+        _ jpegData: Data,
+        fileID: UUID,
+        fileNamePrefix: String
+    ) throws -> String {
+        try ensureDirectoryExists()
+        let safePrefix = FileNamePrefixValidator.sanitize(fileNamePrefix)
+        let fileName = "\(safePrefix)\(fileID.uuidString).jpg"
+        let fileURL = photosDirectory.appendingPathComponent(fileName)
+        try jpegData.write(to: fileURL, options: .atomic)
+        return "\(Self.photosDirectoryName)/\(fileName)"
     }
 }

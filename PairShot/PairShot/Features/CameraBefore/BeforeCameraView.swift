@@ -13,6 +13,7 @@ struct BeforeCameraView: View {
 
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    @Environment(AppSettings.self) private var appSettings
 
     @State private var sessionHolder = CameraSessionHolder()
     @State private var motion = MotionService()
@@ -31,7 +32,11 @@ struct BeforeCameraView: View {
     @State private var previewView: CameraPreviewView?
 
     private var coordinator: BeforeCaptureCoordinator {
-        BeforeCaptureCoordinator(session: sessionHolder.session, storage: PhotoStorageService())
+        BeforeCaptureCoordinator(
+            session: sessionHolder.session,
+            storage: PhotoStorageService(),
+            fileNamePrefix: FileNamePrefixValidator.sanitize(appSettings.fileNamePrefix)
+        )
     }
 
     var body: some View {

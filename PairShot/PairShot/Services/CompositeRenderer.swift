@@ -45,6 +45,7 @@ enum CompositeRenderer {
         for pair: PhotoPair,
         options: CompositeOptions = .default,
         storage: PhotoStorageService = PhotoStorageService(),
+        fileNamePrefix: String = "",
         in context: ModelContext,
         now: Date = .now
     ) throws -> String {
@@ -71,7 +72,7 @@ enum CompositeRenderer {
         }
         let relative: String
         do {
-            relative = try storage.saveCombinedJPEG(jpeg)
+            relative = try storage.saveCombinedJPEG(jpeg, fileNamePrefix: fileNamePrefix)
         } catch {
             throw RenderError.persistFailed
         }

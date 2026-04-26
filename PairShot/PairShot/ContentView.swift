@@ -26,6 +26,7 @@ private struct ContentViewPreviewWrapper: View {
             .environment(RewardedAdManager())
             .environment(NativeAdLoader())
             .environment(TrackingAuthorizationService())
+            .environment(AppSettings(defaults: UserDefaults(suiteName: "preview-content") ?? .standard))
     }
 }
 

@@ -33,6 +33,7 @@ struct ComparisonView: View {
     @Environment(InterstitialAdManager.self) private var interstitialManager
     @Environment(\.fullscreenAdCoordinator) private var coordinator
     @Environment(AdFreeStore.self) private var adFreeStore
+    @Environment(AppSettings.self) private var appSettings
     @State private var mode: ViewMode = .split
     @State private var dragOffset: CGSize = .zero
     @State private var compositeError: String?
@@ -233,9 +234,10 @@ struct ComparisonView: View {
         isCompositing = true
         let options = CompositeOptions(
             layout: layout,
-            jpegQuality: CompositeOptions.default.jpegQuality,
+            jpegQuality: CGFloat(appSettings.jpegQuality),
             watermarkEnabled: WatermarkOverlay.isEnabled
         )
+        let prefix = FileNamePrefixValidator.sanitize(appSettings.fileNamePrefix)
         Task { @MainActor in
             defer { isCompositing = false }
             do {
@@ -243,6 +245,7 @@ struct ComparisonView: View {
                     for: pair,
                     options: options,
                     storage: storage,
+                    fileNamePrefix: prefix,
                     in: modelContext
                 )
                 // Successful composite is a "natural transition" — try
@@ -412,6 +415,7 @@ private struct ComparisonViewPreviewWrapper: View {
             .environment(AdFreeStore(context: container.mainContext))
             .environment(\.fullscreenAdCoordinator, FullscreenAdCoordinator())
             .environment(InterstitialAdManager())
+            .environment(AppSettings(defaults: UserDefaults(suiteName: "preview-comparison") ?? .standard))
     }
 }
 

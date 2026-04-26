@@ -16,6 +16,23 @@ enum CaptureActionError: Error {
 struct BeforeCaptureCoordinator {
     let session: CameraSession
     let storage: PhotoStorageService
+    /// P8.2 — optional `AppSettings` source. The capture pipeline still uses
+    /// the system JPEG produced by AVFoundation (the camera respects its own
+    /// internal quality knobs), but the *filename* prefix from settings is
+    /// applied here. Re-encoding with `jpegQuality` would lose EXIF metadata
+    /// the AVFoundation pipeline embeds, so the quality knob currently rides
+    /// the composite renderer instead — see CompositeRenderer.makeComposite.
+    let fileNamePrefix: String
+
+    init(
+        session: CameraSession,
+        storage: PhotoStorageService,
+        fileNamePrefix: String = ""
+    ) {
+        self.session = session
+        self.storage = storage
+        self.fileNamePrefix = fileNamePrefix
+    }
 
     /// Captures one Before photo and inserts a `PhotoPair(status: .pendingAfter)`
     /// linked to `project`. Returns the inserted `PhotoPair` for the caller to
@@ -34,7 +51,10 @@ struct BeforeCaptureCoordinator {
 
         let relativePath: String
         do {
-            relativePath = try storage.saveBeforeJPEG(captured.jpegData)
+            relativePath = try storage.saveBeforeJPEG(
+                captured.jpegData,
+                fileNamePrefix: fileNamePrefix
+            )
         } catch {
             throw CaptureActionError.storage(error)
         }

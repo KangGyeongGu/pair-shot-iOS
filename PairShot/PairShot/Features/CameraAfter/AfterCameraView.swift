@@ -19,6 +19,7 @@ struct AfterCameraView: View {
 
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    @Environment(AppSettings.self) private var appSettings
 
     @State private var sessionHolder = CameraSessionHolder()
     @State private var currentPair: PhotoPair?
@@ -33,7 +34,11 @@ struct AfterCameraView: View {
     private let storage = PhotoStorageService()
 
     private var coordinator: AfterCaptureCoordinator {
-        AfterCaptureCoordinator(session: sessionHolder.session, storage: storage)
+        AfterCaptureCoordinator(
+            session: sessionHolder.session,
+            storage: storage,
+            fileNamePrefix: FileNamePrefixValidator.sanitize(appSettings.fileNamePrefix)
+        )
     }
 
     var body: some View {

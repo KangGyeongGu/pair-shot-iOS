@@ -28,6 +28,20 @@ struct AfterCaptureOutcome {
 struct AfterCaptureCoordinator {
     let session: CameraSession
     let storage: PhotoStorageService
+    /// P8.2 — filename prefix forwarded to ``PhotoStorageService.saveAfterJPEG``.
+    /// See ``BeforeCaptureCoordinator`` for the rationale on why the JPEG
+    /// quality knob lives on the composite path rather than the capture path.
+    let fileNamePrefix: String
+
+    init(
+        session: CameraSession,
+        storage: PhotoStorageService,
+        fileNamePrefix: String = ""
+    ) {
+        self.session = session
+        self.storage = storage
+        self.fileNamePrefix = fileNamePrefix
+    }
 
     /// Captures one After photo for `pair`, persists it, and computes the next
     /// `pendingAfter` pair from the same project (oldest `beforeCapturedAt`
@@ -52,7 +66,10 @@ struct AfterCaptureCoordinator {
 
         let relativePath: String
         do {
-            relativePath = try storage.saveAfterJPEG(captured.jpegData)
+            relativePath = try storage.saveAfterJPEG(
+                captured.jpegData,
+                fileNamePrefix: fileNamePrefix
+            )
         } catch {
             throw AfterCaptureActionError.storage(error)
         }

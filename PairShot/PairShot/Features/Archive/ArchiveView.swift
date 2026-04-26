@@ -28,6 +28,7 @@ struct ArchiveView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var sortOption: ArchiveSortOption = .updatedAtDesc
     @State private var showingNewProject: Bool = false
+    @State private var showingSettings: Bool = false
     @State private var renameTarget: Project?
     @State private var selection = ProjectSelection()
 
@@ -75,6 +76,14 @@ struct ArchiveView: View {
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
+                        showingSettings = true
+                    } label: {
+                        Label("설정", systemImage: "gearshape")
+                    }
+                    .disabled(selection.isSelectionMode)
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
                         showingNewProject = true
                     } label: {
                         Label("새 프로젝트", systemImage: "plus")
@@ -98,6 +107,9 @@ struct ArchiveView: View {
             }
             .sheet(isPresented: $showingNewProject) {
                 NewProjectSheet(locationService: locationServiceFactory())
+            }
+            .sheet(isPresented: $showingSettings) {
+                SettingsView()
             }
             .sheet(item: $renameTarget) { project in
                 EditProjectSheet(project: project)
@@ -250,6 +262,7 @@ private struct ArchiveViewPreviewWrapper: View {
         ArchiveView()
             .modelContainer(container)
             .environment(AdFreeStore(context: container.mainContext))
+            .environment(AppSettings(defaults: UserDefaults(suiteName: "preview-archive") ?? .standard))
     }
 }
 

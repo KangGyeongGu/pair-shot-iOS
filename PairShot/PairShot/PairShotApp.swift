@@ -23,6 +23,7 @@ struct PairShotApp: App {
     @State private var rewardedManager = RewardedAdManager()
     @State private var nativeAdLoader = NativeAdLoader()
     @State private var trackingService = TrackingAuthorizationService()
+    @State private var appSettings = AppSettings()
     @State private var hasBootstrappedAds = false
     @State private var hasPresentedColdStartAppOpen = false
     @Environment(\.scenePhase) private var scenePhase
@@ -57,6 +58,7 @@ struct PairShotApp: App {
                 .environment(rewardedManager)
                 .environment(nativeAdLoader)
                 .environment(trackingService)
+                .environment(appSettings)
                 .task {
                     // First-frame bootstrap: ATT prompt → ad loads in
                     // strict order so the SDK never fires its initial
