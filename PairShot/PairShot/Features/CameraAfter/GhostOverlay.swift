@@ -29,10 +29,11 @@ enum GhostOverlayMath {
 /// missing or unreadable — the overlay then renders empty (no crash).
 enum GhostOverlayLoader {
     static func loadImage(
-        relativePath: String,
+        beforeFileName: String,
         storage: PhotoStorageService
     ) -> UIImage? {
-        guard let url = storage.resolve(relativePath: relativePath) else { return nil }
+        guard !beforeFileName.isEmpty else { return nil }
+        guard let url = storage.resolveBefore(fileName: beforeFileName) else { return nil }
         guard FileManager.default.fileExists(atPath: url.path) else { return nil }
         return UIImage(contentsOfFile: url.path)
     }

@@ -3,7 +3,7 @@ import Foundation
 import XCTest
 
 /// Audit-C — guard against accidental Korean string literals reappearing
-/// in `Features/Archive/` after the audit centralised every label
+/// in user-facing surfaces after the audit centralised every label
 /// through `String(localized:)`.
 ///
 /// The check is grep-based: read each Swift file, strip comments, then
@@ -20,11 +20,11 @@ import XCTest
 /// up from `Bundle.bundleURL` never reached the actual repo root).
 final class LocalizationCoverageTests: XCTestCase {
     private let scannedFiles: [String] = [
-        "PairShot/PairShot/Features/Archive/ArchiveView.swift",
-        "PairShot/PairShot/Features/Archive/ArchiveProjectRow.swift",
-        "PairShot/PairShot/Features/Archive/ArchiveView+Edit.swift",
-        "PairShot/PairShot/Features/Archive/ArchiveView+MultiSelect.swift",
-        "PairShot/PairShot/Features/Archive/NewProjectSheet.swift",
+        "PairShot/PairShot/Features/Gallery/PairGalleryView.swift",
+        "PairShot/PairShot/Features/Gallery/MultiSelectBar.swift",
+        "PairShot/PairShot/Features/Gallery/PairGallery+Cameras.swift",
+        "PairShot/PairShot/Features/Gallery/GalleryFilter.swift",
+        "PairShot/PairShot/Features/Gallery/PairThumbnailCell.swift",
     ]
 
     /// True when the line contains at least one Hangul syllable.
@@ -59,7 +59,7 @@ final class LocalizationCoverageTests: XCTestCase {
         return !containsHangul(sanitised)
     }
 
-    func testArchiveSurfaceFilesDoNotContainBareKoreanLiterals() throws {
+    func testGallerySurfaceFilesDoNotContainBareKoreanLiterals() throws {
         let root = try XCTUnwrap(
             TestRepoLocator.repoRoot,
             "TestRepoLocator failed to derive repo root from #filePath — Audit-D regression"

@@ -15,7 +15,7 @@ final class AdFreeStoreSortingTests: XCTestCase {
     }
 
     override func setUpWithError() throws {
-        let schema = Schema([Project.self, PhotoPair.self, Coupon.self])
+        let schema = Schema(versionedSchema: SchemaV2.self)
         let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
         container = try ModelContainer(for: schema, configurations: [config])
     }

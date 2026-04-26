@@ -3,66 +3,35 @@ import Foundation
 import SwiftData
 import XCTest
 
-/// P4.2 — `GalleryFilter` predicate behaviour.
 @MainActor
 final class GalleryFilterTests: XCTestCase {
-    private var container: ModelContainer!
-    private var context: ModelContext {
-        container.mainContext
-    }
-
-    override func setUpWithError() throws {
-        let schema = Schema([Project.self, PhotoPair.self])
-        let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
-        container = try ModelContainer(for: schema, configurations: [config])
-    }
-
-    override func tearDownWithError() throws {
-        container = nil
-    }
-
-    // MARK: - happy
-
     func testAllReturnsAllPairsRegardlessOfStatus() {
-        let project = Project(title: "현장")
-        let pending = PhotoPair(beforePath: "p/a.jpg", project: project)
-        let complete = PhotoPair(beforePath: "p/b.jpg", project: project)
-        complete.status = .complete
-        complete.afterPath = "p/b-after.jpg"
-        let composited = PhotoPair(beforePath: "p/c.jpg", project: project)
-        composited.status = .complete
-        composited.afterPath = "p/c-after.jpg"
-        composited.combinedPath = "p/c-combined.jpg"
+        let pending = PhotoPair(beforeFileName: "before_a.jpg")
+        let captured = PhotoPair(beforeFileName: "before_b.jpg")
+        captured.afterFileName = "after_b.jpg"
+        let combined = PhotoPair(beforeFileName: "before_c.jpg")
+        combined.afterFileName = "after_c.jpg"
+        combined.combinedFileName = "combined_c.jpg"
 
-        let pairs = [pending, complete, composited]
-        let result = GalleryFilter.all.apply(to: pairs)
-
-        XCTAssertEqual(result.count, 3)
+        let pairs = [pending, captured, combined]
+        XCTAssertEqual(GalleryFilter.all.apply(to: pairs).count, 3)
     }
 
-    func testCombinedOnlyReturnsOnlyPairsWithNonEmptyCombinedPath() {
-        let project = Project(title: "현장")
-        let pending = PhotoPair(beforePath: "p/a.jpg", project: project)
-        let complete = PhotoPair(beforePath: "p/b.jpg", project: project)
-        complete.status = .complete
-        let composited = PhotoPair(beforePath: "p/c.jpg", project: project)
-        composited.combinedPath = "p/c-combined.jpg"
+    func testCombinedOnlyReturnsOnlyPairsWithNonEmptyCombinedFileName() {
+        let pending = PhotoPair(beforeFileName: "before_a.jpg")
+        let captured = PhotoPair(beforeFileName: "before_b.jpg")
+        captured.afterFileName = "after_b.jpg"
+        let combined = PhotoPair(beforeFileName: "before_c.jpg")
+        combined.combinedFileName = "combined_c.jpg"
 
-        let pairs = [pending, complete, composited]
-        let result = GalleryFilter.combinedOnly.apply(to: pairs)
-
-        XCTAssertEqual(result.map(\.beforePath), ["p/c.jpg"])
+        let result = GalleryFilter.combinedOnly.apply(to: [pending, captured, combined])
+        XCTAssertEqual(result.map(\.beforeFileName), ["before_c.jpg"])
     }
-
-    // MARK: - edge
 
     func testCombinedOnlyTreatsEmptyStringAsNoComposite() {
-        let pair = PhotoPair(beforePath: "p/x.jpg")
-        pair.combinedPath = ""
-
-        let result = GalleryFilter.combinedOnly.apply(to: [pair])
-
-        XCTAssertTrue(result.isEmpty)
+        let pair = PhotoPair(beforeFileName: "before_x.jpg")
+        pair.combinedFileName = ""
+        XCTAssertTrue(GalleryFilter.combinedOnly.apply(to: [pair]).isEmpty)
     }
 
     func testFiltersAreStableOnEmptyInput() {
@@ -79,4 +48,6 @@ final class GalleryFilterTests: XCTestCase {
         XCTAssertFalse(GalleryFilter.all.label.isEmpty)
         XCTAssertFalse(GalleryFilter.combinedOnly.label.isEmpty)
     }
+
+    deinit {}
 }

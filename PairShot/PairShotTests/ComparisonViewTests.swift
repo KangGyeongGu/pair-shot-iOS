@@ -4,11 +4,6 @@ import SwiftData
 import SwiftUI
 import XCTest
 
-/// P5.1 — `ComparisonView` pager arithmetic + initialiser plumbing.
-///
-/// SwiftUI gestures aren't directly testable; the pure
-/// `ComparisonPager` helpers stand in as the unit-test seam. The view's
-/// `body` is exercised by the build (preview compiles).
 @MainActor
 final class ComparisonViewTests: XCTestCase {
     private var container: ModelContainer!
@@ -17,7 +12,7 @@ final class ComparisonViewTests: XCTestCase {
     }
 
     override func setUpWithError() throws {
-        let schema = Schema([Project.self, PhotoPair.self])
+        let schema = Schema(versionedSchema: SchemaV2.self)
         let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
         container = try ModelContainer(for: schema, configurations: [config])
     }
@@ -25,8 +20,6 @@ final class ComparisonViewTests: XCTestCase {
     override func tearDownWithError() throws {
         container = nil
     }
-
-    // MARK: - happy
 
     func testPagerNextStepsForwardWithinBounds() {
         XCTAssertEqual(ComparisonPager.next(index: 0, count: 3), 1)
@@ -44,16 +37,13 @@ final class ComparisonViewTests: XCTestCase {
     }
 
     func testInitClampsStartIndexToValidRange() {
-        let project = Project(title: "현장")
-        context.insert(project)
-        let p1 = PhotoPair(beforePath: "p/a.jpg", project: project)
-        let p2 = PhotoPair(beforePath: "p/b.jpg", project: project)
+        let p1 = PhotoPair(beforeFileName: "a.jpg")
+        let p2 = PhotoPair(beforeFileName: "b.jpg")
         context.insert(p1)
         context.insert(p2)
         try? context.save()
 
         let view = ComparisonView(pairs: [p1, p2], startIndex: 99)
-        // Initial state initialiser runs `max(0, min(start, count-1))`.
         XCTAssertEqual(view.index, 1)
     }
 
@@ -63,8 +53,6 @@ final class ComparisonViewTests: XCTestCase {
         XCTAssertTrue(ComparisonView.ViewMode.allCases.contains(.beforeOnly))
         XCTAssertTrue(ComparisonView.ViewMode.allCases.contains(.afterOnly))
     }
-
-    // MARK: - edge
 
     func testPagerNextClampsAtLastIndex() {
         XCTAssertEqual(ComparisonPager.next(index: 4, count: 5), 4)
@@ -87,16 +75,19 @@ final class ComparisonViewTests: XCTestCase {
         XCTAssertEqual(ComparisonPager.label(index: -5, count: 3), "1 / 3")
     }
 
-    func testImageLoaderReturnsNilForBlankPath() {
+    func testImageLoaderReturnsNilForBlankFileName() {
         let storage = PhotoStorageService(baseDirectory: FileManager.default.temporaryDirectory)
-        XCTAssertNil(ComparisonImageLoader.load(relativePath: "", storage: storage))
+        XCTAssertNil(ComparisonImageLoader.load(kind: .before, fileName: "", storage: storage))
     }
 
     func testImageLoaderReturnsNilForMissingFile() {
         let storage = PhotoStorageService(baseDirectory: FileManager.default.temporaryDirectory)
         XCTAssertNil(ComparisonImageLoader.load(
-            relativePath: "photos/nonexistent-\(UUID().uuidString).jpg",
+            kind: .before,
+            fileName: "missing-\(UUID().uuidString).jpg",
             storage: storage
         ))
     }
+
+    deinit {}
 }

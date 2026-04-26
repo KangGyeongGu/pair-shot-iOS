@@ -2,12 +2,8 @@
 import SwiftData
 import SwiftUI
 
-/// Top-level Before-capture screen. Hosts the preview layer, all overlays
-/// (focus reticle, grid, level), and the control bars. The actual camera
-/// composite is in ``BeforeCameraStack`` (extracted in P10b so this view
-/// stays under the 250-line cap).
 struct BeforeCameraView: View {
-    let project: Project
+    let albumId: UUID?
 
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
@@ -26,19 +22,15 @@ struct BeforeCameraView: View {
     @State private var focusIndicator: FocusIndicatorState?
     @State private var isCapturing: Bool = false
     @State private var capturedThumbnail: UIImage?
-    /// P9.4 — `nil` until the first authorization probe completes.
-    /// `false` on `.denied` / `.restricted` shows the
-    /// `PermissionDeniedView` Settings deep-link instead of starting
-    /// the session (which would just hang on a black preview).
     @State private var cameraPermissionGranted: Bool?
     @State private var pinchBaseFactor: Double = 1.0
-    /// Audit-C — surface capture errors to the user instead of swallowing
-    /// them silently. Setting this to a non-nil value drives the alert
-    /// below; the user can dismiss to retry the shutter.
     @State private var captureErrorMessage: String?
 
-    /// Stable reference to the preview UIView so taps can convert to device space.
     @State private var previewView: CameraPreviewView?
+
+    init(albumId: UUID? = nil) {
+        self.albumId = albumId
+    }
 
     private var coordinator: BeforeCaptureCoordinator {
         BeforeCaptureCoordinator(
@@ -106,18 +98,9 @@ struct BeforeCameraView: View {
             Task { await sessionHolder.session.stop() }
             motion.stop()
         }
-        // Audit-B — release the AVCaptureSession when the app is sent
-        // to the background so it doesn't keep the camera lit / drain
-        // battery while the user is elsewhere. Re-start when the app
-        // returns to .active. The view's own .task handles the
-        // very first start-up so we deliberately skip it here.
         .onChange(of: scenePhase) { _, newPhase in
             handleScenePhaseChange(newPhase)
         }
-        // Audit-C — capture failures surface as a dismissible alert
-        // (extension `BeforeCameraView+CaptureError.swift`). Previously
-        // the catch block ate the error, leaving the user staring at an
-        // unresponsive shutter.
         .captureErrorAlert(message: $captureErrorMessage)
     }
 
@@ -137,17 +120,9 @@ struct BeforeCameraView: View {
         }
     }
 
-    /// Probe AVFoundation authorization. We don't request access here
-    /// (that happens implicitly when the user opens this screen the
-    /// very first time, via system prompt) — we only branch on the
-    /// already-decided state. `notDetermined` flips through a request
-    /// so the modal flow stays linear instead of bouncing the user
-    /// out to Settings on first launch.
     private func checkCameraPermission() async {
         cameraPermissionGranted = await Self.resolveCameraPermission()
     }
-
-    // MARK: - Gestures
 
     private var pinchGesture: some Gesture {
         MagnificationGesture()
@@ -167,8 +142,6 @@ struct BeforeCameraView: View {
         let tolerance = 0.05
         return ZoomPreset.allCases.first { abs($0.factor - factor) <= tolerance }
     }
-
-    // MARK: - Actions
 
     private func cycleFlash() {
         Task {
@@ -203,16 +176,15 @@ struct BeforeCameraView: View {
 
     private func shutter() {
         guard !isCapturing else { return }
-        // Audit-C — single `.heavy` impact on press. Coordinator no
-        // longer fires its own shutter haptic so we won't double-tap.
         HapticService.shared.impact(.heavy)
         isCapturing = true
         Task {
             defer { isCapturing = false }
             do {
-                _ = try await coordinator.captureBefore(project: project, into: modelContext)
-                // Single `.success` notification once the JPEG is written
-                // and the SwiftData row is inserted.
+                _ = try await coordinator.captureBefore(
+                    albumId: albumId,
+                    into: modelContext
+                )
                 CaptureHaptics.success()
             } catch {
                 captureErrorMessage = Self.captureErrorText(for: error)
@@ -220,6 +192,3 @@ struct BeforeCameraView: View {
         }
     }
 }
-
-// CameraSessionHolder lives in `CameraSessionHolder.swift` (Audit-B
-// extraction) so this file stays under the 250-line view cap.

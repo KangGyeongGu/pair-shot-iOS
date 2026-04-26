@@ -4,21 +4,6 @@ import SwiftData
 import SwiftUI
 import XCTest
 
-/// Audit-A — smoke-level checks for the Archive → Gallery → Camera
-/// routing. SwiftUI navigation surfaces (`NavigationLink(value:)` /
-/// `navigationDestination(for:)` / `fullScreenCover`) cannot be
-/// driven from XCTest without the Simulator host app, so these tests
-/// instead verify that:
-///
-/// 1. Each destination view can be **instantiated** with the same
-///    `Project` / `PhotoPair` types the gallery hands them.
-/// 2. `Project` is `Hashable`, which is the precondition for
-///    `NavigationLink(value: project)` + `navigationDestination(for:
-///    Project.self)`.
-/// 3. `ContentView` exposes the binding `PairShotApp` uses to surface
-///    the in-memory fallback alert.
-///
-/// UI-level navigation is covered by manual checklists (`docs/01-device-test-checklist.md`).
 @MainActor
 final class RootNavigationTests: XCTestCase {
     private var container: ModelContainer!
@@ -27,7 +12,7 @@ final class RootNavigationTests: XCTestCase {
     }
 
     override func setUpWithError() throws {
-        let schema = Schema([Project.self, PhotoPair.self, Coupon.self])
+        let schema = Schema(versionedSchema: SchemaV2.self)
         let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
         container = try ModelContainer(for: schema, configurations: [config])
     }
@@ -36,48 +21,35 @@ final class RootNavigationTests: XCTestCase {
         container = nil
     }
 
-    // MARK: - happy
-
-    func testProjectIsHashableForNavigationDestination() {
-        // Hashable conformance is required by `navigationDestination(for: Project.self)`
-        // — `@Model` types provide it automatically via `PersistentModel`,
-        // but a future refactor swapping the model type could quietly
-        // break this. Pin it.
-        let p = Project(title: "라우팅")
-        var set: Set<Project> = []
-        set.insert(p)
-        XCTAssertTrue(set.contains(p))
+    func testAlbumIsHashableForNavigationDestination() {
+        let a = Album(name: "라우팅")
+        var set: Set<Album> = []
+        set.insert(a)
+        XCTAssertTrue(set.contains(a))
     }
 
-    func testPairGalleryViewInstantiatesForProject() {
-        let project = Project(title: "갤러리")
-        context.insert(project)
-        // `PairGalleryView.init` just stores the project + storage —
-        // no SwiftUI body evaluation here, but a compile-time + init
-        // smoke check is enough to catch signature regressions.
-        let view = PairGalleryView(project: project)
-        XCTAssertEqual(view.project.title, "갤러리")
+    func testPairGalleryViewInstantiatesWithoutAlbumScope() {
+        let view = PairGalleryView()
+        XCTAssertNil(view.albumId)
     }
 
-    func testBeforeCameraViewInstantiatesForProject() {
-        let project = Project(title: "Before 촬영")
-        context.insert(project)
-        let view = BeforeCameraView(project: project)
-        XCTAssertEqual(view.project.title, "Before 촬영")
+    func testPairGalleryViewInstantiatesWithAlbumScope() {
+        let id = UUID()
+        let view = PairGalleryView(albumId: id)
+        XCTAssertEqual(view.albumId, id)
     }
 
-    func testAfterCameraViewInstantiatesForProject() {
-        let project = Project(title: "After 촬영")
-        context.insert(project)
-        let view = AfterCameraView(project: project)
-        XCTAssertEqual(view.project.title, "After 촬영")
+    func testBeforeCameraViewInstantiatesWithoutAlbum() {
+        let view = BeforeCameraView()
+        XCTAssertNil(view.albumId)
     }
 
-    // MARK: - edge / fallback alert wiring
+    func testAfterCameraViewInstantiatesWithoutAlbum() {
+        let view = AfterCameraView()
+        XCTAssertNil(view.albumId)
+    }
 
     func testContentViewDefaultBindingIsConstantFalse() {
-        // No-arg init must default the alert binding to `.constant(false)`
-        // so previews and tests don't accidentally surface the fallback alert.
         let view = ContentView()
         XCTAssertFalse(view.showFallbackAlert)
     }
@@ -90,29 +62,16 @@ final class RootNavigationTests: XCTestCase {
         )
         let view = ContentView(showFallbackAlert: binding)
         XCTAssertTrue(view.showFallbackAlert)
-        // Flip the source of truth and confirm the view's binding sees it.
         visible = false
         XCTAssertFalse(view.showFallbackAlert)
     }
 
     func testModelContainerBootstrapReportsFallbackFlag() {
-        // Build via the bootstrap helper to make sure the result type
-        // exposes `fallbackActive`. A successful happy-path bootstrap
-        // returns `false`; the in-memory-fallback branch is exercised
-        // only when the disk path fails — too brittle to simulate
-        // here, so we just verify the API surface.
         let result = ModelContainerBootstrap.bootstrap()
         XCTAssertNotNil(result.container)
-        // Audit-D — replace the tautological `flag == true || flag == false`
-        // assertion (always true for a Bool) with a real round-trip:
-        // calling bootstrap twice in the same process should converge
-        // on the same `fallbackActive` value because the underlying
-        // store either opens reliably or doesn't.
         let second = ModelContainerBootstrap.bootstrap()
-        XCTAssertEqual(
-            result.fallbackActive,
-            second.fallbackActive,
-            "bootstrap() must be deterministic — same disk state, same fallback flag"
-        )
+        XCTAssertEqual(result.fallbackActive, second.fallbackActive)
     }
+
+    deinit {}
 }

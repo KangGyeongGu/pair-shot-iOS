@@ -115,7 +115,7 @@ struct ComparisonView: View {
         ToolbarItem(placement: .topBarTrailing) {
             CompositeMenu(
                 defaultLayout: appSettings.defaultCompositeLayout,
-                isDisabled: currentPair?.afterPath == nil || isCompositing,
+                isDisabled: currentPair?.afterFileName == nil || isCompositing,
                 onSelect: { layout in runComposite(layout: layout) }
             )
         }

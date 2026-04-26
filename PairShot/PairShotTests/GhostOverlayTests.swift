@@ -3,10 +3,6 @@ import Foundation
 import UIKit
 import XCTest
 
-/// P3.2 — Before semi-transparent overlay + alpha slider.
-///
-/// We test the math + loader; the SwiftUI view itself is rendered visually
-/// in `#Preview` (not a test target).
 final class GhostOverlayTests: XCTestCase {
     private var tempDir: URL!
 
@@ -24,8 +20,6 @@ final class GhostOverlayTests: XCTestCase {
         tempDir = nil
         try super.tearDownWithError()
     }
-
-    // MARK: - clamp (math)
 
     func testClampPassesThroughInRangeValues() {
         XCTAssertEqual(GhostOverlayMath.clamp(0.0), 0.0, accuracy: 1e-9)
@@ -48,35 +42,30 @@ final class GhostOverlayTests: XCTestCase {
         XCTAssertTrue(GhostOverlayMath.alphaRange.contains(GhostOverlayMath.defaultAlpha))
     }
 
-    // MARK: - loader (file-system)
-
     func testLoadImageReturnsUIImageForExistingFile() throws {
         let storage = PhotoStorageService(baseDirectory: tempDir)
 
-        // Generate a tiny JPEG via a 1×1 UIImage so UIImage(contentsOfFile:)
-        // can decode it on the simulator.
         let image = makePixelImage(color: .red)
         let jpegData = try XCTUnwrap(image.jpegData(compressionQuality: 0.8))
-        let relative = try storage.saveBeforeJPEG(jpegData)
+        let fileName = FileNameBuilder.before(prefix: "", timestamp: .now, pairId: UUID())
+        _ = try storage.saveBeforeJPEG(jpegData, fileName: fileName)
 
-        let loaded = GhostOverlayLoader.loadImage(relativePath: relative, storage: storage)
+        let loaded = GhostOverlayLoader.loadImage(beforeFileName: fileName, storage: storage)
         XCTAssertNotNil(loaded, "Loader should decode a JPEG written by PhotoStorageService")
     }
 
-    func testLoadImageReturnsNilForBlankPath() {
+    func testLoadImageReturnsNilForBlankFileName() {
         let storage = PhotoStorageService(baseDirectory: tempDir)
-        XCTAssertNil(GhostOverlayLoader.loadImage(relativePath: "", storage: storage))
+        XCTAssertNil(GhostOverlayLoader.loadImage(beforeFileName: "", storage: storage))
     }
 
     func testLoadImageReturnsNilForMissingFile() {
         let storage = PhotoStorageService(baseDirectory: tempDir)
         XCTAssertNil(GhostOverlayLoader.loadImage(
-            relativePath: "photos/does-not-exist.jpg",
+            beforeFileName: "does-not-exist.jpg",
             storage: storage
         ))
     }
-
-    // MARK: - helpers
 
     private func makePixelImage(color: UIColor) -> UIImage {
         let renderer = UIGraphicsImageRenderer(size: CGSize(width: 4, height: 4))

@@ -151,10 +151,10 @@ struct StorageInfoView: View {
         guard !isPurging else { return }
         isPurging = true
         defer { isPurging = false }
-        let referenced = StorageInfoMath.referencedRelativePaths(in: pairs)
+        let referenced = StorageInfoMath.referencedFileNames(in: pairs)
         do {
             let result = try await Task.detached(priority: .userInitiated) {
-                try storage.deleteOrphanFiles(referencedRelativePaths: referenced)
+                try storage.deleteOrphanFiles(referencedFileNames: referenced)
             }.value
             lastPurgeResult = String(
                 format: String(localized: "%d개 파일 삭제 · %@ 회수"),
@@ -179,16 +179,15 @@ struct StorageInfoView: View {
 /// computation and the bytes-to-string formatting are testable without
 /// SwiftUI / SwiftData / disk.
 enum StorageInfoMath {
-    /// Unions the `beforePath`, `afterPath`, and `combinedPath` of every
-    /// pair into a single relative-path set used by orphan detection.
-    /// Empty paths are filtered out so a half-captured pair doesn't
-    /// accidentally protect every file with an empty filename.
-    static func referencedRelativePaths(in pairs: [PhotoPair]) -> Set<String> {
+    /// Unions every pair's photo file names into a single set used by
+    /// orphan detection. Empty values are filtered out so a half-captured
+    /// pair doesn't accidentally protect every file with an empty filename.
+    static func referencedFileNames(in pairs: [PhotoPair]) -> Set<String> {
         var set: Set<String> = []
         for pair in pairs {
-            insert(&set, pair.beforePath)
-            insert(&set, pair.afterPath)
-            insert(&set, pair.combinedPath)
+            insert(&set, pair.beforeFileName)
+            insert(&set, pair.afterFileName)
+            insert(&set, pair.combinedFileName)
         }
         return set
     }
@@ -213,9 +212,7 @@ enum StorageInfoMath {
 private struct StorageInfoViewPreviewWrapper: View {
     // swiftlint:disable:next force_try
     let container = try! ModelContainer(
-        for: Project.self,
-        PhotoPair.self,
-        Coupon.self,
+        for: Schema(versionedSchema: SchemaV2.self),
         configurations: ModelConfiguration(isStoredInMemoryOnly: true)
     )
 

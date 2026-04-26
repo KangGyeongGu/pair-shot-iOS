@@ -1,12 +1,6 @@
 import SwiftUI
 import UIKit
 
-/// One grid cell in `PairGalleryView`.
-///
-/// Extracted from `PairGalleryView` (P6.8 view-size diet) so the parent
-/// stays under the 250-line guard. The cell decodes its thumbnail off
-/// the main actor via `ThumbnailCache` and renders a status badge plus
-/// an optional selection checkmark.
 struct PairThumbnailCell: View {
     let pair: PhotoPair
     let storage: PhotoStorageService
@@ -42,39 +36,33 @@ struct PairThumbnailCell: View {
                     lineWidth: 3
                 )
         )
-        // Audit-C — collapse the cell into a single VoiceOver utterance
-        // combining status, captured date, and selection state. Without
-        // this, every gallery cell read out as "image" only.
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Self.accessibilityLabel(
             for: pair,
             isSelected: isSelected,
             isSelectionMode: isSelectionMode
         ))
-        .task(id: pair.beforePath) {
+        .task(id: pair.beforeFileName) {
             await loadThumbnail()
         }
     }
 
-    /// Pure helper so the label generation is testable without spinning
-    /// up the SwiftUI hierarchy. Returns a Korean utterance like
-    /// `"완료 페어, 4월 26일 촬영, 선택됨"`.
     static func accessibilityLabel(
         for pair: PhotoPair,
         isSelected: Bool,
         isSelectionMode: Bool
     ) -> String {
         let statusText = switch pair.status {
-            case .pendingAfter: String(localized: "Before 만 촬영된 페어")
+            case .scheduled:
+                String(localized: "Before 만 촬영된 페어")
 
-            case .complete:
-                if let combined = pair.combinedPath, !combined.isEmpty {
-                    String(localized: "합성 완료된 페어")
-                } else {
-                    String(localized: "완료된 페어")
-                }
+            case .captured:
+                String(localized: "완료된 페어")
+
+            case .combined:
+                String(localized: "합성 완료된 페어")
         }
-        let dateText = pair.beforeCapturedAt.formatted(.dateTime.month().day())
+        let dateText = pair.createdAt.formatted(.dateTime.month().day())
         let selectionText: String? = isSelectionMode
             ? (isSelected ? String(localized: "선택됨") : String(localized: "선택 안 됨"))
             : nil
@@ -100,15 +88,14 @@ struct PairThumbnailCell: View {
     @ViewBuilder
     private var statusBadge: some View {
         switch pair.status {
-            case .pendingAfter:
+            case .scheduled:
                 badgeText(String(localized: "Before"), tint: .orange)
 
-            case .complete:
-                if let combined = pair.combinedPath, !combined.isEmpty {
-                    badgeText(String(localized: "합성"), tint: .purple)
-                } else {
-                    badgeText(String(localized: "완료"), tint: .green)
-                }
+            case .captured:
+                badgeText(String(localized: "완료"), tint: .green)
+
+            case .combined:
+                badgeText(String(localized: "합성"), tint: .purple)
         }
     }
 
@@ -122,14 +109,14 @@ struct PairThumbnailCell: View {
     }
 
     private func loadThumbnail() async {
-        if let cached = ThumbnailCache.shared.cached(forRelativePath: pair.beforePath) {
+        if let cached = ThumbnailCache.shared.cached(kind: .before, fileName: pair.beforeFileName) {
             thumbnail = cached
             return
         }
-        let path = pair.beforePath
+        let fileName = pair.beforeFileName
         let storage = storage
         let decoded = await Task.detached(priority: .userInitiated) {
-            ThumbnailCache.shared.loadThumbnail(forRelativePath: path, storage: storage)
+            ThumbnailCache.shared.loadThumbnail(kind: .before, fileName: fileName, storage: storage)
         }.value
         thumbnail = decoded
     }

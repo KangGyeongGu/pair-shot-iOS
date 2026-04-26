@@ -172,9 +172,7 @@ enum BootstrapTestSupport {
     @MainActor
     static func makeContainer() throws -> ModelContainer {
         try ModelContainer(
-            for: Project.self,
-            PhotoPair.self,
-            Coupon.self,
+            for: Schema(versionedSchema: SchemaV2.self),
             configurations: ModelConfiguration(isStoredInMemoryOnly: true)
         )
     }

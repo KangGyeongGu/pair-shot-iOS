@@ -3,12 +3,6 @@ import Foundation
 import SwiftData
 import XCTest
 
-/// P3.4 — Capture → COMPLETE transition + cascade to next pendingAfter.
-///
-/// We exercise the SwiftData-side state changes plus storage.saveAfterJPEG
-/// directly (camera capture itself can't run on the iOS simulator without a
-/// device — that's covered manually in P9). The coordinator's `alreadyComplete`
-/// guard is also asserted.
 @MainActor
 final class AfterCaptureActionTests: XCTestCase {
     private var container: ModelContainer!
@@ -17,7 +11,7 @@ final class AfterCaptureActionTests: XCTestCase {
 
     override func setUpWithError() throws {
         try super.setUpWithError()
-        let schema = Schema([Project.self, PhotoPair.self])
+        let schema = Schema(versionedSchema: SchemaV2.self)
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
         container = try ModelContainer(for: schema, configurations: [config])
         context = ModelContext(container)
@@ -37,56 +31,49 @@ final class AfterCaptureActionTests: XCTestCase {
         try super.tearDownWithError()
     }
 
-    // MARK: - happy
-
-    func testSaveAfterJPEGProducesRelativePathAndPersistsBytes() throws {
+    func testSaveAfterJPEGProducesFileNameAndPersistsBytes() throws {
         let storage = PhotoStorageService(baseDirectory: tempDir)
         let bytes = Data(repeating: 0xCD, count: 512)
         let id = UUID()
+        let name = FileNameBuilder.after(prefix: "", timestamp: .now, pairId: id)
+        let returned = try storage.saveAfterJPEG(bytes, fileName: name)
 
-        let relative = try storage.saveAfterJPEG(bytes, fileID: id)
+        XCTAssertEqual(returned, name)
+        XCTAssertTrue(returned.hasSuffix(".jpg"))
 
-        XCTAssertTrue(relative.hasPrefix("photos/"))
-        XCTAssertTrue(relative.hasSuffix(".jpg"))
-        XCTAssertTrue(relative.contains(id.uuidString))
-
-        let absolute = try XCTUnwrap(storage.resolve(relativePath: relative))
+        let absolute = try XCTUnwrap(storage.resolve(kind: .after, fileName: returned))
         let restored = try Data(contentsOf: absolute)
         XCTAssertEqual(restored, bytes)
     }
 
-    func testApplyingAfterTransitionsPairToCompleteAndUpdatesProject() throws {
-        let project = Project(title: "현장 D")
-        context.insert(project)
-
-        let pair = PhotoPair(beforePath: "photos/before.jpg", project: project)
+    func testApplyingAfterTransitionsPairAndUpdatesAlbums() throws {
+        let album = Album(name: "현장 D")
+        context.insert(album)
+        let pair = PhotoPair(beforeFileName: "before_test.jpg")
+        pair.albums.append(album)
         context.insert(pair)
         try context.save()
 
-        // Hand-roll the same field mutations the coordinator performs. We can't
-        // run the actor capture here, so we assert the *transition* shape.
         let now = Date(timeIntervalSince1970: 5000)
-        let before = project.updatedAt
+        let albumUpdatedBefore = album.updatedAt
 
-        pair.afterPath = "photos/after.jpg"
+        pair.afterFileName = "after_test.jpg"
         pair.afterCapturedAt = now
-        pair.status = .complete
-        pair.project?.updatedAt = .now
+        pair.updatedAt = .now
+        for album in pair.albums {
+            album.updatedAt = .now
+        }
         try context.save()
 
-        XCTAssertEqual(pair.status, .complete)
-        XCTAssertEqual(pair.afterPath, "photos/after.jpg")
+        XCTAssertEqual(pair.status, .captured)
+        XCTAssertEqual(pair.afterFileName, "after_test.jpg")
         XCTAssertEqual(pair.afterCapturedAt, now)
-        XCTAssertGreaterThanOrEqual(project.updatedAt, before)
+        XCTAssertGreaterThanOrEqual(album.updatedAt, albumUpdatedBefore)
     }
 
     func testCoordinatorRejectsAlreadyCompletePair() async throws {
-        let project = Project(title: "현장 E")
-        context.insert(project)
-
-        let pair = PhotoPair(beforePath: "photos/x.jpg", project: project)
-        pair.status = .complete
-        pair.afterPath = "photos/x-after.jpg"
+        let pair = PhotoPair(beforeFileName: "x.jpg")
+        pair.afterFileName = "x-after.jpg"
         pair.afterCapturedAt = .now
         context.insert(pair)
         try context.save()
@@ -106,86 +93,36 @@ final class AfterCaptureActionTests: XCTestCase {
         }
     }
 
-    // MARK: - edge
-
-    func testOutcomeNextPendingPairIsTheFollowingOldestPending() throws {
-        let project = Project(title: "현장 F")
-        context.insert(project)
-
-        let p1 = PhotoPair(
-            beforePath: "photos/1.jpg",
-            capturedAt: Date(timeIntervalSince1970: 100),
-            project: project
-        )
-        let p2 = PhotoPair(
-            beforePath: "photos/2.jpg",
-            capturedAt: Date(timeIntervalSince1970: 200),
-            project: project
-        )
-        let p3 = PhotoPair(
-            beforePath: "photos/3.jpg",
-            capturedAt: Date(timeIntervalSince1970: 300),
-            project: project
-        )
+    func testNextPendingPairLogicReturnsTheFollowingOldestPending() throws {
+        let p1 = PhotoPair(beforeFileName: "1.jpg", capturedAt: Date(timeIntervalSince1970: 100))
+        let p2 = PhotoPair(beforeFileName: "2.jpg", capturedAt: Date(timeIntervalSince1970: 200))
+        let p3 = PhotoPair(beforeFileName: "3.jpg", capturedAt: Date(timeIntervalSince1970: 300))
         context.insert(p1)
         context.insert(p2)
         context.insert(p3)
         try context.save()
 
-        // Simulate p1 was just captured — outcome.nextPendingPair should be p2.
-        p1.status = .complete
-        p1.afterPath = "photos/1-after.jpg"
+        p1.afterFileName = "1-after.jpg"
         try context.save()
 
-        let next = AfterCameraPairLoader.nextPendingPair(after: p1)
-        XCTAssertEqual(next?.beforePath, "photos/2.jpg")
+        let next = AfterCameraPairLoader.nextPendingPair(after: p1, in: [p1, p2, p3])
+        XCTAssertEqual(next?.beforeFileName, "2.jpg")
 
-        // Then capture p2 → next should be p3.
-        p2.status = .complete
-        p2.afterPath = "photos/2-after.jpg"
+        p2.afterFileName = "2-after.jpg"
         try context.save()
-        XCTAssertEqual(AfterCameraPairLoader.nextPendingPair(after: p2)?.beforePath, "photos/3.jpg")
+        XCTAssertEqual(
+            AfterCameraPairLoader.nextPendingPair(after: p2, in: [p1, p2, p3])?.beforeFileName,
+            "3.jpg"
+        )
     }
 
-    func testOutcomeNextPendingPairIsNilWhenNoMoreRemain() throws {
-        let project = Project(title: "현장 G")
-        context.insert(project)
-
-        let only = PhotoPair(beforePath: "photos/only.jpg", project: project)
+    func testNextPendingPairIsNilWhenNoMoreRemain() throws {
+        let only = PhotoPair(beforeFileName: "only.jpg")
         context.insert(only)
         try context.save()
-
-        only.status = .complete
-        only.afterPath = "photos/only-after.jpg"
+        only.afterFileName = "only-after.jpg"
         try context.save()
-
-        XCTAssertNil(AfterCameraPairLoader.nextPendingPair(after: only))
-    }
-
-    func testCoordinatorRejectsPairWithExistingAfterPathEvenIfStatusStillPending() async throws {
-        // Defensive: status not yet flipped to .complete but afterPath already
-        // set (interrupted previous capture). Coordinator should still bail.
-        let project = Project(title: "중복 방지")
-        context.insert(project)
-
-        let pair = PhotoPair(beforePath: "photos/y.jpg", project: project)
-        pair.afterPath = "photos/y-after.jpg" // status still .pendingAfter
-        context.insert(pair)
-        try context.save()
-
-        let coordinator = AfterCaptureCoordinator(
-            session: CameraSession(),
-            storage: PhotoStorageService(baseDirectory: tempDir)
-        )
-
-        do {
-            _ = try await coordinator.captureAfter(for: pair, into: context)
-            XCTFail("Coordinator must guard against double-capture even mid-state")
-        } catch AfterCaptureActionError.alreadyComplete {
-            // expected
-        } catch {
-            XCTFail("Unexpected error: \(error)")
-        }
+        XCTAssertNil(AfterCameraPairLoader.nextPendingPair(after: only, in: [only]))
     }
 
     deinit {}

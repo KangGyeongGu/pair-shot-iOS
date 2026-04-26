@@ -77,10 +77,6 @@ final class ViewLineCountAuditTests: XCTestCase {
 
     // MARK: - per-file caps (Audit-D diet)
 
-    func testArchiveViewUnderCap() throws {
-        try assertUnderCap("PairShot/PairShot/Features/Archive/ArchiveView.swift")
-    }
-
     func testPairGalleryViewUnderCap() throws {
         try assertUnderCap("PairShot/PairShot/Features/Gallery/PairGalleryView.swift")
     }
@@ -105,7 +101,6 @@ final class ViewLineCountAuditTests: XCTestCase {
             "PairShot/PairShot/Features/Settings/CouponRegistrationSections.swift",
             "PairShot/PairShot/Features/Settings/QRScannerViewController.swift",
             // Audit-D extractions
-            "PairShot/PairShot/Features/Archive/ArchiveProjectRow.swift",
             "PairShot/PairShot/Features/Gallery/PairGallery+Cameras.swift",
             "PairShot/PairShot/Features/Export/ExportPicker.swift",
         ]

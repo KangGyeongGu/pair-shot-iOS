@@ -166,9 +166,7 @@ struct SettingsView: View {
 private struct SettingsViewPreviewWrapper: View {
     // swiftlint:disable:next force_try
     let container = try! ModelContainer(
-        for: Project.self,
-        PhotoPair.self,
-        Coupon.self,
+        for: Schema(versionedSchema: SchemaV2.self),
         configurations: ModelConfiguration(isStoredInMemoryOnly: true)
     )
 

@@ -3,55 +3,38 @@ import SwiftData
 import SwiftUI
 import UIKit
 
-// `GalleryItem` enum + ``GalleryItemBuilder`` slot composition live in
-// ``PairGallery+Cameras.swift`` (Audit-D extraction).
-
-/// P4.1 — 2-column grid of `PhotoPair` thumbnails for a single `Project`.
-///
-/// Per phase plan:
-/// - 2 columns via `LazyVGrid` (Android v1.1.3 layout).
-/// - Cell shows the **Before** image with a corner status badge.
-/// - Tap → comparison modal (`ComparisonView` since P5.1).
-/// - Long-press → multi-select mode (P4.3).
-/// - Top filter (P4.2) toggles ALL / 합성본.
-/// - Bottom multi-select bar (P4.3) appears via `safeAreaInset`.
-/// - Thumbnails are decoded once via `ThumbnailCache` (P4.4).
-///
-/// P6.8: a native-ad cell is inserted every 6 pairs unless AdFree is
-/// active. Selection mode hides ad cells so the user isn't forced to
-/// scroll past them while picking pairs.
 struct PairGalleryView: View {
-    let project: Project
+    let albumId: UUID?
 
     @Environment(\.modelContext) private var modelContext
     @Environment(AdFreeStore.self) private var adFreeStore
     @Environment(NativeAdLoader.self) private var nativeAdLoader
+    @Query(sort: \PhotoPair.createdAt, order: .reverse) private var allPairs: [PhotoPair]
     @State private var filter: GalleryFilter = .all
     @State private var selection = PairSelection()
     @State private var preview: PhotoPair?
     @State private var exportPayload: ExportPickerPayload?
-    /// Audit-A — drives the Before-camera `.fullScreenCover` toolbar entry.
     @State private var showBeforeCamera: Bool = false
-    /// Audit-A — drives the After-camera `.fullScreenCover` triggered
-    /// when a `pendingAfter` cell is tapped outside selection mode.
     @State private var showAfterCamera: Bool = false
 
     private let storage: PhotoStorageService
 
-    init(project: Project, storage: PhotoStorageService = PhotoStorageService()) {
-        self.project = project
+    init(albumId: UUID? = nil, storage: PhotoStorageService = PhotoStorageService()) {
+        self.albumId = albumId
         self.storage = storage
     }
 
-    private var filteredPairs: [PhotoPair] {
-        let sorted = project.pairs.sorted(by: { $0.beforeCapturedAt > $1.beforeCapturedAt })
-        return filter.apply(to: sorted)
+    private var scopedPairs: [PhotoPair] {
+        guard let albumId else { return allPairs }
+        return allPairs.filter { pair in
+            pair.albums.contains(where: { $0.id == albumId })
+        }
     }
 
-    /// Build the rendered slot list. Selection mode and AdFree both
-    /// suppress the ad cells — the rest is the filtered pair list.
-    /// Composition is delegated to ``GalleryItemBuilder.build(...)``
-    /// (Audit-D — extracted so this file stays under the 250-line cap).
+    private var filteredPairs: [PhotoPair] {
+        filter.apply(to: scopedPairs)
+    }
+
     private var galleryItems: [GalleryItem] {
         GalleryItemBuilder.build(
             pairs: filteredPairs,
@@ -79,11 +62,9 @@ struct PairGalleryView: View {
                 grid
             }
         }
-        .navigationTitle(project.title.isEmpty ? String(localized: "(이름 없음)") : project.title)
+        .navigationTitle(String(localized: "페어"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            // Audit-D — extracted into ``PairGalleryToolbar`` so this
-            // file stays under the 250-line cap.
             PairGalleryToolbar(
                 isSelectionMode: selection.isSelectionMode,
                 onBeforeCamera: { showBeforeCamera = true }
@@ -106,11 +87,8 @@ struct PairGalleryView: View {
                 storage: storage
             )
         }
-        // Audit-D — Before/After camera fullScreenCover wiring extracted
-        // into ``PairGalleryCameraCovers`` so this file stays under the
-        // 250-line cap.
         .pairGalleryCameraCovers(
-            project: project,
+            albumId: albumId,
             showBeforeCamera: $showBeforeCamera,
             showAfterCamera: $showAfterCamera
         )
@@ -171,12 +149,7 @@ struct PairGalleryView: View {
     private func handleTap(_ pair: PhotoPair) {
         if selection.isSelectionMode {
             selection.toggle(pair.id)
-        } else if pair.status == .pendingAfter {
-            // Audit-A — tapping a pending Before kicks the user
-            // straight into the After camera so the half-finished pair
-            // gets resolved instead of dead-ending in the comparison
-            // view (which would just show a placeholder for the
-            // missing After photo).
+        } else if pair.afterFileName == nil {
             showAfterCamera = true
         } else {
             preview = pair
@@ -208,15 +181,13 @@ struct PairGalleryView: View {
 private struct PairGalleryViewPreviewWrapper: View {
     // swiftlint:disable:next force_try
     let container = try! ModelContainer(
-        for: Project.self,
-        PhotoPair.self,
-        Coupon.self,
+        for: Schema(versionedSchema: SchemaV2.self),
         configurations: ModelConfiguration(isStoredInMemoryOnly: true)
     )
 
     var body: some View {
         NavigationStack {
-            PairGalleryView(project: Project(title: "프리뷰"))
+            PairGalleryView()
         }
         .modelContainer(container)
         .environment(AdFreeStore(context: container.mainContext))

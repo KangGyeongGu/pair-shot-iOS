@@ -126,14 +126,14 @@ struct ComparisonImagePane: View {
     }
 
     private func loadImages() async {
-        let beforePath = pair.beforePath
-        let afterPath = pair.afterPath
+        let beforeFileName = pair.beforeFileName
+        let afterFileName = pair.afterFileName
         let storage = storage
         let loaded = await Task.detached(priority: .userInitiated) {
             (
-                ComparisonImageLoader.load(relativePath: beforePath, storage: storage),
-                afterPath.flatMap { path in
-                    ComparisonImageLoader.load(relativePath: path, storage: storage)
+                ComparisonImageLoader.load(kind: .before, fileName: beforeFileName, storage: storage),
+                afterFileName.flatMap { name in
+                    ComparisonImageLoader.load(kind: .after, fileName: name, storage: storage)
                 }
             )
         }.value
@@ -142,13 +142,14 @@ struct ComparisonImagePane: View {
     }
 }
 
-/// Pure helper extracted so the load path is testable without spinning up
-/// SwiftUI. Mirrors `GhostOverlayLoader` but exposed at the module boundary
-/// for `ComparisonImagePane` reuse.
 enum ComparisonImageLoader {
-    static func load(relativePath: String, storage: PhotoStorageService) -> UIImage? {
-        guard !relativePath.isEmpty else { return nil }
-        guard let url = storage.resolve(relativePath: relativePath) else { return nil }
+    static func load(
+        kind: PhotoStorageService.PhotoKind,
+        fileName: String,
+        storage: PhotoStorageService
+    ) -> UIImage? {
+        guard !fileName.isEmpty else { return nil }
+        guard let url = storage.resolve(kind: kind, fileName: fileName) else { return nil }
         guard FileManager.default.fileExists(atPath: url.path) else { return nil }
         return UIImage(contentsOfFile: url.path)
     }

@@ -182,7 +182,7 @@ struct ExportPicker: View {
             var saved = 0
             for entry in entries {
                 guard
-                    let url = storageCopy.resolve(relativePath: entry.sourcePath),
+                    let url = storageCopy.resolve(kind: entry.sourceKind, fileName: entry.sourceFileName),
                     let data = try? Data(contentsOf: url)
                 else { continue }
                 do {
@@ -215,7 +215,7 @@ struct ExportPicker: View {
             var images: [UIImage] = []
             for entry in entries {
                 guard
-                    let url = storageCopy.resolve(relativePath: entry.sourcePath),
+                    let url = storageCopy.resolve(kind: entry.sourceKind, fileName: entry.sourceFileName),
                     let image = UIImage(contentsOfFile: url.path)
                 else { continue }
                 images.append(image)

@@ -1,31 +1,16 @@
 import Foundation
 
-/// Persists captured JPEGs to the app container and produces relative paths
-/// suitable for storing in `PhotoPair.beforePath` / `.afterPath`.
-///
-/// All photos live under
-/// `Application Support/photos/<UUID>.jpg` and the path stored in SwiftData
-/// is `photos/<UUID>.jpg` (relative). Resolving back to an absolute URL is
-/// `resolve(relativePath:)`.
-///
-/// All members are `nonisolated` so the type can be consumed off the main
-/// actor (e.g. inside `CameraSession`).
-///
-/// Audit-A — the `Documents` directory fallback was removed. JPEGs in
-/// `Documents` are visible to iCloud Backup, which can balloon the user's
-/// backup quota by tens of gigabytes. The new contract is:
-///
-/// - Production callers pass `nil` and we resolve `Application Support`.
-/// - Tests inject a temp `baseDirectory` explicitly.
-/// - `Application Support` is unreachable on the production path → fail
-///   loudly via ``PhotoStorageServiceError/applicationSupportUnavailable``
-///   so the camera UI can surface a real error instead of silently
-///   dumping JPEGs into a backed-up location.
 struct PhotoStorageService {
-    /// Subdirectory inside `Application Support` where JPEGs land.
-    static let photosDirectoryName = "photos"
+    enum PhotoKind: String, CaseIterable, Equatable, Hashable {
+        case before
+        case after
+        case combined
+    }
 
-    /// Optional injection seam for tests — swap out the base directory.
+    static let rootDirectoryName = "PairShot"
+    static let photosDirectoryName = "photos"
+    static let thumbnailsDirectoryName = "thumbnails"
+
     let baseDirectory: URL
 
     nonisolated init(baseDirectory: URL? = nil) {
@@ -33,160 +18,171 @@ struct PhotoStorageService {
             self.baseDirectory = baseDirectory
             return
         }
-        // Production path. We only resolve once at init so subsequent
-        // writes can rely on the fixed URL. A failure here is recoverable
-        // by retrying construction (rare — disk completely full).
         do {
-            self.baseDirectory = try FileManager.default.url(
-                for: .applicationSupportDirectory,
+            let documents = try FileManager.default.url(
+                for: .documentDirectory,
                 in: .userDomainMask,
                 appropriateFor: nil,
                 create: true
             )
+            self.baseDirectory = documents.appendingPathComponent(
+                Self.rootDirectoryName,
+                isDirectory: true
+            )
         } catch {
-            // Constructor cannot throw without breaking dozens of call
-            // sites; instead we trap so the failure mode is visible in
-            // crashlogs rather than silently corrupting iCloud Backup.
-            // In practice `Application Support` is created lazily by the
-            // first `FileManager.url(for:)` call and only fails on
-            // hardware-level disk failure.
             preconditionFailure(
-                "PhotoStorageService: Application Support unavailable — \(error)"
+                "PhotoStorageService: Documents directory unavailable — \(error)"
             )
         }
     }
 
-    /// Folder where JPEGs are stored. Created lazily on first call.
+    nonisolated var rootDirectory: URL {
+        baseDirectory
+    }
+
     nonisolated var photosDirectory: URL {
         baseDirectory.appendingPathComponent(Self.photosDirectoryName, isDirectory: true)
     }
 
-    /// Writes `jpegData` to `photos/<prefix><UUID>.jpg` and returns the
-    /// relative path for storage in `PhotoPair.beforePath`. P8.2 added the
-    /// optional `fileNamePrefix` so users can tag exports with a project
-    /// or crew code; pass an empty string for the default behaviour.
+    nonisolated var thumbnailsDirectory: URL {
+        baseDirectory.appendingPathComponent(Self.thumbnailsDirectoryName, isDirectory: true)
+    }
+
+    nonisolated func photosDirectory(for kind: PhotoKind) -> URL {
+        photosDirectory.appendingPathComponent(kind.rawValue, isDirectory: true)
+    }
+
+    nonisolated func thumbnailsDirectory(for kind: PhotoKind) -> URL {
+        thumbnailsDirectory.appendingPathComponent(kind.rawValue, isDirectory: true)
+    }
+
     nonisolated func saveBeforeJPEG(
         _ jpegData: Data,
-        fileID: UUID = UUID(),
-        fileNamePrefix: String = ""
+        fileName: String
     ) throws -> String {
-        try writeJPEG(jpegData, fileID: fileID, fileNamePrefix: fileNamePrefix)
+        try writeJPEG(jpegData, kind: .before, fileName: fileName)
     }
 
-    /// Writes `jpegData` to `photos/<prefix><UUID>.jpg` and returns the
-    /// relative path for storage in `PhotoPair.afterPath`. Same on-disk
-    /// shape as ``saveBeforeJPEG(_:fileID:fileNamePrefix:)``; the
-    /// before/after distinction is encoded by the calling field, not the
-    /// filename.
     nonisolated func saveAfterJPEG(
         _ jpegData: Data,
-        fileID: UUID = UUID(),
-        fileNamePrefix: String = ""
+        fileName: String
     ) throws -> String {
-        try writeJPEG(jpegData, fileID: fileID, fileNamePrefix: fileNamePrefix)
+        try writeJPEG(jpegData, kind: .after, fileName: fileName)
     }
 
-    /// Writes `jpegData` to `photos/<prefix><UUID>.jpg` and returns the
-    /// relative path for storage in `PhotoPair.combinedPath`. P5.2
-    /// composite renderer.
     nonisolated func saveCombinedJPEG(
         _ jpegData: Data,
-        fileID: UUID = UUID(),
-        fileNamePrefix: String = ""
+        fileName: String
     ) throws -> String {
-        try writeJPEG(jpegData, fileID: fileID, fileNamePrefix: fileNamePrefix)
+        try writeJPEG(jpegData, kind: .combined, fileName: fileName)
     }
 
-    /// Resolves a relative path produced by `saveBeforeJPEG` back to an
-    /// absolute URL. Returns `nil` if `relativePath` is blank.
-    nonisolated func resolve(relativePath: String) -> URL? {
-        guard !relativePath.isEmpty else { return nil }
-        return baseDirectory.appendingPathComponent(relativePath, isDirectory: false)
+    nonisolated func saveThumbnailJPEG(
+        _ jpegData: Data,
+        kind: PhotoKind,
+        fileName: String
+    ) throws -> String {
+        try ensureThumbnailsDirectoryExists(for: kind)
+        let dir = thumbnailsDirectory(for: kind)
+        let url = dir.appendingPathComponent(fileName)
+        try jpegData.write(to: url, options: .atomic)
+        return relativeThumbnailPath(kind: kind, fileName: fileName)
     }
 
-    /// Deletes a JPEG by its `PhotoPair`-stored relative path. No-op if missing.
-    nonisolated func deletePhoto(at relativePath: String) throws {
-        guard let url = resolve(relativePath: relativePath) else { return }
+    nonisolated func resolveBefore(fileName: String) -> URL? {
+        resolve(kind: .before, fileName: fileName)
+    }
+
+    nonisolated func resolveAfter(fileName: String) -> URL? {
+        resolve(kind: .after, fileName: fileName)
+    }
+
+    nonisolated func resolveCombined(fileName: String) -> URL? {
+        resolve(kind: .combined, fileName: fileName)
+    }
+
+    nonisolated func resolveThumbnail(kind: PhotoKind, fileName: String) -> URL? {
+        guard !fileName.isEmpty else { return nil }
+        return thumbnailsDirectory(for: kind).appendingPathComponent(fileName, isDirectory: false)
+    }
+
+    nonisolated func resolve(kind: PhotoKind, fileName: String) -> URL? {
+        guard !fileName.isEmpty else { return nil }
+        return photosDirectory(for: kind).appendingPathComponent(fileName, isDirectory: false)
+    }
+
+    nonisolated func deletePhoto(kind: PhotoKind, fileName: String) throws {
+        guard let url = resolve(kind: kind, fileName: fileName) else { return }
         if FileManager.default.fileExists(atPath: url.path) {
             try FileManager.default.removeItem(at: url)
         }
     }
 
-    // MARK: - P8.4 — directory size & orphan cleanup
+    nonisolated func deleteThumbnail(kind: PhotoKind, fileName: String) throws {
+        guard let url = resolveThumbnail(kind: kind, fileName: fileName) else { return }
+        if FileManager.default.fileExists(atPath: url.path) {
+            try FileManager.default.removeItem(at: url)
+        }
+    }
 
-    /// Sum of bytes occupied by every regular file under ``photosDirectory``.
-    /// Returns 0 if the directory hasn't been created yet (fresh install).
-    ///
-    /// Uses `URL.resourceValues(forKeys: [.totalFileAllocatedSizeKey])`
-    /// per Apple's recommendation for accurate on-disk usage (vs. the
-    /// logical size returned by `FileManager.attributesOfItem`).
+    nonisolated func deletePhotosForPair(
+        beforeFileName: String?,
+        afterFileName: String?,
+        combinedFileName: String?
+    ) {
+        if let name = beforeFileName, !name.isEmpty {
+            try? deletePhoto(kind: .before, fileName: name)
+            try? deleteThumbnail(kind: .before, fileName: FileNameBuilder.thumbnail(forBaseName: name))
+        }
+        if let name = afterFileName, !name.isEmpty {
+            try? deletePhoto(kind: .after, fileName: name)
+            try? deleteThumbnail(kind: .after, fileName: FileNameBuilder.thumbnail(forBaseName: name))
+        }
+        if let name = combinedFileName, !name.isEmpty {
+            try? deletePhoto(kind: .combined, fileName: name)
+            try? deleteThumbnail(kind: .combined, fileName: FileNameBuilder.thumbnail(forBaseName: name))
+        }
+    }
+
     nonisolated func directorySize() throws -> Int64 {
-        let dir = photosDirectory
-        guard FileManager.default.fileExists(atPath: dir.path) else { return 0 }
-        var total: Int64 = 0
-        for url in try enumerateAllFiles() {
-            let values = try url.resourceValues(forKeys: [
-                .totalFileAllocatedSizeKey,
-                .fileAllocatedSizeKey,
-                .fileSizeKey,
-            ])
-            // Prefer allocated size (what the filesystem reserved); fall
-            // back to logical size for filesystems that don't report it.
-            let bytes = values.totalFileAllocatedSize
-                ?? values.fileAllocatedSize
-                ?? values.fileSize
-                ?? 0
-            total += Int64(bytes)
-        }
-        return total
+        try totalAllocatedBytes(under: photosDirectory) + totalAllocatedBytes(under: thumbnailsDirectory)
     }
 
-    /// Lists every regular file under ``photosDirectory``. Returns an
-    /// empty array if the directory doesn't exist. Hidden + package
-    /// descendants are skipped so we don't walk into eg. .DS_Store.
+    nonisolated func photosDirectorySize() throws -> Int64 {
+        try totalAllocatedBytes(under: photosDirectory)
+    }
+
+    nonisolated func thumbnailsDirectorySize() throws -> Int64 {
+        try totalAllocatedBytes(under: thumbnailsDirectory)
+    }
+
     nonisolated func enumerateAllFiles() throws -> [URL] {
-        let dir = photosDirectory
-        guard FileManager.default.fileExists(atPath: dir.path) else { return [] }
-        let resourceKeys: [URLResourceKey] = [.isRegularFileKey]
-        guard let enumerator = FileManager.default.enumerator(
-            at: dir,
-            includingPropertiesForKeys: resourceKeys,
-            options: [.skipsHiddenFiles, .skipsPackageDescendants]
-        ) else {
-            return []
+        var output: [URL] = []
+        for kind in [PhotoKind.before, .after, .combined] {
+            try output.append(contentsOf: enumerateFiles(under: photosDirectory(for: kind)))
         }
-        var files: [URL] = []
-        for case let url as URL in enumerator {
-            let values = try url.resourceValues(forKeys: Set(resourceKeys))
-            if values.isRegularFile == true {
-                files.append(url)
-            }
-        }
-        return files
+        return output
     }
 
-    /// Subset of ``enumerateAllFiles()`` that no `PhotoPair`'s
-    /// `beforePath` / `afterPath` / `combinedPath` references. Pure on
-    /// the input set so the caller (settings UI) can compute the
-    /// reference set with whichever SwiftData query suits it.
-    nonisolated func orphanFiles(referencedRelativePaths: Set<String>) throws -> [URL] {
-        let referencedFilenames = Set(
-            referencedRelativePaths.compactMap { Self.filename(from: $0) }
-        )
+    nonisolated func enumerateFiles(kind: PhotoKind) throws -> [URL] {
+        try enumerateFiles(under: photosDirectory(for: kind))
+    }
+
+    nonisolated func clearAllThumbnails() throws {
+        let dir = thumbnailsDirectory
+        guard FileManager.default.fileExists(atPath: dir.path) else { return }
+        try FileManager.default.removeItem(at: dir)
+    }
+
+    nonisolated func orphanFiles(referencedFileNames: Set<String>) throws -> [URL] {
         let all = try enumerateAllFiles()
-        return all.filter { url in
-            !referencedFilenames.contains(url.lastPathComponent)
-        }
+        return all.filter { !referencedFileNames.contains($0.lastPathComponent) }
     }
 
-    /// Removes every file in ``orphanFiles(referencedRelativePaths:)``
-    /// and returns `(count, bytes)` of what was deleted. Best-effort:
-    /// individual removal failures are skipped so a single locked file
-    /// doesn't abort the entire sweep.
     nonisolated func deleteOrphanFiles(
-        referencedRelativePaths: Set<String>
+        referencedFileNames: Set<String>
     ) throws -> (deletedCount: Int, freedBytes: Int64) {
-        let orphans = try orphanFiles(referencedRelativePaths: referencedRelativePaths)
+        let orphans = try orphanFiles(referencedFileNames: referencedFileNames)
         var deletedCount = 0
         var freedBytes: Int64 = 0
         for url in orphans {
@@ -202,64 +198,100 @@ struct PhotoStorageService {
                 deletedCount += 1
                 freedBytes += Int64(size)
             } catch {
-                // Best-effort sweep — skip files we can't remove.
                 continue
             }
         }
         return (deletedCount, freedBytes)
     }
 
-    /// Extracts the filename component from a stored relative path. Pure
-    /// helper so tests can verify normalisation without instantiating
-    /// the storage service.
-    nonisolated static func filename(from relativePath: String) -> String? {
-        guard !relativePath.isEmpty else { return nil }
-        let last = (relativePath as NSString).lastPathComponent
-        return last.isEmpty ? nil : last
+    private nonisolated func writeJPEG(
+        _ jpegData: Data,
+        kind: PhotoKind,
+        fileName: String
+    ) throws -> String {
+        try ensurePhotosDirectoryExists(for: kind)
+        let dir = photosDirectory(for: kind)
+        let url = dir.appendingPathComponent(fileName)
+        try jpegData.write(to: url, options: .atomic)
+        return fileName
     }
 
-    private nonisolated func ensureDirectoryExists() throws {
-        var dir = photosDirectory
+    private nonisolated func relativeThumbnailPath(kind: PhotoKind, fileName: String) -> String {
+        "\(Self.thumbnailsDirectoryName)/\(kind.rawValue)/\(fileName)"
+    }
+
+    private nonisolated func ensurePhotosDirectoryExists(for kind: PhotoKind) throws {
+        let dir = photosDirectory(for: kind)
         if !FileManager.default.fileExists(atPath: dir.path) {
-            try FileManager.default.createDirectory(
-                at: dir,
-                withIntermediateDirectories: true
-            )
+            try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         }
-        // Audit-A — the photos folder lives under Application Support
-        // which is iCloud-Backup-eligible. Per Apple's Foundation guide,
-        // user-recreatable bulk data should be excluded from backup so
-        // we don't balloon the user's iCloud quota with JPEGs they can
-        // re-shoot. Idempotent — setting the value when it's already
-        // true is a no-op. Failures here do not abort the write; the
-        // exclusion is best-effort for a successful directory create.
-        try? Self.markExcludedFromBackup(&dir)
+        var mutable = dir
+        // photos/ stays inside iCloud Backup so user data survives restore.
+        try? Self.includeInBackup(&mutable)
     }
 
-    /// Sets `isExcludedFromBackup = true` on `url` via `URLResourceValues`.
-    /// Pulled out so tests can verify the flag round-trips through the
-    /// real Foundation API.
+    private nonisolated func ensureThumbnailsDirectoryExists(for kind: PhotoKind) throws {
+        let dir = thumbnailsDirectory(for: kind)
+        if !FileManager.default.fileExists(atPath: dir.path) {
+            try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        }
+        var mutable = dir
+        try? Self.markExcludedFromBackup(&mutable)
+    }
+
+    private nonisolated func totalAllocatedBytes(under root: URL) throws -> Int64 {
+        guard FileManager.default.fileExists(atPath: root.path) else { return 0 }
+        var total: Int64 = 0
+        let resourceKeys: [URLResourceKey] = [
+            .isRegularFileKey,
+            .totalFileAllocatedSizeKey,
+            .fileAllocatedSizeKey,
+            .fileSizeKey,
+        ]
+        guard let enumerator = FileManager.default.enumerator(
+            at: root,
+            includingPropertiesForKeys: resourceKeys,
+            options: [.skipsHiddenFiles, .skipsPackageDescendants]
+        ) else { return 0 }
+        for case let url as URL in enumerator {
+            let values = try url.resourceValues(forKeys: Set(resourceKeys))
+            guard values.isRegularFile == true else { continue }
+            let bytes = values.totalFileAllocatedSize
+                ?? values.fileAllocatedSize
+                ?? values.fileSize
+                ?? 0
+            total += Int64(bytes)
+        }
+        return total
+    }
+
+    private nonisolated func enumerateFiles(under root: URL) throws -> [URL] {
+        guard FileManager.default.fileExists(atPath: root.path) else { return [] }
+        let resourceKeys: [URLResourceKey] = [.isRegularFileKey]
+        guard let enumerator = FileManager.default.enumerator(
+            at: root,
+            includingPropertiesForKeys: resourceKeys,
+            options: [.skipsHiddenFiles, .skipsPackageDescendants]
+        ) else { return [] }
+        var output: [URL] = []
+        for case let url as URL in enumerator {
+            let values = try url.resourceValues(forKeys: Set(resourceKeys))
+            if values.isRegularFile == true {
+                output.append(url)
+            }
+        }
+        return output
+    }
+
     nonisolated static func markExcludedFromBackup(_ url: inout URL) throws {
         var values = URLResourceValues()
         values.isExcludedFromBackup = true
         try url.setResourceValues(values)
     }
 
-    /// Shared writer for the three save entry points. Centralises the
-    /// `<prefix><UUID>.jpg` filename pattern so future tweaks (eg. a date
-    /// prefix) only touch one place. The `fileNamePrefix` is sanitised
-    /// here defensively even though the typical call site already feeds
-    /// ``FileNamePrefixValidator/sanitize(_:)`` output — hardening cheap.
-    private nonisolated func writeJPEG(
-        _ jpegData: Data,
-        fileID: UUID,
-        fileNamePrefix: String
-    ) throws -> String {
-        try ensureDirectoryExists()
-        let safePrefix = FileNamePrefixValidator.sanitize(fileNamePrefix)
-        let fileName = "\(safePrefix)\(fileID.uuidString).jpg"
-        let fileURL = photosDirectory.appendingPathComponent(fileName)
-        try jpegData.write(to: fileURL, options: .atomic)
-        return "\(Self.photosDirectoryName)/\(fileName)"
+    nonisolated static func includeInBackup(_ url: inout URL) throws {
+        var values = URLResourceValues()
+        values.isExcludedFromBackup = false
+        try url.setResourceValues(values)
     }
 }

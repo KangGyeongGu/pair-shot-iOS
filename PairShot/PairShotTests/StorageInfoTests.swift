@@ -3,13 +3,6 @@ import Foundation
 import SwiftData
 import XCTest
 
-/// P8.4 — directory size, orphan detection, and the supporting pure
-/// helpers used by `StorageInfoView`.
-///
-/// Each test runs against a fresh temp directory so the storage
-/// service can write/read/delete without touching the global
-/// Application Support container. The SwiftData-backed test uses an
-/// in-memory `ModelContainer` for the same reason.
 final class StorageInfoTests: XCTestCase {
     private var tempDir: URL!
 
@@ -28,8 +21,6 @@ final class StorageInfoTests: XCTestCase {
         try super.tearDownWithError()
     }
 
-    // MARK: - directorySize — happy
-
     func testDirectorySizeReturnsZeroForFreshContainer() throws {
         let storage = PhotoStorageService(baseDirectory: tempDir)
         XCTAssertEqual(try storage.directorySize(), 0)
@@ -39,155 +30,106 @@ final class StorageInfoTests: XCTestCase {
         let storage = PhotoStorageService(baseDirectory: tempDir)
         let payloadA = Data(repeating: 0xAA, count: 1024)
         let payloadB = Data(repeating: 0xBB, count: 2048)
-        _ = try storage.saveBeforeJPEG(payloadA, fileID: UUID())
-        _ = try storage.saveAfterJPEG(payloadB, fileID: UUID())
+        let nameA = FileNameBuilder.before(prefix: "", timestamp: .now, pairId: UUID())
+        let nameB = FileNameBuilder.after(prefix: "", timestamp: .now, pairId: UUID())
+        _ = try storage.saveBeforeJPEG(payloadA, fileName: nameA)
+        _ = try storage.saveAfterJPEG(payloadB, fileName: nameB)
 
         let total = try storage.directorySize()
-        // Allocated size is filesystem-dependent (typically a multiple
-        // of the block size), so assert a sensible lower bound rather
-        // than exact equality.
         XCTAssertGreaterThanOrEqual(total, Int64(payloadA.count + payloadB.count))
     }
 
-    // MARK: - enumerateAllFiles — happy
-
     func testEnumerateAllFilesListsExactlyTheWrittenSet() throws {
         let storage = PhotoStorageService(baseDirectory: tempDir)
-        let idA = UUID()
-        let idB = UUID()
-        let pathA = try storage.saveBeforeJPEG(Data([0x01]), fileID: idA)
-        let pathB = try storage.saveAfterJPEG(Data([0x02]), fileID: idB)
+        let nameA = FileNameBuilder.before(prefix: "", timestamp: .now, pairId: UUID())
+        let nameB = FileNameBuilder.after(prefix: "", timestamp: .now, pairId: UUID())
+        _ = try storage.saveBeforeJPEG(Data([0x01]), fileName: nameA)
+        _ = try storage.saveAfterJPEG(Data([0x02]), fileName: nameB)
 
         let listed = try storage.enumerateAllFiles()
             .map(\.lastPathComponent)
             .sorted()
-        let expected = [pathA, pathB]
-            .map { ($0 as NSString).lastPathComponent }
-            .sorted()
-        XCTAssertEqual(listed, expected)
+        XCTAssertEqual(listed, [nameA, nameB].sorted())
     }
-
-    // MARK: - orphanFiles — happy + edge
 
     func testOrphanFilesReturnsFilesNotReferenced() throws {
         let storage = PhotoStorageService(baseDirectory: tempDir)
-        let kept = try storage.saveBeforeJPEG(Data([0x01]), fileID: UUID())
-        _ = try storage.saveAfterJPEG(Data([0x02]), fileID: UUID()) // orphan
+        let kept = FileNameBuilder.before(prefix: "", timestamp: .now, pairId: UUID())
+        let orphan = FileNameBuilder.after(prefix: "", timestamp: .now, pairId: UUID())
+        _ = try storage.saveBeforeJPEG(Data([0x01]), fileName: kept)
+        _ = try storage.saveAfterJPEG(Data([0x02]), fileName: orphan)
 
-        let orphans = try storage.orphanFiles(referencedRelativePaths: [kept])
+        let orphans = try storage.orphanFiles(referencedFileNames: [kept])
         XCTAssertEqual(orphans.count, 1)
-        XCTAssertNotEqual(
-            orphans.first?.lastPathComponent,
-            (kept as NSString).lastPathComponent
-        )
+        XCTAssertEqual(orphans.first?.lastPathComponent, orphan)
     }
 
     func testOrphanFilesEmptyWhenAllReferenced() throws {
         let storage = PhotoStorageService(baseDirectory: tempDir)
-        let pathA = try storage.saveBeforeJPEG(Data([0x01]), fileID: UUID())
-        let pathB = try storage.saveAfterJPEG(Data([0x02]), fileID: UUID())
+        let nameA = FileNameBuilder.before(prefix: "", timestamp: .now, pairId: UUID())
+        let nameB = FileNameBuilder.after(prefix: "", timestamp: .now, pairId: UUID())
+        _ = try storage.saveBeforeJPEG(Data([0x01]), fileName: nameA)
+        _ = try storage.saveAfterJPEG(Data([0x02]), fileName: nameB)
 
-        let orphans = try storage.orphanFiles(
-            referencedRelativePaths: [pathA, pathB]
-        )
+        let orphans = try storage.orphanFiles(referencedFileNames: [nameA, nameB])
         XCTAssertTrue(orphans.isEmpty)
     }
 
     func testOrphanFilesEmptyForFreshContainer() throws {
         let storage = PhotoStorageService(baseDirectory: tempDir)
-        let orphans = try storage.orphanFiles(referencedRelativePaths: [])
+        let orphans = try storage.orphanFiles(referencedFileNames: [])
         XCTAssertTrue(orphans.isEmpty)
     }
 
-    // MARK: - deleteOrphanFiles — happy
-
     func testDeleteOrphanFilesRemovesUnreferencedAndReportsCounts() throws {
         let storage = PhotoStorageService(baseDirectory: tempDir)
-        let kept = try storage.saveBeforeJPEG(Data(repeating: 0x10, count: 256), fileID: UUID())
-        let orphan1 = try storage.saveAfterJPEG(Data(repeating: 0x20, count: 512), fileID: UUID())
-        let orphan2 = try storage.saveCombinedJPEG(Data(repeating: 0x30, count: 1024), fileID: UUID())
+        let kept = FileNameBuilder.before(prefix: "", timestamp: .now, pairId: UUID())
+        let orphan1 = FileNameBuilder.after(prefix: "", timestamp: .now, pairId: UUID())
+        let orphan2 = FileNameBuilder.combined(prefix: "", timestamp: .now, pairId: UUID())
+        _ = try storage.saveBeforeJPEG(Data(repeating: 0x10, count: 256), fileName: kept)
+        _ = try storage.saveAfterJPEG(Data(repeating: 0x20, count: 512), fileName: orphan1)
+        _ = try storage.saveCombinedJPEG(Data(repeating: 0x30, count: 1024), fileName: orphan2)
 
-        let result = try storage.deleteOrphanFiles(referencedRelativePaths: [kept])
+        let result = try storage.deleteOrphanFiles(referencedFileNames: [kept])
         XCTAssertEqual(result.deletedCount, 2)
         XCTAssertGreaterThanOrEqual(result.freedBytes, Int64(512 + 1024))
 
-        // Kept file remains; orphans are gone.
         let remaining = try storage.enumerateAllFiles().map(\.lastPathComponent)
-        XCTAssertEqual(remaining, [(kept as NSString).lastPathComponent])
-        XCTAssertFalse(remaining.contains((orphan1 as NSString).lastPathComponent))
-        XCTAssertFalse(remaining.contains((orphan2 as NSString).lastPathComponent))
+        XCTAssertEqual(remaining, [kept])
     }
 
-    // MARK: - StorageInfoMath — pure helpers
-
     @MainActor
-    func testReferencedRelativePathsUnionsAllThreeRoles() throws {
-        let schema = Schema([Project.self, PhotoPair.self])
-        let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try ModelContainer(for: schema, configurations: [config])
-        let context = ModelContext(container)
+    func testReferencedFileNamesUnionsAllThreeRoles() {
+        let pair = PhotoPair(beforeFileName: "before_one.jpg")
+        pair.afterFileName = "after_one.jpg"
+        pair.combinedFileName = "combined_one.jpg"
 
-        let project = Project(title: "현장")
-        context.insert(project)
+        let pair2 = PhotoPair(beforeFileName: "before_two.jpg")
 
-        let p1 = PhotoPair(beforePath: "photos/b1.jpg", project: project)
-        p1.afterPath = "photos/a1.jpg"
-        p1.combinedPath = "photos/c1.jpg"
-        context.insert(p1)
-
-        let p2 = PhotoPair(beforePath: "photos/b2.jpg", project: project)
-        // p2 is mid-capture: only beforePath set.
-        context.insert(p2)
-        try context.save()
-
-        let referenced = StorageInfoMath.referencedRelativePaths(in: project.pairs)
+        let referenced = StorageInfoMath.referencedFileNames(in: [pair, pair2])
         XCTAssertEqual(referenced, [
-            "photos/b1.jpg",
-            "photos/a1.jpg",
-            "photos/c1.jpg",
-            "photos/b2.jpg",
+            "before_one.jpg",
+            "after_one.jpg",
+            "combined_one.jpg",
+            "before_two.jpg",
         ])
     }
 
     @MainActor
-    func testReferencedRelativePathsSkipsEmptyAndNilPaths() throws {
-        let schema = Schema([Project.self, PhotoPair.self])
-        let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try ModelContainer(for: schema, configurations: [config])
-        let context = ModelContext(container)
-
-        let project = Project(title: "현장")
-        context.insert(project)
-        let pair = PhotoPair(beforePath: "", project: project)
-        pair.afterPath = ""
-        pair.combinedPath = nil
-        context.insert(pair)
-        try context.save()
-
-        XCTAssertTrue(StorageInfoMath.referencedRelativePaths(in: project.pairs).isEmpty)
+    func testReferencedFileNamesSkipsEmptyAndNilPaths() {
+        let pair = PhotoPair(beforeFileName: "")
+        pair.afterFileName = ""
+        pair.combinedFileName = nil
+        XCTAssertTrue(StorageInfoMath.referencedFileNames(in: [pair]).isEmpty)
     }
 
     func testFormatBytesUsesByteCountFormatter() {
-        // We don't pin exact strings (locale-dependent: iOS may render
-        // "Zero KB" for 0 input when `allowsNonnumericFormatting` is on).
-        // Instead assert (a) non-empty, (b) the 0-input and 1MB-input
-        // strings differ, and (c) a negative value clamps to the same
-        // "zero" rendering.
         let zero = StorageInfoMath.formatBytes(0)
         XCTAssertFalse(zero.isEmpty)
-
         let oneMB = StorageInfoMath.formatBytes(1_048_576)
-        XCTAssertFalse(oneMB.isEmpty)
         XCTAssertNotEqual(oneMB, zero)
-
-        // Negative input clamps to 0 rather than rendering "-1 MB".
-        let negative = StorageInfoMath.formatBytes(-100)
-        XCTAssertEqual(negative, zero)
+        XCTAssertEqual(StorageInfoMath.formatBytes(-100), zero)
     }
 
-    func testFilenameStripsLeadingDirectory() {
-        XCTAssertEqual(PhotoStorageService.filename(from: "photos/abc.jpg"), "abc.jpg")
-        XCTAssertEqual(PhotoStorageService.filename(from: "abc.jpg"), "abc.jpg")
-        XCTAssertNil(PhotoStorageService.filename(from: ""))
-    }
+    deinit {}
 }

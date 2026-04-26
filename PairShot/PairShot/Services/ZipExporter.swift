@@ -75,11 +75,11 @@ actor ZipExporter {
         for pair in pairs {
             let entries = ExportSelection.relativePaths(for: pair, mode: mode)
             for entry in entries {
-                guard let absolute = storage.resolve(relativePath: entry.sourcePath) else {
-                    throw ExportError.sourceMissing(entry.sourcePath)
+                guard let absolute = storage.resolve(kind: entry.sourceKind, fileName: entry.sourceFileName) else {
+                    throw ExportError.sourceMissing(entry.sourceFileName)
                 }
                 guard FileManager.default.fileExists(atPath: absolute.path) else {
-                    throw ExportError.sourceMissing(entry.sourcePath)
+                    throw ExportError.sourceMissing(entry.sourceFileName)
                 }
                 do {
                     // `compressionMethod = .none` since JPEGs don't gain from DEFLATE.
@@ -144,16 +144,17 @@ enum ExportMode: String, CaseIterable, Identifiable {
 enum ExportSelection {
     /// One archive entry to write.
     struct Entry: Equatable {
-        /// Path inside the archive — uses `<projectTitle>/<pairUUID>_<role>.jpg`.
+        /// Path inside the archive — uses `<albumName>/<pairUUID>_<role>.jpg`.
         let relativeName: String
-        /// `PhotoPair`-stored relative path (`photos/<UUID>.jpg`) to read from.
-        let sourcePath: String
+        let sourceKind: PhotoStorageService.PhotoKind
+        let sourceFileName: String
     }
 
     /// - Returns: zero or more entries depending on `mode` and which optional
-    ///   paths the pair carries (`afterPath` / `combinedPath` may be nil).
+    ///   paths the pair carries (`afterFileName` / `combinedFileName` may be nil).
     static func relativePaths(for pair: PhotoPair, mode: ExportMode) -> [Entry] {
-        let folder = sanitizeFolderName(pair.project?.title ?? "PairShot")
+        let albumName = pair.albums.first?.name
+        let folder = sanitizeFolderName(albumName ?? "PairShot")
         let stem = pair.id.uuidString
         var out: [Entry] = []
 
@@ -161,40 +162,46 @@ enum ExportSelection {
             case .all:
                 out.append(Entry(
                     relativeName: "\(folder)/\(stem)_before.jpg",
-                    sourcePath: pair.beforePath
+                    sourceKind: .before,
+                    sourceFileName: pair.beforeFileName
                 ))
-                if let after = pair.afterPath, !after.isEmpty {
+                if let after = pair.afterFileName, !after.isEmpty {
                     out.append(Entry(
                         relativeName: "\(folder)/\(stem)_after.jpg",
-                        sourcePath: after
+                        sourceKind: .after,
+                        sourceFileName: after
                     ))
                 }
-                if let combined = pair.combinedPath, !combined.isEmpty {
+                if let combined = pair.combinedFileName, !combined.isEmpty {
                     out.append(Entry(
                         relativeName: "\(folder)/\(stem)_combined.jpg",
-                        sourcePath: combined
+                        sourceKind: .combined,
+                        sourceFileName: combined
                     ))
                 }
 
             case .beforeOnly:
                 out.append(Entry(
                     relativeName: "\(folder)/\(stem)_before.jpg",
-                    sourcePath: pair.beforePath
+                    sourceKind: .before,
+                    sourceFileName: pair.beforeFileName
                 ))
 
             case .afterOnly:
-                if let after = pair.afterPath, !after.isEmpty {
+                if let after = pair.afterFileName, !after.isEmpty {
                     out.append(Entry(
                         relativeName: "\(folder)/\(stem)_after.jpg",
-                        sourcePath: after
+                        sourceKind: .after,
+                        sourceFileName: after
                     ))
                 }
 
             case .combinedOnly:
-                if let combined = pair.combinedPath, !combined.isEmpty {
+                if let combined = pair.combinedFileName, !combined.isEmpty {
                     out.append(Entry(
                         relativeName: "\(folder)/\(stem)_combined.jpg",
-                        sourcePath: combined
+                        sourceKind: .combined,
+                        sourceFileName: combined
                     ))
                 }
         }

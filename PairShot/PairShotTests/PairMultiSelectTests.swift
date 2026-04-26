@@ -3,7 +3,6 @@ import Foundation
 import SwiftData
 import XCTest
 
-/// P4.3 — `PairSelection` toggling + `PairDeletionService` (rows + JPEG files).
 @MainActor
 final class PairMultiSelectTests: XCTestCase {
     private var container: ModelContainer!
@@ -15,7 +14,7 @@ final class PairMultiSelectTests: XCTestCase {
     private var storage: PhotoStorageService!
 
     override func setUpWithError() throws {
-        let schema = Schema([Project.self, PhotoPair.self])
+        let schema = Schema(versionedSchema: SchemaV2.self)
         let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
         container = try ModelContainer(for: schema, configurations: [config])
 
@@ -33,8 +32,6 @@ final class PairMultiSelectTests: XCTestCase {
         storage = nil
         tempDir = nil
     }
-
-    // MARK: - selection
 
     func testSelectionTogglesIds() {
         let s = PairSelection()
@@ -65,28 +62,23 @@ final class PairMultiSelectTests: XCTestCase {
         XCTAssertTrue(s.selectedIds.isEmpty)
     }
 
-    // MARK: - deletion (happy)
-
     func testDeletePairsRemovesRowsAndUnderlyingFiles() throws {
-        let project = Project(title: "현장")
-        context.insert(project)
+        let beforeName = FileNameBuilder.before(prefix: "", timestamp: .now, pairId: UUID())
+        let afterName = FileNameBuilder.after(prefix: "", timestamp: .now, pairId: UUID())
+        let combinedName = FileNameBuilder.combined(prefix: "", timestamp: .now, pairId: UUID())
+        _ = try storage.saveBeforeJPEG(Data([0x01, 0x02]), fileName: beforeName)
+        _ = try storage.saveAfterJPEG(Data([0x03, 0x04]), fileName: afterName)
+        _ = try storage.saveCombinedJPEG(Data([0x05, 0x06]), fileName: combinedName)
 
-        // Save two real JPEG-like blobs to disk so we can verify deletion.
-        let beforeRel = try storage.saveBeforeJPEG(Data([0x01, 0x02]))
-        let afterRel = try storage.saveAfterJPEG(Data([0x03, 0x04]))
-        let combinedRel = try storage.saveBeforeJPEG(Data([0x05, 0x06]))
-
-        let pair = PhotoPair(beforePath: beforeRel, project: project)
-        pair.afterPath = afterRel
-        pair.combinedPath = combinedRel
-        pair.status = .complete
+        let pair = PhotoPair(beforeFileName: beforeName)
+        pair.afterFileName = afterName
+        pair.combinedFileName = combinedName
         context.insert(pair)
         try context.save()
 
-        let beforeURL = try XCTUnwrap(storage.resolve(relativePath: beforeRel))
-        let afterURL = try XCTUnwrap(storage.resolve(relativePath: afterRel))
-        let combinedURL = try XCTUnwrap(storage.resolve(relativePath: combinedRel))
-
+        let beforeURL = try XCTUnwrap(storage.resolve(kind: .before, fileName: beforeName))
+        let afterURL = try XCTUnwrap(storage.resolve(kind: .after, fileName: afterName))
+        let combinedURL = try XCTUnwrap(storage.resolve(kind: .combined, fileName: combinedName))
         XCTAssertTrue(FileManager.default.fileExists(atPath: beforeURL.path))
 
         let deleted = try PairDeletionService.deletePairs(
@@ -103,14 +95,13 @@ final class PairMultiSelectTests: XCTestCase {
     }
 
     func testDeletePairsLeavesUnselectedPairsUntouched() throws {
-        let project = Project(title: "현장")
-        context.insert(project)
+        let keptName = FileNameBuilder.before(prefix: "", timestamp: .now, pairId: UUID())
+        let removedName = FileNameBuilder.before(prefix: "", timestamp: .now, pairId: UUID())
+        _ = try storage.saveBeforeJPEG(Data([0xAA]), fileName: keptName)
+        _ = try storage.saveBeforeJPEG(Data([0xBB]), fileName: removedName)
 
-        let keptRel = try storage.saveBeforeJPEG(Data([0xAA]))
-        let removedRel = try storage.saveBeforeJPEG(Data([0xBB]))
-
-        let kept = PhotoPair(beforePath: keptRel, project: project)
-        let removed = PhotoPair(beforePath: removedRel, project: project)
+        let kept = PhotoPair(beforeFileName: keptName)
+        let removed = PhotoPair(beforeFileName: removedName)
         context.insert(kept)
         context.insert(removed)
         try context.save()
@@ -121,47 +112,34 @@ final class PairMultiSelectTests: XCTestCase {
         XCTAssertEqual(deleted, 1)
 
         let remaining = try context.fetch(FetchDescriptor<PhotoPair>())
-        XCTAssertEqual(remaining.map(\.beforePath), [keptRel])
+        XCTAssertEqual(remaining.map(\.beforeFileName), [keptName])
 
-        let keptURL = try XCTUnwrap(storage.resolve(relativePath: keptRel))
+        let keptURL = try XCTUnwrap(storage.resolve(kind: .before, fileName: keptName))
         XCTAssertTrue(FileManager.default.fileExists(atPath: keptURL.path))
     }
 
-    // MARK: - deletion (edge)
-
     func testDeleteEmptySetIsNoOp() throws {
-        let project = Project(title: "현장")
-        context.insert(project)
-        let pair = PhotoPair(beforePath: "p/a.jpg", project: project)
+        let pair = PhotoPair(beforeFileName: "a.jpg")
         context.insert(pair)
         try context.save()
 
-        let deleted = try PairDeletionService.deletePairs(
-            ids: [], in: context, storage: storage
-        )
+        let deleted = try PairDeletionService.deletePairs(ids: [], in: context, storage: storage)
         XCTAssertEqual(deleted, 0)
         XCTAssertEqual(try context.fetch(FetchDescriptor<PhotoPair>()).count, 1)
     }
 
     func testDeleteWithUnknownIdRemovesNothing() throws {
-        let project = Project(title: "현장")
-        context.insert(project)
-        let pair = PhotoPair(beforePath: "p/a.jpg", project: project)
+        let pair = PhotoPair(beforeFileName: "a.jpg")
         context.insert(pair)
         try context.save()
 
-        let deleted = try PairDeletionService.deletePairs(
-            ids: [UUID()], in: context, storage: storage
-        )
+        let deleted = try PairDeletionService.deletePairs(ids: [UUID()], in: context, storage: storage)
         XCTAssertEqual(deleted, 0)
         XCTAssertEqual(try context.fetch(FetchDescriptor<PhotoPair>()).count, 1)
     }
 
     func testDeleteSucceedsEvenIfFilesAreAlreadyMissing() throws {
-        let project = Project(title: "현장")
-        context.insert(project)
-
-        let pair = PhotoPair(beforePath: "photos/ghost-\(UUID().uuidString).jpg", project: project)
+        let pair = PhotoPair(beforeFileName: "ghost-\(UUID().uuidString).jpg")
         context.insert(pair)
         try context.save()
 
@@ -171,4 +149,6 @@ final class PairMultiSelectTests: XCTestCase {
         XCTAssertEqual(deleted, 1)
         XCTAssertEqual(try context.fetch(FetchDescriptor<PhotoPair>()).count, 0)
     }
+
+    deinit {}
 }

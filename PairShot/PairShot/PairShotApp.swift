@@ -198,23 +198,21 @@ struct ModelContainerBootstrap {
     let fallbackActive: Bool
 
     static func bootstrap() -> Self {
-        let schema = Schema([Project.self, PhotoPair.self, Coupon.self])
+        let schema = Schema(versionedSchema: SchemaV2.self)
         do {
             let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
-            let container = try ModelContainer(for: schema, configurations: [configuration])
+            let container = try ModelContainer(
+                for: schema,
+                migrationPlan: PairShotMigrationPlan.self,
+                configurations: [configuration]
+            )
             return Self(container: container, fallbackActive: false)
         } catch {
-            // Disk-backed open failed — likely corrupt store or
-            // incompatible migration. Try an in-memory fallback so we
-            // can at least present an alert to the user.
             do {
                 let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
                 let container = try ModelContainer(for: schema, configurations: [configuration])
                 return Self(container: container, fallbackActive: true)
             } catch {
-                // Both stores failed — system is in a state we cannot
-                // recover from in-process. Re-emit the original error
-                // signature so debug logs match the legacy behaviour.
                 fatalError("Could not create ModelContainer: \(error)")
             }
         }

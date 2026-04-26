@@ -3,7 +3,6 @@ import Foundation
 import UIKit
 import XCTest
 
-/// P4.4 — `ThumbnailCache` decode + memory cache + eviction.
 final class ThumbnailCacheTests: XCTestCase {
     private var tempDir: URL!
     private var storage: PhotoStorageService!
@@ -29,10 +28,6 @@ final class ThumbnailCacheTests: XCTestCase {
         try super.tearDownWithError()
     }
 
-    // MARK: - Helpers
-
-    /// Encode a 100×100 solid-colour `UIImage` to JPEG and write through the
-    /// `PhotoStorageService` so we can exercise the real decode path.
     @discardableResult
     private func writeSampleJPEG(color: UIColor = .red) throws -> String {
         let renderer = UIGraphicsImageRenderer(size: CGSize(width: 100, height: 100))
@@ -41,85 +36,86 @@ final class ThumbnailCacheTests: XCTestCase {
             ctx.cgContext.fill(CGRect(x: 0, y: 0, width: 100, height: 100))
         }
         let data = try XCTUnwrap(image.jpegData(compressionQuality: 0.8))
-        return try storage.saveBeforeJPEG(data)
+        let fileName = FileNameBuilder.before(prefix: "", timestamp: .now, pairId: UUID())
+        return try storage.saveBeforeJPEG(data, fileName: fileName)
     }
 
-    // MARK: - happy
-
     func testLoadThumbnailDecodesAndReturnsImage() throws {
-        let path = try writeSampleJPEG()
-        let image = cache.loadThumbnail(forRelativePath: path, storage: storage, pixelSize: 64)
+        let name = try writeSampleJPEG()
+        let image = cache.loadThumbnail(kind: .before, fileName: name, storage: storage, pixelSize: 64)
         let unwrapped = try XCTUnwrap(image)
         XCTAssertGreaterThan(unwrapped.size.width, 0)
         XCTAssertGreaterThan(unwrapped.size.height, 0)
     }
 
     func testRepeatedLoadHitsCacheNotDisk() throws {
-        let path = try writeSampleJPEG()
-        let first = try XCTUnwrap(cache.loadThumbnail(forRelativePath: path, storage: storage))
+        let name = try writeSampleJPEG()
+        let first = try XCTUnwrap(cache.loadThumbnail(kind: .before, fileName: name, storage: storage))
 
-        // Delete file from disk; if the second load decodes again it would
-        // return nil. Cache must short-circuit.
-        let absolute = try XCTUnwrap(storage.resolve(relativePath: path))
+        let absolute = try XCTUnwrap(storage.resolve(kind: .before, fileName: name))
         try FileManager.default.removeItem(at: absolute)
+        // Also remove the disk thumbnail so a hit really is from memory.
+        let thumbName = FileNameBuilder.thumbnail(forBaseName: name)
+        if let thumbURL = storage.resolveThumbnail(kind: .before, fileName: thumbName) {
+            try? FileManager.default.removeItem(at: thumbURL)
+        }
 
-        let second = cache.loadThumbnail(forRelativePath: path, storage: storage)
+        let second = cache.loadThumbnail(kind: .before, fileName: name, storage: storage)
         XCTAssertNotNil(second)
         XCTAssertTrue(first === second, "cache must return identical UIImage instance")
     }
 
     func testCachedReturnsNilBeforeFirstLoad() throws {
-        let path = try writeSampleJPEG()
-        XCTAssertNil(cache.cached(forRelativePath: path))
-        _ = cache.loadThumbnail(forRelativePath: path, storage: storage)
-        XCTAssertNotNil(cache.cached(forRelativePath: path))
+        let name = try writeSampleJPEG()
+        XCTAssertNil(cache.cached(kind: .before, fileName: name))
+        _ = cache.loadThumbnail(kind: .before, fileName: name, storage: storage)
+        XCTAssertNotNil(cache.cached(kind: .before, fileName: name))
     }
 
     func testEvictRemovesSpecificEntry() throws {
-        let pathA = try writeSampleJPEG(color: .red)
-        let pathB = try writeSampleJPEG(color: .blue)
+        let nameA = try writeSampleJPEG(color: .red)
+        let nameB = try writeSampleJPEG(color: .blue)
 
-        _ = cache.loadThumbnail(forRelativePath: pathA, storage: storage)
-        _ = cache.loadThumbnail(forRelativePath: pathB, storage: storage)
-        XCTAssertNotNil(cache.cached(forRelativePath: pathA))
-        XCTAssertNotNil(cache.cached(forRelativePath: pathB))
+        _ = cache.loadThumbnail(kind: .before, fileName: nameA, storage: storage)
+        _ = cache.loadThumbnail(kind: .before, fileName: nameB, storage: storage)
+        XCTAssertNotNil(cache.cached(kind: .before, fileName: nameA))
+        XCTAssertNotNil(cache.cached(kind: .before, fileName: nameB))
 
-        cache.evict(relativePath: pathA)
-        XCTAssertNil(cache.cached(forRelativePath: pathA))
-        XCTAssertNotNil(cache.cached(forRelativePath: pathB))
+        cache.evict(beforeFileName: nameA)
+        XCTAssertNil(cache.cached(kind: .before, fileName: nameA))
+        XCTAssertNotNil(cache.cached(kind: .before, fileName: nameB))
     }
 
-    // MARK: - edge
-
     func testLoadThumbnailWithEmptyPathReturnsNil() {
-        XCTAssertNil(cache.loadThumbnail(forRelativePath: "", storage: storage))
+        XCTAssertNil(cache.loadThumbnail(kind: .before, fileName: "", storage: storage))
     }
 
     func testLoadThumbnailWithMissingFileReturnsNil() {
-        let bogus = "photos/does-not-exist-\(UUID().uuidString).jpg"
-        XCTAssertNil(cache.loadThumbnail(forRelativePath: bogus, storage: storage))
+        let bogus = "missing-\(UUID().uuidString).jpg"
+        XCTAssertNil(cache.loadThumbnail(kind: .before, fileName: bogus, storage: storage))
     }
 
     func testRemoveAllClearsCache() throws {
-        let path = try writeSampleJPEG()
-        _ = cache.loadThumbnail(forRelativePath: path, storage: storage)
-        XCTAssertNotNil(cache.cached(forRelativePath: path))
+        let name = try writeSampleJPEG()
+        _ = cache.loadThumbnail(kind: .before, fileName: name, storage: storage)
+        XCTAssertNotNil(cache.cached(kind: .before, fileName: name))
         cache.removeAll()
-        XCTAssertNil(cache.cached(forRelativePath: path))
+        XCTAssertNil(cache.cached(kind: .before, fileName: name))
     }
 
     func testDownsampleRespectsPixelSizeBudget() throws {
-        let path = try writeSampleJPEG()
-        let url = try XCTUnwrap(storage.resolve(relativePath: path))
+        let name = try writeSampleJPEG()
+        let url = try XCTUnwrap(storage.resolve(kind: .before, fileName: name))
         let small = try XCTUnwrap(ThumbnailCache.downsample(at: url, pixelSize: 32))
-        // Long edge should be roughly capped by the requested budget.
         let longEdge = max(small.size.width, small.size.height) * small.scale
-        XCTAssertLessThanOrEqual(longEdge, 64) // small headroom for ImageIO rounding
+        XCTAssertLessThanOrEqual(longEdge, 64)
     }
 
     func testEstimatedByteCostIsPositiveForRealImages() throws {
-        let path = try writeSampleJPEG()
-        let image = try XCTUnwrap(cache.loadThumbnail(forRelativePath: path, storage: storage))
+        let name = try writeSampleJPEG()
+        let image = try XCTUnwrap(cache.loadThumbnail(kind: .before, fileName: name, storage: storage))
         XCTAssertGreaterThan(ThumbnailCache.estimatedByteCost(image), 0)
     }
+
+    deinit {}
 }

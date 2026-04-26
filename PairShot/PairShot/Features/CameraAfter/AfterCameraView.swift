@@ -3,22 +3,8 @@ import SwiftData
 import SwiftUI
 import UIKit
 
-/// Top-level After-capture screen.
-///
-/// Behaviour (P3):
-/// - On entry, loads the oldest `pendingAfter` pair in `project` and shows it.
-/// - Renders the Before image as a semi-transparent overlay above the live
-///   preview (`GhostOverlayView`) with an alpha slider 0.0~1.0. **No
-///   auto-alignment** — plain `.opacity(...)` only (CLAUDE.md hard rule).
-/// - Restores the pair's `beforeZoomFactor` on the active device so framing
-///   matches; the user can still pinch to override (P2.2 ZoomControl reused).
-/// - On capture, transitions the pair to `.complete` and auto-advances to the
-///   next `pendingAfter` pair. When none remain, dismisses.
-///
-/// P10b — the camera composite + counter / shutter / preview subviews live
-/// in ``AfterCameraStack.swift`` so this view stays under 250 lines.
 struct AfterCameraView: View {
-    let project: Project
+    let albumId: UUID?
 
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
@@ -28,27 +14,21 @@ struct AfterCameraView: View {
     @State private var sessionHolder = CameraSessionHolder()
     @State private var currentPair: PhotoPair?
     @State private var ghostImage: UIImage?
-    /// P9.4 — gates the camera stack on the AVFoundation auth probe.
-    /// `nil` = checking, `false` = surface
-    /// ``PermissionDeniedView`` instead.
     @State private var cameraPermissionGranted: Bool?
-    /// Seeded from `appSettings.defaultOverlayAlpha` on first appear (P8.3).
-    /// Remains a `@State` rather than a derived binding so the user can
-    /// nudge it per-pair without their nudge being clobbered by the
-    /// stored default.
     @State private var alpha: Double = GhostOverlayMath.defaultAlpha
     @State private var activePreset: ZoomPreset? = .wide
     @State private var isCapturing: Bool = false
     @State private var pinchBaseFactor: Double = 1.0
     @State private var hasRestoredZoom: Bool = false
     @State private var previewView: CameraPreviewView?
-    /// Audit-C — surface capture errors / stale-ghost warnings to the user
-    /// instead of swallowing them silently. Setting this to a non-nil
-    /// value drives the alert below.
     @State private var captureErrorMessage: String?
     @State private var ghostWarningToast: String?
 
     private let storage = PhotoStorageService()
+
+    init(albumId: UUID? = nil) {
+        self.albumId = albumId
+    }
 
     private var coordinator: AfterCaptureCoordinator {
         AfterCaptureCoordinator(
@@ -96,17 +76,9 @@ struct AfterCameraView: View {
         .onDisappear {
             Task { await sessionHolder.session.stop() }
         }
-        // Audit-B — same scenePhase handling as ``BeforeCameraView``:
-        // background → stop the session, .active → restart so the
-        // user returns to a live preview without having to dismiss
-        // and re-enter the screen.
         .onChange(of: scenePhase) { _, newPhase in
             handleScenePhaseChange(newPhase)
         }
-        // Audit-C — capture failures surface as a dismissible alert
-        // (shared `CaptureErrorAlert`); stale Before files surface as
-        // a transient toast at the bottom so the After flow still
-        // proceeds.
         .captureErrorAlert(message: $captureErrorMessage)
         .ghostWarningToast(message: $ghostWarningToast)
     }
@@ -125,14 +97,21 @@ struct AfterCameraView: View {
         }
     }
 
-    // MARK: - Computed properties (counts + gestures)
+    private var scopedPairs: [PhotoPair] {
+        let descriptor = FetchDescriptor<PhotoPair>()
+        let all = (try? modelContext.fetch(descriptor)) ?? []
+        guard let albumId else { return all }
+        return all.filter { pair in
+            pair.albums.contains(where: { $0.id == albumId })
+        }
+    }
 
     private var pendingPairCount: Int {
-        AfterCameraPairLoader.pendingPairs(in: project).count
+        AfterCameraPairLoader.pendingPairs(in: scopedPairs).count
     }
 
     private var completedPairCount: Int {
-        project.pairs.count(where: { $0.status == .complete })
+        scopedPairs.count(where: { $0.afterFileName != nil })
     }
 
     private var pinchGesture: some Gesture {
@@ -147,18 +126,9 @@ struct AfterCameraView: View {
             }
     }
 
-    // MARK: - Lifecycle
-
     private func onEnterScreen() async {
-        // Seed the slider from the persisted default before the first pair
-        // is adopted so the very first frame already shows the user's
-        // preferred starting opacity.
         alpha = GhostOverlayMath.clamp(appSettings.defaultOverlayAlpha)
 
-        // P9.4 — gate the AVFoundation session on camera authorization
-        // so the screen surfaces a helpful Settings deep-link instead
-        // of hanging on an opaque black preview when permission is
-        // denied.
         await checkCameraPermission()
         guard cameraPermissionGranted == true else { return }
 
@@ -172,7 +142,7 @@ struct AfterCameraView: View {
     }
 
     private func loadFirstPendingOrDismiss() {
-        guard let pair = AfterCameraPairLoader.firstPendingPair(in: project) else {
+        guard let pair = AfterCameraPairLoader.firstPendingPair(in: scopedPairs) else {
             dismiss()
             return
         }
@@ -181,12 +151,9 @@ struct AfterCameraView: View {
 
     private func adopt(pair: PhotoPair) {
         currentPair = pair
-        let loaded = GhostOverlayLoader.loadImage(relativePath: pair.beforePath, storage: storage)
+        let loaded = GhostOverlayLoader.loadImage(beforeFileName: pair.beforeFileName, storage: storage)
         ghostImage = loaded
         if loaded == nil {
-            // Audit-C — Before file went missing (manual deletion outside the
-            // app, iCloud eviction, etc.). Show a transient toast so the user
-            // knows why the overlay is blank but doesn't lose the After flow.
             ghostWarningToast = String(
                 localized: "Before 사진을 찾을 수 없어 overlay 없이 진행합니다."
             )
@@ -198,7 +165,7 @@ struct AfterCameraView: View {
 
     private func restoreZoom(for pair: PhotoPair) async {
         guard !hasRestoredZoom else { return }
-        let target = pair.beforeZoomFactor
+        let target = pair.cameraSettings?.zoomFactor ?? 1.0
         await sessionHolder.session.setZoomFactor(target)
         let actual = await sessionHolder.session.currentZoomFactor
         await MainActor.run {
@@ -213,8 +180,6 @@ struct AfterCameraView: View {
         return ZoomPreset.allCases.first { abs($0.factor - factor) <= tolerance }
     }
 
-    // MARK: - Actions
-
     private func applyPreset(_ preset: ZoomPreset) {
         activePreset = preset
         pinchBaseFactor = preset.factor
@@ -223,14 +188,16 @@ struct AfterCameraView: View {
 
     private func shutter() {
         guard !isCapturing, let pair = currentPair else { return }
-        // Audit-C — single `.heavy` impact on press. Coordinator no longer
-        // fires its own shutter haptic so we won't double-tap.
         HapticService.shared.impact(.heavy)
         isCapturing = true
         Task {
             defer { isCapturing = false }
             do {
-                let outcome = try await coordinator.captureAfter(for: pair, into: modelContext)
+                let outcome = try await coordinator.captureAfter(
+                    for: pair,
+                    into: modelContext,
+                    pendingScope: scopedPairs
+                )
                 CaptureHaptics.success()
                 await MainActor.run {
                     if let next = outcome.nextPendingPair {

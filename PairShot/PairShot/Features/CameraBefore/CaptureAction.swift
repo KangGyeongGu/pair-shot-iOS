@@ -3,48 +3,38 @@ import SwiftData
 import SwiftUI
 import UIKit
 
-/// Errors surfaced from the Before-capture flow.
 enum CaptureActionError: Error {
     case session(CameraSessionError)
     case storage(Error)
     case persistence(Error)
 }
 
-/// Orchestrates one Before capture: actor → JPEG bytes → file system → SwiftData.
-/// Pure logic so it's straightforward to unit-test against an in-memory
-/// `ModelContext` plus a temp-folder `PhotoStorageService`.
 struct BeforeCaptureCoordinator {
     let session: CameraSession
     let storage: PhotoStorageService
-    /// P8.2 — optional `AppSettings` source. The capture pipeline still uses
-    /// the system JPEG produced by AVFoundation (the camera respects its own
-    /// internal quality knobs), but the *filename* prefix from settings is
-    /// applied here. Re-encoding with `jpegQuality` would lose EXIF metadata
-    /// the AVFoundation pipeline embeds, so the quality knob currently rides
-    /// the composite renderer instead — see CompositeRenderer.makeComposite.
     let fileNamePrefix: String
+    let jpegQuality: CGFloat
 
     init(
         session: CameraSession,
         storage: PhotoStorageService,
-        fileNamePrefix: String = ""
+        fileNamePrefix: String = "",
+        jpegQuality: CGFloat = ExifNormalizer.defaultJPEGQuality
     ) {
         self.session = session
         self.storage = storage
         self.fileNamePrefix = fileNamePrefix
+        self.jpegQuality = jpegQuality
     }
 
-    /// Captures one Before photo and inserts a `PhotoPair(status: .pendingAfter)`
-    /// linked to `project`. Returns the inserted `PhotoPair` for the caller to
-    /// surface (e.g. flash thumbnail).
-    ///
-    /// Audit-C — haptic feedback is **not** emitted here. The view owns the
-    /// shutter UX: `.heavy` impact when the user presses the shutter,
-    /// `.success` notification once this coordinator returns. Emitting from
-    /// inside the coordinator caused a double-fire (see
-    /// `HapticDoubleFireTests`).
     @discardableResult
-    func captureBefore(project: Project, into context: ModelContext) async throws -> PhotoPair {
+    func captureBefore(
+        albumId: UUID? = nil,
+        into context: ModelContext,
+        latitude: Double? = nil,
+        longitude: Double? = nil,
+        locationLabel: String? = nil
+    ) async throws -> PhotoPair {
         let captured: CapturedPhoto
         do {
             captured = try await session.capturePhoto()
@@ -54,25 +44,51 @@ struct BeforeCaptureCoordinator {
             throw CaptureActionError.session(.captureFailed(error.localizedDescription))
         }
 
-        let relativePath: String
+        let normalizedJPEG = await ExifNormalizationTask.normalize(
+            data: captured.jpegData,
+            jpegQuality: jpegQuality
+        )
+
+        let pairId = UUID()
+        let cameraSettings = CameraSettings(
+            zoomFactor: captured.zoomFactor,
+            lensPosition: V1ToV2Migrator.lensPosition(for: captured.lensIdentifier),
+            flashMode: .off,
+            useGrid: false,
+            useNightMode: false
+        )
+        let fileName = FileNameBuilder.before(
+            prefix: fileNamePrefix,
+            timestamp: captured.capturedAt,
+            pairId: pairId
+        )
+
         do {
-            relativePath = try storage.saveBeforeJPEG(
-                captured.jpegData,
-                fileNamePrefix: fileNamePrefix
-            )
+            _ = try storage.saveBeforeJPEG(normalizedJPEG, fileName: fileName)
         } catch {
             throw CaptureActionError.storage(error)
         }
 
         let pair = PhotoPair(
-            beforePath: relativePath,
-            beforeZoomFactor: captured.zoomFactor,
-            beforeLensIdentifier: captured.lensIdentifier,
-            capturedAt: captured.capturedAt,
-            project: project
+            beforeFileName: fileName,
+            cameraSettings: cameraSettings,
+            latitude: latitude,
+            longitude: longitude,
+            locationLabel: locationLabel,
+            capturedAt: captured.capturedAt
         )
+        pair.id = pairId
         context.insert(pair)
-        project.updatedAt = .now
+
+        if let albumId {
+            let descriptor = FetchDescriptor<Album>(
+                predicate: #Predicate { $0.id == albumId }
+            )
+            if let album = try? context.fetch(descriptor).first {
+                pair.albums.append(album)
+                album.updatedAt = .now
+            }
+        }
 
         do {
             try context.save()
@@ -84,11 +100,6 @@ struct BeforeCaptureCoordinator {
     }
 }
 
-/// Tiny haptics façade kept for source compatibility — call sites
-/// that previously imported `CaptureHaptics` continue to work.
-/// P9.1: routed through ``HapticService`` so the impact / notification
-/// styles stay centralised. Direct `UIImpactFeedbackGenerator` and
-/// `UINotificationFeedbackGenerator` calls were removed.
 @MainActor
 enum CaptureHaptics {
     static func shutter() async {
@@ -100,7 +111,6 @@ enum CaptureHaptics {
     }
 }
 
-/// SwiftUI shutter button. Round, white, 72pt — Android parity.
 struct CaptureShutterButton: View {
     let isCapturing: Bool
     let action: () -> Void

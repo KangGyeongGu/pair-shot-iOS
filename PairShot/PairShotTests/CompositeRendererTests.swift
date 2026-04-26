@@ -4,7 +4,6 @@ import SwiftData
 import UIKit
 import XCTest
 
-/// P5.2 — `CompositeRenderer` geometry + persistence behaviour.
 @MainActor
 final class CompositeRendererTests: XCTestCase {
     private var tempDir: URL!
@@ -19,7 +18,7 @@ final class CompositeRendererTests: XCTestCase {
             .appendingPathComponent("pairshot-composite-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
 
-        let schema = Schema([Project.self, PhotoPair.self])
+        let schema = Schema(versionedSchema: SchemaV2.self)
         let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
         container = try ModelContainer(for: schema, configurations: [config])
     }
@@ -33,17 +32,12 @@ final class CompositeRendererTests: XCTestCase {
         try super.tearDownWithError()
     }
 
-    // MARK: - happy
-
     func testHorizontalLayoutCanvasIsSumOfWidthsAtCommonHeight() {
         let frames = CompositeRenderer.composeFrames(
             beforeSize: CGSize(width: 200, height: 100),
             afterSize: CGSize(width: 100, height: 50),
             layout: .horizontal
         )
-        // commonHeight = min(100, 50) = 50.
-        // beforeWidth scaled = 200 * (50/100) = 100; afterWidth scaled =
-        // 100 * (50/50) = 100. Canvas = 200×50.
         XCTAssertEqual(frames.canvas.width, 200, accuracy: 1e-6)
         XCTAssertEqual(frames.canvas.height, 50, accuracy: 1e-6)
         XCTAssertEqual(frames.beforeRect, CGRect(x: 0, y: 0, width: 100, height: 50))
@@ -56,8 +50,6 @@ final class CompositeRendererTests: XCTestCase {
             afterSize: CGSize(width: 200, height: 100),
             layout: .vertical
         )
-        // commonWidth = 100. beforeHeight scaled = 200; afterHeight = 50.
-        // Canvas = 100×250.
         XCTAssertEqual(frames.canvas.width, 100, accuracy: 1e-6)
         XCTAssertEqual(frames.canvas.height, 250, accuracy: 1e-6)
         XCTAssertEqual(frames.beforeRect, CGRect(x: 0, y: 0, width: 100, height: 200))
@@ -84,65 +76,38 @@ final class CompositeRendererTests: XCTestCase {
         XCTAssertEqual(composite.size.height, 100, accuracy: 1.0)
     }
 
-    func testMakeCompositeWritesCombinedPathAndPersists() async throws {
+    func testMakeCompositeWritesCombinedFileNameAndPersists() async throws {
         let storage = PhotoStorageService(baseDirectory: tempDir)
-        // Two synthetic JPEGs on disk.
-        let before = makeSolidImage(size: CGSize(width: 60, height: 40), color: .blue)
-        let after = makeSolidImage(size: CGSize(width: 60, height: 40), color: .yellow)
-        let beforeData = try XCTUnwrap(before.jpegData(compressionQuality: 0.9))
-        let afterData = try XCTUnwrap(after.jpegData(compressionQuality: 0.9))
-        let beforePath = try storage.saveBeforeJPEG(beforeData)
-        let afterPath = try storage.saveAfterJPEG(afterData)
-
-        let project = Project(title: "현장")
-        context.insert(project)
-        let pair = PhotoPair(beforePath: beforePath, project: project)
-        pair.afterPath = afterPath
-        pair.status = .complete
-        context.insert(pair)
-        try context.save()
+        let pair = try makePopulatedPair(storage: storage)
 
         let opts = CompositeOptions(layout: .horizontal, jpegQuality: 0.8, watermarkEnabled: false)
-        let combinedRel = try await CompositeRenderer.makeComposite(
+        let combinedFileName = try await CompositeRenderer.makeComposite(
             for: pair,
             options: opts,
             storage: storage,
             in: context
         )
 
-        XCTAssertTrue(combinedRel.hasPrefix("photos/"))
-        XCTAssertTrue(combinedRel.hasSuffix(".jpg"))
-        XCTAssertEqual(pair.combinedPath, combinedRel)
+        XCTAssertTrue(combinedFileName.hasSuffix(".jpg"))
+        XCTAssertEqual(pair.combinedFileName, combinedFileName)
 
-        let absolute = try XCTUnwrap(storage.resolve(relativePath: combinedRel))
+        let absolute = try XCTUnwrap(storage.resolve(kind: .combined, fileName: combinedFileName))
         XCTAssertTrue(FileManager.default.fileExists(atPath: absolute.path))
 
         let restored = try Data(contentsOf: absolute)
         XCTAssertGreaterThan(restored.count, 0)
-        // Sanity: it really is a JPEG (FFD8 SOI marker).
         XCTAssertEqual(restored[0], 0xFF)
         XCTAssertEqual(restored[1], 0xD8)
     }
 
-    func testMakeCompositeBumpsProjectUpdatedAt() async throws {
+    func testMakeCompositeBumpsAlbumUpdatedAt() async throws {
         let storage = PhotoStorageService(baseDirectory: tempDir)
-        let before = makeSolidImage(size: CGSize(width: 40, height: 40), color: .red)
-        let after = makeSolidImage(size: CGSize(width: 40, height: 40), color: .green)
-        let beforePath = try storage.saveBeforeJPEG(
-            XCTUnwrap(before.jpegData(compressionQuality: 0.9))
-        )
-        let afterPath = try storage.saveAfterJPEG(
-            XCTUnwrap(after.jpegData(compressionQuality: 0.9))
-        )
+        let album = Album(name: "T")
+        album.updatedAt = Date(timeIntervalSince1970: 1000)
+        context.insert(album)
 
-        let project = Project(title: "T")
-        // Set updatedAt to an old date so we can detect the bump.
-        project.updatedAt = Date(timeIntervalSince1970: 1000)
-        context.insert(project)
-        let pair = PhotoPair(beforePath: beforePath, project: project)
-        pair.afterPath = afterPath
-        pair.status = .complete
-        context.insert(pair)
+        let pair = try makePopulatedPair(storage: storage)
+        pair.albums.append(album)
         try context.save()
 
         let now = Date(timeIntervalSince1970: 9999)
@@ -153,21 +118,19 @@ final class CompositeRendererTests: XCTestCase {
             in: context,
             now: now
         )
-        XCTAssertEqual(project.updatedAt, now)
+        XCTAssertEqual(album.updatedAt, now)
     }
-
-    // MARK: - edge
 
     func testMakeCompositeThrowsWhenAfterPathMissing() async throws {
         let storage = PhotoStorageService(baseDirectory: tempDir)
+        let beforeName = FileNameBuilder.before(prefix: "", timestamp: .now, pairId: UUID())
         let before = makeSolidImage(size: CGSize(width: 30, height: 30), color: .gray)
-        let beforePath = try storage.saveBeforeJPEG(
-            XCTUnwrap(before.jpegData(compressionQuality: 0.9))
+        _ = try storage.saveBeforeJPEG(
+            XCTUnwrap(before.jpegData(compressionQuality: 0.9)),
+            fileName: beforeName
         )
-        let project = Project(title: "P")
-        context.insert(project)
-        let pair = PhotoPair(beforePath: beforePath, project: project)
-        // Intentionally leave afterPath = nil.
+
+        let pair = PhotoPair(beforeFileName: beforeName)
         context.insert(pair)
         try context.save()
 
@@ -186,18 +149,14 @@ final class CompositeRendererTests: XCTestCase {
     func testMakeCompositeThrowsWhenBeforeFileMissing() async throws {
         let storage = PhotoStorageService(baseDirectory: tempDir)
         let after = makeSolidImage(size: CGSize(width: 30, height: 30), color: .gray)
-        let afterPath = try storage.saveAfterJPEG(
-            XCTUnwrap(after.jpegData(compressionQuality: 0.9))
+        let afterName = FileNameBuilder.after(prefix: "", timestamp: .now, pairId: UUID())
+        _ = try storage.saveAfterJPEG(
+            XCTUnwrap(after.jpegData(compressionQuality: 0.9)),
+            fileName: afterName
         )
-        let project = Project(title: "P")
-        context.insert(project)
-        // Reference a file that was never written.
-        let pair = PhotoPair(
-            beforePath: "photos/missing-\(UUID().uuidString).jpg",
-            project: project
-        )
-        pair.afterPath = afterPath
-        pair.status = .complete
+
+        let pair = PhotoPair(beforeFileName: "missing-\(UUID().uuidString).jpg")
+        pair.afterFileName = afterName
         context.insert(pair)
         try context.save()
 
@@ -219,7 +178,6 @@ final class CompositeRendererTests: XCTestCase {
             afterSize: CGSize(width: 100, height: 100),
             layout: .horizontal
         )
-        // Zero collapses to 1×1 internally, so canvas is well-defined and >0.
         XCTAssertGreaterThan(frames.canvas.width, 0)
         XCTAssertGreaterThan(frames.canvas.height, 0)
     }
@@ -231,7 +189,21 @@ final class CompositeRendererTests: XCTestCase {
         XCTAssertFalse(CompositeLayout.vertical.label.isEmpty)
     }
 
-    // MARK: - helpers
+    private func makePopulatedPair(storage: PhotoStorageService) throws -> PhotoPair {
+        let before = makeSolidImage(size: CGSize(width: 60, height: 40), color: .blue)
+        let after = makeSolidImage(size: CGSize(width: 60, height: 40), color: .yellow)
+        let beforeData = try XCTUnwrap(before.jpegData(compressionQuality: 0.9))
+        let afterData = try XCTUnwrap(after.jpegData(compressionQuality: 0.9))
+        let beforeName = FileNameBuilder.before(prefix: "", timestamp: .now, pairId: UUID())
+        let afterName = FileNameBuilder.after(prefix: "", timestamp: .now, pairId: UUID())
+        _ = try storage.saveBeforeJPEG(beforeData, fileName: beforeName)
+        _ = try storage.saveAfterJPEG(afterData, fileName: afterName)
+        let pair = PhotoPair(beforeFileName: beforeName)
+        pair.afterFileName = afterName
+        context.insert(pair)
+        try context.save()
+        return pair
+    }
 
     private func makeSolidImage(size: CGSize, color: UIColor) -> UIImage {
         let format = UIGraphicsImageRendererFormat()
@@ -243,4 +215,6 @@ final class CompositeRendererTests: XCTestCase {
             context.fill(CGRect(origin: .zero, size: size))
         }
     }
+
+    deinit {}
 }

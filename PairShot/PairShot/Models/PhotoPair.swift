@@ -4,35 +4,51 @@ import SwiftData
 @Model
 final class PhotoPair {
     @Attribute(.unique) var id: UUID
-    var beforePath: String
-    var afterPath: String?
-    var combinedPath: String?
-    var beforeCapturedAt: Date
+    var beforeFileName: String
+    var afterFileName: String?
+    var combinedFileName: String?
+    var createdAt: Date
+    var updatedAt: Date
     var afterCapturedAt: Date?
-    var status: Status
-    var beforeZoomFactor: Double
-    var beforeLensIdentifier: String?
+    var latitude: Double?
+    var longitude: Double?
+    var locationLabel: String?
 
-    var project: Project?
+    @Attribute(.externalStorage) var cameraSettingsData: Data?
 
-    enum Status: String, Codable, CaseIterable {
-        case pendingAfter
-        case complete
+    var albums: [Album] = []
+
+    var cameraSettings: CameraSettings? {
+        get {
+            guard let cameraSettingsData else { return nil }
+            return try? JSONDecoder().decode(CameraSettings.self, from: cameraSettingsData)
+        }
+        set {
+            guard let newValue else {
+                cameraSettingsData = nil
+                return
+            }
+            cameraSettingsData = try? JSONEncoder().encode(newValue)
+        }
     }
 
     init(
-        beforePath: String,
-        beforeZoomFactor: Double = 1.0,
-        beforeLensIdentifier: String? = nil,
-        capturedAt: Date = .now,
-        project: Project? = nil
+        beforeFileName: String,
+        cameraSettings: CameraSettings? = nil,
+        latitude: Double? = nil,
+        longitude: Double? = nil,
+        locationLabel: String? = nil,
+        capturedAt: Date = .now
     ) {
         id = UUID()
-        self.beforePath = beforePath
-        beforeCapturedAt = capturedAt
-        status = .pendingAfter
-        self.beforeZoomFactor = beforeZoomFactor
-        self.beforeLensIdentifier = beforeLensIdentifier
-        self.project = project
+        self.beforeFileName = beforeFileName
+        createdAt = capturedAt
+        updatedAt = capturedAt
+        self.latitude = latitude
+        self.longitude = longitude
+        self.locationLabel = locationLabel
+        if let cameraSettings {
+            cameraSettingsData = try? JSONEncoder().encode(cameraSettings)
+        }
     }
 }

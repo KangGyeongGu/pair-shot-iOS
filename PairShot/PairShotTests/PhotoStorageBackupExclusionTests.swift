@@ -2,13 +2,6 @@ import Foundation
 @testable import PairShot
 import XCTest
 
-/// Audit-A — verifies that `PhotoStorageService.ensureDirectoryExists()`
-/// (invoked transitively from any `save*JPEG` call) flips the photos
-/// directory's `isExcludedFromBackup` URL resource value to `true`.
-///
-/// Without this flag, captured JPEGs land under `Application Support`
-/// which is iCloud-Backup-eligible by default — every shoot would
-/// silently consume the user's backup quota.
 final class PhotoStorageBackupExclusionTests: XCTestCase {
     private var tempDir: URL!
 
@@ -27,49 +20,51 @@ final class PhotoStorageBackupExclusionTests: XCTestCase {
         try super.tearDownWithError()
     }
 
-    /// Reads the `isExcludedFromBackup` resource value off `url`.
-    /// Returns `nil` when the value isn't readable on this filesystem
-    /// (eg. exotic test sandboxes) so callers can skip cleanly.
     private func isExcludedFromBackup(_ url: URL) throws -> Bool? {
         let values = try url.resourceValues(forKeys: [.isExcludedFromBackupKey])
         return values.isExcludedFromBackup
     }
 
-    // MARK: - happy
-
-    func testPhotosDirectoryFlaggedExcludedAfterFirstSave() throws {
+    func testPhotosDirectoryIsIncludedInBackupAfterFirstSave() throws {
         let storage = PhotoStorageService(baseDirectory: tempDir)
-        // Trigger directory creation via the production save path.
-        _ = try storage.saveBeforeJPEG(Data([0xFE]))
+        let fileName = FileNameBuilder.before(prefix: "", timestamp: .now, pairId: UUID())
+        _ = try storage.saveBeforeJPEG(Data([0xFE]), fileName: fileName)
 
-        let dir = storage.photosDirectory
+        let dir = storage.photosDirectory(for: .before)
         XCTAssertTrue(FileManager.default.fileExists(atPath: dir.path))
 
         guard let excluded = try isExcludedFromBackup(dir) else {
             throw XCTSkip("filesystem does not expose isExcludedFromBackup — likely Linux CI")
         }
-        XCTAssertTrue(excluded, "photos directory must be excluded from iCloud Backup")
+        XCTAssertFalse(excluded, "photos directory must be included in iCloud Backup (user data)")
     }
 
-    func testFlagIsIdempotentAcrossMultipleSaves() throws {
+    func testThumbnailsDirectoryIsExcludedFromBackup() throws {
         let storage = PhotoStorageService(baseDirectory: tempDir)
-        _ = try storage.saveBeforeJPEG(Data([0x01]))
-        _ = try storage.saveAfterJPEG(Data([0x02]))
-        _ = try storage.saveCombinedJPEG(Data([0x03]))
+        let fileName = FileNameBuilder.thumbnail(forBaseName: "x.jpg")
+        _ = try storage.saveThumbnailJPEG(Data([0x01]), kind: .before, fileName: fileName)
 
-        let dir = storage.photosDirectory
+        let dir = storage.thumbnailsDirectory(for: .before)
         guard let excluded = try isExcludedFromBackup(dir) else {
             throw XCTSkip("filesystem does not expose isExcludedFromBackup")
         }
-        XCTAssertTrue(excluded, "flag must remain set after repeat saves")
+        XCTAssertTrue(excluded, "thumbnails directory must be excluded from iCloud Backup")
     }
 
-    // MARK: - edge
+    func testFlagPolicyIsIdempotentAcrossMultipleSaves() throws {
+        let storage = PhotoStorageService(baseDirectory: tempDir)
+        for _ in 0 ..< 3 {
+            let beforeName = FileNameBuilder.before(prefix: "", timestamp: .now, pairId: UUID())
+            _ = try storage.saveBeforeJPEG(Data([0x01]), fileName: beforeName)
+        }
+        let dir = storage.photosDirectory(for: .before)
+        guard let excluded = try isExcludedFromBackup(dir) else {
+            throw XCTSkip("filesystem does not expose isExcludedFromBackup")
+        }
+        XCTAssertFalse(excluded, "policy must remain stable after repeat saves")
+    }
 
     func testMarkExcludedFromBackupHelperRoundTrips() throws {
-        // Verify the `markExcludedFromBackup(_:)` helper alone — handy
-        // when wiring a future callsite that wants the same behaviour
-        // without going through `ensureDirectoryExists()`.
         let dir = tempDir.appendingPathComponent("manual-mark", isDirectory: true)
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         var mutableURL = dir
@@ -79,4 +74,6 @@ final class PhotoStorageBackupExclusionTests: XCTestCase {
         }
         XCTAssertTrue(excluded)
     }
+
+    deinit {}
 }
