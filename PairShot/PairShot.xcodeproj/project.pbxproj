@@ -23,15 +23,32 @@
 		};
 /* End PBXContainerItemProxy section */
 
+/* Begin PBXBuildFile section */
+		6349589A2F7C17CA00622982 /* GoogleMobileAds in Frameworks */ = {isa = PBXBuildFile; productRef = 6349589B2F7C17CA00622982 /* GoogleMobileAds */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		6349583A2F7C17C900622982 /* PairShot.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PairShot.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		634958492F7C17CA00622982 /* PairShotTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PairShotTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		634958532F7C17CA00622982 /* PairShotUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PairShotUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		6349589D2F7C17CA00622982 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 634958392F7C17C900622982 /* PairShot */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		6349583C2F7C17C900622982 /* PairShot */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				6349589D2F7C17CA00622982 /* PBXFileSystemSynchronizedBuildFileExceptionSet */,
+			);
 			path = PairShot;
 			sourceTree = "<group>";
 		};
@@ -52,6 +69,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				6349589A2F7C17CA00622982 /* GoogleMobileAds in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -112,6 +130,7 @@
 			);
 			name = PairShot;
 			packageProductDependencies = (
+				6349589B2F7C17CA00622982 /* GoogleMobileAds */,
 			);
 			productName = PairShot;
 			productReference = 6349583A2F7C17C900622982 /* PairShot.app */;
@@ -195,6 +214,9 @@
 			);
 			mainGroup = 634958312F7C17C900622982;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				6349589C2F7C17CA00622982 /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 6349583B2F7C17C900622982 /* Products */;
 			projectDirPath = "";
@@ -399,14 +421,8 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = RFS7L9397N;
 				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
-				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_NSCameraUsageDescription = "작업 현장의 Before/After 사진을 촬영하기 위해 카메라를 사용합니다";
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "촬영 위치를 기록하고 동일 현장 재방문 안내를 위해 위치를 사용합니다";
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = PairShot/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -433,14 +449,8 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = RFS7L9397N;
 				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
-				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_NSCameraUsageDescription = "작업 현장의 Before/After 사진을 촬영하기 위해 카메라를 사용합니다";
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "촬영 위치를 기록하고 동일 현장 재방문 안내를 위해 위치를 사용합니다";
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = PairShot/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -582,6 +592,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		6349589C2F7C17CA00622982 /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/googleads/swift-package-manager-google-mobile-ads.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 11.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		6349589B2F7C17CA00622982 /* GoogleMobileAds */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 6349589C2F7C17CA00622982 /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */;
+			productName = GoogleMobileAds;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 634958322F7C17C900622982 /* Project object */;
 }
