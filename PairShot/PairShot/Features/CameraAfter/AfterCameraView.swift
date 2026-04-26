@@ -42,6 +42,11 @@ struct AfterCameraView: View {
     @State private var pinchBaseFactor: Double = 1.0
     @State private var hasRestoredZoom: Bool = false
     @State private var previewView: CameraPreviewView?
+    /// Audit-C — surface capture errors / stale-ghost warnings to the user
+    /// instead of swallowing them silently. Setting this to a non-nil
+    /// value drives the alert below.
+    @State private var captureErrorMessage: String?
+    @State private var ghostWarningToast: String?
 
     private let storage = PhotoStorageService()
 
@@ -98,6 +103,12 @@ struct AfterCameraView: View {
         .onChange(of: scenePhase) { _, newPhase in
             handleScenePhaseChange(newPhase)
         }
+        // Audit-C — capture failures surface as a dismissible alert
+        // (shared `CaptureErrorAlert`); stale Before files surface as
+        // a transient toast at the bottom so the After flow still
+        // proceeds.
+        .captureErrorAlert(message: $captureErrorMessage)
+        .ghostWarningToast(message: $ghostWarningToast)
     }
 
     private func handleScenePhaseChange(_ newPhase: ScenePhase) {
@@ -157,20 +168,7 @@ struct AfterCameraView: View {
     }
 
     private func checkCameraPermission() async {
-        switch AVCaptureDevice.authorizationStatus(for: .video) {
-            case .authorized:
-                cameraPermissionGranted = true
-
-            case .notDetermined:
-                let granted = await AVCaptureDevice.requestAccess(for: .video)
-                cameraPermissionGranted = granted
-
-            case .denied, .restricted:
-                cameraPermissionGranted = false
-
-            @unknown default:
-                cameraPermissionGranted = false
-        }
+        cameraPermissionGranted = await Self.resolveCameraPermission()
     }
 
     private func loadFirstPendingOrDismiss() {
@@ -183,7 +181,16 @@ struct AfterCameraView: View {
 
     private func adopt(pair: PhotoPair) {
         currentPair = pair
-        ghostImage = GhostOverlayLoader.loadImage(relativePath: pair.beforePath, storage: storage)
+        let loaded = GhostOverlayLoader.loadImage(relativePath: pair.beforePath, storage: storage)
+        ghostImage = loaded
+        if loaded == nil {
+            // Audit-C — Before file went missing (manual deletion outside the
+            // app, iCloud eviction, etc.). Show a transient toast so the user
+            // knows why the overlay is blank but doesn't lose the After flow.
+            ghostWarningToast = String(
+                localized: "Before 사진을 찾을 수 없어 overlay 없이 진행합니다."
+            )
+        }
         alpha = GhostOverlayMath.clamp(appSettings.defaultOverlayAlpha)
         hasRestoredZoom = false
         Task { await restoreZoom(for: pair) }
@@ -216,6 +223,9 @@ struct AfterCameraView: View {
 
     private func shutter() {
         guard !isCapturing, let pair = currentPair else { return }
+        // Audit-C — single `.heavy` impact on press. Coordinator no longer
+        // fires its own shutter haptic so we won't double-tap.
+        HapticService.shared.impact(.heavy)
         isCapturing = true
         Task {
             defer { isCapturing = false }
@@ -232,8 +242,7 @@ struct AfterCameraView: View {
                     }
                 }
             } catch {
-                // P9.4 will own user-visible error UI. For now fail silently so
-                // the user can retry the shutter without us tearing down state.
+                captureErrorMessage = Self.afterCaptureErrorText(for: error)
             }
         }
     }

@@ -69,10 +69,10 @@ final class ThumbnailCache: @unchecked Sendable {
         }
         guard let url = storage.resolve(relativePath: relativePath) else { return nil }
         guard FileManager.default.fileExists(atPath: url.path) else { return nil }
-        guard let image = ThumbnailCache.downsample(at: url, pixelSize: pixelSize) else {
+        guard let image = Self.downsample(at: url, pixelSize: pixelSize) else {
             return nil
         }
-        let cost = ThumbnailCache.estimatedByteCost(image)
+        let cost = Self.estimatedByteCost(image)
         cache.setObject(image, forKey: key, cost: cost)
         return image
     }

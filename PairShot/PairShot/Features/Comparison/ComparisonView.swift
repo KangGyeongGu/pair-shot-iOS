@@ -137,8 +137,12 @@ struct ComparisonView: View {
 
     private var emptyState: some View {
         VStack(spacing: 12) {
+            // Audit-C — replace fixed-size system font with a Dynamic-Type
+            // friendly text style + scaled image so the icon scales for
+            // accessibility text sizes.
             Image(systemName: "photo.on.rectangle")
-                .font(.system(size: 48))
+                .font(.largeTitle)
+                .imageScale(.large)
                 .foregroundStyle(.white.opacity(0.6))
             Text(String(localized: "비교할 사진이 없습니다"))
                 .foregroundStyle(.white)

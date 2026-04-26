@@ -7,7 +7,9 @@ import XCTest
 @MainActor
 final class AdFreeStoreTests: XCTestCase {
     private var container: ModelContainer!
-    private var context: ModelContext { container.mainContext }
+    private var context: ModelContext {
+        container.mainContext
+    }
 
     override func setUpWithError() throws {
         let schema = Schema([Project.self, PhotoPair.self, Coupon.self])
@@ -45,7 +47,7 @@ final class AdFreeStoreTests: XCTestCase {
     func testExpirationDateMatchesLatestActiveCoupon() throws {
         let early = Coupon(
             code: "EARLY",
-            activatedAt: Date(timeIntervalSince1970: 1_000),
+            activatedAt: Date(timeIntervalSince1970: 1000),
             durationDays: 7,
             signatureBase64: "AA"
         )
@@ -67,7 +69,7 @@ final class AdFreeStoreTests: XCTestCase {
     // MARK: - edge
 
     func testExpiredCouponDoesNotGrantAdFree() throws {
-        let twoYearsAgo = Calendar.current.date(byAdding: .year, value: -2, to: .now)!
+        let twoYearsAgo = try XCTUnwrap(Calendar.current.date(byAdding: .year, value: -2, to: .now))
         let stale = Coupon(
             code: "OLD",
             activatedAt: twoYearsAgo,
@@ -98,7 +100,7 @@ final class AdFreeStoreTests: XCTestCase {
     }
 
     func testExpiredActiveCouponIsRolledOverOnRefresh() throws {
-        let twoYearsAgo = Calendar.current.date(byAdding: .year, value: -2, to: .now)!
+        let twoYearsAgo = try XCTUnwrap(Calendar.current.date(byAdding: .year, value: -2, to: .now))
         let stale = Coupon(
             code: "OLD",
             activatedAt: twoYearsAgo,

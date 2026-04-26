@@ -1,11 +1,13 @@
+@testable import PairShot
 import SwiftData
 import XCTest
-@testable import PairShot
 
 @MainActor
 final class ProjectModelTests: XCTestCase {
     private var container: ModelContainer!
-    private var context: ModelContext { container.mainContext }
+    private var context: ModelContext {
+        container.mainContext
+    }
 
     override func setUpWithError() throws {
         let schema = Schema([Project.self, PhotoPair.self])

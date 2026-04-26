@@ -11,8 +11,8 @@ enum ArchiveSortOption: String, CaseIterable, Identifiable {
 
     var label: String {
         switch self {
-            case .updatedAtDesc: "최근 수정"
-            case .createdAtDesc: "생성일"
+            case .updatedAtDesc: String(localized: "최근 수정")
+            case .createdAtDesc: String(localized: "생성일")
         }
     }
 
@@ -66,18 +66,18 @@ struct ArchiveView: View {
             .navigationDestination(for: Project.self) { project in
                 PairGalleryView(project: project)
             }
-            .navigationTitle("프로젝트")
+            .navigationTitle(String(localized: "프로젝트"))
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Menu {
-                        Picker("정렬", selection: $sortOption) {
+                        Picker(String(localized: "정렬"), selection: $sortOption) {
                             ForEach(ArchiveSortOption.allCases) { option in
                                 Label(option.label, systemImage: option.systemImage)
                                     .tag(option)
                             }
                         }
                     } label: {
-                        Label("정렬", systemImage: "arrow.up.arrow.down")
+                        Label(String(localized: "정렬"), systemImage: "arrow.up.arrow.down")
                     }
                     .disabled(selection.isSelectionMode)
                 }
@@ -85,7 +85,7 @@ struct ArchiveView: View {
                     Button {
                         showingSettings = true
                     } label: {
-                        Label("설정", systemImage: "gearshape")
+                        Label(String(localized: "설정"), systemImage: "gearshape")
                     }
                     .disabled(selection.isSelectionMode)
                 }
@@ -93,7 +93,7 @@ struct ArchiveView: View {
                     Button {
                         showingNewProject = true
                     } label: {
-                        Label("새 프로젝트", systemImage: "plus")
+                        Label(String(localized: "새 프로젝트"), systemImage: "plus")
                     }
                     .disabled(selection.isSelectionMode)
                 }
@@ -157,6 +157,7 @@ private struct ProjectListContent: View {
         let descriptor: SortDescriptor<Project> = switch sortOption {
             case .updatedAtDesc:
                 SortDescriptor(\.updatedAt, order: .reverse)
+
             case .createdAtDesc:
                 SortDescriptor(\.createdAt, order: .reverse)
         }
@@ -171,9 +172,9 @@ private struct ProjectListContent: View {
         Group {
             if projects.isEmpty {
                 ContentUnavailableView(
-                    "프로젝트 없음",
+                    String(localized: "프로젝트 없음"),
                     systemImage: "folder.badge.plus",
-                    description: Text("우상단 + 버튼으로 새 프로젝트를 만드세요")
+                    description: Text(String(localized: "우상단 + 버튼으로 새 프로젝트를 만드세요"))
                 )
             } else {
                 List(projects) { project in
@@ -212,7 +213,7 @@ private struct ProjectListContent: View {
                 Button {
                     onRename(project)
                 } label: {
-                    Label("이름 변경", systemImage: "pencil")
+                    Label(String(localized: "이름 변경"), systemImage: "pencil")
                 }
                 .tint(.indigo)
             }
@@ -226,7 +227,7 @@ private struct ProjectRow: View {
     let isSelected: Bool
 
     private var displayTitle: String {
-        project.title.isEmpty ? "(이름 없음)" : project.title
+        project.title.isEmpty ? String(localized: "(이름 없음)") : project.title
     }
 
     private var pairCount: Int {
@@ -257,13 +258,35 @@ private struct ProjectRow: View {
                         .foregroundStyle(.secondary)
                 }
                 HStack(spacing: 8) {
-                    CountBadge(label: "페어", count: pairCount, tint: .blue)
-                    CountBadge(label: "완료", count: completedCount, tint: .green)
-                    CountBadge(label: "합성", count: combinedCount, tint: .purple)
+                    CountBadge(label: String(localized: "페어"), count: pairCount, tint: .blue)
+                    CountBadge(label: String(localized: "완료"), count: completedCount, tint: .green)
+                    CountBadge(label: String(localized: "합성"), count: combinedCount, tint: .purple)
                 }
             }
         }
         .padding(.vertical, 4)
+        // Audit-C — collapse the row into a single VoiceOver utterance
+        // so the user hears "프로젝트 X, 페어 N, 선택됨" instead of
+        // every badge separately.
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(accessibilityLabel)
+    }
+
+    private var accessibilityLabel: String {
+        let title = displayTitle
+        let counts = String(
+            format: String(localized: "페어 %d개, 완료 %d개, 합성 %d개"),
+            pairCount,
+            completedCount,
+            combinedCount
+        )
+        if isSelectionMode {
+            let selectionText = isSelected
+                ? String(localized: "선택됨")
+                : String(localized: "선택 안 됨")
+            return "\(title), \(counts), \(selectionText)"
+        }
+        return "\(title), \(counts)"
     }
 }
 

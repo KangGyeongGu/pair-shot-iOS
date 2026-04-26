@@ -36,11 +36,11 @@ final class AdsConfigTests: XCTestCase {
         // Info.plist. (RELEASE-only fallback semantics are exercised via
         // the `bundle:` overload below.)
         #if DEBUG
-        XCTAssertEqual(AdsConfig.banner, AdsConfig.TestUnitID.banner)
-        XCTAssertEqual(AdsConfig.interstitial, AdsConfig.TestUnitID.interstitial)
-        XCTAssertEqual(AdsConfig.rewarded, AdsConfig.TestUnitID.rewarded)
-        XCTAssertEqual(AdsConfig.appOpen, AdsConfig.TestUnitID.appOpen)
-        XCTAssertEqual(AdsConfig.native, AdsConfig.TestUnitID.native)
+            XCTAssertEqual(AdsConfig.banner, AdsConfig.TestUnitID.banner)
+            XCTAssertEqual(AdsConfig.interstitial, AdsConfig.TestUnitID.interstitial)
+            XCTAssertEqual(AdsConfig.rewarded, AdsConfig.TestUnitID.rewarded)
+            XCTAssertEqual(AdsConfig.appOpen, AdsConfig.TestUnitID.appOpen)
+            XCTAssertEqual(AdsConfig.native, AdsConfig.TestUnitID.native)
         #endif
     }
 

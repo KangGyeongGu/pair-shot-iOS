@@ -35,9 +35,16 @@ enum WatermarkOverlay {
     /// Compose the watermark text from the app name + a captured date. Kept
     /// pure (no UIKit) so it's testable without spinning up a graphics
     /// context.
+    ///
+    /// Audit-C — `Locale(identifier: "ko_KR")` was hard-coded, which
+    /// produced Korean 12-/24-hour boundaries even for English-locale
+    /// users sharing the JPEG abroad. The format string itself
+    /// (`yyyy-MM-dd HH:mm`) is locale-agnostic, but `Locale.current`
+    /// keeps the calendar / digit shaping consistent with the rest of
+    /// the device's UX.
     static func makeText(appName: String = "PairShot", date: Date) -> String {
         let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "ko_KR")
+        formatter.locale = Locale.current
         formatter.dateFormat = "yyyy-MM-dd HH:mm"
         return "\(appName) · \(formatter.string(from: date))"
     }

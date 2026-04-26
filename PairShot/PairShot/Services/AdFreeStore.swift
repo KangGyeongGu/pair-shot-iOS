@@ -29,20 +29,17 @@ final class AdFreeStore {
     /// so the row with the most remaining time appears first in the
     /// settings list (P8.5).
     ///
-    /// Computed on read: cardinality is small (≤ a handful) and we want
-    /// the value to reflect any ad-hoc inserts since the last
-    /// `refresh()` call without forcing the UI to call refresh again.
-    var activeCoupons: [Coupon] {
-        AdFreeCouponSorter.active(fetchAllCoupons(), now: .now)
-    }
+    /// Audit-C — previously a computed property that drove a fresh
+    /// SwiftData fetch on every SwiftUI body invalidation, leading to
+    /// O(N) fetches per scroll frame on the settings screen. Now a
+    /// cached snapshot refreshed alongside `isAdFree`.
+    private(set) var activeCoupons: [Coupon] = []
 
     /// All non-active coupons (expired or revoked), or coupons whose
     /// status is still `.active` but whose `expirationDate` has already
     /// elapsed. Ordered by `activatedAt` descending so the most recent
     /// past coupon shows first.
-    var pastCoupons: [Coupon] {
-        AdFreeCouponSorter.past(fetchAllCoupons(), now: .now)
-    }
+    private(set) var pastCoupons: [Coupon] = []
 
     private let context: ModelContext
 
@@ -55,9 +52,10 @@ final class AdFreeStore {
     /// `currentExpiration`. Also rolls expired-but-still-`.active`
     /// coupons over to `.expired` so the next refresh is fast.
     func refresh(now: Date = .now) {
-        let activeCoupons = fetchActiveCoupons()
+        let allCoupons = fetchAllCoupons()
+        let activeOnDisk = allCoupons.filter { $0.status == .active }
         var stillActive: [Coupon] = []
-        for coupon in activeCoupons {
+        for coupon in activeOnDisk {
             if coupon.isCurrentlyActive(now: now) {
                 stillActive.append(coupon)
             } else {
@@ -67,6 +65,12 @@ final class AdFreeStore {
         // Persist any rollover. Best-effort — failure shouldn't crash UI.
         try? context.save()
 
+        // Audit-C — refresh the cached partition snapshots in a single
+        // sweep so SwiftUI body invalidations don't re-fetch SwiftData.
+        let refreshedAll = fetchAllCoupons()
+        activeCoupons = AdFreeCouponSorter.active(refreshedAll, now: now)
+        pastCoupons = AdFreeCouponSorter.past(refreshedAll, now: now)
+
         if let latest = stillActive.map(\.expirationDate).max() {
             currentExpiration = latest
             isAdFree = true
@@ -74,10 +78,6 @@ final class AdFreeStore {
             currentExpiration = nil
             isAdFree = false
         }
-    }
-
-    private func fetchActiveCoupons() -> [Coupon] {
-        fetchAllCoupons().filter { $0.status == .active }
     }
 
     private func fetchAllCoupons() -> [Coupon] {

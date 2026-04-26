@@ -12,6 +12,10 @@ final class ProjectSelection {
         selectedIds.count
     }
 
+    var isEmpty: Bool {
+        selectedIds.isEmpty
+    }
+
     func contains(_ id: UUID) -> Bool {
         selectedIds.contains(id)
     }
@@ -44,20 +48,20 @@ struct MultiSelectBottomBar: View {
             Button {
                 selection.exit()
             } label: {
-                Label("취소", systemImage: "xmark")
+                Label(String(localized: "취소"), systemImage: "xmark")
                     .labelStyle(.titleOnly)
             }
             Spacer()
-            Text("\(selection.count)개 선택")
+            Text("\(selection.count)\(String(localized: "개 선택"))")
                 .font(.callout)
                 .foregroundStyle(.secondary)
             Spacer()
             Button(role: .destructive) {
                 onDelete()
             } label: {
-                Label("삭제", systemImage: "trash")
+                Label(String(localized: "삭제"), systemImage: "trash")
             }
-            .disabled(selection.count == 0)
+            .disabled(selection.isEmpty)
         }
         .padding(.horizontal)
         .padding(.vertical, 12)

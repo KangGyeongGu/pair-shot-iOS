@@ -55,17 +55,24 @@ final class PhotoLibraryExport: PhotoLibraryExporting {
         switch current {
             case .authorized, .limited:
                 return current
+
             case .denied, .restricted:
                 return current
+
             case .notDetermined:
                 return await PHPhotoLibrary.requestAuthorization(for: .addOnly)
+
             @unknown default:
                 return current
         }
     }
 
     func saveImageData(_ data: Data, type: ImageMediaType) async throws {
-        let status = await authorize()
+        // Audit-C — caller now drives `authorize()` once before looping
+        // (`ExportPicker.saveToPhotoLibrary`). We still re-check the
+        // current status defensively in case the user revokes mid-loop;
+        // when authorized we *do not* re-prompt.
+        let status = PHPhotoLibrary.authorizationStatus(for: .addOnly)
         guard status == .authorized || status == .limited else {
             throw PhotoLibraryExportError.notAuthorized
         }

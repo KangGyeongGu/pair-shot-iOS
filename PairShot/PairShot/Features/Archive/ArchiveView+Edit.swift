@@ -21,18 +21,18 @@ struct EditProjectSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("프로젝트 정보") {
-                    TextField("제목", text: $title)
+                Section(String(localized: "프로젝트 정보")) {
+                    TextField(String(localized: "제목"), text: $title)
                 }
             }
-            .navigationTitle("프로젝트 편집")
+            .navigationTitle(String(localized: "프로젝트 편집"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("취소") { dismiss() }
+                    Button(String(localized: "취소")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("저장") {
+                    Button(String(localized: "저장")) {
                         save()
                     }
                     .disabled(trimmedTitle.isEmpty)

@@ -1,11 +1,13 @@
+@testable import PairShot
 import SwiftData
 import XCTest
-@testable import PairShot
 
 @MainActor
 final class ArchiveViewQueryTests: XCTestCase {
     private var container: ModelContainer!
-    private var context: ModelContext { container.mainContext }
+    private var context: ModelContext {
+        container.mainContext
+    }
 
     override func setUpWithError() throws {
         let schema = Schema([Project.self, PhotoPair.self])
@@ -23,12 +25,12 @@ final class ArchiveViewQueryTests: XCTestCase {
     }
 
     func testSortByUpdatedAtDescending() throws {
-        let p1 = Project(title: "A", createdAt: Date(timeIntervalSince1970: 1_000))
-        let p2 = Project(title: "B", createdAt: Date(timeIntervalSince1970: 3_000))
-        let p3 = Project(title: "C", createdAt: Date(timeIntervalSince1970: 2_000))
-        p1.updatedAt = Date(timeIntervalSince1970: 5_000)
-        p2.updatedAt = Date(timeIntervalSince1970: 4_000)
-        p3.updatedAt = Date(timeIntervalSince1970: 3_500)
+        let p1 = Project(title: "A", createdAt: Date(timeIntervalSince1970: 1000))
+        let p2 = Project(title: "B", createdAt: Date(timeIntervalSince1970: 3000))
+        let p3 = Project(title: "C", createdAt: Date(timeIntervalSince1970: 2000))
+        p1.updatedAt = Date(timeIntervalSince1970: 5000)
+        p2.updatedAt = Date(timeIntervalSince1970: 4000)
+        p3.updatedAt = Date(timeIntervalSince1970: 3500)
         context.insert(p1)
         context.insert(p2)
         context.insert(p3)
@@ -40,9 +42,9 @@ final class ArchiveViewQueryTests: XCTestCase {
     }
 
     func testSortByCreatedAtDescending() throws {
-        let p1 = Project(title: "1", createdAt: Date(timeIntervalSince1970: 1_000))
-        let p2 = Project(title: "2", createdAt: Date(timeIntervalSince1970: 3_000))
-        let p3 = Project(title: "3", createdAt: Date(timeIntervalSince1970: 2_000))
+        let p1 = Project(title: "1", createdAt: Date(timeIntervalSince1970: 1000))
+        let p2 = Project(title: "2", createdAt: Date(timeIntervalSince1970: 3000))
+        let p3 = Project(title: "3", createdAt: Date(timeIntervalSince1970: 2000))
         context.insert(p1)
         context.insert(p2)
         context.insert(p3)
@@ -68,8 +70,8 @@ final class ArchiveViewQueryTests: XCTestCase {
         try context.save()
 
         XCTAssertEqual(project.pairs.count, 3)
-        let completed = project.pairs.filter { $0.status == .complete }.count
-        let combined = project.pairs.filter { $0.combinedPath != nil }.count
+        let completed = project.pairs.count(where: { $0.status == .complete })
+        let combined = project.pairs.count(where: { $0.combinedPath != nil })
         XCTAssertEqual(completed, 2)
         XCTAssertEqual(combined, 1)
     }

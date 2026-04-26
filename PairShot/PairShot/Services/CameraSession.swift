@@ -28,7 +28,7 @@ enum CameraFlashMode: String, CaseIterable {
     case auto
     case torch
 
-    var next: CameraFlashMode {
+    var next: Self {
         switch self {
             case .off: .on
             case .on: .auto
@@ -136,11 +136,14 @@ actor CameraSession {
         switch AVCaptureDevice.authorizationStatus(for: .video) {
             case .authorized:
                 break
+
             case .notDetermined:
                 let granted = await AVCaptureDevice.requestAccess(for: .video)
                 guard granted else { return }
+
             case .denied, .restricted:
                 return
+
             @unknown default:
                 return
         }
@@ -324,6 +327,7 @@ actor CameraSession {
                     if device.isTorchModeSupported(.on) {
                         device.torchMode = .on
                     }
+
                 case .off, .on, .auto:
                     if device.isTorchModeSupported(.off) {
                         device.torchMode = .off
@@ -420,6 +424,7 @@ actor CameraSession {
                             lensIdentifier: lens,
                             capturedAt: .now
                         ))
+
                     case let .failure(err):
                         cont.resume(throwing: err)
                 }
@@ -470,7 +475,8 @@ actor CameraSession {
                 continue
             }
             guard let input = try? AVCaptureDeviceInput(device: device),
-                  session.canAddInput(input) else {
+                  session.canAddInput(input)
+            else {
                 continue
             }
             session.addInput(input)

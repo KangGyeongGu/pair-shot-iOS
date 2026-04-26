@@ -53,11 +53,14 @@ struct QRScannerView: View {
                     Button {
                         onCancel()
                     } label: {
+                        // Audit-C — Dynamic-Type friendly close button.
                         Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 32))
+                            .font(.title)
+                            .imageScale(.large)
                             .foregroundStyle(.white, .black.opacity(0.5))
                     }
                     .padding(20)
+                    .frame(minWidth: 44, minHeight: 44)
                     .accessibilityLabel(String(localized: "닫기"))
                 }
                 Spacer()
@@ -94,8 +97,10 @@ struct QRScannerView: View {
 
     private var deniedView: some View {
         VStack(spacing: 16) {
+            // Audit-C — Dynamic-Type friendly empty-state icon.
             Image(systemName: "camera.metering.unknown")
-                .font(.system(size: 48))
+                .font(.largeTitle)
+                .imageScale(.large)
                 .foregroundStyle(.white.opacity(0.6))
             Text(String(localized: "카메라 권한이 필요합니다"))
                 .font(.headline)

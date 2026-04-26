@@ -46,6 +46,11 @@ struct AfterCaptureCoordinator {
     /// Captures one After photo for `pair`, persists it, and computes the next
     /// `pendingAfter` pair from the same project (oldest `beforeCapturedAt`
     /// first — same order `AfterCameraPairLoader` uses).
+    ///
+    /// Audit-C — haptic feedback is **not** emitted here. ``AfterCameraView``
+    /// fires the `.heavy` press impact and the `.success` completion
+    /// notification so the shutter UX matches the Before flow without
+    /// duplicate fires (see `HapticDoubleFireTests`).
     @discardableResult
     func captureAfter(
         for pair: PhotoPair,
@@ -84,8 +89,6 @@ struct AfterCaptureCoordinator {
         } catch {
             throw AfterCaptureActionError.persistence(error)
         }
-
-        await CaptureHaptics.shutter()
 
         let next = AfterCameraPairLoader.nextPendingPair(after: pair)
         return AfterCaptureOutcome(completedPair: pair, nextPendingPair: next)

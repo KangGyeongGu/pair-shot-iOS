@@ -122,7 +122,11 @@ struct CouponRegistrationView: View {
     }
 
     private func successMessage(for expiration: Date) -> String {
+        // Audit-C — `en_US_POSIX` so the `yyyy-MM-dd` template stays
+        // Gregorian regardless of the device calendar. Mirrors
+        // `AdFreeStatusFormatter.formatDate`.
         let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.dateFormat = "yyyy-MM-dd"
         let formatted = formatter.string(from: expiration)
         let template = String(localized: "쿠폰이 등록되었습니다 · 만료일 %@")

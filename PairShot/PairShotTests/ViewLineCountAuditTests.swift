@@ -98,7 +98,7 @@ final class ViewLineCountAuditTests: XCTestCase {
             "PairShot/PairShot/Features/CameraAfter/AfterCameraStack.swift",
             "PairShot/PairShot/Features/Comparison/CompositeMenu.swift",
             "PairShot/PairShot/Features/Settings/CouponRegistrationSections.swift",
-            "PairShot/PairShot/Features/Settings/QRScannerViewController.swift"
+            "PairShot/PairShot/Features/Settings/QRScannerViewController.swift",
         ]
         for relativePath in extractedFiles {
             let url = root.appendingPathComponent(relativePath)

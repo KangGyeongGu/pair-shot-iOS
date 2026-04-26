@@ -1,4 +1,5 @@
 import Foundation
+import Photos
 import SwiftData
 import SwiftUI
 import UIKit
@@ -49,6 +50,10 @@ struct ExportPicker: View {
     @State private var error: ExportPickerError?
     @State private var shareItems: ExportShareItems?
     @State private var toast: String?
+    /// Audit-C — track the temporary ZIP URL so we can unlink it once the
+    /// share sheet finishes (or the user dismisses the picker). Without
+    /// this the `tmp/` directory accumulated one ZIP per export.
+    @State private var pendingZipURL: URL?
 
     var body: some View {
         NavigationStack {
@@ -74,11 +79,22 @@ struct ExportPicker: View {
             .sheet(item: $shareItems) { items in
                 ShareSheet(activityItems: items.values) {
                     shareItems = nil
+                    cleanupPendingZip()
                     dismiss()
                 }
             }
             .overlay(alignment: .bottom) { toastView }
+            .onDisappear { cleanupPendingZip() }
         }
+    }
+
+    /// Best-effort unlink of the temporary ZIP file produced by
+    /// ``shareAsZip``. Audit-C: previously the file was written to
+    /// `FileManager.default.temporaryDirectory` and never removed.
+    private func cleanupPendingZip() {
+        guard let url = pendingZipURL else { return }
+        pendingZipURL = nil
+        try? FileManager.default.removeItem(at: url)
     }
 
     // MARK: - subviews
@@ -156,6 +172,7 @@ struct ExportPicker: View {
                     storage: storageCopy,
                     in: FileManager.default.temporaryDirectory
                 )
+                pendingZipURL = url
                 shareItems = ExportShareItems(values: [url])
             } catch let err as ZipExporter.ExportError {
                 error = ExportPickerError.from(zipError: err)
@@ -172,6 +189,17 @@ struct ExportPicker: View {
         let exporter = photoLibrary
         Task { @MainActor in
             defer { phase = .idle }
+            // Audit-C — drive `authorize()` once before the loop. The
+            // previous implementation re-prompted PHKit on every saved
+            // image, which produced a noisy queue of permission probes
+            // when the user batch-saved a multi-pair selection.
+            let status = await exporter.authorize()
+            guard status == .authorized || status == .limited else {
+                error = ExportPickerError(
+                    message: String(localized: "사진 라이브러리 권한이 필요합니다")
+                )
+                return
+            }
             var saved = 0
             for entry in entries {
                 guard

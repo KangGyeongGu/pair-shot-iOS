@@ -24,7 +24,9 @@ final class TrackingAuthorizationServiceTests: XCTestCase {
             self.responseStatus = responseStatus ?? status
         }
 
-        var currentStatus: ATTrackingManager.AuthorizationStatus { status }
+        var currentStatus: ATTrackingManager.AuthorizationStatus {
+            status
+        }
 
         func requestAuthorization() async -> ATTrackingManager.AuthorizationStatus {
             requestCallCount += 1

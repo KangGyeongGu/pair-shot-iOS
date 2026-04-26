@@ -1,11 +1,13 @@
+@testable import PairShot
 import SwiftData
 import XCTest
-@testable import PairShot
 
 @MainActor
 final class ArchiveMultiSelectTests: XCTestCase {
     private var container: ModelContainer!
-    private var context: ModelContext { container.mainContext }
+    private var context: ModelContext {
+        container.mainContext
+    }
 
     override func setUpWithError() throws {
         let schema = Schema([Project.self, PhotoPair.self])
@@ -100,15 +102,15 @@ final class ArchiveMultiSelectTests: XCTestCase {
     }
 
     func testRenameUpdatesTitleAndUpdatedAt() throws {
-        let project = Project(title: "원래", createdAt: Date(timeIntervalSince1970: 1_000))
-        project.updatedAt = Date(timeIntervalSince1970: 1_000)
+        let project = Project(title: "원래", createdAt: Date(timeIntervalSince1970: 1000))
+        project.updatedAt = Date(timeIntervalSince1970: 1000)
         context.insert(project)
         try context.save()
 
         ProjectRenameService.rename(project, to: "새 이름", in: context)
 
         XCTAssertEqual(project.title, "새 이름")
-        XCTAssertGreaterThan(project.updatedAt.timeIntervalSince1970, 1_000)
+        XCTAssertGreaterThan(project.updatedAt.timeIntervalSince1970, 1000)
     }
 
     func testRenameTrimsAndIgnoresEmpty() throws {
@@ -124,7 +126,7 @@ final class ArchiveMultiSelectTests: XCTestCase {
     }
 
     func testRenameNoOpWhenSameTitle() throws {
-        let original = Date(timeIntervalSince1970: 5_000)
+        let original = Date(timeIntervalSince1970: 5000)
         let project = Project(title: "동일", createdAt: original)
         project.updatedAt = original
         context.insert(project)

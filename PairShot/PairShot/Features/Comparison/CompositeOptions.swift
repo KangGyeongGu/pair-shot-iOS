@@ -53,7 +53,7 @@ struct CompositeOptions: Equatable {
     /// Driven by `WatermarkOverlay.isEnabled` (UserDefaults-backed).
     var watermarkEnabled: Bool
 
-    static let `default` = CompositeOptions(
+    static let `default` = Self(
         layout: .horizontal,
         jpegQuality: 0.9,
         watermarkEnabled: true

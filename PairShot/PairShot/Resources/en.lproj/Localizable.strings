@@ -143,3 +143,35 @@
 "현재 상태" = "Status";
 "확인" = "OK";
 "활성 쿠폰" = "Active coupons";
+
+/* Audit-C additions — keys must mirror ko.lproj exactly. */
+"Before 만 촬영된 페어" = "Pair with Before only";
+"Before 사진을 찾을 수 없어 overlay 없이 진행합니다." = "Before photo missing — proceeding without overlay.";
+"생성" = "Create";
+"생성일" = "Created";
+"새 프로젝트" = "New project";
+"이름 변경" = "Rename";
+"이미 완료된 페어입니다." = "This pair is already complete.";
+"우상단 + 버튼으로 새 프로젝트를 만드세요" = "Tap + in the top-right to create a new project";
+"위치 정보 포함" = "Include location";
+"위치 확인…" = "Locating…";
+"제목" = "Title";
+"정렬" = "Sort";
+"최근 수정" = "Recently updated";
+"촬영 실패" = "Capture failed";
+"촬영을 완료할 수 없습니다. 잠시 후 다시 시도해 주세요." = "Couldn't complete the capture. Please try again shortly.";
+"카메라에서 사진을 가져올 수 없습니다. 다시 시도해 주세요." = "Couldn't read a photo from the camera. Please try again.";
+"페어" = "Pairs";
+"페어 %d개, 완료 %d개, 합성 %d개" = "%d pairs, %d complete, %d composited";
+"프로젝트" = "Projects";
+"프로젝트 없음" = "No projects";
+"프로젝트 생성 시 현재 위치를 1회 기록합니다. 권한이 없으면 위치 없이 생성됩니다." = "Records the current location once when creating the project. Without permission the project is created without a location.";
+"프로젝트 정보" = "Project info";
+"프로젝트 편집" = "Edit project";
+"합성 완료된 페어" = "Composited pair";
+"사진을 저장할 공간이 부족합니다." = "Not enough space to save the photo.";
+"사진 정보를 저장하지 못했습니다. 다시 시도해 주세요." = "Couldn't persist the photo metadata. Please try again.";
+"선택 안 됨" = "Not selected";
+"선택됨" = "Selected";
+"완료된 페어" = "Completed pair";
+"저장" = "Save";

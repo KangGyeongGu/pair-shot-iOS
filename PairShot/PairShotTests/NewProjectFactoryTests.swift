@@ -1,6 +1,6 @@
 import CoreLocation
-import XCTest
 @testable import PairShot
+import XCTest
 
 private final class StubLocationService: LocationProviding, @unchecked Sendable {
     let result: CLLocation?

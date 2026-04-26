@@ -156,6 +156,7 @@ enum CompositeRenderer {
                     width: scaledAfterWidth, height: commonHeight
                 )
                 return (canvas, beforeRect, afterRect)
+
             case .vertical:
                 let commonWidth = min(beforeWidth, afterWidth)
                 let scaledBeforeHeight = beforeHeight * (commonWidth / beforeWidth)

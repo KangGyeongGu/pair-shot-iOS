@@ -1,6 +1,6 @@
 @preconcurrency import AVFoundation
-import XCTest
 @testable import PairShot
+import XCTest
 
 final class CameraSessionTests: XCTestCase {
     // MARK: - happy path
@@ -56,13 +56,14 @@ final class CameraSessionTests: XCTestCase {
         let system = AVCaptureDevice.authorizationStatus(for: .video)
 
         switch (state, system) {
-        case (.notDetermined, .notDetermined),
-             (.authorized, .authorized),
-             (.denied, .denied),
-             (.restricted, .restricted):
-            XCTAssertTrue(true)
-        default:
-            XCTFail("authorizationState() \(state) must mirror system status \(system.rawValue)")
+            case (.notDetermined, .notDetermined),
+                 (.authorized, .authorized),
+                 (.denied, .denied),
+                 (.restricted, .restricted):
+                XCTAssertTrue(true)
+
+            default:
+                XCTFail("authorizationState() \(state) must mirror system status \(system.rawValue)")
         }
     }
 
@@ -81,8 +82,10 @@ final class CameraSessionTests: XCTestCase {
     func testDistinctInstancesHaveDistinctCaptureSessions() {
         let a = CameraSession()
         let b = CameraSession()
-        XCTAssertFalse(a.captureSession === b.captureSession,
-                       "Each CameraSession must own its own AVCaptureSession")
+        XCTAssertFalse(
+            a.captureSession === b.captureSession,
+            "Each CameraSession must own its own AVCaptureSession"
+        )
     }
 
     // MARK: - preview view
@@ -92,8 +95,10 @@ final class CameraSessionTests: XCTestCase {
         let avSession = AVCaptureSession()
         let view = CameraPreviewView(session: avSession)
 
-        XCTAssertTrue(view.previewLayer.session === avSession,
-                      "Preview layer must reference the same AVCaptureSession")
+        XCTAssertTrue(
+            view.previewLayer.session === avSession,
+            "Preview layer must reference the same AVCaptureSession"
+        )
         XCTAssertEqual(view.previewLayer.videoGravity, .resizeAspectFill)
         XCTAssertEqual(view.backgroundColor, .black)
     }

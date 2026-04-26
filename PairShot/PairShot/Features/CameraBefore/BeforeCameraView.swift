@@ -32,6 +32,10 @@ struct BeforeCameraView: View {
     /// the session (which would just hang on a black preview).
     @State private var cameraPermissionGranted: Bool?
     @State private var pinchBaseFactor: Double = 1.0
+    /// Audit-C — surface capture errors to the user instead of swallowing
+    /// them silently. Setting this to a non-nil value drives the alert
+    /// below; the user can dismiss to retry the shutter.
+    @State private var captureErrorMessage: String?
 
     /// Stable reference to the preview UIView so taps can convert to device space.
     @State private var previewView: CameraPreviewView?
@@ -110,6 +114,11 @@ struct BeforeCameraView: View {
         .onChange(of: scenePhase) { _, newPhase in
             handleScenePhaseChange(newPhase)
         }
+        // Audit-C — capture failures surface as a dismissible alert
+        // (extension `BeforeCameraView+CaptureError.swift`). Previously
+        // the catch block ate the error, leaving the user staring at an
+        // unresponsive shutter.
+        .captureErrorAlert(message: $captureErrorMessage)
     }
 
     private func handleScenePhaseChange(_ newPhase: ScenePhase) {
@@ -135,20 +144,7 @@ struct BeforeCameraView: View {
     /// so the modal flow stays linear instead of bouncing the user
     /// out to Settings on first launch.
     private func checkCameraPermission() async {
-        switch AVCaptureDevice.authorizationStatus(for: .video) {
-            case .authorized:
-                cameraPermissionGranted = true
-
-            case .notDetermined:
-                let granted = await AVCaptureDevice.requestAccess(for: .video)
-                cameraPermissionGranted = granted
-
-            case .denied, .restricted:
-                cameraPermissionGranted = false
-
-            @unknown default:
-                cameraPermissionGranted = false
-        }
+        cameraPermissionGranted = await Self.resolveCameraPermission()
     }
 
     // MARK: - Gestures
@@ -207,14 +203,19 @@ struct BeforeCameraView: View {
 
     private func shutter() {
         guard !isCapturing else { return }
+        // Audit-C — single `.heavy` impact on press. Coordinator no
+        // longer fires its own shutter haptic so we won't double-tap.
+        HapticService.shared.impact(.heavy)
         isCapturing = true
         Task {
             defer { isCapturing = false }
             do {
                 _ = try await coordinator.captureBefore(project: project, into: modelContext)
+                // Single `.success` notification once the JPEG is written
+                // and the SwiftData row is inserted.
                 CaptureHaptics.success()
             } catch {
-                // P9.4 will own user-visible error UI; for now fail silently.
+                captureErrorMessage = Self.captureErrorText(for: error)
             }
         }
     }

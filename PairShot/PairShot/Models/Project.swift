@@ -21,10 +21,10 @@ final class Project {
         locationLabel: String? = nil,
         createdAt: Date = .now
     ) {
-        self.id = UUID()
+        id = UUID()
         self.title = title
         self.createdAt = createdAt
-        self.updatedAt = createdAt
+        updatedAt = createdAt
         self.latitude = latitude
         self.longitude = longitude
         self.locationLabel = locationLabel

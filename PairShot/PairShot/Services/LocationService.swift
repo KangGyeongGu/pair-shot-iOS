@@ -17,22 +17,27 @@ final class CoreLocationService: NSObject, LocationProviding, CLLocationManagerD
     }
 
     func requestSingleLocation() async -> CLLocation? {
-        if let existing = continuation {
-            existing.resume(returning: nil)
-            continuation = nil
-        }
+        // Audit-C — concurrent callers used to cancel the in-flight
+        // continuation by resuming it with nil, which silently dropped
+        // the original caller's location request. Now we short-circuit
+        // any second concurrent call instead, returning nil immediately
+        // so the original request can finish without interference.
+        guard continuation == nil else { return nil }
 
         return await withCheckedContinuation { (cont: CheckedContinuation<CLLocation?, Never>) in
             self.continuation = cont
             switch self.manager.authorizationStatus {
-            case .authorizedWhenInUse, .authorizedAlways:
-                self.manager.requestLocation()
-            case .notDetermined:
-                self.manager.requestWhenInUseAuthorization()
-            case .denied, .restricted:
-                self.finish(with: nil)
-            @unknown default:
-                self.finish(with: nil)
+                case .authorizedWhenInUse, .authorizedAlways:
+                    self.manager.requestLocation()
+
+                case .notDetermined:
+                    self.manager.requestWhenInUseAuthorization()
+
+                case .denied, .restricted:
+                    self.finish(with: nil)
+
+                @unknown default:
+                    self.finish(with: nil)
             }
         }
     }
@@ -47,24 +52,26 @@ final class CoreLocationService: NSObject, LocationProviding, CLLocationManagerD
         Task { @MainActor [weak self] in
             guard let self else { return }
             switch status {
-            case .authorizedWhenInUse, .authorizedAlways:
-                self.manager.requestLocation()
-            case .denied, .restricted:
-                self.finish(with: nil)
-            default:
-                break
+                case .authorizedWhenInUse, .authorizedAlways:
+                    self.manager.requestLocation()
+
+                case .denied, .restricted:
+                    finish(with: nil)
+
+                default:
+                    break
             }
         }
     }
 
-    nonisolated func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+    nonisolated func locationManager(_: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         let first = locations.first
         Task { @MainActor [weak self] in
             self?.finish(with: first)
         }
     }
 
-    nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+    nonisolated func locationManager(_: CLLocationManager, didFailWithError _: Error) {
         Task { @MainActor [weak self] in
             self?.finish(with: nil)
         }

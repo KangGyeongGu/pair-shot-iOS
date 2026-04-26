@@ -46,14 +46,16 @@ struct ExportPickerError: Identifiable, Equatable {
     let id = UUID()
     let message: String
 
-    static func from(zipError: ZipExporter.ExportError) -> ExportPickerError {
+    static func from(zipError: ZipExporter.ExportError) -> Self {
         switch zipError {
             case .noPairs:
-                ExportPickerError(message: String(localized: "선택된 페어가 없습니다"))
+                Self(message: String(localized: "선택된 페어가 없습니다"))
+
             case .sourceMissing:
-                ExportPickerError(message: String(localized: "원본 파일을 찾을 수 없습니다"))
+                Self(message: String(localized: "원본 파일을 찾을 수 없습니다"))
+
             case .archiveFailed:
-                ExportPickerError(message: String(localized: "ZIP 생성에 실패했습니다"))
+                Self(message: String(localized: "ZIP 생성에 실패했습니다"))
         }
     }
 }

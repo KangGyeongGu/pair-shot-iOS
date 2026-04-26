@@ -97,6 +97,10 @@ struct CameraControlBar: View {
             HapticService.shared.impact(.light)
             action()
         } label: {
+            // Audit-C — touch target raised to Apple HIG's 44×44 minimum.
+            // The visible black disc stays at 36pt; an outer transparent
+            // 44×44 frame absorbs the extra hit area so the bar's visual
+            // density doesn't change.
             Image(systemName: systemName)
                 .font(.system(size: 18, weight: .semibold))
                 .foregroundStyle(isHighlighted ? .yellow : .white)
@@ -105,6 +109,8 @@ struct CameraControlBar: View {
                     Circle()
                         .fill(Color.black.opacity(isHighlighted ? 0.55 : 0.35))
                 )
+                .frame(width: 44, height: 44)
+                .contentShape(Circle())
                 .accessibilityLabel(label)
         }
         .buttonStyle(.plain)

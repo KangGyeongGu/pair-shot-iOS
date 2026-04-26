@@ -113,8 +113,11 @@ struct ComparisonImagePane: View {
             ZStack {
                 Color.gray.opacity(0.2)
                 VStack(spacing: 6) {
+                    // Audit-C — replace fixed-size system font with a
+                    // Dynamic-Type friendly text style.
                     Image(systemName: "photo")
-                        .font(.system(size: 32))
+                        .font(.title)
+                        .imageScale(.large)
                         .foregroundStyle(.white.opacity(0.5))
                     Text(label).foregroundStyle(.white.opacity(0.6))
                 }

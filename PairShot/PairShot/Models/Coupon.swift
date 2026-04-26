@@ -45,7 +45,7 @@ final class Coupon {
         signatureBase64: String,
         status: Status = .active
     ) {
-        self.id = UUID()
+        id = UUID()
         self.code = code
         self.activatedAt = activatedAt
         self.durationDays = durationDays
@@ -56,7 +56,7 @@ final class Coupon {
     /// Computed expiration timestamp = `activatedAt + durationDays`.
     var expirationDate: Date {
         Calendar.current.date(byAdding: .day, value: durationDays, to: activatedAt)
-            ?? activatedAt.addingTimeInterval(TimeInterval(durationDays) * 86_400)
+            ?? activatedAt.addingTimeInterval(TimeInterval(durationDays) * 86400)
     }
 
     /// `true` when the coupon is `.active` and not yet past `expirationDate`.

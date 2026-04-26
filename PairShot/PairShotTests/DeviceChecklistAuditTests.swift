@@ -82,7 +82,7 @@ final class DeviceChecklistAuditTests: XCTestCase {
             "## 9. 광고",
             "## 10. AdFree 상태",
             "## 11. 빈 상태",
-            "## 12. 오류 상태"
+            "## 12. 오류 상태",
         ]
         for heading in requiredHeadings {
             XCTAssertTrue(

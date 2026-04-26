@@ -35,13 +35,28 @@
 
 ## 현재 상태
 
-- Phase: **Audit-B 종료 (광고·권한·출시 메타 정합 9건 일괄 수정)**
-- 다음 task: **Audit-C** (잔여 review notes — orchestrator 후속 dispatch) → **Phase 11 — App Store 출시** (사용자 수행 — `docs/02-testflight-upload-guide.md`)
-- Branch: `feature/ios-mvp/p5-comparison-composition` (Audit-B 작업 분기 그대로 유지)
-- Last commit: fix(audit-b) 광고·권한·출시 메타 정합 (GAD ID xcconfig·Coupon key·Privacy 도메인·ScenePhase·Rewarded gate)
+- Phase: **Audit-C 종료 (UX·접근성·concurrency·문구 정합 상위 ≤15건 일괄 수정)**
+- 다음 task: **Audit-D** (Audit-C SCOPE 외 잔여 advisory — Settings·StorageInfo·CompositionSettings 의 추가 Localized 정합 등) → **Phase 11 — App Store 출시** (사용자 수행 — `docs/02-testflight-upload-guide.md`)
+- Branch: `feature/ios-mvp/audit-c-ux-accessibility`
+- Last commit: fix(audit-c) UX·접근성·concurrency 정합 (햅틱·디스크 알림·DynamicType·AccentColor·Localized·Locale·AdFree 캐싱)
+
+### Audit-C 진행 로그
+
+- 셔터 햅틱 중복 제거 — `BeforeCaptureCoordinator` / `AfterCaptureCoordinator` 가 더 이상 `.heavy` / `.success` 발생시키지 않음. 뷰 레이어가 단일 `.heavy` (press) + 단일 `.success` (완료) 보장.
+- 캡처 실패 사용자 알림 — `BeforeCameraView` / `AfterCameraView` 에 한국어 alert 추가 (P9.4 placeholder 코멘트 제거). After 흐름의 stale Before 파일은 transient toast 로 안내.
+- ShareSheet ZIP 정리 — 임시 zip URL 추적 + onDisappear 시 unlink. `PhotoLibraryExport.authorize()` 는 ExportPicker 진입 시 1회만 호출.
+- 접근성 — `PairThumbnailCell` / `ProjectRow` 단일 VoiceOver utterance, CameraControlBar 터치 영역 36→44pt, ComparisonView/CompositeMenu/QRScannerView 의 `.font(.system(size:))` 고정 → Dynamic Type 친화 textStyle.
+- AccentColor — light/dark teal 듀얼 컬러 등록 (`#1D7A8C` / `#4FB1C4`).
+- Localized 정합 — Archive 4개 파일 + NewProjectSheet 의 한국어 literal 일괄 `String(localized:)`. ko/en `.strings` 32키 추가. WatermarkOverlay 의 `Locale(identifier: "ko_KR")` → `Locale.current`. AdFreeStatusFormatter / CouponRegistration 의 `yyyy-MM-dd` 포매터에 `en_US_POSIX` 명시.
+- AdFreeStore 캐싱 — `activeCoupons` / `pastCoupons` computed → stored snapshot. `refresh()` 가 한 번에 partition 갱신.
+- LocationService race guard — 동시 호출 시 두 번째는 즉시 nil 반환.
+- 신규 테스트 5종 — HapticDoubleFireTests · AccessibilityLabelTests · AdFreeStoreCachingTests · LocalizationCoverageTests · LocationServiceConcurrencyTests.
+- 다이어트 — BeforeCameraView 224→225L, AfterCameraView 240→249L, ShareSheet 223→250L (모두 250L cap 이하). Archive 304L 은 audit-D 로 이월.
 
 ✅ PairShot iOS MVP 자율 phase 루프 완주 — P0~P10 모두 구현 완료
 ✅ Audit-A Critical 6 → 수정 완료 (네비게이션 복구로 전체 사용자 흐름 도달 가능)
+✅ Audit-B 9 → 수정 완료 (광고·권한·출시 메타 정합)
+✅ Audit-C 15 → 수정 완료 (UX·접근성·concurrency·문구 정합 상위)
 
 ---
 

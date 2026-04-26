@@ -175,11 +175,13 @@ enum ExportSelection {
                         sourcePath: combined
                     ))
                 }
+
             case .beforeOnly:
                 out.append(Entry(
                     relativeName: "\(folder)/\(stem)_before.jpg",
                     sourcePath: pair.beforePath
                 ))
+
             case .afterOnly:
                 if let after = pair.afterPath, !after.isEmpty {
                     out.append(Entry(
@@ -187,6 +189,7 @@ enum ExportSelection {
                         sourcePath: after
                     ))
                 }
+
             case .combinedOnly:
                 if let combined = pair.combinedPath, !combined.isEmpty {
                     out.append(Entry(

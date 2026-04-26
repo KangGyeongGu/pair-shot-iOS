@@ -113,8 +113,10 @@ struct CompositionSettingsGate<Content: View>: View {
                 // sessionUnlocks already updated inside the manager —
                 // SwiftUI re-renders and the child appears.
                 lastFailureReason = nil
+
             case .userClosed:
                 lastFailureReason = String(localized: "보상을 받으려면 광고를 끝까지 시청하세요")
+
             case let .failed(reason):
                 lastFailureReason = String(
                     format: String(localized: "광고를 표시할 수 없습니다 (%@)"),

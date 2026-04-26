@@ -175,6 +175,7 @@ struct PairGalleryView: View {
                 .contentShape(.rect)
                 .onTapGesture { handleTap(pair) }
                 .onLongPressGesture(minimumDuration: 0.4) { handleLongPress(pair) }
+
             case let .nativeAd(_, ad):
                 NativeAdCell(ad: ad)
         }

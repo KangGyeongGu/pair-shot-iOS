@@ -42,25 +42,25 @@ struct NewProjectSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("프로젝트 정보") {
-                    TextField("제목", text: $title)
+                Section(String(localized: "프로젝트 정보")) {
+                    TextField(String(localized: "제목"), text: $title)
                         .textInputAutocapitalization(.never)
                 }
                 Section {
-                    Toggle("위치 정보 포함", isOn: $includeGPS)
+                    Toggle(String(localized: "위치 정보 포함"), isOn: $includeGPS)
                 } footer: {
-                    Text("프로젝트 생성 시 현재 위치를 1회 기록합니다. 권한이 없으면 위치 없이 생성됩니다.")
+                    Text(String(localized: "프로젝트 생성 시 현재 위치를 1회 기록합니다. 권한이 없으면 위치 없이 생성됩니다."))
                         .font(.caption)
                 }
             }
-            .navigationTitle("새 프로젝트")
+            .navigationTitle(String(localized: "새 프로젝트"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("취소") { dismiss() }
+                    Button(String(localized: "취소")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(isLocating ? "위치 확인…" : "생성") {
+                    Button(isLocating ? String(localized: "위치 확인…") : String(localized: "생성")) {
                         Task { await save() }
                     }
                     .disabled(!canSubmit)

@@ -36,8 +36,13 @@ struct BeforeCaptureCoordinator {
 
     /// Captures one Before photo and inserts a `PhotoPair(status: .pendingAfter)`
     /// linked to `project`. Returns the inserted `PhotoPair` for the caller to
-    /// surface (e.g. flash thumbnail). Triggers light haptic feedback only when
-    /// running on the main actor.
+    /// surface (e.g. flash thumbnail).
+    ///
+    /// Audit-C — haptic feedback is **not** emitted here. The view owns the
+    /// shutter UX: `.heavy` impact when the user presses the shutter,
+    /// `.success` notification once this coordinator returns. Emitting from
+    /// inside the coordinator caused a double-fire (see
+    /// `HapticDoubleFireTests`).
     @discardableResult
     func captureBefore(project: Project, into context: ModelContext) async throws -> PhotoPair {
         let captured: CapturedPhoto
@@ -75,7 +80,6 @@ struct BeforeCaptureCoordinator {
             throw CaptureActionError.persistence(error)
         }
 
-        await CaptureHaptics.shutter()
         return pair
     }
 }

@@ -27,10 +27,10 @@ final class PhotoPair {
         capturedAt: Date = .now,
         project: Project? = nil
     ) {
-        self.id = UUID()
+        id = UUID()
         self.beforePath = beforePath
-        self.beforeCapturedAt = capturedAt
-        self.status = .pendingAfter
+        beforeCapturedAt = capturedAt
+        status = .pendingAfter
         self.beforeZoomFactor = beforeZoomFactor
         self.beforeLensIdentifier = beforeLensIdentifier
         self.project = project

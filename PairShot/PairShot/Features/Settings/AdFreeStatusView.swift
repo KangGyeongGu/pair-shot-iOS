@@ -161,7 +161,13 @@ enum AdFreeStatusFormatter {
     }
 
     static func formatDate(_ date: Date) -> String {
+        // Audit-C — the `yyyy-MM-dd` template needs `en_US_POSIX` to
+        // resolve consistently on devices configured for non-Gregorian
+        // calendars (Buddhist, Japanese, etc.). Without it, the year
+        // segment drifts and the formatted string no longer round-trips
+        // through `DateFormatter.date(from:)`.
         let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.dateFormat = dateFormat
         return formatter.string(from: date)
     }
@@ -171,6 +177,7 @@ enum AdFreeStatusFormatter {
         switch coupon.status {
             case .revoked:
                 String(localized: "취소")
+
             // `.active` here = past expiration but not yet rolled over.
             case .expired, .active:
                 String(localized: "만료")

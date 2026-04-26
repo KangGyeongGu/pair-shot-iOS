@@ -46,6 +46,7 @@ enum GalleryFilter: String, CaseIterable, Identifiable {
         switch self {
             case .all:
                 pairs
+
             case .combinedOnly:
                 pairs.filter { pair in
                     guard let combined = pair.combinedPath else { return false }

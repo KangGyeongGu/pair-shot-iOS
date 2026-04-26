@@ -42,9 +42,44 @@ struct PairThumbnailCell: View {
                     lineWidth: 3
                 )
         )
+        // Audit-C — collapse the cell into a single VoiceOver utterance
+        // combining status, captured date, and selection state. Without
+        // this, every gallery cell read out as "image" only.
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Self.accessibilityLabel(
+            for: pair,
+            isSelected: isSelected,
+            isSelectionMode: isSelectionMode
+        ))
         .task(id: pair.beforePath) {
             await loadThumbnail()
         }
+    }
+
+    /// Pure helper so the label generation is testable without spinning
+    /// up the SwiftUI hierarchy. Returns a Korean utterance like
+    /// `"완료 페어, 4월 26일 촬영, 선택됨"`.
+    static func accessibilityLabel(
+        for pair: PhotoPair,
+        isSelected: Bool,
+        isSelectionMode: Bool
+    ) -> String {
+        let statusText = switch pair.status {
+            case .pendingAfter: String(localized: "Before 만 촬영된 페어")
+
+            case .complete:
+                if let combined = pair.combinedPath, !combined.isEmpty {
+                    String(localized: "합성 완료된 페어")
+                } else {
+                    String(localized: "완료된 페어")
+                }
+        }
+        let dateText = pair.beforeCapturedAt.formatted(.dateTime.month().day())
+        let selectionText: String? = isSelectionMode
+            ? (isSelected ? String(localized: "선택됨") : String(localized: "선택 안 됨"))
+            : nil
+        let parts = [statusText, dateText, selectionText].compactMap(\.self)
+        return parts.joined(separator: ", ")
     }
 
     @ViewBuilder
@@ -67,6 +102,7 @@ struct PairThumbnailCell: View {
         switch pair.status {
             case .pendingAfter:
                 badgeText(String(localized: "Before"), tint: .orange)
+
             case .complete:
                 if let combined = pair.combinedPath, !combined.isEmpty {
                     badgeText(String(localized: "합성"), tint: .purple)

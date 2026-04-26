@@ -70,7 +70,7 @@ final class CouponVerifierTests: XCTestCase {
         let keys = TestKeys()
         let code = "VALID-CODE"
         var signatureData = try Data(
-            base64Encoded: try keys.sign(code)
+            base64Encoded: keys.sign(code)
         ) ?? Data()
         XCTAssertFalse(signatureData.isEmpty)
         // Flip the first byte to corrupt the signature.
