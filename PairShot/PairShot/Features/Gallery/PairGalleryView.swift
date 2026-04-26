@@ -230,9 +230,26 @@ private struct PairThumbnailCell: View {
     }
 }
 
-#Preview {
-    NavigationStack {
-        PairGalleryView(project: Project(title: "프리뷰"))
+private struct PairGalleryViewPreviewWrapper: View {
+    // swiftlint:disable:next force_try
+    let container = try! ModelContainer(
+        for: Project.self,
+        PhotoPair.self,
+        Coupon.self,
+        configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+    )
+
+    var body: some View {
+        NavigationStack {
+            PairGalleryView(project: Project(title: "프리뷰"))
+        }
+        .modelContainer(container)
+        .environment(AdFreeStore(context: container.mainContext))
+        .environment(\.fullscreenAdCoordinator, FullscreenAdCoordinator())
+        .environment(InterstitialAdManager())
     }
-    .modelContainer(for: [Project.self, PhotoPair.self], inMemory: true)
+}
+
+#Preview {
+    PairGalleryViewPreviewWrapper()
 }

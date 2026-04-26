@@ -27,6 +27,12 @@ struct ComparisonView: View {
 
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    // P6c — interstitial firing on composite-result dismissal. The
+    // managers are AdFree-aware internally, so the call sites below
+    // don't need to guard.
+    @Environment(InterstitialAdManager.self) private var interstitialManager
+    @Environment(\.fullscreenAdCoordinator) private var coordinator
+    @Environment(AdFreeStore.self) private var adFreeStore
     @State private var mode: ViewMode = .split
     @State private var dragOffset: CGSize = .zero
     @State private var compositeError: String?
@@ -239,6 +245,14 @@ struct ComparisonView: View {
                     storage: storage,
                     in: modelContext
                 )
+                // Successful composite is a "natural transition" — try
+                // an interstitial. Manager handles AdFree + 5-min cap +
+                // coordinator slot internally; failure is silent.
+                await interstitialManager.presentIfReady(
+                    from: BannerAdView.resolveRootViewController(),
+                    coordinator: coordinator,
+                    adFreeStore: adFreeStore
+                )
             } catch {
                 compositeError = errorMessage(for: error)
             }
@@ -383,6 +397,24 @@ enum ComparisonPager {
     }
 }
 
+private struct ComparisonViewPreviewWrapper: View {
+    // swiftlint:disable:next force_try
+    let container = try! ModelContainer(
+        for: Project.self,
+        PhotoPair.self,
+        Coupon.self,
+        configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+    )
+
+    var body: some View {
+        ComparisonView(pairs: [], startIndex: 0)
+            .modelContainer(container)
+            .environment(AdFreeStore(context: container.mainContext))
+            .environment(\.fullscreenAdCoordinator, FullscreenAdCoordinator())
+            .environment(InterstitialAdManager())
+    }
+}
+
 #Preview {
-    ComparisonView(pairs: [], startIndex: 0)
+    ComparisonViewPreviewWrapper()
 }

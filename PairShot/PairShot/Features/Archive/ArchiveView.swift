@@ -5,19 +5,21 @@ enum ArchiveSortOption: String, CaseIterable, Identifiable {
     case updatedAtDesc
     case createdAtDesc
 
-    var id: String { rawValue }
+    var id: String {
+        rawValue
+    }
 
     var label: String {
         switch self {
-        case .updatedAtDesc: "최근 수정"
-        case .createdAtDesc: "생성일"
+            case .updatedAtDesc: "최근 수정"
+            case .createdAtDesc: "생성일"
         }
     }
 
     var systemImage: String {
         switch self {
-        case .updatedAtDesc: "clock.arrow.circlepath"
-        case .createdAtDesc: "calendar"
+            case .updatedAtDesc: "clock.arrow.circlepath"
+            case .createdAtDesc: "calendar"
         }
     }
 }
@@ -31,7 +33,9 @@ struct ArchiveView: View {
 
     private let locationServiceFactory: @Sendable @MainActor () -> any LocationProviding
 
-    init(locationServiceFactory: @escaping @Sendable @MainActor () -> any LocationProviding = { CoreLocationService() }) {
+    init(locationServiceFactory: @escaping @Sendable @MainActor ()
+        -> any LocationProviding = { CoreLocationService() })
+    {
         self.locationServiceFactory = locationServiceFactory
     }
 
@@ -79,9 +83,16 @@ struct ArchiveView: View {
                 }
             }
             .safeAreaInset(edge: .bottom) {
-                if selection.isSelectionMode {
-                    MultiSelectBottomBar(selection: selection) {
-                        deleteSelected()
+                // Stack the banner above the multi-select bar so neither
+                // covers the other. Per Android v1.1.3 mapping the banner
+                // is always on regardless of selection mode; AdFree
+                // collapses it to nothing via `BannerAdSlot`.
+                VStack(spacing: 0) {
+                    BannerAdSlot()
+                    if selection.isSelectionMode {
+                        MultiSelectBottomBar(selection: selection) {
+                            deleteSelected()
+                        }
                     }
                 }
             }
@@ -117,12 +128,11 @@ private struct ProjectListContent: View {
         onTap: @escaping (Project) -> Void,
         onRename: @escaping (Project) -> Void
     ) {
-        let descriptor: SortDescriptor<Project>
-        switch sortOption {
-        case .updatedAtDesc:
-            descriptor = SortDescriptor(\.updatedAt, order: .reverse)
-        case .createdAtDesc:
-            descriptor = SortDescriptor(\.createdAt, order: .reverse)
+        let descriptor: SortDescriptor<Project> = switch sortOption {
+            case .updatedAtDesc:
+                SortDescriptor(\.updatedAt, order: .reverse)
+            case .createdAtDesc:
+                SortDescriptor(\.createdAt, order: .reverse)
         }
         _projects = Query(sort: [descriptor])
         self.selection = selection
@@ -174,9 +184,17 @@ private struct ProjectRow: View {
         project.title.isEmpty ? "(이름 없음)" : project.title
     }
 
-    private var pairCount: Int { project.pairs.count }
-    private var completedCount: Int { project.pairs.filter { $0.status == .complete }.count }
-    private var combinedCount: Int { project.pairs.filter { $0.combinedPath != nil }.count }
+    private var pairCount: Int {
+        project.pairs.count
+    }
+
+    private var completedCount: Int {
+        project.pairs.count(where: { $0.status == .complete })
+    }
+
+    private var combinedCount: Int {
+        project.pairs.count(where: { $0.combinedPath != nil })
+    }
 
     var body: some View {
         HStack(spacing: 12) {
@@ -219,7 +237,22 @@ private struct CountBadge: View {
     }
 }
 
+private struct ArchiveViewPreviewWrapper: View {
+    // swiftlint:disable:next force_try
+    let container = try! ModelContainer(
+        for: Project.self,
+        PhotoPair.self,
+        Coupon.self,
+        configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+    )
+
+    var body: some View {
+        ArchiveView()
+            .modelContainer(container)
+            .environment(AdFreeStore(context: container.mainContext))
+    }
+}
+
 #Preview {
-    ArchiveView()
-        .modelContainer(for: [Project.self, PhotoPair.self], inMemory: true)
+    ArchiveViewPreviewWrapper()
 }
