@@ -45,6 +45,7 @@ playground.xcworkspace
 !/docs/00-roadmap.md
 !/docs/01-device-test-checklist.md
 !/docs/02-testflight-upload-guide.md
+!/docs/03-spec-realign-findings.md
 /scripts/claude-hooks/
 
 # IDE / build artifacts (local-only)
