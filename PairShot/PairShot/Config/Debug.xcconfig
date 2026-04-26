@@ -1,0 +1,15 @@
+// P10.5 — Debug build configuration overlay.
+//
+// In DEBUG builds `AdsConfig` always returns Google's official test
+// unit ids (see `Services/AdsConfig.swift`) regardless of what's in
+// `Info.plist`, so this file intentionally does not define any
+// `ADUNIT_ID_*` keys. The placeholder values are kept here for parity
+// with `Release.xcconfig` so that any future DEBUG-only override
+// surface (a custom AdMob test account, a staging unit, etc.) lives
+// alongside its release counterpart instead of being scattered across
+// build settings dialogs.
+//
+// Note: Adding this file to the Debug build configurations also
+// confirms the xcconfig wiring is correct end-to-end (build settings
+// resolve from xcconfig → target → project for both Debug and
+// Release).

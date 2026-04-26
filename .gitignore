@@ -43,6 +43,8 @@ playground.xcworkspace
 /AGENTS.md
 /docs/*
 !/docs/00-roadmap.md
+!/docs/01-device-test-checklist.md
+!/docs/02-testflight-upload-guide.md
 /scripts/claude-hooks/
 
 # IDE / build artifacts (local-only)

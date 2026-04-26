@@ -14,6 +14,9 @@ import UIKit
 ///   matches; the user can still pinch to override (P2.2 ZoomControl reused).
 /// - On capture, transitions the pair to `.complete` and auto-advances to the
 ///   next `pendingAfter` pair. When none remain, dismisses.
+///
+/// P10b — the camera composite + counter / shutter / preview subviews live
+/// in ``AfterCameraStack.swift`` so this view stays under 250 lines.
 struct AfterCameraView: View {
     let project: Project
 
@@ -57,7 +60,21 @@ struct AfterCameraView: View {
                 PermissionDeniedView(forCamera: ())
                     .padding(.horizontal, 32)
             } else {
-                cameraStack
+                AfterCameraStack(
+                    captureSession: sessionHolder.session.captureSession,
+                    onMakePreviewView: { view in previewView = view },
+                    ghostImage: ghostImage,
+                    alpha: $alpha,
+                    pendingCount: pendingPairCount,
+                    completedCount: completedPairCount,
+                    activePreset: activePreset,
+                    isPresetSupported: sessionHolder.isPresetSupported(_:),
+                    isCapturing: isCapturing,
+                    canCapture: currentPair != nil,
+                    pinchGesture: AnyGesture(pinchGesture.map { _ in () }),
+                    onApplyPreset: applyPreset,
+                    onShutter: shutter
+                )
             }
         }
         .navigationBarTitleDisplayMode(.inline)
@@ -72,56 +89,6 @@ struct AfterCameraView: View {
         }
         .onDisappear {
             Task { await sessionHolder.session.stop() }
-        }
-    }
-
-    /// Live-camera stack. Extracted so the `cameraPermissionGranted ==
-    /// false` branch in `body` short-circuits to
-    /// ``PermissionDeniedView`` without instantiating the AVFoundation
-    /// preview layer.
-    private var cameraStack: some View {
-        ZStack {
-            AfterCameraPreviewLayer(
-                session: sessionHolder.session.captureSession,
-                onMakeView: { view in previewView = view }
-            )
-            .ignoresSafeArea()
-
-            GhostOverlayView(image: ghostImage, alpha: alpha)
-                .ignoresSafeArea()
-
-            // Pinch zoom override (P3.3). Tap area covers the full preview.
-            Color.clear
-                .contentShape(Rectangle())
-                .gesture(pinchGesture)
-                .ignoresSafeArea()
-
-            VStack {
-                AfterCameraTopBar(
-                    pendingCount: pendingPairCount,
-                    completedCount: completedPairCount
-                )
-
-                Spacer()
-
-                GhostOverlayAlphaSlider(alpha: $alpha)
-                    .padding(.horizontal, 24)
-                    .padding(.bottom, 12)
-
-                ZoomControl(
-                    activePreset: activePreset,
-                    isSupported: sessionHolder.isPresetSupported(_:),
-                    onSelect: applyPreset
-                )
-                .padding(.bottom, 12)
-
-                AfterCameraShutterRow(
-                    isCapturing: isCapturing,
-                    enabled: currentPair != nil,
-                    action: shutter
-                )
-                .padding(.bottom, 16)
-            }
         }
     }
 
@@ -248,80 +215,4 @@ struct AfterCameraView: View {
             }
         }
     }
-}
-
-/// Header strip showing how many pairs are still pending vs completed.
-/// Pure presentation; no interaction.
-private struct AfterCameraTopBar: View {
-    let pendingCount: Int
-    let completedCount: Int
-
-    var body: some View {
-        HStack(spacing: 12) {
-            Spacer()
-            badge(
-                label: String(localized: "남은 페어"),
-                value: pendingCount,
-                tint: .yellow
-            )
-            badge(
-                label: String(localized: "완료"),
-                value: completedCount,
-                tint: .green
-            )
-            Spacer()
-        }
-        .padding(.top, 8)
-        .padding(.horizontal, 16)
-    }
-
-    private func badge(label: String, value: Int, tint: Color) -> some View {
-        HStack(spacing: 4) {
-            Text(label)
-                .font(.caption2)
-                .foregroundStyle(.white)
-            Text("\(value)")
-                .font(.caption.bold().monospacedDigit())
-                .foregroundStyle(tint)
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 5)
-        .background(Capsule().fill(Color.black.opacity(0.5)))
-    }
-}
-
-/// Shutter row reused in After flow. Same layout as Before, but with no
-/// thumbnail well (the ghost overlay tells the user what they just shot).
-private struct AfterCameraShutterRow: View {
-    let isCapturing: Bool
-    let enabled: Bool
-    let action: () -> Void
-
-    var body: some View {
-        HStack(alignment: .center) {
-            Color.clear.frame(width: 56, height: 56).padding(.leading, 24)
-            Spacer()
-            CaptureShutterButton(isCapturing: isCapturing, action: action)
-                .opacity(enabled ? 1.0 : 0.4)
-                .disabled(!enabled)
-            Spacer()
-            Color.clear.frame(width: 56, height: 56).padding(.trailing, 24)
-        }
-    }
-}
-
-/// Mirror of `BeforeCameraPreviewLayer`. We keep a separate type so the
-/// Feature directory boundary in `audit-arch` stays clean (CameraAfter must
-/// not import CameraBefore).
-private struct AfterCameraPreviewLayer: UIViewRepresentable {
-    let session: AVCaptureSession
-    let onMakeView: (CameraPreviewView) -> Void
-
-    func makeUIView(context _: Context) -> CameraPreviewView {
-        let view = CameraPreviewView(session: session)
-        Task { @MainActor in onMakeView(view) }
-        return view
-    }
-
-    func updateUIView(_: CameraPreviewView, context _: Context) {}
 }

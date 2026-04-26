@@ -3,21 +3,11 @@ import SwiftData
 import SwiftUI
 import UIKit
 
-/// P5.1 — fullscreen comparison modal.
-///
-/// Behaviour:
-/// - Shows the Before/After of the active `PhotoPair` either as a 50/50
-///   split (default) or as a full-image toggle (Before only / After only).
-/// - Drag down → dismiss (matches the `.sheet` swipe affordance but explicit
-///   so the gesture works edge-to-edge over the photos).
-/// - Drag left/right → cycle to the previous / next pair in the *same
-///   project*. Pager count "n / N" rendered in the top toolbar so users
-///   can see traversal progress.
-/// - Toolbar exposes the P5.2 composite menu (좌우 / 상하). Result writes
-///   `pair.combinedPath` and the gallery cell flips its badge to 합성.
-///
-/// **Architecture invariant**: this is just two `Image(uiImage:)` views.
-/// No homography, no pixel-level alignment, no auto color correction.
+/// P5.1 — fullscreen comparison modal. Drag-down → dismiss, drag-left/right
+/// → pager. Toolbar exposes the P5.2 composite menu. Two `Image(uiImage:)`
+/// views — no homography, no pixel-level alignment, no auto color correction.
+/// Supporting types (`CompositeMenu`, `ComparisonImagePane`,
+/// `ComparisonImageLoader`, `ComparisonPager`) live in ``CompositeMenu.swift``.
 struct ComparisonView: View {
     /// All pairs in the project the user opened the comparison from. The
     /// view tracks the index locally so a delete/change in the underlying
@@ -65,8 +55,7 @@ struct ComparisonView: View {
     }
 
     private var pagerLabel: String {
-        guard !pairs.isEmpty else { return "" }
-        return "\(index + 1) / \(pairs.count)"
+        ComparisonPager.label(index: index, count: pairs.count)
     }
 
     var body: some View {
@@ -126,7 +115,11 @@ struct ComparisonView: View {
             modePicker
         }
         ToolbarItem(placement: .topBarTrailing) {
-            compositeMenu
+            CompositeMenu(
+                defaultLayout: appSettings.defaultCompositeLayout,
+                isDisabled: currentPair?.afterPath == nil || isCompositing,
+                onSelect: { layout in runComposite(layout: layout) }
+            )
         }
     }
 
@@ -138,44 +131,6 @@ struct ComparisonView: View {
         }
         .pickerStyle(.segmented)
         .frame(width: 140)
-    }
-
-    private var compositeMenu: some View {
-        Menu {
-            // P8.3 — surface the user's preferred layout first and mark
-            // it with a checkmark so the menu doubles as a "default in
-            // effect" indicator. Tapping any item still composites with
-            // exactly that layout (the picker isn't sticky per-call).
-            let defaultLayout = appSettings.defaultCompositeLayout
-            ForEach(orderedLayouts(default: defaultLayout)) { layout in
-                Button {
-                    runComposite(layout: layout)
-                } label: {
-                    Label(menuLabel(for: layout, default: defaultLayout), systemImage: layout.systemImage)
-                }
-            }
-        } label: {
-            Image(systemName: "square.on.square")
-        }
-        .disabled(currentPair?.afterPath == nil || isCompositing)
-        .accessibilityLabel(String(localized: "합성"))
-    }
-
-    /// Reorders the layout cases so the user's stored default appears
-    /// first in the menu — the standard iOS affordance for "this is the
-    /// default action" within a `Menu`.
-    private func orderedLayouts(default defaultLayout: CompositeLayout) -> [CompositeLayout] {
-        let rest = CompositeLayout.allCases.filter { $0 != defaultLayout }
-        return [defaultLayout] + rest
-    }
-
-    /// Appends "(기본)" to the default layout's row label so screen
-    /// readers and the visual hierarchy both surface the preference.
-    private func menuLabel(for layout: CompositeLayout, default defaultLayout: CompositeLayout) -> String {
-        if layout == defaultLayout {
-            return String(format: String(localized: "%@ (기본)"), layout.label)
-        }
-        return layout.label
     }
 
     // MARK: - Empty / error
@@ -220,9 +175,9 @@ struct ComparisonView: View {
                 // doesn't.
                 if abs(horizontal) > 80, abs(horizontal) > abs(vertical) {
                     if horizontal < 0 {
-                        stepNext()
+                        index = ComparisonPager.next(index: index, count: pairs.count)
                     } else {
-                        stepPrevious()
+                        index = ComparisonPager.previous(index: index, count: pairs.count)
                     }
                 }
 
@@ -238,21 +193,10 @@ struct ComparisonView: View {
         mode = cases[(currentIdx + 1) % cases.count]
     }
 
-    private func stepNext() {
-        guard !pairs.isEmpty else { return }
-        index = min(index + 1, pairs.count - 1)
-    }
-
-    private func stepPrevious() {
-        guard !pairs.isEmpty else { return }
-        index = max(index - 1, 0)
-    }
-
     // MARK: - Composite action
 
     private func runComposite(layout: CompositeLayout) {
-        guard let pair = currentPair else { return }
-        guard !isCompositing else { return }
+        guard let pair = currentPair, !isCompositing else { return }
         isCompositing = true
         let options = CompositeOptions(
             layout: layout,
@@ -270,13 +214,10 @@ struct ComparisonView: View {
                     fileNamePrefix: prefix,
                     in: modelContext
                 )
-                // P9.1 — success haptic *before* an interstitial fires
-                // so the user feels the success even if the ad takes
-                // a beat to present.
+                // P9.1 — haptic before the interstitial fires.
                 HapticService.shared.notify(.success)
-                // Successful composite is a "natural transition" — try
-                // an interstitial. Manager handles AdFree + 5-min cap +
-                // coordinator slot internally; failure is silent.
+                // Composite success = "natural transition" → try interstitial.
+                // Manager handles AdFree + 5-min cap internally.
                 await interstitialManager.presentIfReady(
                     from: BannerAdView.resolveRootViewController(),
                     coordinator: coordinator,
@@ -300,153 +241,4 @@ struct ComparisonView: View {
             case .persistFailed: String(localized: "저장 실패")
         }
     }
-}
-
-/// Photo display pane (split or single). Extracted so `ComparisonView.body`
-/// stays declarative.
-private struct ComparisonImagePane: View {
-    let pair: PhotoPair
-    let mode: ComparisonView.ViewMode
-    let storage: PhotoStorageService
-
-    @State private var beforeImage: UIImage?
-    @State private var afterImage: UIImage?
-
-    var body: some View {
-        Group {
-            switch mode {
-                case .split:
-                    splitView
-
-                case .beforeOnly:
-                    singleImage(beforeImage, label: String(localized: "Before"))
-
-                case .afterOnly:
-                    singleImage(afterImage, label: String(localized: "After"))
-            }
-        }
-        .task(id: pair.id) {
-            await loadImages()
-        }
-    }
-
-    private var splitView: some View {
-        GeometryReader { geometry in
-            HStack(spacing: 1) {
-                imageOrPlaceholder(beforeImage, label: String(localized: "Before"))
-                    .frame(width: geometry.size.width / 2)
-                imageOrPlaceholder(afterImage, label: String(localized: "After"))
-                    .frame(width: geometry.size.width / 2)
-            }
-            .background(Color.black)
-        }
-    }
-
-    private func singleImage(_ image: UIImage?, label: String) -> some View {
-        ZStack(alignment: .topLeading) {
-            imageOrPlaceholder(image, label: label)
-            Text(label)
-                .font(.caption.bold())
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(Capsule().fill(.black.opacity(0.55)))
-                .foregroundStyle(.white)
-                .padding(12)
-        }
-    }
-
-    @ViewBuilder
-    private func imageOrPlaceholder(_ image: UIImage?, label: String) -> some View {
-        if let image {
-            Image(uiImage: image)
-                .resizable()
-                .scaledToFit()
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-        } else {
-            ZStack {
-                Color.gray.opacity(0.2)
-                VStack(spacing: 6) {
-                    Image(systemName: "photo")
-                        .font(.system(size: 32))
-                        .foregroundStyle(.white.opacity(0.5))
-                    Text(label).foregroundStyle(.white.opacity(0.6))
-                }
-            }
-        }
-    }
-
-    private func loadImages() async {
-        let beforePath = pair.beforePath
-        let afterPath = pair.afterPath
-        let storage = storage
-        let loaded = await Task.detached(priority: .userInitiated) {
-            (
-                ComparisonImageLoader.load(relativePath: beforePath, storage: storage),
-                afterPath.flatMap { path in
-                    ComparisonImageLoader.load(relativePath: path, storage: storage)
-                }
-            )
-        }.value
-        beforeImage = loaded.0
-        afterImage = loaded.1
-    }
-}
-
-/// Pure helper extracted so the load path is testable without spinning up
-/// SwiftUI. Mirrors `GhostOverlayLoader` but exposed at the module boundary
-/// for `ComparisonImagePane` reuse.
-enum ComparisonImageLoader {
-    static func load(relativePath: String, storage: PhotoStorageService) -> UIImage? {
-        guard !relativePath.isEmpty else { return nil }
-        guard let url = storage.resolve(relativePath: relativePath) else { return nil }
-        guard FileManager.default.fileExists(atPath: url.path) else { return nil }
-        return UIImage(contentsOfFile: url.path)
-    }
-}
-
-/// Pure pager arithmetic. Extracted so the swipe-traversal logic can be
-/// asserted without driving a real `DragGesture`.
-enum ComparisonPager {
-    /// Step the index forward, clamped to the last valid pair.
-    static func next(index: Int, count: Int) -> Int {
-        guard count > 0 else { return 0 }
-        return min(index + 1, count - 1)
-    }
-
-    /// Step the index backward, clamped to 0.
-    static func previous(index: Int, count: Int) -> Int {
-        guard count > 0 else { return 0 }
-        return max(index - 1, 0)
-    }
-
-    /// "n / N" label. Empty string when `count == 0` so the toolbar collapses
-    /// gracefully.
-    static func label(index: Int, count: Int) -> String {
-        guard count > 0 else { return "" }
-        let bounded = max(0, min(index, count - 1))
-        return "\(bounded + 1) / \(count)"
-    }
-}
-
-private struct ComparisonViewPreviewWrapper: View {
-    // swiftlint:disable:next force_try
-    let container = try! ModelContainer(
-        for: Project.self,
-        PhotoPair.self,
-        Coupon.self,
-        configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-    )
-
-    var body: some View {
-        ComparisonView(pairs: [], startIndex: 0)
-            .modelContainer(container)
-            .environment(AdFreeStore(context: container.mainContext))
-            .environment(\.fullscreenAdCoordinator, FullscreenAdCoordinator())
-            .environment(InterstitialAdManager())
-            .environment(AppSettings(defaults: UserDefaults(suiteName: "preview-comparison") ?? .standard))
-    }
-}
-
-#Preview {
-    ComparisonViewPreviewWrapper()
 }

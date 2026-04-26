@@ -46,10 +46,41 @@ extension AppMaterial {
     /// rather than `private` so ``MaterialResolverTests`` can assert
     /// the iOS 17 mapping directly without driving SwiftUI.
     var swiftUIMaterial: Material {
-        // iOS 26 Liquid Glass is gated by an `#available` check at the
-        // application layer. The fallback below covers iOS 17~25 and
-        // is also what iOS 26 uses if the future Liquid Glass material
-        // can't render (e.g. accessibility "reduce transparency").
+        // P10b — actual `#available(iOS 26.0, *)` branch is now in
+        // place. The Liquid Glass material symbols (`Material.glass`
+        // family) are still being finalised in the iOS 26 SDK, so the
+        // 26+ branch deliberately reuses the same `Material` mapping
+        // as iOS 17~25 for now. The structural fork keeps the
+        // single-call-site contract: when Apple finalises the API,
+        // only the branch body changes — every call site continues to
+        // use `.appMaterialBackground(.panel)` etc.
+        if #available(iOS 26.0, *) {
+            liquidGlassMaterial
+        } else {
+            legacyMaterial
+        }
+    }
+
+    /// iOS 17~25 mapping. Conservative `Material` palette that ships
+    /// today and renders consistently across the supported range.
+    var legacyMaterial: Material {
+        switch self {
+            case .panel: .regularMaterial
+            case .accent: .thinMaterial
+            case .sheet: .thickMaterial
+        }
+    }
+
+    /// iOS 26+ Liquid Glass mapping. Currently identical to
+    /// ``legacyMaterial`` because the official `Material.glass`
+    /// symbol is still pre-release; once it lands we swap each case
+    /// to its glass variant in this single place. Marked
+    /// `@available(iOS 26.0, *)` so the compiler enforces the gate
+    /// when the symbol is updated.
+    @available(iOS 26.0, *)
+    var liquidGlassMaterial: Material {
+        // TODO(P11): swap to `Material.glassRegular` / `.glassThin` /
+        // `.glassThick` once the iOS 26 SDK ships final symbols.
         switch self {
             case .panel: .regularMaterial
             case .accent: .thinMaterial

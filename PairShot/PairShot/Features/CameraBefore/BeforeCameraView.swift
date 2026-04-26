@@ -3,11 +3,9 @@ import SwiftData
 import SwiftUI
 
 /// Top-level Before-capture screen. Hosts the preview layer, all overlays
-/// (focus reticle, grid, level), and the control bars.
-///
-/// Integration into `ArchiveView` happens in a later phase; this file only
-/// provides the screen itself so each sub-feature can be exercised in
-/// isolation (and inside `#Preview`).
+/// (focus reticle, grid, level), and the control bars. The actual camera
+/// composite is in ``BeforeCameraStack`` (extracted in P10b so this view
+/// stays under the 250-line cap).
 struct BeforeCameraView: View {
     let project: Project
 
@@ -32,6 +30,7 @@ struct BeforeCameraView: View {
     /// `PermissionDeniedView` Settings deep-link instead of starting
     /// the session (which would just hang on a black preview).
     @State private var cameraPermissionGranted: Bool?
+    @State private var pinchBaseFactor: Double = 1.0
 
     /// Stable reference to the preview UIView so taps can convert to device space.
     @State private var previewView: CameraPreviewView?
@@ -52,7 +51,35 @@ struct BeforeCameraView: View {
                 PermissionDeniedView(forCamera: ())
                     .padding(.horizontal, 32)
             } else {
-                cameraStack
+                BeforeCameraStack(
+                    captureSession: sessionHolder.session.captureSession,
+                    onMakePreviewView: { view in previewView = view },
+                    previewLayerProvider: { previewView?.previewLayer },
+                    isGridOn: isGridOn,
+                    isLevelOn: isLevelOn,
+                    rollDegrees: motion.rollDegrees,
+                    flashMode: flashMode,
+                    lensPosition: lensPosition,
+                    activePreset: activePreset,
+                    isPresetSupported: sessionHolder.isPresetSupported(_:),
+                    exposureRangeProvider: { sessionHolder.cachedExposureRange },
+                    focusIndicator: $focusIndicator,
+                    isCapturing: isCapturing,
+                    capturedThumbnail: capturedThumbnail,
+                    onTapFocus: { devicePoint in
+                        Task { await sessionHolder.session.focus(at: devicePoint) }
+                    },
+                    onExposureBias: { bias in
+                        Task { await sessionHolder.session.setExposureBias(bias) }
+                    },
+                    pinchGesture: AnyGesture(pinchGesture.map { _ in () }),
+                    onCycleFlash: cycleFlash,
+                    onToggleLens: toggleLens,
+                    onToggleGrid: { isGridOn.toggle() },
+                    onToggleLevel: toggleLevel,
+                    onApplyPreset: applyPreset,
+                    onShutter: shutter
+                )
             }
         }
         .navigationBarTitleDisplayMode(.inline)
@@ -73,83 +100,6 @@ struct BeforeCameraView: View {
         .onDisappear {
             Task { await sessionHolder.session.stop() }
             motion.stop()
-        }
-    }
-
-    /// Live-camera content. Extracted so the permission-denied
-    /// fallback short-circuits before we spin up the AVFoundation
-    /// session.
-    private var cameraStack: some View {
-        ZStack {
-            BeforeCameraPreviewLayer(
-                session: sessionHolder.session.captureSession,
-                onMakeView: { view in previewView = view }
-            )
-            .ignoresSafeArea()
-
-            if isGridOn {
-                GridOverlay()
-                    .ignoresSafeArea()
-            }
-
-            FocusGestureView(
-                previewLayerProvider: { previewView?.previewLayer },
-                onTapFocus: { devicePoint in
-                    Task { await sessionHolder.session.focus(at: devicePoint) }
-                },
-                onExposureBias: { bias in
-                    Task { await sessionHolder.session.setExposureBias(bias) }
-                },
-                exposureRangeProvider: { sessionHolder.cachedExposureRange },
-                indicator: $focusIndicator
-            )
-            .ignoresSafeArea()
-            .gesture(pinchGesture)
-
-            if let focusIndicator {
-                FocusReticleView(state: focusIndicator)
-            }
-
-            VStack {
-                CameraControlBar(
-                    flashMode: flashMode,
-                    lensPosition: lensPosition,
-                    isGridOn: isGridOn,
-                    isLevelOn: isLevelOn,
-                    onCycleFlash: cycleFlash,
-                    onToggleLens: toggleLens,
-                    onToggleGrid: { isGridOn.toggle() },
-                    onToggleLevel: toggleLevel
-                )
-
-                if isLevelOn {
-                    LevelIndicator(rollDegrees: motion.rollDegrees)
-                        .padding(.top, 4)
-                }
-
-                Spacer()
-
-                ZoomControl(
-                    activePreset: activePreset,
-                    isSupported: sessionHolder.isPresetSupported(_:),
-                    onSelect: applyPreset
-                )
-                .padding(.bottom, 12)
-
-                HStack(alignment: .center) {
-                    ThumbnailWell(image: capturedThumbnail)
-                        .padding(.leading, 24)
-
-                    Spacer()
-
-                    CaptureShutterButton(isCapturing: isCapturing, action: shutter)
-
-                    Spacer()
-
-                    Color.clear.frame(width: 56, height: 56).padding(.trailing, 24)
-                }
-                .padding(.bottom, 16)
-            }
         }
     }
 
@@ -177,8 +127,6 @@ struct BeforeCameraView: View {
     }
 
     // MARK: - Gestures
-
-    @State private var pinchBaseFactor: Double = 1.0
 
     private var pinchGesture: some Gesture {
         MagnificationGesture()
@@ -276,41 +224,5 @@ final class CameraSessionHolder {
         // SwiftUI calls this from view body — read the cached snapshot.
         // Captured via MainActor.assumeIsolated to satisfy strict concurrency.
         MainActor.assumeIsolated { supportedPresets.contains(preset) }
-    }
-}
-
-/// Small wrapper around `CameraPreview` that reports the underlying UIView
-/// up to the parent so it can be used for tap-to-device-point conversion.
-private struct BeforeCameraPreviewLayer: UIViewRepresentable {
-    let session: AVCaptureSession
-    let onMakeView: (CameraPreviewView) -> Void
-
-    func makeUIView(context _: Context) -> CameraPreviewView {
-        let view = CameraPreviewView(session: session)
-        Task { @MainActor in onMakeView(view) }
-        return view
-    }
-
-    func updateUIView(_: CameraPreviewView, context _: Context) {}
-}
-
-/// Last-captured thumbnail. Round corner placeholder when nil.
-private struct ThumbnailWell: View {
-    let image: UIImage?
-
-    var body: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(Color.white, lineWidth: 1.5)
-                .frame(width: 48, height: 48)
-
-            if let image {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: 44, height: 44)
-                    .clipShape(RoundedRectangle(cornerRadius: 6))
-            }
-        }
     }
 }

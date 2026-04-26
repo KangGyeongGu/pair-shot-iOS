@@ -11,9 +11,10 @@ import UIKit
 /// Reusing the photo-capture actor would risk torch/zoom state bleed
 /// across feature boundaries.
 ///
-/// Forbidden alternative: Vision/CoreML QR detection. AVFoundation's
-/// metadata output is a first-class API and Apple-recommended for the
-/// scanner use case.
+/// P10b — the AVFoundation controller and its
+/// `UIViewControllerRepresentable` bridge live in
+/// ``QRScannerViewController.swift`` so this file stays under the
+/// 250-line cap.
 struct QRScannerView: View {
     /// Callback invoked once on the first successful scan. The string is
     /// the raw decoded payload (not yet parsed by `QRPayloadParser`).
@@ -185,10 +186,9 @@ private struct ScannerGuideOverlay: View {
 
 // MARK: - AVFoundation bridge
 
-/// `UIViewControllerRepresentable` wrapping a UIKit controller that owns
-/// the `AVCaptureSession`. View-controller bridging (rather than a raw
-/// `UIView`) keeps the metadata-output delegate's lifecycle pinned to a
-/// well-defined object.
+/// `UIViewControllerRepresentable` wrapping ``QRScannerViewController``.
+/// View-controller bridging (rather than a raw `UIView`) keeps the
+/// metadata-output delegate's lifecycle pinned to a well-defined object.
 private struct QRScannerRepresentable: UIViewControllerRepresentable {
     let onScan: (String) -> Void
 
@@ -203,97 +203,5 @@ private struct QRScannerRepresentable: UIViewControllerRepresentable {
     func updateUIViewController(_: QRScannerViewController, context _: Context) {
         // No-op: scanner is single-shot; once the parent dismisses
         // `fullScreenCover`, the controller is torn down.
-    }
-}
-
-/// Owns one `AVCaptureSession` plus an `AVCaptureMetadataOutput`. Stops
-/// the session on the first successful scan so the camera and torch
-/// release immediately.
-final class QRScannerViewController: UIViewController, AVCaptureMetadataOutputObjectsDelegate {
-    var onScan: ((String) -> Void)?
-
-    private let captureSession = AVCaptureSession()
-    private var previewLayer: AVCaptureVideoPreviewLayer?
-    private var hasReportedScan = false
-
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        view.backgroundColor = .black
-        configureSession()
-    }
-
-    override func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
-        if !captureSession.isRunning {
-            // Per Apple guidance, `startRunning()` blocks; hop off the
-            // main thread to avoid hitching the presentation animation.
-            let session = captureSession
-            DispatchQueue.global(qos: .userInitiated).async {
-                session.startRunning()
-            }
-        }
-    }
-
-    override func viewWillDisappear(_ animated: Bool) {
-        super.viewWillDisappear(animated)
-        if captureSession.isRunning {
-            captureSession.stopRunning()
-        }
-    }
-
-    override func viewDidLayoutSubviews() {
-        super.viewDidLayoutSubviews()
-        previewLayer?.frame = view.bounds
-    }
-
-    private func configureSession() {
-        captureSession.beginConfiguration()
-        defer { captureSession.commitConfiguration() }
-
-        guard
-            let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back),
-            let input = try? AVCaptureDeviceInput(device: device),
-            captureSession.canAddInput(input)
-        else {
-            // Simulator or device without back camera. Leave the preview
-            // layer empty; the caller can still cancel out.
-            return
-        }
-        captureSession.addInput(input)
-
-        let metadataOutput = AVCaptureMetadataOutput()
-        guard captureSession.canAddOutput(metadataOutput) else { return }
-        captureSession.addOutput(metadataOutput)
-        metadataOutput.setMetadataObjectsDelegate(self, queue: DispatchQueue.main)
-        // `availableMetadataObjectTypes` must be queried *after* the
-        // output is wired, otherwise `.qr` isn't reported as available.
-        if metadataOutput.availableMetadataObjectTypes.contains(.qr) {
-            metadataOutput.metadataObjectTypes = [.qr]
-        }
-
-        let layer = AVCaptureVideoPreviewLayer(session: captureSession)
-        layer.videoGravity = .resizeAspectFill
-        layer.frame = view.bounds
-        view.layer.addSublayer(layer)
-        previewLayer = layer
-    }
-
-    // MARK: - AVCaptureMetadataOutputObjectsDelegate
-
-    func metadataOutput(
-        _: AVCaptureMetadataOutput,
-        didOutput metadataObjects: [AVMetadataObject],
-        from _: AVCaptureConnection
-    ) {
-        guard !hasReportedScan else { return }
-        for object in metadataObjects {
-            guard let readable = object as? AVMetadataMachineReadableCodeObject else { continue }
-            guard readable.type == .qr else { continue }
-            guard let payload = readable.stringValue, !payload.isEmpty else { continue }
-            hasReportedScan = true
-            captureSession.stopRunning()
-            onScan?(payload)
-            break
-        }
     }
 }
