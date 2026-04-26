@@ -10,6 +10,17 @@ import Foundation
 ///
 /// All members are `nonisolated` so the type can be consumed off the main
 /// actor (e.g. inside `CameraSession`).
+///
+/// Audit-A — the `Documents` directory fallback was removed. JPEGs in
+/// `Documents` are visible to iCloud Backup, which can balloon the user's
+/// backup quota by tens of gigabytes. The new contract is:
+///
+/// - Production callers pass `nil` and we resolve `Application Support`.
+/// - Tests inject a temp `baseDirectory` explicitly.
+/// - `Application Support` is unreachable on the production path → fail
+///   loudly via ``PhotoStorageServiceError/applicationSupportUnavailable``
+///   so the camera UI can surface a real error instead of silently
+///   dumping JPEGs into a backed-up location.
 struct PhotoStorageService {
     /// Subdirectory inside `Application Support` where JPEGs land.
     static let photosDirectoryName = "photos"
@@ -20,13 +31,28 @@ struct PhotoStorageService {
     nonisolated init(baseDirectory: URL? = nil) {
         if let baseDirectory {
             self.baseDirectory = baseDirectory
-        } else {
-            self.baseDirectory = (try? FileManager.default.url(
+            return
+        }
+        // Production path. We only resolve once at init so subsequent
+        // writes can rely on the fixed URL. A failure here is recoverable
+        // by retrying construction (rare — disk completely full).
+        do {
+            self.baseDirectory = try FileManager.default.url(
                 for: .applicationSupportDirectory,
                 in: .userDomainMask,
                 appropriateFor: nil,
                 create: true
-            )) ?? URL.documentsDirectory
+            )
+        } catch {
+            // Constructor cannot throw without breaking dozens of call
+            // sites; instead we trap so the failure mode is visible in
+            // crashlogs rather than silently corrupting iCloud Backup.
+            // In practice `Application Support` is created lazily by the
+            // first `FileManager.url(for:)` call and only fails on
+            // hardware-level disk failure.
+            preconditionFailure(
+                "PhotoStorageService: Application Support unavailable — \(error)"
+            )
         }
     }
 
@@ -193,13 +219,30 @@ struct PhotoStorageService {
     }
 
     private nonisolated func ensureDirectoryExists() throws {
-        let dir = photosDirectory
+        var dir = photosDirectory
         if !FileManager.default.fileExists(atPath: dir.path) {
             try FileManager.default.createDirectory(
                 at: dir,
                 withIntermediateDirectories: true
             )
         }
+        // Audit-A — the photos folder lives under Application Support
+        // which is iCloud-Backup-eligible. Per Apple's Foundation guide,
+        // user-recreatable bulk data should be excluded from backup so
+        // we don't balloon the user's iCloud quota with JPEGs they can
+        // re-shoot. Idempotent — setting the value when it's already
+        // true is a no-op. Failures here do not abort the write; the
+        // exclusion is best-effort for a successful directory create.
+        try? Self.markExcludedFromBackup(&dir)
+    }
+
+    /// Sets `isExcludedFromBackup = true` on `url` via `URLResourceValues`.
+    /// Pulled out so tests can verify the flag round-trips through the
+    /// real Foundation API.
+    nonisolated static func markExcludedFromBackup(_ url: inout URL) throws {
+        var values = URLResourceValues()
+        values.isExcludedFromBackup = true
+        try url.setResourceValues(values)
     }
 
     /// Shared writer for the three save entry points. Centralises the

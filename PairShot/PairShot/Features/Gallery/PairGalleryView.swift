@@ -43,6 +43,11 @@ struct PairGalleryView: View {
     @State private var selection = PairSelection()
     @State private var preview: PhotoPair?
     @State private var exportPayload: ExportPickerPayload?
+    /// Audit-A — drives the Before-camera `.fullScreenCover` toolbar entry.
+    @State private var showBeforeCamera: Bool = false
+    /// Audit-A — drives the After-camera `.fullScreenCover` triggered
+    /// when a `pendingAfter` cell is tapped outside selection mode.
+    @State private var showAfterCamera: Bool = false
 
     private let storage: PhotoStorageService
 
@@ -97,6 +102,19 @@ struct PairGalleryView: View {
         }
         .navigationTitle(project.title.isEmpty ? String(localized: "(이름 없음)") : project.title)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            // Audit-A — entry into the Before-camera flow. Disabled
+            // during selection mode so the trash/share affordances are
+            // unambiguous.
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    showBeforeCamera = true
+                } label: {
+                    Label(String(localized: "Before 촬영"), systemImage: "camera")
+                }
+                .disabled(selection.isSelectionMode)
+            }
+        }
         .safeAreaInset(edge: .bottom) {
             if selection.isSelectionMode {
                 PairMultiSelectBar(
@@ -113,6 +131,22 @@ struct PairGalleryView: View {
                 startIndex: filteredPairs.firstIndex(where: { $0.id == pair.id }) ?? 0,
                 storage: storage
             )
+        }
+        // Audit-A — Before camera entry from the toolbar button. The
+        // camera view dismisses itself on close via `@Environment(\.dismiss)`.
+        .fullScreenCover(isPresented: $showBeforeCamera) {
+            NavigationStack {
+                BeforeCameraView(project: project)
+            }
+        }
+        // Audit-A — After camera entry triggered by tapping a
+        // `pendingAfter` cell. `AfterCameraView` auto-loads the oldest
+        // pending pair on appear (P3.1) and dismisses when none remain
+        // (P3.4), so we don't need to thread a specific pair in here.
+        .fullScreenCover(isPresented: $showAfterCamera) {
+            NavigationStack {
+                AfterCameraView(project: project)
+            }
         }
         .sheet(item: $exportPayload) { payload in
             ExportPicker(pairs: payload.pairs, storage: storage)
@@ -170,6 +204,13 @@ struct PairGalleryView: View {
     private func handleTap(_ pair: PhotoPair) {
         if selection.isSelectionMode {
             selection.toggle(pair.id)
+        } else if pair.status == .pendingAfter {
+            // Audit-A — tapping a pending Before kicks the user
+            // straight into the After camera so the half-finished pair
+            // gets resolved instead of dead-ending in the comparison
+            // view (which would just show a placeholder for the
+            // missing After photo).
+            showAfterCamera = true
         } else {
             preview = pair
         }

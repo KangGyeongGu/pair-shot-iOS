@@ -15,7 +15,14 @@ struct ShareSheet: UIViewControllerRepresentable {
             activityItems: activityItems,
             applicationActivities: nil
         )
-        controller.completionWithItemsHandler = { _, _, _, _ in
+        // Audit-A — `completionWithItemsHandler`'s second parameter is
+        // `completed: Bool` (false when the user dismisses without
+        // picking a destination). Firing `onComplete` regardless caused
+        // `ExportPicker` to dismiss on cancel, denying the user a
+        // chance to pick a different export destination. Honour the
+        // flag so cancels keep the picker on screen.
+        controller.completionWithItemsHandler = { _, completed, _, _ in
+            guard completed else { return }
             onComplete?()
         }
         return controller

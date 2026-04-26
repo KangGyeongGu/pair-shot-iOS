@@ -6,15 +6,17 @@ import SwiftUI
 
 @main
 struct PairShotApp: App {
-    let sharedModelContainer: ModelContainer = {
-        let schema = Schema([Project.self, PhotoPair.self, Coupon.self])
-        let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
-        do {
-            return try ModelContainer(for: schema, configurations: [configuration])
-        } catch {
-            fatalError("Could not create ModelContainer: \(error)")
-        }
-    }()
+    /// Bootstrapped `ModelContainer` plus a flag indicating whether the
+    /// disk-backed store opened cleanly. Audit-A — `fatalError` on first
+    /// failure is replaced with an in-memory fallback so the app keeps
+    /// launching when the on-disk store is corrupt / migration-incompatible.
+    /// The user is alerted via ``ContentView`` so they understand data
+    /// won't persist across launches.
+    let containerBootstrap: ModelContainerBootstrap = .bootstrap()
+
+    var sharedModelContainer: ModelContainer {
+        containerBootstrap.container
+    }
 
     @State private var adFreeStore: AdFreeStore
     @State private var coordinator = FullscreenAdCoordinator()
@@ -26,6 +28,8 @@ struct PairShotApp: App {
     @State private var appSettings = AppSettings()
     @State private var hasBootstrappedAds = false
     @State private var hasPresentedColdStartAppOpen = false
+    /// Audit-A — surfaces the in-memory fallback alert via `ContentView`.
+    @State private var showFallbackAlert: Bool
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
@@ -44,13 +48,14 @@ struct PairShotApp: App {
             GADMobileAds.sharedInstance().start(completionHandler: nil)
         #endif
 
-        let store = AdFreeStore(context: sharedModelContainer.mainContext)
+        let store = AdFreeStore(context: containerBootstrap.container.mainContext)
         _adFreeStore = State(initialValue: store)
+        _showFallbackAlert = State(initialValue: containerBootstrap.fallbackActive)
     }
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            ContentView(showFallbackAlert: $showFallbackAlert)
                 .environment(adFreeStore)
                 .environment(\.fullscreenAdCoordinator, coordinator)
                 .environment(interstitialManager)
@@ -136,6 +141,50 @@ struct PairShotApp: App {
                 break
             @unknown default:
                 break
+        }
+    }
+}
+
+/// Audit-A — replaces the original `fatalError(...)` in
+/// `PairShotApp.sharedModelContainer` with a graceful in-memory fallback.
+///
+/// SwiftData failures fall into three buckets:
+///
+/// 1. Disk-backed open succeeds → ship the user their persistent store.
+/// 2. Disk-backed open fails (corrupt store / migration mismatch / disk
+///    full) → open an isolated in-memory store so the app launches and
+///    the user can at least see/dismiss an alert. **Data does not persist
+///    across launches in this mode.**
+/// 3. In-memory open also fails → unrecoverable system condition; trap
+///    so the crash log surfaces a real underlying defect rather than
+///    masking it.
+///
+/// The result type carries a `fallbackActive` flag the App scene reads
+/// to surface a one-shot user-visible alert via `ContentView`.
+struct ModelContainerBootstrap {
+    let container: ModelContainer
+    let fallbackActive: Bool
+
+    static func bootstrap() -> ModelContainerBootstrap {
+        let schema = Schema([Project.self, PhotoPair.self, Coupon.self])
+        do {
+            let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
+            let container = try ModelContainer(for: schema, configurations: [configuration])
+            return ModelContainerBootstrap(container: container, fallbackActive: false)
+        } catch {
+            // Disk-backed open failed — likely corrupt store or
+            // incompatible migration. Try an in-memory fallback so we
+            // can at least present an alert to the user.
+            do {
+                let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+                let container = try ModelContainer(for: schema, configurations: [configuration])
+                return ModelContainerBootstrap(container: container, fallbackActive: true)
+            } catch {
+                // Both stores failed — system is in a state we cannot
+                // recover from in-process. Re-emit the original error
+                // signature so debug logs match the legacy behaviour.
+                fatalError("Could not create ModelContainer: \(error)")
+            }
         }
     }
 }

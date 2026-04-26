@@ -59,6 +59,13 @@ struct ArchiveView: View {
                     renameTarget = project
                 }
             )
+            // Audit-A — push `PairGalleryView` when a row's
+            // `NavigationLink(value: project)` fires from `ProjectListContent`.
+            // Selection mode short-circuits the link inside the row so
+            // multi-select toggles don't accidentally navigate.
+            .navigationDestination(for: Project.self) { project in
+                PairGalleryView(project: project)
+            }
             .navigationTitle("프로젝트")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -120,7 +127,14 @@ struct ArchiveView: View {
     private func deleteSelected() {
         let ids = selection.selectedIds
         guard !ids.isEmpty else { return }
-        _ = try? ProjectDeletionService.deleteProjects(ids: ids, in: modelContext)
+        // Audit-A — pass the production `PhotoStorageService` so the
+        // cascade also unlinks the JPEGs and evicts the thumbnail
+        // cache, not just the SwiftData rows.
+        _ = try? ProjectDeletionService.deleteProjects(
+            ids: ids,
+            in: modelContext,
+            storage: PhotoStorageService()
+        )
         selection.exit()
     }
 }
@@ -163,25 +177,44 @@ private struct ProjectListContent: View {
                 )
             } else {
                 List(projects) { project in
-                    ProjectRow(
-                        project: project,
-                        isSelectionMode: selection.isSelectionMode,
-                        isSelected: selection.contains(project.id)
-                    )
-                    .contentShape(.rect)
-                    .onTapGesture { onTap(project) }
-                    .onLongPressGesture(minimumDuration: 0.4) { onLongPress(project) }
-                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                        if !selection.isSelectionMode {
-                            Button {
-                                onRename(project)
-                            } label: {
-                                Label("이름 변경", systemImage: "pencil")
-                            }
-                            .tint(.indigo)
-                        }
-                    }
+                    projectRow(for: project)
                 }
+            }
+        }
+    }
+
+    /// Row builder. Audit-A — uses `NavigationLink(value:)` to push
+    /// `PairGalleryView` when **not** in selection mode; in selection
+    /// mode we fall back to a plain row + `onTapGesture` so tap toggles
+    /// the checkmark instead of navigating.
+    @ViewBuilder
+    private func projectRow(for project: Project) -> some View {
+        if selection.isSelectionMode {
+            ProjectRow(
+                project: project,
+                isSelectionMode: true,
+                isSelected: selection.contains(project.id)
+            )
+            .contentShape(.rect)
+            .onTapGesture { onTap(project) }
+            .onLongPressGesture(minimumDuration: 0.4) { onLongPress(project) }
+        } else {
+            NavigationLink(value: project) {
+                ProjectRow(
+                    project: project,
+                    isSelectionMode: false,
+                    isSelected: false
+                )
+            }
+            .contentShape(.rect)
+            .onLongPressGesture(minimumDuration: 0.4) { onLongPress(project) }
+            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                Button {
+                    onRename(project)
+                } label: {
+                    Label("이름 변경", systemImage: "pencil")
+                }
+                .tint(.indigo)
             }
         }
     }
