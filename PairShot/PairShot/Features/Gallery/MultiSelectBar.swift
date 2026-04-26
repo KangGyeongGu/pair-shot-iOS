@@ -66,7 +66,9 @@ struct PairMultiSelectBar: View {
                     .labelStyle(.titleOnly)
             }
             Spacer()
-            Text("\(selection.count)\(String(localized: "개 선택"))")
+            // Audit-D — single locale-safe format string. See
+            // `ArchiveView+MultiSelect` for the matching change.
+            Text(String(format: String(localized: "%d개 선택"), selection.count))
                 .font(.callout)
                 .foregroundStyle(.secondary)
             Spacer()

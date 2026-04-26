@@ -3,21 +3,8 @@ import SwiftData
 import SwiftUI
 import UIKit
 
-/// One slot in the gallery grid — either a real `PhotoPair` or a
-/// native-ad token vended by `NativeAdLoader`. Pulled out of the view so
-/// `NativeAdInsertionStrategy` can build the slot list as a pure
-/// transform unit-testable on its own.
-enum GalleryItem: Identifiable {
-    case pair(PhotoPair)
-    case nativeAd(id: Int, ad: Any?)
-
-    var id: AnyHashable {
-        switch self {
-            case let .pair(pair): pair.id
-            case let .nativeAd(slotID, _): "ad-\(slotID)"
-        }
-    }
-}
+// `GalleryItem` enum + ``GalleryItemBuilder`` slot composition live in
+// ``PairGallery+Cameras.swift`` (Audit-D extraction).
 
 /// P4.1 — 2-column grid of `PhotoPair` thumbnails for a single `Project`.
 ///
@@ -63,22 +50,14 @@ struct PairGalleryView: View {
 
     /// Build the rendered slot list. Selection mode and AdFree both
     /// suppress the ad cells — the rest is the filtered pair list.
+    /// Composition is delegated to ``GalleryItemBuilder.build(...)``
+    /// (Audit-D — extracted so this file stays under the 250-line cap).
     private var galleryItems: [GalleryItem] {
-        let pairs = filteredPairs
-        let suppressAds = adFreeStore.isAdFree || selection.isSelectionMode
-        guard !suppressAds else {
-            return pairs.map(GalleryItem.pair)
-        }
-        let adIndices = Set(NativeAdInsertionStrategy.indices(forPairCount: pairs.count))
-        var items: [GalleryItem] = []
-        items.reserveCapacity(pairs.count + adIndices.count)
-        for (offset, pair) in pairs.enumerated() {
-            items.append(.pair(pair))
-            if adIndices.contains(offset) {
-                items.append(.nativeAd(id: offset, ad: nativeAdLoader.adFor(index: offset)))
-            }
-        }
-        return items
+        GalleryItemBuilder.build(
+            pairs: filteredPairs,
+            suppressAds: adFreeStore.isAdFree || selection.isSelectionMode,
+            adProvider: nativeAdLoader.adFor(index:)
+        )
     }
 
     private let columns: [GridItem] = [
@@ -103,17 +82,12 @@ struct PairGalleryView: View {
         .navigationTitle(project.title.isEmpty ? String(localized: "(이름 없음)") : project.title)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            // Audit-A — entry into the Before-camera flow. Disabled
-            // during selection mode so the trash/share affordances are
-            // unambiguous.
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    showBeforeCamera = true
-                } label: {
-                    Label(String(localized: "Before 촬영"), systemImage: "camera")
-                }
-                .disabled(selection.isSelectionMode)
-            }
+            // Audit-D — extracted into ``PairGalleryToolbar`` so this
+            // file stays under the 250-line cap.
+            PairGalleryToolbar(
+                isSelectionMode: selection.isSelectionMode,
+                onBeforeCamera: { showBeforeCamera = true }
+            )
         }
         .safeAreaInset(edge: .bottom) {
             if selection.isSelectionMode {
@@ -132,22 +106,14 @@ struct PairGalleryView: View {
                 storage: storage
             )
         }
-        // Audit-A — Before camera entry from the toolbar button. The
-        // camera view dismisses itself on close via `@Environment(\.dismiss)`.
-        .fullScreenCover(isPresented: $showBeforeCamera) {
-            NavigationStack {
-                BeforeCameraView(project: project)
-            }
-        }
-        // Audit-A — After camera entry triggered by tapping a
-        // `pendingAfter` cell. `AfterCameraView` auto-loads the oldest
-        // pending pair on appear (P3.1) and dismisses when none remain
-        // (P3.4), so we don't need to thread a specific pair in here.
-        .fullScreenCover(isPresented: $showAfterCamera) {
-            NavigationStack {
-                AfterCameraView(project: project)
-            }
-        }
+        // Audit-D — Before/After camera fullScreenCover wiring extracted
+        // into ``PairGalleryCameraCovers`` so this file stays under the
+        // 250-line cap.
+        .pairGalleryCameraCovers(
+            project: project,
+            showBeforeCamera: $showBeforeCamera,
+            showAfterCamera: $showAfterCamera
+        )
         .sheet(item: $exportPayload) { payload in
             ExportPicker(pairs: payload.pairs, storage: storage)
         }

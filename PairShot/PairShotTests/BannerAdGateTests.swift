@@ -25,4 +25,47 @@ final class BannerAdGateTests: XCTestCase {
             XCTAssertFalse(BannerAdGate.shouldShow(isAdFree: true))
         }
     }
+
+    // MARK: - Audit-D — BannerAdSize.shouldReload policy
+
+    func testFirstMeasurementTriggersReload() {
+        XCTAssertTrue(
+            BannerAdSize.shouldReload(previous: 0, current: 320),
+            "first non-zero width must trigger an adSize update"
+        )
+    }
+
+    func testFirstMeasurementOfZeroDoesNotReload() {
+        XCTAssertFalse(
+            BannerAdSize.shouldReload(previous: 0, current: 0),
+            "zero width with no prior measurement should be a no-op"
+        )
+    }
+
+    func testIdenticalWidthSkipsReload() {
+        XCTAssertFalse(
+            BannerAdSize.shouldReload(previous: 414, current: 414),
+            "stable width must not churn the SDK"
+        )
+    }
+
+    func testWidthChangeBeyondThresholdReloads() {
+        XCTAssertTrue(
+            BannerAdSize.shouldReload(previous: 320, current: 414),
+            "rotation portrait → landscape must update the adaptive size"
+        )
+    }
+
+    func testSubPixelChangeSkipsReload() {
+        // SwiftUI may report layout deltas under the hysteresis
+        // threshold during animations — those must not reload.
+        XCTAssertFalse(
+            BannerAdSize.shouldReload(previous: 414, current: 414.4),
+            "sub-pixel jitter must stay below the reload threshold"
+        )
+    }
+
+    func testFallbackWidthIsThreeTwenty() {
+        XCTAssertEqual(BannerAdSize.fallbackWidth, 320)
+    }
 }

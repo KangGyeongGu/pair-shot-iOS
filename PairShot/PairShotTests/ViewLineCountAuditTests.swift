@@ -2,16 +2,17 @@ import Foundation
 @testable import PairShot
 import XCTest
 
-/// P10b — static line-count audit for the 5 view files diet'd in this
+/// P10b — static line-count audit for the view files diet'd in this
 /// phase. Phase 9 reviewer flagged each as exceeding the 250-line cap
 /// (`.claude/refs/swiftui-patterns.md`). Locking the cap down with a
 /// test prevents accidental re-bloat — anyone adding 30 lines back to
 /// `ComparisonView.swift` will see a build-time failure rather than a
 /// reviewer note three weeks later.
 ///
-/// The path-resolution strategy mirrors `DeviceChecklistAuditTests`:
-/// walk up from the test bundle until we land at the repo root, then
-/// resolve each Swift file relative to the project sub-tree.
+/// **Audit-D** — repo-root resolution moved to ``TestRepoLocator`` so
+/// the test runs on Simulator (previously `XCTSkip`'d). New diet'd files
+/// (`ArchiveView`, `PairGalleryView`, `ShareSheet`) are added to the
+/// audit alongside the P10b set.
 final class ViewLineCountAuditTests: XCTestCase {
     /// Absolute upper bound from `.claude/refs/swiftui-patterns.md`.
     /// Bumping this requires a roadmap-level decision — it is not a
@@ -20,28 +21,11 @@ final class ViewLineCountAuditTests: XCTestCase {
 
     // MARK: - Helpers
 
-    /// Walks up the test-bundle URL until a directory containing a
-    /// `PairShot/PairShot/PairShotApp.swift` is found. That directory
-    /// is the repo root.
-    private func locateRepoRoot() -> URL? {
-        var url = Bundle(for: ViewLineCountAuditTests.self).bundleURL
-        for _ in 0 ..< 8 {
-            url = url.deletingLastPathComponent()
-            let probe = url
-                .appendingPathComponent("PairShot")
-                .appendingPathComponent("PairShot")
-                .appendingPathComponent("PairShotApp.swift")
-            if FileManager.default.fileExists(atPath: probe.path) {
-                return url
-            }
-        }
-        return nil
-    }
-
     private func lineCount(forRelativePath path: String) throws -> Int {
-        guard let root = locateRepoRoot() else {
-            throw XCTSkip("Repo root not located — running outside expected layout")
-        }
+        let root = try XCTUnwrap(
+            TestRepoLocator.repoRoot,
+            "TestRepoLocator failed to derive repo root from #filePath — Audit-D regression"
+        )
         let fileURL = root.appendingPathComponent(path)
         let contents = try String(contentsOf: fileURL, encoding: .utf8)
         // Match `wc -l` semantics — count newline-terminated lines.
@@ -54,7 +38,11 @@ final class ViewLineCountAuditTests: XCTestCase {
         return parts.count - trailingNewline
     }
 
-    private func assertUnderCap(_ relativePath: String, file: StaticString = #filePath, line: UInt = #line) throws {
+    private func assertUnderCap(
+        _ relativePath: String,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) throws {
         let count = try lineCount(forRelativePath: relativePath)
         XCTAssertLessThanOrEqual(
             count,
@@ -87,18 +75,39 @@ final class ViewLineCountAuditTests: XCTestCase {
         try assertUnderCap("PairShot/PairShot/Features/Settings/QRScannerView.swift")
     }
 
+    // MARK: - per-file caps (Audit-D diet)
+
+    func testArchiveViewUnderCap() throws {
+        try assertUnderCap("PairShot/PairShot/Features/Archive/ArchiveView.swift")
+    }
+
+    func testPairGalleryViewUnderCap() throws {
+        try assertUnderCap("PairShot/PairShot/Features/Gallery/PairGalleryView.swift")
+    }
+
+    func testShareSheetUnderCap() throws {
+        try assertUnderCap("PairShot/PairShot/Features/Export/ShareSheet.swift")
+    }
+
+    func testExportPickerUnderCap() throws {
+        try assertUnderCap("PairShot/PairShot/Features/Export/ExportPicker.swift")
+    }
+
     // MARK: - sanity: extracted subview files exist
 
     func testExtractedSubviewFilesExist() throws {
-        guard let root = locateRepoRoot() else {
-            throw XCTSkip("Repo root not located")
-        }
+        let root = try XCTUnwrap(TestRepoLocator.repoRoot)
         let extractedFiles = [
+            // P10b extractions
             "PairShot/PairShot/Features/CameraBefore/CameraStack.swift",
             "PairShot/PairShot/Features/CameraAfter/AfterCameraStack.swift",
             "PairShot/PairShot/Features/Comparison/CompositeMenu.swift",
             "PairShot/PairShot/Features/Settings/CouponRegistrationSections.swift",
             "PairShot/PairShot/Features/Settings/QRScannerViewController.swift",
+            // Audit-D extractions
+            "PairShot/PairShot/Features/Archive/ArchiveProjectRow.swift",
+            "PairShot/PairShot/Features/Gallery/PairGallery+Cameras.swift",
+            "PairShot/PairShot/Features/Export/ExportPicker.swift",
         ]
         for relativePath in extractedFiles {
             let url = root.appendingPathComponent(relativePath)

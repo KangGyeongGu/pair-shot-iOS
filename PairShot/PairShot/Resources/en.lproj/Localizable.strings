@@ -33,8 +33,9 @@
 "ZIP 생성 중…" = "Creating ZIP…";
 "ZIP 생성에 실패했습니다" = "Failed to create ZIP";
 "ZIP 으로 공유" = "Share as ZIP";
-"개 선택" = " selected";
-"개 페어" = " pairs";
+"%d개 선택" = "%d selected";
+"%d개 페어" = "%d pairs";
+"%d장 저장됨" = "%d saved";
 "고아 파일 삭제" = "Delete orphan files";
 "고아 파일을 삭제할까요?" = "Delete orphan files?";
 "공유 시점에 옵션을 선택합니다" = "You'll choose options when sharing";
@@ -99,7 +100,6 @@
 "이미지 준비 중…" = "Preparing images…";
 "이미지로 공유" = "Share as image";
 "작업" = "Action";
-"장 저장됨" = " saved";
 "저장 공간" = "Storage";
 "저장 실패" = "Save failed";
 "저장 중 오류가 발생했습니다" = "An error occurred while saving";

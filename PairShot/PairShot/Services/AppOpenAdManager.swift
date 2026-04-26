@@ -21,23 +21,22 @@ enum AppOpenAdGate {
     nonisolated static let defaultMinimumInterval: TimeInterval = 240
 
     /// - Parameters:
-    ///   - coldStart: `true` when the app just launched, `false` when
-    ///     transitioning back from background to foreground.
     ///   - lastShownAt: Last successful App Open presentation, or `nil`.
     ///   - now: Current wall-clock time.
     ///   - minimumInterval: Minimum elapsed seconds between presentations.
     /// - Returns: `true` when an App Open ad attempt is allowed.
+    ///
+    /// **Audit-D** — the `coldStart` parameter was removed. Both
+    /// lifecycle paths (cold start, foreground re-entry) share the same
+    /// elapsed-since-last cap so a fast app-quit-and-relaunch cannot
+    /// bypass the gate. The parameter became dead in Audit-B; this
+    /// audit drops it entirely. **API breaking change** — call sites
+    /// updated.
     static func shouldPresent(
-        coldStart _: Bool,
         lastShownAt: Date?,
         now: Date,
         minimumInterval: TimeInterval = defaultMinimumInterval
     ) -> Bool {
-        // Audit-B — `coldStart` is intentionally ignored. Both
-        // lifecycle paths share the same elapsed-since-last cap so a
-        // fast app-quit-and-relaunch can't bypass the gate. The
-        // parameter is kept so callers can still document intent at
-        // the call site, but the policy is symmetric.
         guard let lastShownAt else { return true }
         return now.timeIntervalSince(lastShownAt) >= minimumInterval
     }
@@ -55,7 +54,8 @@ enum AppOpenAdGate {
 ///    `@Environment(\.scenePhase).onChange` in `PairShotApp` when the
 ///    phase transitions to `.active` and we previously saw `.background`.
 ///
-/// Both paths funnel through `presentIfReady(coldStart:)` which:
+/// Both paths funnel through `presentIfReady(from:coordinator:adFreeStore:)`
+/// which (Audit-D — `coldStart` parameter removed):
 /// - Skips when AdFree is active.
 /// - Skips when the 4-minute cap hasn't elapsed.
 /// - Acquires the `FullscreenAdCoordinator` slot to prevent collisions
@@ -127,17 +127,18 @@ final class AppOpenAdManager {
     /// Attempts to present the App Open ad.
     ///
     /// - Parameters:
-    ///   - coldStart: Lifecycle source — true on first-visible-view, false
-    ///     on `scenePhase` transition `.background → .active`.
     ///   - rootViewController: Resolved via `UIApplication.firstKeyWindow?.rootViewController`
     ///     by the call site; passed in so the manager stays UIKit-bridge-free.
     ///   - coordinator: Fullscreen serialisation lock.
     ///   - adFreeStore: Current entitlement.
     ///   - now: Pinnable for tests.
     /// - Returns: `true` if the SDK was asked to present.
+    ///
+    /// **Audit-D** — the `coldStart` parameter was removed because the
+    /// gate ignores it. Cold-start vs background-foreground lifecycle
+    /// callers no longer disambiguate at this layer.
     @discardableResult
     func presentIfReady(
-        coldStart: Bool,
         from rootViewController: UIViewController?,
         coordinator: FullscreenAdCoordinator,
         adFreeStore: AdFreeStore? = nil,
@@ -147,7 +148,6 @@ final class AppOpenAdManager {
         if let adFreeStore, adFreeStore.isAdFree { return false }
         guard isLoaded else { return false }
         guard AppOpenAdGate.shouldPresent(
-            coldStart: coldStart,
             lastShownAt: lastShownAt,
             now: now,
             minimumInterval: minimumInterval

@@ -103,10 +103,16 @@ final class RootNavigationTests: XCTestCase {
         // here, so we just verify the API surface.
         let result = ModelContainerBootstrap.bootstrap()
         XCTAssertNotNil(result.container)
-        // Either value is acceptable: tests sometimes share storage
-        // with prior runs. We just need the property to exist + be
-        // Bool.
-        let flag = result.fallbackActive
-        XCTAssertTrue(flag == true || flag == false)
+        // Audit-D — replace the tautological `flag == true || flag == false`
+        // assertion (always true for a Bool) with a real round-trip:
+        // calling bootstrap twice in the same process should converge
+        // on the same `fallbackActive` value because the underlying
+        // store either opens reliably or doesn't.
+        let second = ModelContainerBootstrap.bootstrap()
+        XCTAssertEqual(
+            result.fallbackActive,
+            second.fallbackActive,
+            "bootstrap() must be deterministic — same disk state, same fallback flag"
+        )
     }
 }

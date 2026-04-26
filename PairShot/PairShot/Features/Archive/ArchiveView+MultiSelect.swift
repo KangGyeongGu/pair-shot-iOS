@@ -52,7 +52,11 @@ struct MultiSelectBottomBar: View {
                     .labelStyle(.titleOnly)
             }
             Spacer()
-            Text("\(selection.count)\(String(localized: "개 선택"))")
+            // Audit-D — single locale-safe format string instead of
+            // string concatenation. Korean has no plural variation so a
+            // simple `%d개 선택` template is sufficient; English maps
+            // to `%d selected`.
+            Text(String(format: String(localized: "%d개 선택"), selection.count))
                 .font(.callout)
                 .foregroundStyle(.secondary)
             Spacer()

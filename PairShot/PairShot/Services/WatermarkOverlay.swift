@@ -36,9 +36,9 @@ enum WatermarkOverlay {
     /// pure (no UIKit) so it's testable without spinning up a graphics
     /// context.
     ///
-    /// Audit-C — `Locale(identifier: "ko_KR")` was hard-coded, which
-    /// produced Korean 12-/24-hour boundaries even for English-locale
-    /// users sharing the JPEG abroad. The format string itself
+    /// Audit-C — A Korean-only locale identifier was hard-coded previously,
+    /// which produced 12-/24-hour boundaries even for English-locale users
+    /// sharing the JPEG abroad. The format string itself
     /// (`yyyy-MM-dd HH:mm`) is locale-agnostic, but `Locale.current`
     /// keeps the calendar / digit shaping consistent with the rest of
     /// the device's UX.

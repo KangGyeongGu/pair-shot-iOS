@@ -1,6 +1,10 @@
+import CoreLocation
 import Foundation
+import ImageIO
+import MobileCoreServices
 import SwiftData
 import UIKit
+import UniformTypeIdentifiers
 
 /// P5.2 — combines the Before and After images of a `PhotoPair` into a single
 /// composite JPEG and persists the result.
@@ -13,6 +17,19 @@ import UIKit
 /// Phase 7 (Export) and Phase 8.3 (Settings) will both read combined JPEGs
 /// produced by this renderer, so the on-disk shape (`Application
 /// Support/photos/<UUID>.jpg`) matches the Before/After convention.
+///
+/// **Audit-D** changes:
+/// - The decode → render → watermark → encode pipeline is now wrapped in
+///   ``autoreleasepool`` and run on a `Task.detached(priority: .userInitiated)`
+///   so two large UIImages don't pile autoreleased buffers onto the main
+///   actor's pool.
+/// - Re-compositing the same pair now unlinks the previous combined file
+///   before writing the new one — without this, a re-render would orphan
+///   the older JPEG (still referenced by `PhotoPair.combinedPath` for the
+///   moment, but un-cleaned-up after the path overwrite).
+/// - The encoded JPEG carries an EXIF `DateTimeOriginal` plus, when the
+///   parent `Project` has GPS coordinates, a GPS dictionary so the file
+///   round-trips through Photos.app and downstream tools that read EXIF.
 enum CompositeRenderer {
     /// Errors surfaced to the caller (UI shows a toast). All file-IO errors
     /// from `PhotoStorageService` are propagated as `.persistFailed`.
@@ -31,11 +48,14 @@ enum CompositeRenderer {
 
     /// High-level entry point used by `ComparisonView`'s composite menu.
     ///
-    /// 1. Decode Before/After UIImages from disk.
-    /// 2. Render the composite via `renderComposite(...)`.
-    /// 3. Optionally stamp a watermark.
-    /// 4. Encode JPEG, persist via `PhotoStorageService`, and write the
-    ///    relative path back to `pair.combinedPath` + bump `project.updatedAt`.
+    /// 1. Snapshot the inputs we need off the main actor (paths, project GPS).
+    /// 2. Run decode → render → watermark → encode on a detached task
+    ///    so the autoreleased UIImage buffers don't pile up on the main
+    ///    actor's pool.
+    /// 3. Audit-D — unlink any previous `combinedPath` before writing the
+    ///    new file so re-composites don't orphan disk storage.
+    /// 4. Persist via `PhotoStorageService`, write the relative path back
+    ///    to `pair.combinedPath`, bump `project.updatedAt`, and save.
     ///
     /// - Returns: the relative path now stored on the pair (also retrievable
     ///   via `pair.combinedPath`).
@@ -48,28 +68,61 @@ enum CompositeRenderer {
         fileNamePrefix: String = "",
         in context: ModelContext,
         now: Date = .now
-    ) throws -> String {
+    ) async throws -> String {
         guard let afterPath = pair.afterPath, !afterPath.isEmpty else {
             throw RenderError.afterPathNotSet
         }
-        guard let beforeImage = loadImage(relativePath: pair.beforePath, storage: storage) else {
-            throw RenderError.beforeImageMissing
-        }
-        guard let afterImage = loadImage(relativePath: afterPath, storage: storage) else {
-            throw RenderError.afterImageMissing
+        let beforePath = pair.beforePath
+        let previousCombined = pair.combinedPath
+        let projectLatitude = pair.project?.latitude
+        let projectLongitude = pair.project?.longitude
+
+        // Audit-D — heavy work runs detached so the main actor's
+        // autorelease pool doesn't accumulate two full-resolution
+        // UIImages while waiting for the next runloop. The
+        // autoreleasepool inside the closure releases the decoded
+        // images as soon as the JPEG bytes are produced.
+        let jpeg: Data = try await Task.detached(priority: .userInitiated) {
+            try autoreleasepool {
+                guard let beforeImage = loadImage(relativePath: beforePath, storage: storage) else {
+                    throw RenderError.beforeImageMissing
+                }
+                guard let afterImage = loadImage(relativePath: afterPath, storage: storage) else {
+                    throw RenderError.afterImageMissing
+                }
+                var composite = renderComposite(
+                    before: beforeImage,
+                    after: afterImage,
+                    layout: options.layout
+                )
+                if options.watermarkEnabled {
+                    composite = WatermarkOverlay.apply(to: composite, date: now)
+                }
+                guard let baseJPEG = composite.jpegData(
+                    compressionQuality: options.jpegQuality
+                ) else {
+                    throw RenderError.encodeFailed
+                }
+                // EXIF / GPS embedding is best-effort: if it fails we
+                // still ship the un-tagged JPEG rather than failing the
+                // whole composite.
+                return ExifEmbedder.embed(
+                    into: baseJPEG,
+                    capturedAt: now,
+                    latitude: projectLatitude,
+                    longitude: projectLongitude
+                ) ?? baseJPEG
+            }
+        }.value
+
+        // Audit-D — drop the previous combined file before writing the
+        // new one. Best-effort: if the old file is already gone we
+        // proceed silently.
+        if let previousCombined, !previousCombined.isEmpty {
+            try? storage.deletePhoto(at: previousCombined)
+            ThumbnailCache.shared.evict(relativePath: previousCombined)
         }
 
-        var composite = renderComposite(
-            before: beforeImage,
-            after: afterImage,
-            layout: options.layout
-        )
-        if options.watermarkEnabled {
-            composite = WatermarkOverlay.apply(to: composite, date: now)
-        }
-        guard let jpeg = composite.jpegData(compressionQuality: options.jpegQuality) else {
-            throw RenderError.encodeFailed
-        }
         let relative: String
         do {
             relative = try storage.saveCombinedJPEG(jpeg, fileNamePrefix: fileNamePrefix)
@@ -184,5 +237,91 @@ enum CompositeRenderer {
         guard let url = storage.resolve(relativePath: relativePath) else { return nil }
         guard FileManager.default.fileExists(atPath: url.path) else { return nil }
         return UIImage(contentsOfFile: url.path)
+    }
+}
+
+// MARK: - EXIF / GPS embedding (Audit-D)
+
+/// Pure helper that re-encodes a JPEG `Data` buffer with an EXIF
+/// `DateTimeOriginal` field plus an optional GPS dictionary.
+///
+/// Implementation uses `ImageIO`'s `CGImageDestination` because that's
+/// the documented Apple recipe for "I have JPEG bytes and want to add
+/// metadata without re-encoding the pixels through Core Graphics again".
+/// The destination copies the original image data while writing a new
+/// metadata block.
+///
+/// Embedding is best-effort: if the input JPEG is malformed or
+/// `CGImageDestination` refuses to write, callers fall back to the
+/// untagged JPEG (the user-visible composite still works).
+enum ExifEmbedder {
+    /// EXIF expects `yyyy:MM:dd HH:mm:ss` for `DateTimeOriginal`.
+    static let exifDateFormat = "yyyy:MM:dd HH:mm:ss"
+
+    /// Returns a copy of `jpeg` with EXIF + GPS metadata applied, or
+    /// `nil` when the embed failed (caller falls back to `jpeg`
+    /// unmodified).
+    static func embed(
+        into jpeg: Data,
+        capturedAt: Date,
+        latitude: Double?,
+        longitude: Double?
+    ) -> Data? {
+        guard let source = CGImageSourceCreateWithData(jpeg as CFData, nil) else {
+            return nil
+        }
+        guard CGImageSourceGetType(source) != nil else { return nil }
+        let destinationData = NSMutableData()
+        guard let destination = CGImageDestinationCreateWithData(
+            destinationData,
+            UTType.jpeg.identifier as CFString,
+            1,
+            nil
+        ) else { return nil }
+
+        let metadata = makeMetadata(
+            capturedAt: capturedAt,
+            latitude: latitude,
+            longitude: longitude
+        )
+        CGImageDestinationAddImageFromSource(
+            destination,
+            source,
+            0,
+            metadata as CFDictionary
+        )
+        guard CGImageDestinationFinalize(destination) else { return nil }
+        return destinationData as Data
+    }
+
+    /// Build the metadata dictionary handed to `CGImageDestination`.
+    /// Pure function so tests can verify the EXIF date string and GPS
+    /// reference glyphs without touching ImageIO.
+    static func makeMetadata(
+        capturedAt: Date,
+        latitude: Double?,
+        longitude: Double?
+    ) -> [String: Any] {
+        var top: [String: Any] = [:]
+
+        var exif: [String: Any] = [:]
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone.current
+        formatter.dateFormat = exifDateFormat
+        let stamp = formatter.string(from: capturedAt)
+        exif[kCGImagePropertyExifDateTimeOriginal as String] = stamp
+        exif[kCGImagePropertyExifDateTimeDigitized as String] = stamp
+        top[kCGImagePropertyExifDictionary as String] = exif
+
+        if let lat = latitude, let lon = longitude {
+            var gps: [String: Any] = [:]
+            gps[kCGImagePropertyGPSLatitude as String] = abs(lat)
+            gps[kCGImagePropertyGPSLatitudeRef as String] = lat >= 0 ? "N" : "S"
+            gps[kCGImagePropertyGPSLongitude as String] = abs(lon)
+            gps[kCGImagePropertyGPSLongitudeRef as String] = lon >= 0 ? "E" : "W"
+            top[kCGImagePropertyGPSDictionary as String] = gps
+        }
+        return top
     }
 }

@@ -1,6 +1,5 @@
 @preconcurrency import AVFoundation
 import SwiftUI
-import UIKit
 
 /// Audit-C — extension housing the AVFoundation camera-permission probe
 /// + ghost-image loading helpers. Lifted out of ``AfterCameraView`` so

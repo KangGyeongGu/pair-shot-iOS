@@ -4,10 +4,8 @@ import SwiftUI
 import UIKit
 
 /// P5.1 — fullscreen comparison modal. Drag-down → dismiss, drag-left/right
-/// → pager. Toolbar exposes the P5.2 composite menu. Two `Image(uiImage:)`
-/// views — no homography, no pixel-level alignment, no auto color correction.
-/// Supporting types (`CompositeMenu`, `ComparisonImagePane`,
-/// `ComparisonImageLoader`, `ComparisonPager`) live in ``CompositeMenu.swift``.
+/// → pager. Toolbar exposes the P5.2 composite menu. Supporting types live
+/// in ``CompositeMenu.swift``. No homography / no auto color correction.
 struct ComparisonView: View {
     /// All pairs in the project the user opened the comparison from. The
     /// view tracks the index locally so a delete/change in the underlying
@@ -211,7 +209,10 @@ struct ComparisonView: View {
         Task { @MainActor in
             defer { isCompositing = false }
             do {
-                _ = try CompositeRenderer.makeComposite(
+                // Audit-D — `makeComposite` is async because the heavy
+                // render now runs on a detached priority-userInitiated
+                // task with autoreleasepool isolation.
+                _ = try await CompositeRenderer.makeComposite(
                     for: pair,
                     options: options,
                     storage: storage,

@@ -81,8 +81,9 @@ struct PairShotApp: App {
                     await bootstrapAds()
                     if !hasPresentedColdStartAppOpen {
                         hasPresentedColdStartAppOpen = true
+                        // Audit-D — `coldStart:` argument removed; the
+                        // gate is symmetric across lifecycle paths.
                         await appOpenManager.presentIfReady(
-                            coldStart: true,
                             from: BannerAdView.resolveRootViewController(),
                             coordinator: coordinator,
                             adFreeStore: adFreeStore
@@ -153,7 +154,6 @@ struct PairShotApp: App {
                 return
             }
             await appOpenManager.presentIfReady(
-                coldStart: false,
                 from: BannerAdView.resolveRootViewController(),
                 coordinator: coordinator,
                 adFreeStore: adFreeStore

@@ -84,7 +84,7 @@ final class CompositeRendererTests: XCTestCase {
         XCTAssertEqual(composite.size.height, 100, accuracy: 1.0)
     }
 
-    func testMakeCompositeWritesCombinedPathAndPersists() throws {
+    func testMakeCompositeWritesCombinedPathAndPersists() async throws {
         let storage = PhotoStorageService(baseDirectory: tempDir)
         // Two synthetic JPEGs on disk.
         let before = makeSolidImage(size: CGSize(width: 60, height: 40), color: .blue)
@@ -103,7 +103,7 @@ final class CompositeRendererTests: XCTestCase {
         try context.save()
 
         let opts = CompositeOptions(layout: .horizontal, jpegQuality: 0.8, watermarkEnabled: false)
-        let combinedRel = try CompositeRenderer.makeComposite(
+        let combinedRel = try await CompositeRenderer.makeComposite(
             for: pair,
             options: opts,
             storage: storage,
@@ -124,7 +124,7 @@ final class CompositeRendererTests: XCTestCase {
         XCTAssertEqual(restored[1], 0xD8)
     }
 
-    func testMakeCompositeBumpsProjectUpdatedAt() throws {
+    func testMakeCompositeBumpsProjectUpdatedAt() async throws {
         let storage = PhotoStorageService(baseDirectory: tempDir)
         let before = makeSolidImage(size: CGSize(width: 40, height: 40), color: .red)
         let after = makeSolidImage(size: CGSize(width: 40, height: 40), color: .green)
@@ -146,7 +146,7 @@ final class CompositeRendererTests: XCTestCase {
         try context.save()
 
         let now = Date(timeIntervalSince1970: 9999)
-        _ = try CompositeRenderer.makeComposite(
+        _ = try await CompositeRenderer.makeComposite(
             for: pair,
             options: CompositeOptions(layout: .vertical, jpegQuality: 0.7, watermarkEnabled: false),
             storage: storage,
@@ -158,7 +158,7 @@ final class CompositeRendererTests: XCTestCase {
 
     // MARK: - edge
 
-    func testMakeCompositeThrowsWhenAfterPathMissing() throws {
+    func testMakeCompositeThrowsWhenAfterPathMissing() async throws {
         let storage = PhotoStorageService(baseDirectory: tempDir)
         let before = makeSolidImage(size: CGSize(width: 30, height: 30), color: .gray)
         let beforePath = try storage.saveBeforeJPEG(
@@ -171,14 +171,19 @@ final class CompositeRendererTests: XCTestCase {
         context.insert(pair)
         try context.save()
 
-        XCTAssertThrowsError(
-            try CompositeRenderer.makeComposite(for: pair, storage: storage, in: context)
-        ) { error in
-            XCTAssertEqual(error as? CompositeRenderer.RenderError, .afterPathNotSet)
+        do {
+            _ = try await CompositeRenderer.makeComposite(
+                for: pair,
+                storage: storage,
+                in: context
+            )
+            XCTFail("expected makeComposite to throw afterPathNotSet")
+        } catch let error as CompositeRenderer.RenderError {
+            XCTAssertEqual(error, .afterPathNotSet)
         }
     }
 
-    func testMakeCompositeThrowsWhenBeforeFileMissing() throws {
+    func testMakeCompositeThrowsWhenBeforeFileMissing() async throws {
         let storage = PhotoStorageService(baseDirectory: tempDir)
         let after = makeSolidImage(size: CGSize(width: 30, height: 30), color: .gray)
         let afterPath = try storage.saveAfterJPEG(
@@ -196,10 +201,15 @@ final class CompositeRendererTests: XCTestCase {
         context.insert(pair)
         try context.save()
 
-        XCTAssertThrowsError(
-            try CompositeRenderer.makeComposite(for: pair, storage: storage, in: context)
-        ) { error in
-            XCTAssertEqual(error as? CompositeRenderer.RenderError, .beforeImageMissing)
+        do {
+            _ = try await CompositeRenderer.makeComposite(
+                for: pair,
+                storage: storage,
+                in: context
+            )
+            XCTFail("expected makeComposite to throw beforeImageMissing")
+        } catch let error as CompositeRenderer.RenderError {
+            XCTAssertEqual(error, .beforeImageMissing)
         }
     }
 

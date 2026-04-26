@@ -63,27 +63,26 @@ final class AppOpenScenePhaseGateTests: XCTestCase {
 
     // MARK: - sanity: AppOpenAdGate symmetric cap is unchanged
 
-    func testColdStartArgumentDoesNotChangeAppOpenAdGateBehaviour() {
-        // Audit-B simplified `AppOpenAdGate.shouldPresent(...)` to
-        // ignore `coldStart` because both paths share the same cap.
-        // Pin the symmetry so a future re-introduction of branching
-        // surfaces here.
+    func testAppOpenAdGateAppliesSameCapAcrossInvocations() {
+        // Audit-D removed the `coldStart` parameter entirely; the gate
+        // now consults only `lastShownAt`. Pin the symmetry so a
+        // future re-introduction of branching surfaces here.
         let last = Date(timeIntervalSince1970: 1000)
         let now = last.addingTimeInterval(AppOpenAdGate.defaultMinimumInterval - 1)
-        let cold = AppOpenAdGate.shouldPresent(
-            coldStart: true,
+        let firstInvocation = AppOpenAdGate.shouldPresent(
             lastShownAt: last,
             now: now
         )
-        let warm = AppOpenAdGate.shouldPresent(
-            coldStart: false,
+        let secondInvocation = AppOpenAdGate.shouldPresent(
             lastShownAt: last,
             now: now
         )
         XCTAssertEqual(
-            cold,
-            warm,
-            "cold-start and foreground-return must share the same cap policy"
+            firstInvocation,
+            secondInvocation,
+            "two invocations with the same inputs must agree (no branching on coldStart anymore)"
         )
+        // And both should deny — we're 1s under the cap.
+        XCTAssertFalse(firstInvocation)
     }
 }

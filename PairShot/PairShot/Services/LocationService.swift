@@ -48,6 +48,13 @@ final class CoreLocationService: NSObject, LocationProviding, CLLocationManagerD
     }
 
     nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        // Audit-D — capture status off the delegate-supplied manager
+        // before hopping to MainActor so the value is immutable across
+        // the actor boundary. The actor body intentionally uses
+        // `self.manager` (the actor-isolated property) rather than the
+        // captured delegate parameter so reentrant authorization
+        // changes during a request always go through the canonical
+        // CLLocationManager instance the actor owns.
         let status = manager.authorizationStatus
         Task { @MainActor [weak self] in
             guard let self else { return }

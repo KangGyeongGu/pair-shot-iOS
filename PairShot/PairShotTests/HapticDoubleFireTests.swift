@@ -12,12 +12,22 @@ import XCTest
 /// is pressed, **one** `.success` notification once the capture
 /// completes — not two of each.
 ///
-/// We can't drive the SwiftUI view body in XCTest, so instead we record
-/// the call sequence on a `FakeHaptics` and reason about the *contract*:
-/// a single press + completion sequence must produce exactly
-/// `[.heavy]` impacts and `[.success]` notifications.
+/// We can't drive the SwiftUI view body in XCTest, so instead we
+/// combine two complementary checks:
+///
+/// 1. **Sequence-level** — record calls on a `FakeHaptics` and reason
+///    about the contract: a single press + completion sequence must
+///    produce exactly `[.heavy]` impacts and `[.success]`
+///    notifications.
+/// 2. **Source-level (Audit-D)** — read the coordinator source files
+///    and assert they do not reference any haptic APIs. A future
+///    refactor that re-introduces a haptic call inside the coordinator
+///    would re-introduce the double-fire — the static assertion catches
+///    it at build time.
 @MainActor
 final class HapticDoubleFireTests: XCTestCase {
+    // MARK: - sequence-level
+
     func testSingleShutterPressEmitsExactlyOneHeavyImpact() {
         let fake = FakeHaptics()
         // Simulates the view layer's "press" path: the haptic happens
@@ -44,7 +54,7 @@ final class HapticDoubleFireTests: XCTestCase {
         // Press → coordinator returns → success.
         fake.impact(.heavy)
         // Coordinator must NOT emit during this gap (Audit-C
-        // contract). Asserted by `testCoordinatorDoesNotEmitHaptics`
+        // contract). Asserted by `testCoordinatorSourceDoesNotReferenceHaptics`
         // below — here we just enforce the order on the view side.
         fake.notify(.success)
 
@@ -61,24 +71,82 @@ final class HapticDoubleFireTests: XCTestCase {
         CaptureHaptics.success()
     }
 
-    func testBeforeCoordinatorContractDocumentsNoHapticEmission() {
-        // Compile-time guard: a fresh coordinator does not need a
-        // `HapticServicing` collaborator. If a future refactor adds one,
-        // this test fails to compile and forces the author to revisit
-        // the Audit-C contract before re-introducing haptics in the
-        // service layer.
-        let coordinator = BeforeCaptureCoordinator(
-            session: CameraSession(),
-            storage: PhotoStorageService()
+    // MARK: - source-level (Audit-D)
+
+    func testBeforeCaptureCoordinatorSourceDoesNotReferenceHaptics() throws {
+        try assertCoordinatorIsHapticFree(
+            relativePath: "PairShot/PairShot/Features/CameraBefore/CaptureAction.swift",
+            coordinatorTypeName: "BeforeCaptureCoordinator"
         )
-        _ = coordinator
     }
 
-    func testAfterCoordinatorContractDocumentsNoHapticEmission() {
-        let coordinator = AfterCaptureCoordinator(
-            session: CameraSession(),
-            storage: PhotoStorageService()
+    func testAfterCaptureCoordinatorSourceDoesNotReferenceHaptics() throws {
+        try assertCoordinatorIsHapticFree(
+            relativePath: "PairShot/PairShot/Features/CameraAfter/AfterCaptureAction.swift",
+            coordinatorTypeName: "AfterCaptureCoordinator"
         )
-        _ = coordinator
+    }
+
+    /// Read the source file containing the coordinator type and assert
+    /// the type body does not call any haptic API. We scope the search
+    /// to the lines between `struct <Type>` and the matching closing
+    /// brace so the file's neighbouring helpers (e.g. the
+    /// ``CaptureHaptics`` façade in `CaptureAction.swift`) can still
+    /// reference haptics — we only forbid them inside the coordinator.
+    private func assertCoordinatorIsHapticFree(
+        relativePath: String,
+        coordinatorTypeName: String
+    ) throws {
+        let root = try XCTUnwrap(
+            TestRepoLocator.repoRoot,
+            "TestRepoLocator failed to derive repo root from #filePath"
+        )
+        let url = root.appendingPathComponent(relativePath)
+        let contents = try String(contentsOf: url, encoding: .utf8)
+
+        guard let typeRange = contents.range(of: "struct \(coordinatorTypeName)") else {
+            XCTFail("\(coordinatorTypeName) declaration not found in \(relativePath)")
+            return
+        }
+        // Walk forward from the type opening, tracking brace depth so we
+        // know exactly where the type body ends. The first `{` after
+        // the declaration starts depth 1; we stop when depth returns
+        // to 0.
+        let after = contents[typeRange.upperBound...]
+        var depth = 0
+        var bodyEnd: String.Index?
+        for index in after.indices {
+            let char = after[index]
+            if char == "{" { depth += 1 }
+            if char == "}" {
+                depth -= 1
+                if depth == 0 {
+                    bodyEnd = index
+                    break
+                }
+            }
+        }
+        guard let bodyEnd else {
+            XCTFail("Could not locate \(coordinatorTypeName) closing brace in \(relativePath)")
+            return
+        }
+        let body = String(after[..<bodyEnd])
+
+        // Forbidden symbols. A coordinator that re-introduces any of
+        // these is re-introducing the Audit-C double-fire bug.
+        let forbidden = [
+            "HapticService",
+            "CaptureHaptics",
+            "UIImpactFeedbackGenerator",
+            "UINotificationFeedbackGenerator",
+        ]
+        for needle in forbidden {
+            XCTAssertFalse(
+                body.contains(needle),
+                "\(coordinatorTypeName) body must not reference `\(needle)` "
+                    + "(Audit-C: view layer owns the shutter UX). "
+                    + "Re-introducing a haptic call here re-creates the double-fire bug."
+            )
+        }
     }
 }
