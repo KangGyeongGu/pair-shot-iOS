@@ -64,7 +64,7 @@ struct BeforeCameraStack: View {
             Spacer(minLength: 0)
                 .frame(height: 32)
         }
-        .background(Color.black.ignoresSafeArea())
+        .background(Color.appCameraBackground.ignoresSafeArea())
     }
 
     private var previewArea: some View {
@@ -128,17 +128,18 @@ struct BeforeCameraStack: View {
             }
         }
         .frame(maxWidth: .infinity)
-        .background(Color.black)
+        .background(Color.appCameraBackground)
     }
 
     private var lensFlipButton: some View {
         Button(action: onToggleLens) {
             Image(systemName: "arrow.triangle.2.circlepath.camera")
-                .font(.system(size: 18, weight: .semibold))
+                .font(.headline)
                 .foregroundStyle(.white)
-                .frame(width: 36, height: 36)
+                .frame(width: 44, height: 44)
                 .background(Circle().fill(Color.black.opacity(0.45)))
-                .accessibilityLabel(String(localized: "전후면 전환"))
+                .contentShape(Rectangle())
+                .accessibilityLabel(String(localized: "camera_desc_switch"))
         }
         .buttonStyle(.plain)
     }

@@ -1,14 +1,14 @@
 import Foundation
 
 enum CouponVerificationOutcome: Equatable {
-    case valid
-    case invalidSignature
-    case malformedSignature
-    case malformedPublicKey
-    case emptyCode
-    case emptySignature
+    case verified(code: String, kind: CouponKind, issuedAt: Date)
+    case invalidPayload
+    case invalidVersion
+    case invalidKind
+    case malformedKeyOrSignature
+    case signatureInvalid
 }
 
 protocol CouponVerifying: Sendable {
-    func verify(code: String, signatureBase64: String) -> CouponVerificationOutcome
+    func verify(payloadJSON: Data, signatureBase64: String) -> CouponVerificationOutcome
 }

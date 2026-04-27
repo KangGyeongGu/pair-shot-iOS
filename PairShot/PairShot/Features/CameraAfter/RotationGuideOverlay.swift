@@ -9,32 +9,38 @@ enum RotationGuideDirection {
 struct RotationGuideOverlay: View {
     let direction: RotationGuideDirection
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     @State private var animateRotation: Bool = false
 
     var body: some View {
         if direction != .upright {
-            HStack(spacing: 8) {
+            HStack(spacing: AppSpacing.sm) {
                 Image(systemName: symbolName)
-                    .font(.system(size: 32, weight: .semibold))
+                    .font(.title.weight(.semibold))
                     .foregroundStyle(.white)
                     .rotationEffect(.degrees(animateRotation ? targetAngle : 0))
                     .animation(
-                        .easeInOut(duration: 1.0).repeatForever(autoreverses: true),
+                        reduceMotion
+                            ? nil
+                            : .easeInOut(duration: 1.0).repeatForever(autoreverses: true),
                         value: animateRotation
                     )
                 Text(label)
-                    .font(.body)
+                    .font(.appBody)
                     .foregroundStyle(.white)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+            .padding(.horizontal, AppSpacing.lg)
+            .padding(.vertical, AppSpacing.md)
             .background(
                 RoundedRectangle(cornerRadius: 12)
                     .fill(Color.black.opacity(0.6))
             )
             .accessibilityElement(children: .combine)
             .accessibilityLabel(label)
-            .onAppear { animateRotation = true }
+            .onAppear {
+                if !reduceMotion { animateRotation = true }
+            }
         }
     }
 
@@ -57,10 +63,10 @@ struct RotationGuideOverlay: View {
     private var label: String {
         switch direction {
             case .left:
-                String(localized: "왼쪽으로 눕혀 주세요")
+                String(localized: "camera_hint_rotate_left_message")
 
             case .right:
-                String(localized: "오른쪽으로 눕혀 주세요")
+                String(localized: "camera_hint_rotate_right_message")
 
             case .upright:
                 ""
@@ -80,7 +86,7 @@ enum RotationGuideResolver {
 
 #Preview {
     ZStack {
-        Color.gray
+        Color.appOnSurfaceVariant
         RotationGuideOverlay(direction: .left)
     }
 }

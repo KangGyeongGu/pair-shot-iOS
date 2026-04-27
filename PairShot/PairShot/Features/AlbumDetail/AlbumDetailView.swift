@@ -3,6 +3,7 @@ import SwiftUI
 
 struct AlbumDetailView: View {
     let albumId: UUID
+    let onPushExportSettings: (([UUID]) -> Void)?
 
     @Environment(AppEnvironment.self) private var env
     @Environment(\.dismiss) private var dismiss
@@ -15,8 +16,12 @@ struct AlbumDetailView: View {
         GridItem(.flexible(), spacing: 8),
     ]
 
-    init(albumId: UUID) {
+    init(
+        albumId: UUID,
+        onPushExportSettings: (([UUID]) -> Void)? = nil
+    ) {
         self.albumId = albumId
+        self.onPushExportSettings = onPushExportSettings
         let predicate = #Predicate<Album> { $0.id == albumId }
         _albums = Query(filter: predicate)
     }
@@ -56,10 +61,13 @@ struct AlbumDetailView: View {
             grid(viewModel: viewModel, pairs: sortedPairs)
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            AlbumDetailBottomBarHost(viewModel: viewModel, sortedPairs: sortedPairs)
+            AlbumDetailBottomBarHost(
+                viewModel: viewModel,
+                sortedPairs: sortedPairs,
+                onPushExportSettings: onPushExportSettings
+            )
         }
         .modifier(AlbumDetailCameraCovers(viewModel: viewModel))
-        .modifier(AlbumDetailExportSheet(viewModel: viewModel))
         .modifier(AlbumDeletePairsDialog(viewModel: viewModel))
         .modifier(AlbumDetailRenameAlert(viewModel: viewModel, album: album))
         .modifier(AlbumDetailDeleteAlbumAlert(viewModel: viewModel))
@@ -88,7 +96,7 @@ struct AlbumDetailView: View {
                                 Button(role: .destructive) {
                                     viewModel.requestSinglePairDeletion(pair)
                                 } label: {
-                                    Label(String(localized: "삭제"), systemImage: "trash")
+                                    Label(String(localized: "common_button_delete"), systemImage: "trash")
                                 }
                             }
                         }
@@ -123,9 +131,9 @@ struct AlbumDetailView: View {
     private var missingAlbumView: some View {
         VStack(spacing: 12) {
             Image(systemName: "exclamationmark.triangle")
-                .font(.system(size: 48, weight: .light))
+                .font(.largeTitle.weight(.light))
                 .foregroundStyle(.secondary)
-            Text(String(localized: "앨범을 찾을 수 없습니다"))
+            Text(String(localized: "album_error_not_found"))
                 .font(.headline)
                 .foregroundStyle(.secondary)
         }
@@ -148,17 +156,6 @@ struct AlbumDetailCameraCovers: ViewModifier {
                 PairPreviewView(pair: request.pair)
                     .presentationDetents([.medium, .large])
                     .presentationDragIndicator(.visible)
-            }
-    }
-}
-
-struct AlbumDetailExportSheet: ViewModifier {
-    @Bindable var viewModel: AlbumDetailViewModel
-
-    func body(content: Content) -> some View {
-        content
-            .sheet(item: $viewModel.pendingExport) { payload in
-                ExportPicker(pairs: payload.pairs, storage: viewModel.storage)
             }
     }
 }

@@ -306,16 +306,16 @@ final class BeforeCameraViewModel {
 
     static func captureErrorText(for error: Error) -> String {
         if error is CameraSessionError {
-            return String(localized: "카메라에서 사진을 가져올 수 없습니다. 다시 시도해 주세요.")
+            return String(localized: "camera_error_capture_failed")
         }
         if error is CaptureAfterUseCase.CaptureAfterError {
-            return String(localized: "사진 정보를 저장하지 못했습니다. 다시 시도해 주세요.")
+            return String(localized: "camera_error_persist_failed")
         }
         let nsError = error as NSError
         if nsError.domain == NSCocoaErrorDomain || nsError.domain == NSPOSIXErrorDomain {
-            return String(localized: "사진을 저장할 공간이 부족합니다.")
+            return String(localized: "camera_error_no_disk_space")
         }
-        return String(localized: "촬영을 완료할 수 없습니다. 잠시 후 다시 시도해 주세요.")
+        return String(localized: "camera_error_unknown")
     }
 
     deinit {}

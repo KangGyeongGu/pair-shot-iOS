@@ -18,8 +18,8 @@ struct CameraBottomBar: View {
             settingsButton
         }
         .frame(height: 116)
-        .padding(.horizontal, 32)
-        .background(Color.black)
+        .padding(.horizontal, AppSpacing.xxl)
+        .background(Color.appCameraBackground)
     }
 
     private var leadingButton: some View {
@@ -34,13 +34,13 @@ struct CameraBottomBar: View {
                         RoundedRectangle(cornerRadius: 8)
                             .stroke(Color.white.opacity(0.3), lineWidth: 1)
                     )
-                    .accessibilityLabel(String(localized: "마지막 촬영 — 홈으로 이동"))
+                    .accessibilityLabel(String(localized: "camera_desc_last_thumbnail"))
             } else if canShowHomeIcon {
                 Image(systemName: "house.fill")
-                    .font(.system(size: 28))
+                    .font(.title)
                     .foregroundStyle(.white)
                     .frame(width: 56, height: 56)
-                    .accessibilityLabel(String(localized: "홈으로 이동"))
+                    .accessibilityLabel(String(localized: "camera_desc_home"))
             } else {
                 Color.clear.frame(width: 56, height: 56)
             }
@@ -64,7 +64,7 @@ struct CameraBottomBar: View {
                         .tint(.gray)
                 }
             }
-            .accessibilityLabel(String(localized: "촬영"))
+            .accessibilityLabel(String(localized: "camera_desc_capture"))
         }
         .buttonStyle(.plain)
         .disabled(isCapturing)
@@ -73,10 +73,10 @@ struct CameraBottomBar: View {
     private var settingsButton: some View {
         Button(action: onSettingsTap) {
             Image(systemName: "gearshape")
-                .font(.system(size: 28))
+                .font(.title)
                 .foregroundStyle(.white)
                 .frame(width: 56, height: 56)
-                .accessibilityLabel(String(localized: "카메라 설정"))
+                .accessibilityLabel(String(localized: "camera_desc_settings"))
         }
         .buttonStyle(.plain)
     }

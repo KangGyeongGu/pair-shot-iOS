@@ -16,7 +16,7 @@ struct QRScannerView: View {
 
     var body: some View {
         ZStack {
-            Color.black.ignoresSafeArea()
+            Color.appCameraBackground.ignoresSafeArea()
 
             switch permissionState {
                 case .checking:
@@ -44,7 +44,7 @@ struct QRScannerView: View {
                     }
                     .padding(20)
                     .frame(minWidth: 44, minHeight: 44)
-                    .accessibilityLabel(String(localized: "닫기"))
+                    .accessibilityLabel(String(localized: "common_button_close"))
                 }
                 Spacer()
             }
@@ -65,7 +65,7 @@ struct QRScannerView: View {
             VStack {
                 Spacer()
                     .frame(height: 80)
-                Text(String(localized: "QR 코드를 사각형 안에 맞춰주세요"))
+                Text(String(localized: "coupon_qr_align_hint"))
                     .font(.headline)
                     .foregroundStyle(.white)
                     .padding(.horizontal, 16)
@@ -82,10 +82,10 @@ struct QRScannerView: View {
                 .font(.largeTitle)
                 .imageScale(.large)
                 .foregroundStyle(.white.opacity(0.6))
-            Text(String(localized: "카메라 권한이 필요합니다"))
+            Text(String(localized: "permission_camera_title"))
                 .font(.headline)
                 .foregroundStyle(.white)
-            Text(String(localized: "설정에서 카메라 사용을 허용해 주세요"))
+            Text(String(localized: "permission_camera_message"))
                 .font(.subheadline)
                 .foregroundStyle(.white.opacity(0.8))
                 .multilineTextAlignment(.center)
@@ -93,7 +93,7 @@ struct QRScannerView: View {
             Button {
                 openSettings()
             } label: {
-                Text(String(localized: "설정으로 이동"))
+                Text(String(localized: "permission_button_open_settings"))
                     .padding(.horizontal, 18)
                     .padding(.vertical, 10)
                     .background(Capsule().fill(.white))

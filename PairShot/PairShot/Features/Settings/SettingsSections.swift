@@ -6,18 +6,18 @@ struct SettingsGeneralSection: View {
     var body: some View {
         Section {
             SettingsValueRow(
-                title: String(localized: "언어"),
+                title: String(localized: "settings_item_language"),
                 value: viewModel.languageDisplayText
             )
             .onTapGesture { viewModel.showLanguagePicker = true }
 
             SettingsValueRow(
-                title: String(localized: "테마"),
+                title: String(localized: "settings_item_theme"),
                 value: viewModel.themeDisplayText
             )
             .onTapGesture { viewModel.showThemePicker = true }
         } header: {
-            Text(String(localized: "일반"))
+            Text(String(localized: "settings_section_general"))
         }
     }
 }
@@ -31,7 +31,7 @@ struct SettingsCaptureFileSection: View {
                 CaptureSettingsView()
             } label: {
                 SettingsRow(
-                    title: String(localized: "촬영 및 파일"),
+                    title: String(localized: "settings_section_shooting_files"),
                     subtitle: viewModel.captureSummary,
                     systemImage: "camera"
                 )
@@ -40,15 +40,15 @@ struct SettingsCaptureFileSection: View {
                 CompositionSettingsView()
             } label: {
                 SettingsRow(
-                    title: String(localized: "오버레이"),
+                    title: String(localized: "settings_item_overlay"),
                     subtitle: viewModel.compositionSummary,
                     systemImage: "circle.lefthalf.filled"
                 )
             }
         } header: {
-            Text(String(localized: "촬영 및 파일"))
+            Text(String(localized: "settings_section_shooting_files"))
         } footer: {
-            Text(String(localized: "이미지 품질·파일명 접두어·overlay 기본값"))
+            Text(String(localized: "settings_section_shooting_files_hint"))
         }
     }
 }
@@ -64,7 +64,7 @@ struct SettingsWatermarkSection: View {
                     set: { viewModel.watermarkEnabled = $0 }
                 )) {
                     Label(
-                        String(localized: "워터마크 사용"),
+                        String(localized: "settings_item_watermark_use"),
                         systemImage: "signature"
                     )
                 }
@@ -72,10 +72,10 @@ struct SettingsWatermarkSection: View {
             if viewModel.watermarkEnabled {
                 NavigationLink(value: Route.watermarkSettings) {
                     HStack {
-                        Text(String(localized: "세부설정"))
+                        Text(String(localized: "settings_item_button_detail"))
                         Spacer()
                         if viewModel.watermarkSettingsBlank {
-                            Text(String(localized: "필수"))
+                            Text(String(localized: "settings_warning_required"))
                                 .font(.subheadline)
                                 .foregroundStyle(.red)
                         }
@@ -83,7 +83,7 @@ struct SettingsWatermarkSection: View {
                 }
             }
         } header: {
-            Text(String(localized: "워터마크"))
+            Text(String(localized: "settings_section_watermark"))
         }
     }
 }
@@ -96,13 +96,13 @@ struct SettingsCombineSection: View {
             HighlightableCard(isHighlighted: viewModel.shouldPulseCombine) {
                 NavigationLink(value: Route.combineSettings) {
                     Label(
-                        String(localized: "세부설정"),
+                        String(localized: "settings_item_button_detail"),
                         systemImage: "square.on.square"
                     )
                 }
             }
         } header: {
-            Text(String(localized: "합성"))
+            Text(String(localized: "settings_section_combine"))
         }
     }
 }
@@ -116,20 +116,20 @@ struct SettingsCouponSection: View {
                 AdFreeStatusView()
             } label: {
                 SettingsRow(
-                    title: String(localized: "쿠폰 / 광고 제거"),
+                    title: String(localized: "settings_item_coupon"),
                     subtitle: couponSummary,
                     systemImage: "ticket"
                 )
             }
         } header: {
-            Text(String(localized: "쿠폰"))
+            Text(String(localized: "settings_section_coupon"))
         }
     }
 
     private var couponSummary: String {
         adFreeStore.isAdFree
-            ? String(localized: "광고 제거 활성")
-            : String(localized: "비활성")
+            ? String(localized: "coupon_status_active_short")
+            : String(localized: "coupon_status_inactive_short")
     }
 }
 
@@ -140,23 +140,23 @@ struct SettingsStorageInfoSection: View {
     var body: some View {
         Section {
             SettingsValueRow(
-                title: String(localized: "사진 저장공간"),
+                title: String(localized: "settings_item_storage"),
                 value: viewModel.photoStorageText
             )
             SettingsValueRow(
-                title: String(localized: "캐시"),
+                title: String(localized: "settings_item_cache"),
                 value: viewModel.cacheText
             )
             .onTapGesture { viewModel.showCacheClearConfirm = true }
             SettingsValueRow(
-                title: String(localized: "앱 버전"),
+                title: String(localized: "settings_item_app_version"),
                 value: viewModel.appVersionText
             )
             NavigationLink(value: Route.license) {
-                Text(String(localized: "라이선스"))
+                Text(String(localized: "settings_item_license"))
             }
             HStack {
-                Text(String(localized: "개인정보처리방침"))
+                Text(String(localized: "settings_item_privacy_policy"))
                 Spacer()
                 Image(systemName: "arrow.up.right.square")
                     .foregroundStyle(.secondary)
@@ -164,7 +164,7 @@ struct SettingsStorageInfoSection: View {
             .contentShape(Rectangle())
             .onTapGesture { openURL(SettingsExternalLinks.privacyPolicy) }
         } header: {
-            Text(String(localized: "저장공간 및 앱정보"))
+            Text(String(localized: "settings_section_storage_and_info"))
         }
     }
 }

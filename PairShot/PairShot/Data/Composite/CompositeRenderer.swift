@@ -6,8 +6,8 @@ import SwiftData
 import UIKit
 import UniformTypeIdentifiers
 
-enum CompositeRenderer {
-    enum RenderError: Error, Equatable {
+nonisolated enum CompositeRenderer {
+    nonisolated enum RenderError: Error, Equatable {
         case beforeImageMissing
         case afterImageMissing
         case afterPathNotSet
@@ -92,7 +92,7 @@ enum CompositeRenderer {
         return combinedFileName
     }
 
-    static func renderComposite(
+    nonisolated static func renderComposite(
         before: UIImage,
         after: UIImage,
         layout: CompositeLayout
@@ -114,7 +114,7 @@ enum CompositeRenderer {
         }
     }
 
-    static func composeFrames(
+    nonisolated static func composeFrames(
         beforeSize: CGSize,
         afterSize: CGSize,
         layout: CompositeLayout
@@ -157,7 +157,7 @@ enum CompositeRenderer {
         }
     }
 
-    private static func loadImage(
+    private nonisolated static func loadImage(
         kind: PhotoStorageService.PhotoKind,
         fileName: String,
         storage: PhotoStorageService
@@ -168,7 +168,7 @@ enum CompositeRenderer {
     }
 }
 
-enum ExifEmbedder {
+nonisolated enum ExifEmbedder {
     static let exifDateFormat = "yyyy:MM:dd HH:mm:ss"
 
     static func embed(

@@ -23,9 +23,9 @@ struct LevelIndicator: View {
         .padding(.vertical, 5)
         .foregroundStyle(.white)
         .background(
-            Capsule().fill((isLevel ? Color.green : Color.black).opacity(0.55))
+            Capsule().fill((isLevel ? Color.appSnackbarSuccess : Color.black).opacity(0.55))
         )
-        .accessibilityLabel(String(localized: "수평계"))
+        .accessibilityLabel(String(localized: "camera_settings_level"))
         .accessibilityValue(label)
     }
 
@@ -43,5 +43,5 @@ struct LevelIndicator: View {
         LevelIndicator(rollDegrees: -12.5)
     }
     .padding()
-    .background(Color.gray)
+    .background(Color.appOnSurfaceVariant)
 }

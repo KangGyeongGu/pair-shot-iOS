@@ -20,11 +20,6 @@ enum HomeSortOrder: String, CaseIterable, Identifiable {
     }
 }
 
-struct HomeExportPayload: Identifiable {
-    let id = UUID()
-    let pairs: [PhotoPair]
-}
-
 struct HomePairDeleteRequest: Identifiable {
     let id = UUID()
     let pairs: [PhotoPair]
@@ -70,7 +65,6 @@ final class HomeViewModel {
     var showBeforeCamera: Bool = false
     var showAfterCamera: Bool = false
     var pendingPreviewPair: HomePairPreviewRequest?
-    var pendingExport: HomeExportPayload?
     var pendingPairDelete: HomePairDeleteRequest?
     var pendingAlbumDelete: HomeAlbumDeleteRequest?
     var pendingSinglePairDelete: HomeSinglePairDeleteRequest?
@@ -82,7 +76,6 @@ final class HomeViewModel {
     private let pairRepo: PhotoPairRepository
     private let albumRepo: AlbumRepository
     private let deletePairs: DeletePairsUseCase
-    private let exportPairs: ExportPairsUseCase
     private let toggleAlbumMembership: ToggleAlbumMembershipUseCase
     private let location: LocationFetching
     private let thumbnailCache: ThumbnailCache
@@ -91,7 +84,6 @@ final class HomeViewModel {
         pairRepo: PhotoPairRepository,
         albumRepo: AlbumRepository,
         deletePairs: DeletePairsUseCase,
-        exportPairs: ExportPairsUseCase,
         toggleAlbumMembership: ToggleAlbumMembershipUseCase,
         storage: PhotoStorageService,
         location: LocationFetching,
@@ -100,7 +92,6 @@ final class HomeViewModel {
         self.pairRepo = pairRepo
         self.albumRepo = albumRepo
         self.deletePairs = deletePairs
-        self.exportPairs = exportPairs
         self.toggleAlbumMembership = toggleAlbumMembership
         self.storage = storage
         self.location = location
@@ -226,12 +217,6 @@ final class HomeViewModel {
 
     func openSettings() {
         showSettings = true
-    }
-
-    func presentExport(from all: [PhotoPair]) {
-        let chosen = all.filter { selectedPairIds.contains($0.id) }
-        guard !chosen.isEmpty else { return }
-        pendingExport = HomeExportPayload(pairs: chosen)
     }
 
     func requestPairDeletion(from all: [PhotoPair]) {

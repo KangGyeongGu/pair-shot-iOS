@@ -1,14 +1,14 @@
 import Foundation
 
-enum AppLanguage: String, Codable, CaseIterable {
+nonisolated enum AppLanguage: String, Codable, CaseIterable {
     case system
     case korean
     case english
 
     var displayName: String {
         switch self {
-            case .system: String(localized: "시스템 기본값")
-            case .korean: String(localized: "한국어")
+            case .system: String(localized: "language_system")
+            case .korean: String(localized: "language_korean")
             case .english: String(localized: "English")
         }
     }

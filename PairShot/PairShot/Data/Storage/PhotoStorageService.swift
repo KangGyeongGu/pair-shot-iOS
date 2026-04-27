@@ -1,15 +1,16 @@
 import Foundation
+import OSLog
 
-struct PhotoStorageService {
-    enum PhotoKind: String, CaseIterable, Equatable, Hashable {
+nonisolated struct PhotoStorageService {
+    nonisolated enum PhotoKind: String, CaseIterable, Equatable, Hashable {
         case before
         case after
         case combined
     }
 
-    static let rootDirectoryName = "PairShot"
-    static let photosDirectoryName = "photos"
-    static let thumbnailsDirectoryName = "thumbnails"
+    nonisolated static let rootDirectoryName = "PairShot"
+    nonisolated static let photosDirectoryName = "photos"
+    nonisolated static let thumbnailsDirectoryName = "thumbnails"
 
     let baseDirectory: URL
 
@@ -114,7 +115,14 @@ struct PhotoStorageService {
     nonisolated func deletePhoto(kind: PhotoKind, fileName: String) throws {
         guard let url = resolve(kind: kind, fileName: fileName) else { return }
         if FileManager.default.fileExists(atPath: url.path) {
-            try FileManager.default.removeItem(at: url)
+            do {
+                try FileManager.default.removeItem(at: url)
+            } catch {
+                AppLogger.storage.error(
+                    "Storage deletePhoto failed (kind=\(kind.rawValue, privacy: .public)): \(error.localizedDescription, privacy: .public)"
+                )
+                throw error
+            }
         }
     }
 
@@ -189,7 +197,7 @@ struct PhotoStorageService {
             let size = (try? url.resourceValues(forKeys: [
                 .totalFileAllocatedSizeKey,
                 .fileAllocatedSizeKey,
-                .fileSizeKey
+                .fileSizeKey,
             ]))
             .flatMap { $0.totalFileAllocatedSize ?? $0.fileAllocatedSize ?? $0.fileSize }
             ?? 0
@@ -198,13 +206,19 @@ struct PhotoStorageService {
                 deletedCount += 1
                 freedBytes += Int64(size)
             } catch {
+                AppLogger.storage.error(
+                    "Storage orphan delete failed: \(error.localizedDescription, privacy: .public)"
+                )
                 continue
             }
         }
+        AppLogger.storage.info(
+            "Storage orphan sweep complete: deleted=\(deletedCount, privacy: .public) freed=\(freedBytes, privacy: .public)"
+        )
         return (deletedCount, freedBytes)
     }
 
-    nonisolated private func writeJPEG(
+    private nonisolated func writeJPEG(
         _ jpegData: Data,
         kind: PhotoKind,
         fileName: String
@@ -212,15 +226,23 @@ struct PhotoStorageService {
         try ensurePhotosDirectoryExists(for: kind)
         let dir = photosDirectory(for: kind)
         let url = dir.appendingPathComponent(fileName)
-        try jpegData.write(to: url, options: .atomic)
+        do {
+            try jpegData.write(to: url, options: .atomic)
+        } catch {
+            AppLogger.storage.error(
+                "Storage writeJPEG failed (kind=\(kind.rawValue, privacy: .public)): \(error.localizedDescription, privacy: .public)"
+            )
+            throw error
+        }
+        AppLogger.storage.info("Storage saved photo (kind=\(kind.rawValue, privacy: .public))")
         return fileName
     }
 
-    nonisolated private func relativeThumbnailPath(kind: PhotoKind, fileName: String) -> String {
+    private nonisolated func relativeThumbnailPath(kind: PhotoKind, fileName: String) -> String {
         "\(Self.thumbnailsDirectoryName)/\(kind.rawValue)/\(fileName)"
     }
 
-    nonisolated private func ensurePhotosDirectoryExists(for kind: PhotoKind) throws {
+    private nonisolated func ensurePhotosDirectoryExists(for kind: PhotoKind) throws {
         let dir = photosDirectory(for: kind)
         if !FileManager.default.fileExists(atPath: dir.path) {
             try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
@@ -229,7 +251,7 @@ struct PhotoStorageService {
         try? Self.includeInBackup(&mutable)
     }
 
-    nonisolated private func ensureThumbnailsDirectoryExists(for kind: PhotoKind) throws {
+    private nonisolated func ensureThumbnailsDirectoryExists(for kind: PhotoKind) throws {
         let dir = thumbnailsDirectory(for: kind)
         if !FileManager.default.fileExists(atPath: dir.path) {
             try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
@@ -238,14 +260,14 @@ struct PhotoStorageService {
         try? Self.markExcludedFromBackup(&mutable)
     }
 
-    nonisolated private func totalAllocatedBytes(under root: URL) throws -> Int64 {
+    private nonisolated func totalAllocatedBytes(under root: URL) throws -> Int64 {
         guard FileManager.default.fileExists(atPath: root.path) else { return 0 }
         var total: Int64 = 0
         let resourceKeys: [URLResourceKey] = [
             .isRegularFileKey,
             .totalFileAllocatedSizeKey,
             .fileAllocatedSizeKey,
-            .fileSizeKey
+            .fileSizeKey,
         ]
         guard let enumerator = FileManager.default.enumerator(
             at: root,
@@ -264,7 +286,7 @@ struct PhotoStorageService {
         return total
     }
 
-    nonisolated private func enumerateFiles(under root: URL) throws -> [URL] {
+    private nonisolated func enumerateFiles(under root: URL) throws -> [URL] {
         guard FileManager.default.fileExists(atPath: root.path) else { return [] }
         let resourceKeys: [URLResourceKey] = [.isRegularFileKey]
         guard let enumerator = FileManager.default.enumerator(

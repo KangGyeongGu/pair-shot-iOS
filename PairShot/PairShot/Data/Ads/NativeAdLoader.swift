@@ -1,6 +1,7 @@
 import AppTrackingTransparency
 import Foundation
 import Observation
+import OSLog
 import SwiftUI
 import UIKit
 #if canImport(GoogleMobileAds)
@@ -52,6 +53,7 @@ final class NativeAdLoader: NSObject {
                 attStatus: ATTrackingManager.trackingAuthorizationStatus
             ) else { return }
             isLoading = true
+            AppLogger.ads.info("Native prefetch requested count=\(count, privacy: .public)")
             let multipleOptions = GADMultipleAdsAdLoaderOptions()
             multipleOptions.numberOfAds = count
             let loader = GADAdLoader(
@@ -107,6 +109,7 @@ final class NativeAdLoader: NSObject {
         ) {
             let description = error.localizedDescription
             Task { @MainActor [weak self] in
+                AppLogger.ads.error("Native load failed: \(description, privacy: .public)")
                 self?.lastErrorDescription = description
                 self?.isLoading = false
                 self?.inflightLoader = nil
@@ -131,7 +134,7 @@ struct NativeAdCell: View {
                 NativeAdRepresentable(nativeAd: nativeAd)
                     .frame(maxWidth: .infinity)
                     .aspectRatio(1, contentMode: .fit)
-                    .background(Color.gray.opacity(0.05))
+                    .background(Color.appOnSurfaceVariant.opacity(0.05))
                     .clipShape(RoundedRectangle(cornerRadius: 8))
             } else {
                 placeholder
@@ -144,9 +147,9 @@ struct NativeAdCell: View {
     private var placeholder: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 8)
-                .fill(Color.gray.opacity(0.1))
-            Text(String(localized: "광고"))
-                .font(.caption)
+                .fill(Color.appOnSurfaceVariant.opacity(0.1))
+            Text(String(localized: "ads_native_label"))
+                .font(.appCaption)
                 .foregroundStyle(.secondary)
         }
         .aspectRatio(1, contentMode: .fit)
@@ -216,7 +219,7 @@ struct NativeAdCell: View {
                 body.trailingAnchor.constraint(equalTo: adView.trailingAnchor, constant: -8),
 
                 cta.bottomAnchor.constraint(equalTo: adView.bottomAnchor, constant: -8),
-                cta.trailingAnchor.constraint(equalTo: adView.trailingAnchor, constant: -8)
+                cta.trailingAnchor.constraint(equalTo: adView.trailingAnchor, constant: -8),
             ])
 
             adView.nativeAd = nativeAd

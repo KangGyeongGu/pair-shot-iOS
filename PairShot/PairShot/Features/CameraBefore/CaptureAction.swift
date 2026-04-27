@@ -129,7 +129,7 @@ struct CaptureShutterButton: View {
                     ProgressView().tint(.gray)
                 }
             }
-            .accessibilityLabel(String(localized: "촬영"))
+            .accessibilityLabel(String(localized: "camera_desc_capture"))
         }
         .buttonStyle(.plain)
         .disabled(isCapturing)

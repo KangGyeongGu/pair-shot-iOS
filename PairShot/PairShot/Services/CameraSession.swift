@@ -1,20 +1,21 @@
 @preconcurrency import AVFoundation
 import Foundation
+import OSLog
 import UIKit
 
-enum CameraAuthorizationState {
+nonisolated enum CameraAuthorizationState {
     case notDetermined
     case authorized
     case denied
     case restricted
 }
 
-enum CameraLensPosition: String, CaseIterable {
+nonisolated enum CameraLensPosition: String, CaseIterable {
     case back
     case front
 }
 
-enum CameraFlashMode: String, CaseIterable {
+nonisolated enum CameraFlashMode: String, CaseIterable {
     case off
     case on
     case auto
@@ -30,14 +31,14 @@ enum CameraFlashMode: String, CaseIterable {
     }
 }
 
-struct CapturedPhoto {
+nonisolated struct CapturedPhoto {
     let jpegData: Data
     let zoomFactor: Double
     let lensIdentifier: String
     let capturedAt: Date
 }
 
-enum CameraSessionError: Error {
+nonisolated enum CameraSessionError: Error {
     case notConfigured
     case deviceUnavailable
     case captureFailed(String)
@@ -89,15 +90,20 @@ actor CameraSession {
     }
 
     func start() async {
+        AppLogger.camera.info("Camera session start requested")
         switch AVCaptureDevice.authorizationStatus(for: .video) {
             case .authorized:
                 break
 
             case .notDetermined:
                 let granted = await AVCaptureDevice.requestAccess(for: .video)
-                guard granted else { return }
+                guard granted else {
+                    AppLogger.camera.info("Camera permission denied at prompt")
+                    return
+                }
 
             case .denied, .restricted:
+                AppLogger.camera.info("Camera permission unavailable (denied/restricted)")
                 return
 
             @unknown default:
@@ -109,15 +115,20 @@ actor CameraSession {
             didConfigure = true
         }
 
-        guard hasInputInternal else { return }
+        guard hasInputInternal else {
+            AppLogger.camera.error("Camera session start aborted: no input device")
+            return
+        }
 
         guard !box.session.isRunning else { return }
         box.session.startRunning()
+        AppLogger.camera.info("Camera session started")
     }
 
     func stop() {
         guard box.session.isRunning else { return }
         box.session.stopRunning()
+        AppLogger.camera.info("Camera session stopped")
     }
 
     var minZoomFactor: Double {
@@ -148,6 +159,7 @@ actor CameraSession {
             defer { device.unlockForConfiguration() }
             device.ramp(toVideoZoomFactor: CGFloat(clamped), withRate: rate)
         } catch {
+            AppLogger.camera.error("Camera zoom ramp failed: \(error.localizedDescription, privacy: .public)")
             return
         }
     }
@@ -161,6 +173,7 @@ actor CameraSession {
             if device.isRampingVideoZoom { device.cancelVideoZoomRamp() }
             device.videoZoomFactor = CGFloat(clamped)
         } catch {
+            AppLogger.camera.error("Camera zoom set failed: \(error.localizedDescription, privacy: .public)")
             return
         }
     }
@@ -205,8 +218,10 @@ actor CameraSession {
                 activeDevice = device
                 lensPosition = position
                 hasInputInternal = true
+                AppLogger.camera.info("Camera lens switched to \(position.rawValue, privacy: .public)")
             }
         } catch {
+            AppLogger.camera.error("Camera lens switch failed: \(error.localizedDescription, privacy: .public)")
             return
         }
     }
@@ -239,6 +254,8 @@ actor CameraSession {
             defer { device.unlockForConfiguration() }
             device.automaticallyEnablesLowLightBoostWhenAvailable = enabled
         } catch {
+            AppLogger.camera
+                .error("Camera low-light boost configure failed: \(error.localizedDescription, privacy: .public)")
             return
         }
     }
@@ -267,6 +284,7 @@ actor CameraSession {
                     }
             }
         } catch {
+            AppLogger.camera.error("Camera torch configure failed: \(error.localizedDescription, privacy: .public)")
             return
         }
     }
@@ -289,6 +307,7 @@ actor CameraSession {
                 device.exposureMode = .autoExpose
             }
         } catch {
+            AppLogger.camera.error("Camera focus configure failed: \(error.localizedDescription, privacy: .public)")
             return
         }
     }
@@ -310,12 +329,14 @@ actor CameraSession {
             }
             device.unlockForConfiguration()
         } catch {
+            AppLogger.camera.error("Camera exposure bias set failed: \(error.localizedDescription, privacy: .public)")
             return
         }
     }
 
     func capturePhoto() async throws -> CapturedPhoto {
         guard let photoOutput, let device = activeDevice else {
+            AppLogger.camera.error("Camera capturePhoto failed: not configured")
             throw CameraSessionError.notConfigured
         }
 
@@ -346,6 +367,8 @@ actor CameraSession {
                         ))
 
                     case let .failure(err):
+                        AppLogger.camera
+                            .error("Camera capturePhoto failed: \(String(describing: err), privacy: .public)")
                         cont.resume(throwing: err)
                 }
             }
@@ -408,7 +431,7 @@ actor CameraSession {
     }
 }
 
-enum ZoomPreset: String, CaseIterable {
+nonisolated enum ZoomPreset: String, CaseIterable {
     case ultraWide
     case wide
     case tele2x

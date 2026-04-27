@@ -1,4 +1,5 @@
 import AppTrackingTransparency
+import OSLog
 import SwiftUI
 import UIKit
 #if canImport(GoogleMobileAds)
@@ -48,6 +49,7 @@ struct BannerAdView: UIViewRepresentable {
                 isAdFree: false,
                 attStatus: ATTrackingManager.trackingAuthorizationStatus
             ) ?? GADRequest()
+            AppLogger.ads.info("Banner load requested")
             view.load(request)
             return view
         }

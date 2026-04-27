@@ -1,7 +1,7 @@
 import Foundation
 import UIKit
 
-enum WatermarkOverlay {
+nonisolated enum WatermarkOverlay {
     static let userDefaultsKey = "watermarkEnabled"
 
     static let defaultEnabled = true
@@ -37,7 +37,7 @@ enum WatermarkOverlay {
             let fontSize = max(14, min(canvasSize.width, canvasSize.height) * 0.022)
             let attributes: [NSAttributedString.Key: Any] = [
                 .font: UIFont.systemFont(ofSize: fontSize, weight: .semibold),
-                .foregroundColor: UIColor.white
+                .foregroundColor: UIColor.white,
             ]
             let attributed = NSAttributedString(string: text, attributes: attributes)
             let textSize = attributed.size()

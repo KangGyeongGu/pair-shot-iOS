@@ -12,7 +12,7 @@ struct WatermarkSettingsView: View {
             previewSection
         }
         .listStyle(.insetGrouped)
-        .navigationTitle(String(localized: "워터마크 설정"))
+        .navigationTitle(String(localized: "watermark_settings_title"))
         .navigationBarTitleDisplayMode(.inline)
         .onChange(of: viewModel.settings) { _, _ in
             Task { await viewModel.saveSettings() }
@@ -23,14 +23,14 @@ struct WatermarkSettingsView: View {
         Section {
             Toggle(isOn: $viewModel.settings.isEnabled) {
                 Label(
-                    String(localized: "워터마크 사용"),
+                    String(localized: "settings_item_watermark_use"),
                     systemImage: "signature"
                 )
             }
             HStack {
-                Text(String(localized: "유형"))
+                Text(String(localized: "watermark_field_type"))
                 Spacer()
-                Picker(String(localized: "유형"), selection: $viewModel.settings.type) {
+                Picker(String(localized: "watermark_field_type"), selection: $viewModel.settings.type) {
                     Text(verbatim: "TEXT")
                         .tag(WatermarkSettings.WatermarkType.text)
                     Text(verbatim: "LOGO")
@@ -41,10 +41,10 @@ struct WatermarkSettingsView: View {
                 .frame(width: 200)
             }
         } header: {
-            Text(String(localized: "기본 설정"))
+            Text(String(localized: "watermark_section_basic"))
         } footer: {
             if viewModel.settings.type == .logo {
-                Text(String(localized: "LOGO 유형은 향후 업데이트에서 지원됩니다."))
+                Text(String(localized: "watermark_logo_unsupported_hint"))
             }
         }
     }
@@ -56,7 +56,7 @@ struct WatermarkSettingsView: View {
             WatermarkLineCountSlider(value: $viewModel.settings.lineCount)
             WatermarkRepeatSlider(value: $viewModel.settings.repeatCount)
         } header: {
-            Text(String(localized: "텍스트 설정"))
+            Text(String(localized: "watermark_section_text"))
         }
     }
 
@@ -65,7 +65,7 @@ struct WatermarkSettingsView: View {
             WatermarkPreviewCard(settings: viewModel.settings)
                 .frame(maxWidth: .infinity)
         } header: {
-            Text(String(localized: "미리보기"))
+            Text(String(localized: "watermark_section_preview"))
         }
     }
 }
@@ -75,10 +75,10 @@ private struct WatermarkTextField: View {
 
     var body: some View {
         HStack {
-            Text(String(localized: "텍스트"))
+            Text(String(localized: "watermark_field_text"))
             Spacer()
             TextField(
-                String(localized: "텍스트"),
+                String(localized: "watermark_field_text"),
                 text: $text
             )
             .multilineTextAlignment(.trailing)
@@ -94,7 +94,7 @@ private struct WatermarkOpacitySlider: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
-                Text(String(localized: "투명도"))
+                Text(String(localized: "watermark_field_opacity"))
                 Spacer()
                 Text(verbatim: "\(Int((value * 100).rounded()))%")
                     .font(.body.monospacedDigit())
@@ -118,7 +118,7 @@ private struct WatermarkLineCountSlider: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
-                Text(String(localized: "줄 수"))
+                Text(String(localized: "watermark_field_lines"))
                 Spacer()
                 Text(verbatim: "\(value)")
                     .font(.body.monospacedDigit())
@@ -140,7 +140,7 @@ private struct WatermarkRepeatSlider: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
-                Text(String(localized: "반복"))
+                Text(String(localized: "watermark_field_repeat"))
                 Spacer()
                 Text(verbatim: String(format: "%.1fx", value))
                     .font(.body.monospacedDigit())
@@ -160,7 +160,7 @@ private struct WatermarkPreviewCard: View {
 
     var body: some View {
         ZStack {
-            Color.black
+            Color.appLetterbox
             if settings.isEnabled, settings.type == .text, !settings.text.isEmpty {
                 Text(settings.text)
                     .font(.headline)
@@ -168,7 +168,7 @@ private struct WatermarkPreviewCard: View {
                     .padding(8)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
             } else {
-                Text(String(localized: "미리보기 없음"))
+                Text(String(localized: "watermark_preview_empty"))
                     .font(.caption)
                     .foregroundStyle(.white.opacity(0.5))
             }
@@ -177,7 +177,7 @@ private struct WatermarkPreviewCard: View {
         .frame(minHeight: 200)
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(String(localized: "워터마크 미리보기"))
+        .accessibilityLabel(String(localized: "watermark_preview_desc"))
     }
 }
 

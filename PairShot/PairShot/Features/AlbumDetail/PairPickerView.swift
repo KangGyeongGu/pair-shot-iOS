@@ -63,10 +63,10 @@ struct PairPickerView: View {
             )
         }
         .alert(
-            String(localized: "오류"),
+            String(localized: "common_dialog_error_title"),
             isPresented: errorBinding(for: viewModel)
         ) {
-            Button(String(localized: "확인"), role: .cancel) {
+            Button(String(localized: "common_button_confirm"), role: .cancel) {
                 viewModel.clearError()
             }
         } message: {
@@ -116,10 +116,10 @@ struct PairPickerView: View {
             Button(action: { dismiss() }) {
                 Image(systemName: "xmark")
             }
-            .accessibilityLabel(String(localized: "닫기"))
+            .accessibilityLabel(String(localized: "common_button_close"))
         }
         ToolbarItem(placement: .principal) {
-            Text(viewModel?.titleText ?? String(localized: "페어 선택"))
+            Text(viewModel?.titleText ?? String(localized: "pair_picker_title"))
                 .font(.headline)
         }
     }
@@ -143,10 +143,10 @@ struct PairPickerEmptyState: View {
     var body: some View {
         VStack(spacing: 16) {
             Image(systemName: "photo.stack")
-                .font(.system(size: 56, weight: .light))
+                .font(.largeTitle.weight(.light))
                 .foregroundStyle(.secondary)
 
-            Text(String(localized: "페어가 없습니다"))
+            Text(String(localized: "pair_picker_empty"))
                 .font(.headline)
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)

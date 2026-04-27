@@ -108,7 +108,7 @@ struct ZipExporterAdapter: ZipExporting {
     }
 }
 
-enum ExportContentsMapping {
+nonisolated enum ExportContentsMapping {
     static func toMode(_ contents: ExportContents) -> ExportMode {
         switch contents {
             case .all: .all
@@ -119,7 +119,7 @@ enum ExportContentsMapping {
     }
 }
 
-enum ExportMode: String, CaseIterable, Identifiable {
+nonisolated enum ExportMode: String, CaseIterable, Identifiable {
     case all
     case beforeOnly
     case afterOnly
@@ -131,16 +131,16 @@ enum ExportMode: String, CaseIterable, Identifiable {
 
     var label: String {
         switch self {
-            case .all: String(localized: "전체")
+            case .all: String(localized: "home_filter_all")
             case .beforeOnly: String(localized: "Before")
             case .afterOnly: String(localized: "After")
-            case .combinedOnly: String(localized: "합성")
+            case .combinedOnly: String(localized: "settings_section_combine")
         }
     }
 }
 
-enum ExportSelection {
-    struct Entry: Equatable {
+nonisolated enum ExportSelection {
+    nonisolated struct Entry: Equatable {
         let relativeName: String
         let sourceKind: PhotoStorageService.PhotoKind
         let sourceFileName: String

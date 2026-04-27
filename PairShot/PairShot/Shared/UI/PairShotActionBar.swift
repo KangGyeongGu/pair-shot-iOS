@@ -42,14 +42,16 @@ struct PairShotActionBar: View {
         Button(role: item.role, action: item.action) {
             VStack(spacing: -6) {
                 Image(systemName: item.systemImage)
-                    .font(.system(size: 24, weight: .regular))
+                    .font(.title3)
                 Text(item.title)
-                    .font(.caption2)
+                    .font(.appLabel)
             }
             .frame(maxWidth: .infinity)
+            .frame(minWidth: 44, minHeight: 44)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .foregroundStyle(item.role == .destructive ? Color.red : Color.primary)
+        .foregroundStyle(item.role == .destructive ? Color.appSnackbarError : Color.primary)
         .opacity(item.isEnabled ? 1 : 0.38)
         .disabled(!item.isEnabled)
         .accessibilityLabel(item.title)

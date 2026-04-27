@@ -5,14 +5,14 @@ struct CaptureErrorAlert: ViewModifier {
 
     func body(content: Content) -> some View {
         content.alert(
-            String(localized: "촬영 실패"),
+            String(localized: "camera_error_capture_title"),
             isPresented: Binding(
                 get: { message != nil },
                 set: { if !$0 { message = nil } }
             ),
             presenting: message
         ) { _ in
-            Button(String(localized: "확인"), role: .cancel) { message = nil }
+            Button(String(localized: "common_button_confirm"), role: .cancel) { message = nil }
         } message: { text in
             Text(text)
         }

@@ -14,7 +14,7 @@ struct AdFreeStatusView: View {
                 ProgressView()
             }
         }
-        .navigationTitle(String(localized: "쿠폰·AdFree"))
+        .navigationTitle(String(localized: "ad_free_status_title"))
         .navigationBarTitleDisplayMode(.inline)
         .task { ensureViewModel() }
     }
@@ -49,9 +49,9 @@ struct AdFreeStatusView: View {
                     .multilineTextAlignment(.leading)
             }
         } header: {
-            Text(String(localized: "현재 상태"))
+            Text(String(localized: "ad_free_status_section_status"))
         } footer: {
-            Text(String(localized: "광고 제거 상태와 만료일을 보여줍니다."))
+            Text(String(localized: "ad_free_status_hint"))
         }
     }
 
@@ -61,14 +61,14 @@ struct AdFreeStatusView: View {
                 isShowingRegistration = true
             } label: {
                 Label(
-                    String(localized: "쿠폰 코드 등록"),
+                    String(localized: "coupon_dialog_register_code_title"),
                     systemImage: "ticket"
                 )
             }
         } header: {
-            Text(String(localized: "쿠폰 등록"))
+            Text(String(localized: "ad_free_register_section_title"))
         } footer: {
-            Text(String(localized: "발급받은 쿠폰 코드를 입력하거나 QR 로 스캔합니다."))
+            Text(String(localized: "ad_free_register_intro"))
         }
     }
 
@@ -86,7 +86,7 @@ struct AdFreeStatusView: View {
                     )
                 }
             } header: {
-                Text(String(localized: "활성 쿠폰"))
+                Text(String(localized: "coupon_section_active"))
             }
         }
     }
@@ -105,7 +105,7 @@ struct AdFreeStatusView: View {
                     )
                 }
             } header: {
-                Text(String(localized: "과거 쿠폰"))
+                Text(String(localized: "coupon_section_past"))
             }
         }
     }
@@ -124,11 +124,11 @@ enum AdFreeStatusFormatter {
 
     static func headline(isAdFree: Bool, latestExpiration: Date?, now: Date) -> String {
         guard isAdFree, let latestExpiration else {
-            return String(localized: "광고 제거 비활성")
+            return String(localized: "coupon_status_inactive")
         }
         let days = remainingDays(until: latestExpiration, now: now)
         let formatted = formatDate(latestExpiration)
-        let template = String(localized: "광고 제거 활성 · 만료까지 %d일 (%@)")
+        let template = String(localized: "coupon_status_active_remaining_template")
         return String(format: template, days, formatted)
     }
 
@@ -150,10 +150,10 @@ enum AdFreeStatusFormatter {
     static func pastStatusLabel(for coupon: Coupon) -> String {
         switch coupon.status {
             case .revoked:
-                String(localized: "취소")
+                String(localized: "coupon_status_canceled")
 
             case .expired, .active:
-                String(localized: "만료")
+                String(localized: "coupon_status_expired")
         }
     }
 }

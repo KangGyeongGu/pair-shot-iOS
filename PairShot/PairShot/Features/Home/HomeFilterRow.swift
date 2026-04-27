@@ -16,9 +16,9 @@ struct HomeFilterRow: View {
     }
 
     private var modePicker: some View {
-        Picker(String(localized: "보기"), selection: $contentMode) {
-            Text(String(localized: "전체")).tag(HomeContentMode.pairs)
-            Text(String(localized: "앨범")).tag(HomeContentMode.albums)
+        Picker(String(localized: "common_view_label"), selection: $contentMode) {
+            Text(String(localized: "home_filter_all")).tag(HomeContentMode.pairs)
+            Text(String(localized: "home_filter_album")).tag(HomeContentMode.albums)
         }
         .pickerStyle(.segmented)
         .onChange(of: contentMode) { _, newValue in
@@ -28,16 +28,17 @@ struct HomeFilterRow: View {
 
     private var sortMenu: some View {
         Menu {
-            Picker(String(localized: "정렬"), selection: sortBinding) {
-                Text(String(localized: "최신순")).tag(HomeSortOrder.newest)
-                Text(String(localized: "오래된순")).tag(HomeSortOrder.oldest)
+            Picker(String(localized: "common_sort_label"), selection: sortBinding) {
+                Text(String(localized: "common_label_sort_descending")).tag(HomeSortOrder.newest)
+                Text(String(localized: "common_label_sort_ascending")).tag(HomeSortOrder.oldest)
             }
         } label: {
             Image(systemName: "arrow.up.arrow.down")
-                .font(.system(size: 18, weight: .medium))
-                .frame(width: 44, height: 44)
+                .font(.headline)
+                .frame(minWidth: 44, minHeight: 44)
+                .contentShape(Rectangle())
         }
-        .accessibilityLabel(String(localized: "정렬"))
+        .accessibilityLabel(String(localized: "common_sort_label"))
     }
 
     private var sortBinding: Binding<HomeSortOrder> {

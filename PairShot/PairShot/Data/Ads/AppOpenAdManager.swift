@@ -1,6 +1,7 @@
 import AppTrackingTransparency
 import Foundation
 import Observation
+import OSLog
 import UIKit
 #if canImport(GoogleMobileAds)
     import GoogleMobileAds
@@ -55,10 +56,11 @@ final class AppOpenAdManager {
                 attStatus: ATTrackingManager.trackingAuthorizationStatus
             ) else { return }
             isLoading = true
+            AppLogger.ads.info("AppOpen load requested")
             GADAppOpenAd.load(
                 withAdUnitID: resolvedUnitID,
                 request: request
-            ) { [weak self] ad, _ in
+            ) { [weak self] ad, error in
                 Task { @MainActor [weak self] in
                     guard let self else { return }
                     isLoading = false
@@ -66,9 +68,15 @@ final class AppOpenAdManager {
                         self.ad = ad
                         isLoaded = true
                         ad.fullScreenContentDelegate = presentationDelegate
+                        AppLogger.ads.info("AppOpen loaded")
                     } else {
                         self.ad = nil
                         isLoaded = false
+                        if let error {
+                            AppLogger.ads.error(
+                                "AppOpen load failed: \(error.localizedDescription, privacy: .public)"
+                            )
+                        }
                     }
                 }
             }
@@ -104,6 +112,7 @@ final class AppOpenAdManager {
                 Task { await coordinator?.release() }
             }
             ad.present(fromRootViewController: rootViewController)
+            AppLogger.ads.info("AppOpen presented")
             lastShownAt = now
             self.ad = nil
             isLoaded = false
@@ -131,9 +140,11 @@ final class AppOpenAdManager {
 
         nonisolated func ad(
             _: any GADFullScreenPresentingAd,
-            didFailToPresentFullScreenContentWithError _: Error
+            didFailToPresentFullScreenContentWithError error: Error
         ) {
+            let description = error.localizedDescription
             Task { @MainActor [weak self] in
+                AppLogger.ads.error("AppOpen failed to present: \(description, privacy: .public)")
                 self?.onFailToPresent?()
             }
         }

@@ -166,11 +166,17 @@ final class AfterCameraViewModel {
         do {
             let captured = try await captureSource.capturePhoto()
             let prefix = FileNamePrefixValidator.sanitize(appSettings.fileNamePrefix)
+            let options = CompositeOptions(
+                layout: appSettings.defaultCompositeLayout,
+                jpegQuality: CGFloat(appSettings.jpegQuality),
+                watermarkEnabled: appSettings.watermarkEnabled
+            )
             let updated = try await captureAfter(
                 pairId: pair.id,
                 afterJPEG: captured.jpegData,
                 prefix: prefix,
-                jpegQuality: appSettings.jpegQuality
+                jpegQuality: appSettings.jpegQuality,
+                compositeOptions: options
             )
             currentPair = updated
             eventsContinuation.yield(.snackbarSuccess)
@@ -241,9 +247,7 @@ final class AfterCameraViewModel {
         let loaded = AfterCameraGhostLoader.loadData(beforeFileName: pair.beforeFileName, storage: storage)
         ghostImageData = loaded
         if loaded == nil {
-            ghostWarningToast = String(
-                localized: "Before 사진을 찾을 수 없어 overlay 없이 진행합니다."
-            )
+            ghostWarningToast = String(localized: "after_ghost_missing_warning")
         }
         alpha = GhostOverlayMath.clamp(appSettings.defaultOverlayAlpha)
         hasRestoredZoom = false
@@ -286,19 +290,19 @@ final class AfterCameraViewModel {
 enum AfterCameraCaptureErrorMessages {
     static func text(for error: Error) -> String {
         if error is CameraSessionError {
-            return String(localized: "카메라에서 사진을 가져올 수 없습니다. 다시 시도해 주세요.")
+            return String(localized: "camera_error_capture_failed")
         }
         if let captureAfter = error as? CaptureAfterUseCase.CaptureAfterError {
             switch captureAfter {
                 case .pairNotFound:
-                    return String(localized: "사진 정보를 저장하지 못했습니다. 다시 시도해 주세요.")
+                    return String(localized: "camera_error_persist_failed")
             }
         }
         let nsError = error as NSError
         if nsError.domain == NSCocoaErrorDomain || nsError.domain == NSPOSIXErrorDomain {
-            return String(localized: "사진을 저장할 공간이 부족합니다.")
+            return String(localized: "camera_error_no_disk_space")
         }
-        return String(localized: "촬영을 완료할 수 없습니다. 잠시 후 다시 시도해 주세요.")
+        return String(localized: "camera_error_unknown")
     }
 }
 

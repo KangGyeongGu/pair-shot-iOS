@@ -1,13 +1,13 @@
 import Foundation
 
-enum ExportContents: String, Equatable, CaseIterable {
+nonisolated enum ExportContents: String, Equatable, CaseIterable {
     case all
     case beforeOnly
     case afterOnly
     case combinedOnly
 }
 
-enum ExportFormat: String, Equatable, CaseIterable {
+nonisolated enum ExportFormat: String, Equatable, CaseIterable {
     case zip
     case individualImages
 }

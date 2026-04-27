@@ -58,7 +58,7 @@ struct CombinePositionPicker3x3: View {
                     .frame(width: Self.cellSide, height: Self.cellSide)
                 if isSelected {
                     Image(systemName: "checkmark")
-                        .font(.system(size: 14, weight: .bold))
+                        .font(.appCaptionBold)
                         .foregroundStyle(Color.white)
                 }
             }
@@ -81,22 +81,22 @@ struct CombinePositionPicker3x3: View {
     private func horizontalLabel(_ value: CombineSettings.LabelPosition.Horizontal) -> String {
         switch value {
             case .leading:
-                String(localized: "왼쪽")
+                String(localized: "combine_position_left")
             case .center:
-                String(localized: "가운데")
+                String(localized: "combine_position_center")
             case .trailing:
-                String(localized: "오른쪽")
+                String(localized: "combine_position_right")
         }
     }
 
     private func verticalLabel(_ value: CombineSettings.LabelPosition.Vertical) -> String {
         switch value {
             case .top:
-                String(localized: "상단")
+                String(localized: "combine_position_top")
             case .middle:
-                String(localized: "중단")
+                String(localized: "combine_position_middle")
             case .bottom:
-                String(localized: "하단")
+                String(localized: "combine_position_bottom")
         }
     }
     // swiftlint:enable switch_case_alignment vertical_whitespace_between_cases
@@ -108,7 +108,7 @@ private struct CombinePositionPicker3x3PreviewWrapper: View {
     var body: some View {
         Form {
             CombinePositionPicker3x3(
-                label: String(localized: "Before 위치"),
+                label: String(localized: "combine_field_position_before"),
                 selection: $selection
             )
         }

@@ -36,9 +36,9 @@ struct CompositionSettingsGate<Content: View>: View {
             Image(systemName: "lock.shield")
                 .font(.largeTitle)
                 .foregroundStyle(.secondary)
-            Text(String(localized: "프리미엄 설정"))
+            Text(String(localized: "rewarded_gate_premium_title"))
                 .font(.title3.bold())
-            Text(String(localized: "광고를 시청하면 이 세션 동안 잠금이 해제됩니다"))
+            Text(String(localized: "rewarded_gate_session_unlock_hint"))
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -51,7 +51,7 @@ struct CompositionSettingsGate<Content: View>: View {
                     ProgressView()
                 } else {
                     Label(
-                        String(localized: "광고 보고 잠금 해제"),
+                        String(localized: "rewarded_gate_button_watch"),
                         systemImage: "play.rectangle.fill"
                     )
                     .font(.headline)
@@ -67,7 +67,7 @@ struct CompositionSettingsGate<Content: View>: View {
             }
 
             if !rewardedManager.isLoaded, !rewardedManager.isLoading {
-                Button(String(localized: "광고 다시 불러오기")) {
+                Button(String(localized: "rewarded_gate_button_reload")) {
                     rewardedManager.loadIfNeeded(adFreeStore: adFreeStore)
                 }
                 .font(.caption)
@@ -96,11 +96,11 @@ struct CompositionSettingsGate<Content: View>: View {
                 lastFailureReason = nil
 
             case .userClosed:
-                lastFailureReason = String(localized: "보상을 받으려면 광고를 끝까지 시청하세요")
+                lastFailureReason = String(localized: "rewarded_gate_failure_not_completed")
 
             case let .failed(reason):
                 lastFailureReason = String(
-                    format: String(localized: "광고를 표시할 수 없습니다 (%@)"),
+                    format: String(localized: "rewarded_gate_failure_show_failed_template"),
                     reason
                 )
         }

@@ -20,17 +20,16 @@ struct RootView: View {
                 }
         }
         .alert(
-            String(localized: "저장소 초기화 실패"),
+            String(localized: "root_storage_init_failed_title"),
             isPresented: $showFallbackAlert
         ) {
-            Button(String(localized: "확인"), role: .cancel) {
+            Button(String(localized: "common_button_confirm"), role: .cancel) {
                 showFallbackAlert = false
             }
         } message: {
-            Text(String(
-                localized: "일시 모드로 동작합니다. 데이터가 보존되지 않습니다. 앱 재시작 후에도 문제가 지속되면 재설치가 필요합니다."
-            ))
+            Text(String(localized: "root_storage_init_failed_message"))
         }
+        .snackbarOverlay(env.snackbarQueue)
     }
 
     @ViewBuilder
@@ -38,12 +37,22 @@ struct RootView: View {
     private func destination(for route: Route) -> some View {
         switch route {
             case .home:
-                HomeView(onOpenAlbum: { albumId in
-                    path.append(.albumDetail(albumId: albumId))
-                })
+                HomeView(
+                    onOpenAlbum: { albumId in
+                        path.append(.albumDetail(albumId: albumId))
+                    },
+                    onPushExportSettings: { pairIds in
+                        path.append(.exportSettings(pairIds: pairIds, albumId: nil))
+                    }
+                )
 
             case let .albumDetail(albumId):
-                AlbumDetailView(albumId: albumId)
+                AlbumDetailView(
+                    albumId: albumId,
+                    onPushExportSettings: { pairIds in
+                        path.append(.exportSettings(pairIds: pairIds, albumId: albumId))
+                    }
+                )
 
             case let .pairPicker(albumId):
                 PairPickerView(albumId: albumId)
@@ -57,9 +66,16 @@ struct RootView: View {
             case .license:
                 LicenseView()
 
+            case let .exportSettings(pairIds, albumId):
+                ExportSettingsView(
+                    viewModel: env.makeExportSettingsViewModel(
+                        pairIds: pairIds,
+                        albumId: albumId
+                    )
+                )
+
             case .pairPreview,
-                 .settings,
-                 .exportSettings:
+                 .settings:
                 EmptyView()
         }
     }

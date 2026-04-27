@@ -11,6 +11,8 @@ struct ZoomControl: View {
     let onDragChanged: (Double) -> Void
     let onDragEnded: () -> Void
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     init(
         activePreset: ZoomPreset?,
         isSupported: @escaping (ZoomPreset) -> Bool,
@@ -42,15 +44,15 @@ struct ZoomControl: View {
                     maxRatio: maxRatio
                 )
                 .frame(maxWidth: .infinity)
-                .padding(.horizontal, 16)
-                .transition(.opacity.combined(with: .move(edge: .bottom)))
+                .padding(.horizontal, AppSpacing.lg)
+                .transition(reduceMotion ? .opacity : .opacity.combined(with: .move(edge: .bottom)))
             } else {
                 presetCapsule
-                    .transition(.opacity.combined(with: .move(edge: .top)))
+                    .transition(reduceMotion ? .opacity : .opacity.combined(with: .move(edge: .top)))
             }
         }
         .frame(height: 60)
-        .animation(.easeOut(duration: 0.18), value: isDragging)
+        .animation(reduceMotion ? nil : .easeOut(duration: 0.18), value: isDragging)
         .gesture(dragGesture)
     }
 
@@ -100,7 +102,7 @@ struct ZoomControl: View {
 
 #Preview {
     ZStack {
-        Color.gray
+        Color.appOnSurfaceVariant
         ZoomControl(
             activePreset: .wide,
             isSupported: { _ in true },

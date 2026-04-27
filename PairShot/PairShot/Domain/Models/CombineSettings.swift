@@ -2,7 +2,7 @@ import Foundation
 import SwiftUI
 import UIKit
 
-struct ColorRGBA: Codable, Equatable {
+nonisolated struct ColorRGBA: Codable, Equatable {
     static let white = Self(red: 1, green: 1, blue: 1)
     static let black = Self(red: 0, green: 0, blue: 0)
 
@@ -65,18 +65,18 @@ extension Color {
     }
 }
 
-struct CombineSettings: Codable, Equatable {
-    enum Direction: String, Codable, CaseIterable {
+nonisolated struct CombineSettings: Codable, Equatable {
+    nonisolated enum Direction: String, Codable, CaseIterable {
         case horizontal
         case vertical
     }
 
-    enum LabelMode: String, Codable, CaseIterable {
+    nonisolated enum LabelMode: String, Codable, CaseIterable {
         case fullWidth = "full_width"
         case free
     }
 
-    struct Border: Codable, Equatable {
+    nonisolated struct Border: Codable, Equatable {
         static let `default` = Self()
 
         var isEnabled: Bool
@@ -94,7 +94,7 @@ struct CombineSettings: Codable, Equatable {
         }
     }
 
-    struct Label: Codable, Equatable {
+    nonisolated struct Label: Codable, Equatable {
         static let `default` = Self()
 
         var isEnabled: Bool
@@ -118,14 +118,14 @@ struct CombineSettings: Codable, Equatable {
         }
     }
 
-    struct LabelPosition: Codable, Equatable {
-        enum Horizontal: String, Codable, CaseIterable {
+    nonisolated struct LabelPosition: Codable, Equatable {
+        nonisolated enum Horizontal: String, Codable, CaseIterable {
             case leading
             case center
             case trailing
         }
 
-        enum Vertical: String, Codable, CaseIterable {
+        nonisolated enum Vertical: String, Codable, CaseIterable {
             case top
             case middle
             case bottom
@@ -140,7 +140,7 @@ struct CombineSettings: Codable, Equatable {
         }
     }
 
-    struct LabelBackground: Codable, Equatable {
+    nonisolated struct LabelBackground: Codable, Equatable {
         static let `default` = Self()
 
         var isEnabled: Bool

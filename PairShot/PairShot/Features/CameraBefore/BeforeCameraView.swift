@@ -22,7 +22,7 @@ struct BeforeCameraView: View {
 
     var body: some View {
         ZStack {
-            Color.black.ignoresSafeArea()
+            Color.appCameraBackground.ignoresSafeArea()
 
             if let viewModel {
                 content(for: viewModel)

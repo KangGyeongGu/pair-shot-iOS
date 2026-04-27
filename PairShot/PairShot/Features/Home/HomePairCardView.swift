@@ -39,7 +39,7 @@ struct HomePairCardView: View {
     ) -> String {
         let statusText = statusLabel(for: pair)
         let selectionText: String? = isSelectionMode
-            ? (isSelected ? String(localized: "선택됨") : String(localized: "선택 안 됨"))
+            ? (isSelected ? String(localized: "common_state_selected") : String(localized: "common_state_unselected"))
             : nil
         return [statusText, selectionText]
             .compactMap(\.self)
@@ -76,7 +76,7 @@ struct HomePairCardView: View {
             ZStack {
                 Color(uiColor: .secondarySystemBackground)
                 Image(systemName: "camera.fill")
-                    .font(.system(size: 28, weight: .light))
+                    .font(.title.weight(.light))
                     .foregroundStyle(.secondary.opacity(0.4))
             }
         }
@@ -84,7 +84,7 @@ struct HomePairCardView: View {
 
     private var combinedIndicator: some View {
         Image(systemName: "square.on.square")
-            .font(.system(size: 14, weight: .semibold))
+            .font(.appCaptionBold)
             .foregroundStyle(Color.white)
             .frame(width: 28, height: 28)
             .background(Color.accentColor, in: RoundedRectangle(cornerRadius: 8))
@@ -116,9 +116,9 @@ struct HomePairCardView: View {
 
     private static func statusLabel(for pair: PhotoPair) -> String {
         switch pair.status {
-            case .scheduled: String(localized: "Before 만 촬영된 페어")
-            case .captured: String(localized: "완료된 페어")
-            case .combined: String(localized: "합성 완료된 페어")
+            case .scheduled: String(localized: "pair_card_desc_scheduled")
+            case .captured: String(localized: "pair_card_desc_captured")
+            case .combined: String(localized: "pair_card_desc_combined")
         }
     }
 }
@@ -144,7 +144,7 @@ private struct HomePairCardSide: View {
                     .scaledToFill()
             } else if case .image = placeholder {
                 Image(systemName: "photo")
-                    .font(.system(size: 24, weight: .light))
+                    .font(.title2.weight(.light))
                     .foregroundStyle(.secondary)
             }
         }

@@ -1,16 +1,16 @@
 import Foundation
 import SwiftUI
 
-enum AppTheme: String, Codable, CaseIterable {
+nonisolated enum AppTheme: String, Codable, CaseIterable {
     case system
     case light
     case dark
 
     var displayName: String {
         switch self {
-            case .system: String(localized: "시스템 기본값")
-            case .light: String(localized: "라이트")
-            case .dark: String(localized: "다크")
+            case .system: String(localized: "theme_system")
+            case .light: String(localized: "theme_light")
+            case .dark: String(localized: "theme_dark")
         }
     }
 

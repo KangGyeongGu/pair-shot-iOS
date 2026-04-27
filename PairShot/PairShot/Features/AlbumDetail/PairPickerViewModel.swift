@@ -54,7 +54,7 @@ final class PairPickerViewModel {
             }
         }
         if failed {
-            errorMessage = String(localized: "일부 페어를 추가하지 못했습니다")
+            errorMessage = String(localized: "pair_picker_error_partial_add_failed")
         } else {
             didFinish = true
         }
@@ -62,16 +62,16 @@ final class PairPickerViewModel {
 
     var titleText: String {
         if selection.isEmpty {
-            return String(localized: "페어 선택")
+            return String(localized: "pair_picker_title")
         }
-        let format = String(localized: "%lld개 선택")
+        let format = String(localized: "pair_picker_selection_count_template")
         return String(format: format, selection.count)
     }
 
     var buttonLabel: String {
         isConfirming
-            ? String(localized: "추가 중…")
-            : String(localized: "추가")
+            ? String(localized: "pair_picker_button_adding")
+            : String(localized: "pair_picker_button_add")
     }
 
     var isConfirmDisabled: Bool {

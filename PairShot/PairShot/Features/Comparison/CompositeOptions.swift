@@ -1,7 +1,7 @@
 import Foundation
 import SwiftUI
 
-enum CompositeLayout: String, CaseIterable, Identifiable {
+nonisolated enum CompositeLayout: String, CaseIterable, Identifiable {
     case horizontal
     case vertical
 
@@ -11,8 +11,8 @@ enum CompositeLayout: String, CaseIterable, Identifiable {
 
     var label: String {
         switch self {
-            case .horizontal: String(localized: "좌우")
-            case .vertical: String(localized: "상하")
+            case .horizontal: String(localized: "combine_direction_horizontal")
+            case .vertical: String(localized: "combine_direction_vertical")
         }
     }
 
@@ -24,7 +24,7 @@ enum CompositeLayout: String, CaseIterable, Identifiable {
     }
 }
 
-struct CompositeOptions: Equatable {
+nonisolated struct CompositeOptions: Equatable {
     var layout: CompositeLayout
     var jpegQuality: CGFloat
     var watermarkEnabled: Bool

@@ -1,16 +1,16 @@
 import Foundation
 import SwiftData
 
-enum PairShotMigrationPlan: SchemaMigrationPlan {
-    static var schemas: [any VersionedSchema.Type] {
-        [SchemaV1.self, SchemaV2.self]
+nonisolated enum PairShotMigrationPlan: SchemaMigrationPlan {
+    nonisolated static var schemas: [any VersionedSchema.Type] {
+        [SchemaV1.self, SchemaV2.self, SchemaV3.self]
     }
 
-    static var stages: [MigrationStage] {
-        [v1ToV2]
+    nonisolated static var stages: [MigrationStage] {
+        [v1ToV2, v2ToV3]
     }
 
-    static let v1ToV2 = MigrationStage.custom(
+    nonisolated static let v1ToV2 = MigrationStage.custom(
         fromVersion: SchemaV1.self,
         toVersion: SchemaV2.self,
         willMigrate: { context in
@@ -20,10 +20,43 @@ enum PairShotMigrationPlan: SchemaMigrationPlan {
             try V1ToV2Migrator.didMigrate(context: context)
         }
     )
+
+    nonisolated static let v2ToV3 = MigrationStage.custom(
+        fromVersion: SchemaV2.self,
+        toVersion: SchemaV3.self,
+        willMigrate: nil,
+        didMigrate: { context in
+            try V2ToV3Migrator.didMigrate(context: context)
+        }
+    )
 }
 
-enum V1ToV2Migrator {
-    struct LegacySnapshot: Equatable {
+nonisolated enum V2ToV3Migrator {
+    nonisolated static func didMigrate(context: ModelContext) throws {
+        let coupons = try context.fetch(FetchDescriptor<Coupon>())
+        var changed = false
+        for coupon in coupons {
+            if coupon.kindRawString.isEmpty {
+                coupon.kindRawString = "\(CouponKind.timedPrefix)\(coupon.durationDays)"
+                changed = true
+            }
+            if coupon.payloadVersion == 0 {
+                coupon.payloadVersion = CouponPayload.currentVersion
+                changed = true
+            }
+            if coupon.issuedAt == Date(timeIntervalSince1970: 0) {
+                coupon.issuedAt = coupon.activatedAt
+                changed = true
+            }
+        }
+        if changed {
+            try context.save()
+        }
+    }
+}
+
+nonisolated enum V1ToV2Migrator {
+    nonisolated struct LegacySnapshot: Equatable {
         let projectId: UUID
         let projectTitle: String
         let projectLatitude: Double?
@@ -34,7 +67,7 @@ enum V1ToV2Migrator {
         let pairs: [PairSnapshot]
     }
 
-    struct PairSnapshot: Equatable {
+    nonisolated struct PairSnapshot: Equatable {
         let pairId: UUID
         let beforePath: String
         let afterPath: String?
@@ -47,7 +80,7 @@ enum V1ToV2Migrator {
 
     nonisolated(unsafe) static var capturedSnapshots: [LegacySnapshot] = []
 
-    static func willMigrate(context: ModelContext) throws {
+    nonisolated static func willMigrate(context: ModelContext) throws {
         let projects = try context.fetch(FetchDescriptor<SchemaV1.LegacyProject>())
         capturedSnapshots = projects.map { project in
             LegacySnapshot(
@@ -78,7 +111,7 @@ enum V1ToV2Migrator {
         try context.save()
     }
 
-    static func didMigrate(context: ModelContext) throws {
+    nonisolated static func didMigrate(context: ModelContext) throws {
         let snapshots = capturedSnapshots
         capturedSnapshots = []
         for snapshot in snapshots {
@@ -101,7 +134,7 @@ enum V1ToV2Migrator {
         try context.save()
     }
 
-    private static func makePair(from snapshot: PairSnapshot, parent: LegacySnapshot) -> PhotoPair {
+    private nonisolated static func makePair(from snapshot: PairSnapshot, parent: LegacySnapshot) -> PhotoPair {
         let camera = CameraSettings(
             zoomFactor: snapshot.beforeZoomFactor,
             lensPosition: lensPosition(for: snapshot.beforeLensIdentifier),
@@ -124,13 +157,13 @@ enum V1ToV2Migrator {
         return pair
     }
 
-    static func extractFileName(_ relativePath: String) -> String {
+    nonisolated static func extractFileName(_ relativePath: String) -> String {
         let trimmed = relativePath.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return "" }
         return (trimmed as NSString).lastPathComponent
     }
 
-    static func lensPosition(for identifier: String?) -> LensPosition {
+    nonisolated static func lensPosition(for identifier: String?) -> LensPosition {
         guard let identifier else { return .backWide }
         let lower = identifier.lowercased()
         if lower.contains("ultra") { return .backUltraWide }

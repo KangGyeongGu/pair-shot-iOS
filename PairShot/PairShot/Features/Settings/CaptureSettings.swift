@@ -10,7 +10,7 @@ struct CaptureSettingsView: View {
             qualitySection
             prefixSection
         }
-        .navigationTitle(String(localized: "촬영"))
+        .navigationTitle(String(localized: "capture_settings_title"))
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             prefixDraft = appSettings.fileNamePrefix
@@ -19,14 +19,14 @@ struct CaptureSettingsView: View {
 
     private var qualitySection: some View {
         Section {
-            Picker(String(localized: "JPEG 품질"), selection: qualityBinding) {
+            Picker(String(localized: "capture_settings_jpeg_quality_picker"), selection: qualityBinding) {
                 ForEach(CaptureQualityPreset.allCases) { preset in
                     Text(preset.label).tag(preset)
                 }
             }
             .pickerStyle(.segmented)
         } header: {
-            Text(String(localized: "JPEG 품질"))
+            Text(String(localized: "capture_settings_jpeg_quality_picker"))
         } footer: {
             Text(qualityFooter)
         }
@@ -43,7 +43,7 @@ struct CaptureSettingsView: View {
         let preset = CaptureQualityPreset.nearest(to: appSettings.jpegQuality)
         let percent = Int((preset.rawValue * 100).rounded())
         return String(
-            format: String(localized: "현재 %@ (%d%%) — 합성 사진 저장 시 적용"),
+            format: String(localized: "capture_settings_overlay_summary_template"),
             preset.label,
             percent
         )
@@ -52,7 +52,7 @@ struct CaptureSettingsView: View {
     private var prefixSection: some View {
         Section {
             TextField(
-                String(localized: "예: site-A_"),
+                String(localized: "capture_settings_filename_prefix_placeholder"),
                 text: $prefixDraft
             )
             .textInputAutocapitalization(.never)
@@ -65,7 +65,7 @@ struct CaptureSettingsView: View {
                 appSettings.fileNamePrefix = cleaned
             }
         } header: {
-            Text(String(localized: "파일명 prefix"))
+            Text(String(localized: "capture_settings_filename_prefix"))
         } footer: {
             Text(prefixFooter)
         }
@@ -74,13 +74,10 @@ struct CaptureSettingsView: View {
     private var prefixFooter: String {
         let safe = FileNamePrefixValidator.sanitize(prefixDraft)
         if safe.isEmpty {
-            return String(
-                localized:
-                "비워두면 \"<UUID>.jpg\" 로 저장됩니다. 슬래시·콜론 등 파일시스템 금지 문자는 자동으로 제거됩니다."
-            )
+            return String(localized: "capture_settings_filename_empty_hint")
         }
         return String(
-            format: String(localized: "예: %@<UUID>.jpg (최대 %d자)"),
+            format: String(localized: "capture_settings_filename_format_template"),
             safe,
             FileNamePrefixValidator.maxLength
         )

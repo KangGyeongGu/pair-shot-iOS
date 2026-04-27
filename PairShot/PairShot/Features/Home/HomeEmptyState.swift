@@ -11,7 +11,7 @@ struct HomeEmptyState: View {
     var body: some View {
         VStack(spacing: 16) {
             Image(systemName: systemImage)
-                .font(.system(size: 56, weight: .light))
+                .font(.largeTitle.weight(.light))
                 .foregroundStyle(.secondary)
 
             Text(headline)
@@ -33,8 +33,8 @@ struct HomeEmptyState: View {
 
     private var headline: String {
         switch variant {
-            case .pairs: String(localized: "Before 카메라에서 첫 페어를 만드세요")
-            case .albums: String(localized: "하단 + 버튼으로 새 앨범을 만드세요")
+            case .pairs: String(localized: "home_empty_pairs")
+            case .albums: String(localized: "home_empty_albums")
         }
     }
 }

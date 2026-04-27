@@ -17,7 +17,7 @@ struct AfterCameraStrip: View {
         }
         .frame(height: 168)
         .frame(maxWidth: .infinity)
-        .background(Color.black)
+        .background(Color.appLetterbox)
     }
 
     private var scrollArea: some View {
@@ -55,7 +55,7 @@ struct AfterCameraStripProgressBar: View {
 
     var body: some View {
         Text(String(
-            format: String(localized: "%d / %d 완료"),
+            format: String(localized: "after_strip_progress"),
             progress.completed,
             progress.total
         ))
@@ -76,6 +76,8 @@ struct AfterStripCard: View {
     let isActive: Bool
     let storage: PhotoStorageService
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     @State private var thumbnail: UIImage?
 
     var body: some View {
@@ -89,7 +91,7 @@ struct AfterStripCard: View {
                     .scaledToFill()
             } else {
                 Image(systemName: "photo")
-                    .font(.system(size: 22))
+                    .font(.title3)
                     .foregroundStyle(.white.opacity(0.45))
             }
         }
@@ -103,8 +105,8 @@ struct AfterStripCard: View {
                 )
         )
         .scaleEffect(isActive ? 1.0 : 0.85, anchor: .bottom)
-        .animation(.easeInOut(duration: 0.18), value: isActive)
-        .accessibilityLabel(String(localized: "After 촬영 대상 페어"))
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.18), value: isActive)
+        .accessibilityLabel(String(localized: "after_strip_target_pair_desc"))
         .task(id: pair.id) {
             await loadThumbnail()
         }

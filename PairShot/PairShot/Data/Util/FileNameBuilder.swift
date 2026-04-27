@@ -1,6 +1,6 @@
 import Foundation
 
-enum FileNameBuilder {
+nonisolated enum FileNameBuilder {
     enum PhotoType: String {
         case before
         case after
@@ -74,7 +74,7 @@ enum FileNameBuilder {
     }
 }
 
-struct FileNameBuilderAdapter: FileNameBuilding {
+nonisolated struct FileNameBuilderAdapter: FileNameBuilding {
     func before(prefix: String, timestamp: Date, pairId: UUID) -> String {
         FileNameBuilder.before(prefix: prefix, timestamp: timestamp, pairId: pairId)
     }

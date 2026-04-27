@@ -30,12 +30,12 @@ struct BeforeCameraStrip: View {
         }
         .frame(height: 168)
         .frame(maxWidth: .infinity)
-        .background(Color.black)
+        .background(Color.appLetterbox)
     }
 
     private var emptyState: some View {
-        Text(String(localized: "아직 촬영된 Before가 없습니다"))
-            .font(.caption)
+        Text(String(localized: "camera_strip_empty"))
+            .font(.appCaption)
             .foregroundStyle(.white.opacity(0.65))
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .multilineTextAlignment(.center)
@@ -60,7 +60,7 @@ struct BeforeStripCard: View {
                     .scaledToFill()
             } else {
                 Image(systemName: "photo")
-                    .font(.system(size: 22))
+                    .font(.title3)
                     .foregroundStyle(.white.opacity(0.45))
             }
         }
@@ -70,7 +70,7 @@ struct BeforeStripCard: View {
                 .stroke(Color.white.opacity(0.18), lineWidth: 1)
         )
         .scaleEffect(0.85, anchor: .bottom)
-        .accessibilityLabel(String(localized: "Before 사진 — After 촬영하기"))
+        .accessibilityLabel(String(localized: "camera_strip_thumbnail_desc"))
         .task(id: pair.id) {
             await loadThumbnail()
         }

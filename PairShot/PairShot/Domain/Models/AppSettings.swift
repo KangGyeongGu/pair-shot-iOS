@@ -81,7 +81,7 @@ final class AppSettings {
     }
 }
 
-enum CompositionDefaults {
+nonisolated enum CompositionDefaults {
     static let alphaRange: ClosedRange<Double> = 0.0 ... 1.0
     static let fallbackAlpha: Double = 0.5
     static let fallbackLayout: CompositeLayout = .horizontal
@@ -96,7 +96,7 @@ enum CompositionDefaults {
     }
 }
 
-enum CaptureQualityPreset: Double, CaseIterable, Identifiable {
+nonisolated enum CaptureQualityPreset: Double, CaseIterable, Identifiable {
     case low = 0.6
     case standard = 0.8
     case high = 0.95
@@ -107,9 +107,9 @@ enum CaptureQualityPreset: Double, CaseIterable, Identifiable {
 
     var label: String {
         switch self {
-            case .low: String(localized: "낮음")
-            case .standard: String(localized: "표준")
-            case .high: String(localized: "높음")
+            case .low: String(localized: "image_quality_low")
+            case .standard: String(localized: "image_quality_standard")
+            case .high: String(localized: "image_quality_high")
         }
     }
 
@@ -118,7 +118,7 @@ enum CaptureQualityPreset: Double, CaseIterable, Identifiable {
     }
 }
 
-enum FileNamePrefixValidator {
+nonisolated enum FileNamePrefixValidator {
     static let maxLength = 32
 
     static let forbiddenCharacters: CharacterSet = {

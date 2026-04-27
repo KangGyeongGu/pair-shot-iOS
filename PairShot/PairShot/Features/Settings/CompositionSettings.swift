@@ -9,7 +9,7 @@ struct CompositionSettingsView: View {
             layoutSection
             watermarkSection
         }
-        .navigationTitle(String(localized: "합성"))
+        .navigationTitle(String(localized: "composition_settings_title"))
         .navigationBarTitleDisplayMode(.inline)
     }
 
@@ -30,11 +30,9 @@ struct CompositionSettingsView: View {
                 }
             }
         } header: {
-            Text(String(localized: "반투명 overlay"))
+            Text(String(localized: "composition_section_overlay"))
         } footer: {
-            Text(String(
-                localized: "After 카메라 진입 시 시작값으로 사용됩니다. 화면에서 더 미세하게 조정할 수 있습니다."
-            ))
+            Text(String(localized: "composition_overlay_hint_after_camera"))
         }
     }
 
@@ -52,7 +50,7 @@ struct CompositionSettingsView: View {
 
     private var layoutSection: some View {
         Section {
-            Picker(String(localized: "합성 레이아웃"), selection: layoutBinding) {
+            Picker(String(localized: "composition_section_layout"), selection: layoutBinding) {
                 ForEach(CompositeLayout.allCases) { layout in
                     Label(layout.label, systemImage: layout.systemImage)
                         .tag(layout)
@@ -60,7 +58,7 @@ struct CompositionSettingsView: View {
             }
             .pickerStyle(.segmented)
         } header: {
-            Text(String(localized: "합성 레이아웃"))
+            Text(String(localized: "composition_section_layout"))
         } footer: {
             Text(layoutFooter)
         }
@@ -76,10 +74,10 @@ struct CompositionSettingsView: View {
     private var layoutFooter: String {
         switch appSettings.defaultCompositeLayout {
             case .horizontal:
-                String(localized: "Before 왼쪽, After 오른쪽으로 이어 붙입니다.")
+                String(localized: "composition_layout_left_right_desc")
 
             case .vertical:
-                String(localized: "Before 위, After 아래로 이어 붙입니다.")
+                String(localized: "composition_layout_top_bottom_desc")
         }
     }
 
@@ -87,16 +85,14 @@ struct CompositionSettingsView: View {
         Section {
             Toggle(isOn: watermarkBinding) {
                 Label(
-                    String(localized: "워터마크 표시"),
+                    String(localized: "composition_overlay_show_watermark"),
                     systemImage: "signature"
                 )
             }
         } header: {
-            Text(String(localized: "워터마크"))
+            Text(String(localized: "composition_section_watermark"))
         } footer: {
-            Text(String(
-                localized: "켜면 합성 사진 우측 하단에 앱 이름과 촬영 시각이 표시됩니다."
-            ))
+            Text(String(localized: "composition_watermark_hint"))
         }
     }
 

@@ -11,7 +11,7 @@ struct CombinePreviewCard: View {
             .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
             .overlay(borderOverlay)
             .accessibilityElement(children: .combine)
-            .accessibilityLabel(String(localized: "합성 미리보기"))
+            .accessibilityLabel(String(localized: "combine_preview_desc"))
     }
 
     private var aspectRatio: CGFloat {
@@ -30,12 +30,12 @@ struct CombinePreviewCard: View {
                 HStack(spacing: 0) {
                     pane(
                         text: settings.label.beforeText,
-                        background: Color.gray.opacity(0.4),
+                        background: Color.appOnSurfaceVariant.opacity(0.4),
                         position: settings.beforePosition
                     )
                     pane(
                         text: settings.label.afterText,
-                        background: Color.gray.opacity(0.6),
+                        background: Color.appOnSurfaceVariant.opacity(0.6),
                         position: settings.afterPosition
                     )
                 }
@@ -43,12 +43,12 @@ struct CombinePreviewCard: View {
                 VStack(spacing: 0) {
                     pane(
                         text: settings.label.beforeText,
-                        background: Color.gray.opacity(0.4),
+                        background: Color.appOnSurfaceVariant.opacity(0.4),
                         position: settings.beforePosition
                     )
                     pane(
                         text: settings.label.afterText,
-                        background: Color.gray.opacity(0.6),
+                        background: Color.appOnSurfaceVariant.opacity(0.6),
                         position: settings.afterPosition
                     )
                 }

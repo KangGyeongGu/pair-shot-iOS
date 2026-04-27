@@ -6,26 +6,26 @@ struct CameraSettingsSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section(String(localized: "화면 보조")) {
-                    Toggle(String(localized: "격자"), isOn: gridBinding)
-                    Toggle(String(localized: "수평계"), isOn: levelBinding)
-                    Toggle(String(localized: "야간모드"), isOn: nightModeBinding)
+                Section(String(localized: "camera_settings_section_screen_aid")) {
+                    Toggle(String(localized: "camera_settings_grid"), isOn: gridBinding)
+                    Toggle(String(localized: "camera_settings_level"), isOn: levelBinding)
+                    Toggle(String(localized: "camera_settings_night_mode"), isOn: nightModeBinding)
                 }
 
-                Section(String(localized: "플래시")) {
+                Section(String(localized: "camera_settings_section_flash")) {
                     Picker(
-                        String(localized: "플래시"),
+                        String(localized: "camera_settings_section_flash"),
                         selection: flashBinding
                     ) {
-                        Text(String(localized: "끔")).tag(CameraFlashMode.off)
-                        Text(String(localized: "켬")).tag(CameraFlashMode.on)
-                        Text(String(localized: "자동")).tag(CameraFlashMode.auto)
-                        Text(String(localized: "토치")).tag(CameraFlashMode.torch)
+                        Text(String(localized: "camera_flash_off")).tag(CameraFlashMode.off)
+                        Text(String(localized: "camera_flash_on")).tag(CameraFlashMode.on)
+                        Text(String(localized: "camera_flash_auto")).tag(CameraFlashMode.auto)
+                        Text(String(localized: "camera_flash_torch")).tag(CameraFlashMode.torch)
                     }
                     .pickerStyle(.segmented)
                 }
             }
-            .navigationTitle(String(localized: "카메라 설정"))
+            .navigationTitle(String(localized: "camera_desc_settings"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -33,7 +33,7 @@ struct CameraSettingsSheet: View {
                         viewModel.showSettingsSheet = false
                     } label: {
                         Image(systemName: "xmark")
-                            .accessibilityLabel(String(localized: "닫기"))
+                            .accessibilityLabel(String(localized: "common_button_close"))
                     }
                 }
             }

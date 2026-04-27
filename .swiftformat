@@ -7,4 +7,5 @@
 --wraparguments before-first
 --wrapparameters before-first
 --maxwidth 120
+--decimalgrouping ignore
 --exclude DerivedData,.build,Packages,.claude

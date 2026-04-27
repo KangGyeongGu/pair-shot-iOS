@@ -35,7 +35,6 @@ final class AlbumDetailViewModel {
 
     var pendingPairDelete: AlbumDetailPairDeleteRequest?
     var pendingSinglePairDelete: AlbumDetailSinglePairDeleteRequest?
-    var pendingExport: ExportPickerPayload?
     var pendingPreviewPair: AlbumDetailPairPreviewRequest?
 
     var showBeforeCamera: Bool = false
@@ -136,12 +135,6 @@ final class AlbumDetailViewModel {
 
     func startPairPicker() {
         navigateToPairPicker = true
-    }
-
-    func presentExport(from all: [PhotoPair]) {
-        let chosen = all.filter { selectedPairIds.contains($0.id) }
-        guard !chosen.isEmpty else { return }
-        pendingExport = ExportPickerPayload(pairs: chosen)
     }
 
     func requestPairDeletion(from all: [PhotoPair]) {

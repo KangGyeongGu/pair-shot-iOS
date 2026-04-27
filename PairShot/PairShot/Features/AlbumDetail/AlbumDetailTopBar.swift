@@ -10,7 +10,7 @@ struct AlbumDetailDefaultToolbar: ToolbarContent {
                 Button {
                     onRename()
                 } label: {
-                    Label(String(localized: "이름 변경"), systemImage: "pencil")
+                    Label(String(localized: "common_button_rename"), systemImage: "pencil")
                 }
 
                 Divider()
@@ -18,12 +18,12 @@ struct AlbumDetailDefaultToolbar: ToolbarContent {
                 Button(role: .destructive) {
                     onDelete()
                 } label: {
-                    Label(String(localized: "삭제"), systemImage: "trash")
+                    Label(String(localized: "common_button_delete"), systemImage: "trash")
                 }
             } label: {
                 Image(systemName: "ellipsis.circle")
             }
-            .accessibilityLabel(String(localized: "더 보기"))
+            .accessibilityLabel(String(localized: "common_desc_more"))
         }
     }
 }
@@ -41,17 +41,17 @@ struct AlbumDetailSelectionToolbar: ToolbarContent {
             } label: {
                 Image(systemName: "xmark")
             }
-            .accessibilityLabel(String(localized: "선택 해제"))
+            .accessibilityLabel(String(localized: "home_desc_deselect"))
         }
         ToolbarItem(placement: .principal) {
-            Text(String(format: String(localized: "%lld개 선택"), selectionCount))
+            Text(String(format: String(localized: "pair_picker_selection_count_template"), selectionCount))
                 .font(.headline)
         }
         ToolbarItem(placement: .topBarTrailing) {
             Button(action: onToggleSelectAll) {
                 Text(allSelected
-                    ? String(localized: "전체해제")
-                    : String(localized: "전체선택")
+                    ? String(localized: "home_button_deselect_all")
+                    : String(localized: "home_button_select_all")
                 )
             }
         }
@@ -65,19 +65,19 @@ struct AlbumDetailRenameAlert: ViewModifier {
     func body(content: Content) -> some View {
         content
             .alert(
-                String(localized: "앨범 이름 수정"),
+                String(localized: "album_dialog_rename_title"),
                 isPresented: $viewModel.showRenameAlert
             ) {
-                TextField(String(localized: "앨범 이름 입력"), text: $viewModel.renameDraft)
+                TextField(String(localized: "album_dialog_rename_placeholder"), text: $viewModel.renameDraft)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled(true)
 
-                Button(String(localized: "저장")) {
+                Button(String(localized: "common_button_save")) {
                     Task { await viewModel.confirmRename(album: album) }
                 }
                 .disabled(viewModel.renameDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
 
-                Button(String(localized: "취소"), role: .cancel) {}
+                Button(String(localized: "common_button_cancel"), role: .cancel) {}
             }
     }
 }
@@ -88,15 +88,15 @@ struct AlbumDetailDeleteAlbumAlert: ViewModifier {
     func body(content: Content) -> some View {
         content
             .alert(
-                String(localized: "앨범 삭제"),
+                String(localized: "album_dialog_delete_title"),
                 isPresented: $viewModel.showAlbumDeleteAlert
             ) {
-                Button(String(localized: "삭제"), role: .destructive) {
+                Button(String(localized: "common_button_delete"), role: .destructive) {
                     Task { await viewModel.confirmAlbumDeletion() }
                 }
-                Button(String(localized: "취소"), role: .cancel) {}
+                Button(String(localized: "common_button_cancel"), role: .cancel) {}
             } message: {
-                Text(String(localized: "앨범을 삭제하시겠습니까? 페어는 유지됩니다."))
+                Text(String(localized: "album_dialog_delete_message"))
             }
     }
 }

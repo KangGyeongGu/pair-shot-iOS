@@ -18,11 +18,11 @@ struct SettingsView: View {
                     ProgressView()
                 }
             }
-            .navigationTitle(String(localized: "설정"))
+            .navigationTitle(String(localized: "settings_title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button(String(localized: "완료")) { dismiss() }
+                    Button(String(localized: "common_button_done")) { dismiss() }
                 }
             }
             .navigationDestination(for: Route.self) { route in
@@ -103,37 +103,35 @@ private struct SettingsFormBody: View {
         .listStyle(.insetGrouped)
         .refreshable { await viewModel.refreshStorageInfo() }
         .confirmationDialog(
-            String(localized: "언어 선택"),
+            String(localized: "settings_dialog_language_title"),
             isPresented: $viewModel.showLanguagePicker,
             titleVisibility: .visible
         ) {
-            Button(String(localized: "시스템 기본값")) { viewModel.setLanguage(.system) }
-            Button(String(localized: "한국어")) { viewModel.setLanguage(.korean) }
+            Button(String(localized: "language_system")) { viewModel.setLanguage(.system) }
+            Button(String(localized: "language_korean")) { viewModel.setLanguage(.korean) }
             Button(String(localized: "English")) { viewModel.setLanguage(.english) }
-            Button(String(localized: "취소"), role: .cancel) {}
+            Button(String(localized: "common_button_cancel"), role: .cancel) {}
         }
         .confirmationDialog(
-            String(localized: "테마 선택"),
+            String(localized: "settings_dialog_theme_title"),
             isPresented: $viewModel.showThemePicker,
             titleVisibility: .visible
         ) {
-            Button(String(localized: "시스템 기본값")) { viewModel.setTheme(.system) }
-            Button(String(localized: "라이트")) { viewModel.setTheme(.light) }
-            Button(String(localized: "다크")) { viewModel.setTheme(.dark) }
-            Button(String(localized: "취소"), role: .cancel) {}
+            Button(String(localized: "theme_system")) { viewModel.setTheme(.system) }
+            Button(String(localized: "theme_light")) { viewModel.setTheme(.light) }
+            Button(String(localized: "theme_dark")) { viewModel.setTheme(.dark) }
+            Button(String(localized: "common_button_cancel"), role: .cancel) {}
         }
         .alert(
-            String(localized: "캐시 초기화"),
+            String(localized: "settings_dialog_cache_clear_title"),
             isPresented: $viewModel.showCacheClearConfirm
         ) {
-            Button(String(localized: "초기화"), role: .destructive) {
+            Button(String(localized: "settings_dialog_cache_clear_button"), role: .destructive) {
                 Task { await viewModel.clearCache() }
             }
-            Button(String(localized: "취소"), role: .cancel) {}
+            Button(String(localized: "common_button_cancel"), role: .cancel) {}
         } message: {
-            Text(String(
-                localized: "캐시를 초기화하시겠습니까?\n썸네일이 삭제되며, 다시 생성됩니다."
-            ))
+            Text(String(localized: "settings_dialog_cache_clear_message"))
         }
     }
 }

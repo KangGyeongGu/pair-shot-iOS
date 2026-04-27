@@ -25,7 +25,7 @@ struct AfterCameraView: View {
 
     var body: some View {
         ZStack {
-            Color.black.ignoresSafeArea()
+            Color.appCameraBackground.ignoresSafeArea()
 
             if let viewModel {
                 content(for: viewModel)
@@ -154,6 +154,11 @@ struct AfterCameraView: View {
 
                 case .snackbarAllCompleted:
                     CaptureHaptics.success()
+                    env.snackbarQueue.enqueue(
+                        "snackbar_success_all_after_captured",
+                        variant: .success,
+                        debounceKey: "all-after-captured"
+                    )
             }
         }
     }

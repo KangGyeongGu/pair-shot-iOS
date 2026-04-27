@@ -39,7 +39,7 @@ struct GridOverlay: View {
 
 #Preview {
     ZStack {
-        Color.black
+        Color.appCameraBackground
         GridOverlay()
     }
 }

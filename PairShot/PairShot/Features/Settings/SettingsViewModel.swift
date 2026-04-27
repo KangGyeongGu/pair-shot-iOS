@@ -47,7 +47,7 @@ final class SettingsViewModel {
         let version = SettingsBundleMetadata.appVersionLabel
         let build = SettingsBundleMetadata.buildNumberLabel
         if version == "—", build == "—" { return "—" }
-        return String(format: String(localized: "%@ (%@)"), version, build)
+        return "\(version) (\(build))"
     }
 
     var languageDisplayText: String {
@@ -73,17 +73,17 @@ final class SettingsViewModel {
         if let photoStorageBytes {
             return SettingsStorageFormatter.formatBytes(photoStorageBytes)
         }
-        return isCalculatingStorage ? String(localized: "계산 중…") : "—"
+        return isCalculatingStorage ? String(localized: "settings_calculating_short") : "—"
     }
 
     var cacheText: String {
         if isClearingCache {
-            return String(localized: "삭제 중…")
+            return String(localized: "settings_deleting_short")
         }
         if let cacheBytes {
             return SettingsStorageFormatter.formatBytes(cacheBytes)
         }
-        return isCalculatingStorage ? String(localized: "계산 중…") : "—"
+        return isCalculatingStorage ? String(localized: "settings_calculating_short") : "—"
     }
 
     init(

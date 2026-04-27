@@ -3,7 +3,7 @@ import ImageIO
 import UIKit
 import UniformTypeIdentifiers
 
-enum ExifNormalizer {
+nonisolated enum ExifNormalizer {
     static let defaultJPEGQuality: CGFloat = 0.95
 
     static func normalize(_ data: Data, jpegQuality: CGFloat = defaultJPEGQuality) -> Data {
@@ -36,7 +36,7 @@ enum ExifNormalizer {
             nil
         ) else { return nil }
         let metadata: [String: Any] = [
-            kCGImagePropertyOrientation as String: 1
+            kCGImagePropertyOrientation as String: 1,
         ]
         CGImageDestinationAddImageFromSource(destination, source, 0, metadata as CFDictionary)
         guard CGImageDestinationFinalize(destination) else { return nil }
@@ -48,7 +48,7 @@ enum ExifNormalizer {
     }
 }
 
-enum ExifNormalizationTask {
+nonisolated enum ExifNormalizationTask {
     static func normalize(data: Data, jpegQuality: CGFloat) async -> Data {
         await Task.detached(priority: .userInitiated) {
             autoreleasepool {
@@ -58,7 +58,7 @@ enum ExifNormalizationTask {
     }
 }
 
-struct ExifNormalizerAdapter: ExifNormalizing {
+nonisolated struct ExifNormalizerAdapter: ExifNormalizing {
     func normalize(_ data: Data, jpegQuality: Double) async -> Data {
         await ExifNormalizationTask.normalize(data: data, jpegQuality: CGFloat(jpegQuality))
     }

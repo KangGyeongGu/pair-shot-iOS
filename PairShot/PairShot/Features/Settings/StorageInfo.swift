@@ -18,30 +18,28 @@ struct StorageInfoView: View {
             usageSection
             cleanupSection
         }
-        .navigationTitle(String(localized: "저장 공간"))
+        .navigationTitle(String(localized: "storage_title"))
         .navigationBarTitleDisplayMode(.inline)
         .task {
             await refreshDirectorySize()
         }
         .alert(
-            String(localized: "고아 파일을 삭제할까요?"),
+            String(localized: "storage_dialog_orphan_delete_title"),
             isPresented: $showPurgeConfirmation
         ) {
-            Button(String(localized: "삭제"), role: .destructive) {
+            Button(String(localized: "common_button_delete"), role: .destructive) {
                 Task { await runOrphanPurge() }
             }
-            Button(String(localized: "취소"), role: .cancel) {}
+            Button(String(localized: "common_button_cancel"), role: .cancel) {}
         } message: {
-            Text(String(
-                localized: "프로젝트에서 참조하지 않는 사진 파일만 삭제합니다. 이 작업은 되돌릴 수 없습니다."
-            ))
+            Text(String(localized: "storage_dialog_orphan_delete_message"))
         }
     }
 
     private var usageSection: some View {
         Section {
             HStack {
-                Label(String(localized: "사진 폴더 크기"), systemImage: "internaldrive")
+                Label(String(localized: "storage_label_photo_folder_size"), systemImage: "internaldrive")
                 Spacer()
                 if let directorySizeBytes {
                     Text(StorageInfoMath.formatBytes(directorySizeBytes))
@@ -54,7 +52,7 @@ struct StorageInfoView: View {
                 }
             }
             HStack {
-                Label(String(localized: "사진 페어 수"), systemImage: "rectangle.on.rectangle")
+                Label(String(localized: "storage_label_pair_count"), systemImage: "rectangle.on.rectangle")
                 Spacer()
                 Text("\(pairs.count)")
                     .foregroundStyle(.secondary)
@@ -66,11 +64,9 @@ struct StorageInfoView: View {
                     .foregroundStyle(.red)
             }
         } header: {
-            Text(String(localized: "저장 공간"))
+            Text(String(localized: "storage_section_storage"))
         } footer: {
-            Text(String(
-                localized: "사진 파일은 앱 전용 폴더에 저장됩니다. 앱을 삭제하면 함께 사라집니다."
-            ))
+            Text(String(localized: "storage_section_storage_hint"))
         }
     }
 
@@ -80,7 +76,7 @@ struct StorageInfoView: View {
                 showPurgeConfirmation = true
             } label: {
                 HStack {
-                    Label(String(localized: "고아 파일 삭제"), systemImage: "trash")
+                    Label(String(localized: "storage_button_delete_orphans"), systemImage: "trash")
                     Spacer()
                     if isPurging {
                         ProgressView()
@@ -95,11 +91,9 @@ struct StorageInfoView: View {
                     .foregroundStyle(.secondary)
             }
         } header: {
-            Text(String(localized: "캐시 정리"))
+            Text(String(localized: "storage_section_cache_clean"))
         } footer: {
-            Text(String(
-                localized: "프로젝트가 참조하지 않는 디스크 상의 사진 파일을 정리합니다."
-            ))
+            Text(String(localized: "storage_section_cache_clean_hint"))
         }
     }
 
@@ -116,7 +110,7 @@ struct StorageInfoView: View {
             directorySizeBytes = bytes
         } catch {
             loadError = String(
-                format: String(localized: "크기를 계산할 수 없습니다: %@"),
+                format: String(localized: "storage_size_calculation_failed_template"),
                 error.localizedDescription
             )
         }
@@ -134,7 +128,7 @@ struct StorageInfoView: View {
                 try storage.deleteOrphanFiles(referencedFileNames: referenced)
             }.value
             lastPurgeResult = String(
-                format: String(localized: "%d개 파일 삭제 · %@ 회수"),
+                format: String(localized: "storage_orphan_delete_summary_template"),
                 result.deletedCount,
                 StorageInfoMath.formatBytes(result.freedBytes)
             )
@@ -142,7 +136,7 @@ struct StorageInfoView: View {
             await refreshDirectorySize()
         } catch {
             lastPurgeResult = String(
-                format: String(localized: "삭제 실패: %@"),
+                format: String(localized: "storage_delete_failed_template"),
                 error.localizedDescription
             )
         }

@@ -39,6 +39,10 @@ final class AppEnvironment {
     let appOpenAdManager: AppOpenAdManager
     let fullscreenAdCoordinator: FullscreenAdCoordinator
 
+    let snackbarQueue: SnackbarQueue
+    let backgroundTaskGuard: BackgroundTaskGuard
+    let compositorService: any CompositorService
+
     init(
         modelContainer: ModelContainer,
         appSettings: AppSettings? = nil,
@@ -49,7 +53,9 @@ final class AppEnvironment {
         rewardedAdManager: RewardedAdManager? = nil,
         nativeAdLoader: NativeAdLoader? = nil,
         appOpenAdManager: AppOpenAdManager? = nil,
-        fullscreenAdCoordinator: FullscreenAdCoordinator? = nil
+        fullscreenAdCoordinator: FullscreenAdCoordinator? = nil,
+        snackbarQueue: SnackbarQueue? = nil,
+        backgroundTaskGuard: BackgroundTaskGuard? = nil
     ) {
         self.modelContainer = modelContainer
         self.appSettings = appSettings ?? AppSettings()
@@ -61,6 +67,10 @@ final class AppEnvironment {
         self.nativeAdLoader = nativeAdLoader ?? NativeAdLoader()
         self.appOpenAdManager = appOpenAdManager ?? AppOpenAdManager()
         self.fullscreenAdCoordinator = fullscreenAdCoordinator ?? FullscreenAdCoordinator()
+        let resolvedSnackbarQueue = snackbarQueue ?? SnackbarQueue()
+        let resolvedBackgroundTaskGuard = backgroundTaskGuard ?? BackgroundTaskGuard()
+        self.snackbarQueue = resolvedSnackbarQueue
+        self.backgroundTaskGuard = resolvedBackgroundTaskGuard
 
         let services = AppServiceBundle.make()
         storage = services.storage
@@ -81,10 +91,19 @@ final class AppEnvironment {
             pairRepo: repositories.pairRepo
         )
 
+        let resolvedCompositor = DefaultCompositorService(
+            storage: services.photoStorageService,
+            modelContainer: modelContainer
+        )
+        compositorService = resolvedCompositor
+
         let useCases = AppUseCaseBundle.make(
             services: services,
             repositories: repositories,
-            zipExporter: zipExporter
+            zipExporter: zipExporter,
+            compositor: resolvedCompositor,
+            backgroundTaskGuard: resolvedBackgroundTaskGuard,
+            snackbarQueue: resolvedSnackbarQueue
         )
         createPair = useCases.createPair
         captureAfter = useCases.captureAfter
@@ -154,23 +173,9 @@ final class AppEnvironment {
             pairRepo: pairRepo,
             albumRepo: albumRepo,
             deletePairs: deletePairs,
-            exportPairs: exportPairs,
             toggleAlbumMembership: toggleAlbumMembership,
             storage: photoStorageService,
             location: location
-        )
-    }
-
-    func makeComparisonViewModel(
-        pairs: [PhotoPair],
-        startIndex: Int
-    ) -> ComparisonViewModel {
-        ComparisonViewModel(
-            pairs: pairs,
-            startIndex: startIndex,
-            pairRepo: pairRepo,
-            appSettings: appSettings,
-            storage: photoStorageService
         )
     }
 
@@ -202,15 +207,18 @@ final class AppEnvironment {
         )
     }
 
-    func makeExportPickerViewModel(
-        pairs: [PhotoPair],
-        storage: PhotoStorageService
-    ) -> ExportPickerViewModel {
-        ExportPickerViewModel(
-            pairs: pairs,
-            storage: storage,
+    func makeExportSettingsViewModel(
+        pairIds: [UUID],
+        albumId: UUID?
+    ) -> ExportSettingsViewModel {
+        ExportSettingsViewModel(
+            pairIds: pairIds,
+            albumId: albumId,
+            pairRepo: pairRepo,
+            storage: photoStorageService,
             exportPairs: exportPairs,
-            photoLibrary: photoLibraryExporter
+            photoLibrary: photoLibraryExporter,
+            snackbarQueue: snackbarQueue
         )
     }
 
@@ -269,7 +277,10 @@ struct AppUseCaseBundle {
     static func make(
         services: AppServiceBundle,
         repositories: AppRepositoryBundle,
-        zipExporter: ZipExporting
+        zipExporter: ZipExporting,
+        compositor: any CompositorService,
+        backgroundTaskGuard: BackgroundTaskGuard,
+        snackbarQueue: SnackbarQueue
     ) -> Self {
         Self(
             createPair: CreatePairUseCase(
@@ -283,7 +294,23 @@ struct AppUseCaseBundle {
                 pairRepo: repositories.pairRepo,
                 storage: services.storage,
                 fileNameBuilder: services.fileNameBuilder,
-                exifNormalizer: services.exifNormalizer
+                exifNormalizer: services.exifNormalizer,
+                compositor: compositor,
+                backgroundTaskGuard: backgroundTaskGuard,
+                onCompositeCompleted: { [weak snackbarQueue] in
+                    snackbarQueue?.enqueue(
+                        "snackbar_success_composite_completed",
+                        variant: .success,
+                        debounceKey: "composite-success"
+                    )
+                },
+                onCompositeFailed: { [weak snackbarQueue] _ in
+                    snackbarQueue?.enqueue(
+                        "snackbar_error_composite_failed",
+                        variant: .error,
+                        debounceKey: "composite-error"
+                    )
+                }
             ),
             deletePairs: DeletePairsUseCase(
                 pairRepo: repositories.pairRepo,
@@ -299,8 +326,7 @@ struct AppUseCaseBundle {
             ),
             activateCoupon: ActivateCouponUseCase(
                 couponRepo: repositories.couponRepo,
-                verifier: services.couponVerifier,
-                defaultDurationDays: CouponRegistrationViewModel.defaultDurationDays
+                verifier: services.couponVerifier
             ),
             checkAdFreeState: CheckAdFreeStateUseCase(
                 couponRepo: repositories.couponRepo

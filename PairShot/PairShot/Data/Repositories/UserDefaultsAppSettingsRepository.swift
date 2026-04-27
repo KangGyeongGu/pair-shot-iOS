@@ -1,6 +1,6 @@
 import Foundation
 
-final class UserDefaultsAppSettingsRepository: AppSettingsRepository, @unchecked Sendable {
+final nonisolated class UserDefaultsAppSettingsRepository: AppSettingsRepository, @unchecked Sendable {
     static let jpegQualityKey = "pairshot.jpegQuality"
     static let fileNamePrefixKey = "pairshot.fileNamePrefix"
     static let defaultOverlayAlphaKey = "pairshot.defaultOverlayAlpha"
@@ -11,23 +11,25 @@ final class UserDefaultsAppSettingsRepository: AppSettingsRepository, @unchecked
     static let languageKey = "pairshot.language"
     static let themeKey = "pairshot.theme"
 
-    // swiftlint:disable trailing_comma
-    private static let registeredDefaults: [String: Any] = [
-        UserDefaultsAppSettingsRepository.jpegQualityKey: AppSettingsSnapshot.defaultJpegQuality,
-        UserDefaultsAppSettingsRepository.fileNamePrefixKey: "",
-        UserDefaultsAppSettingsRepository.defaultOverlayAlphaKey: AppSettingsSnapshot.defaultOverlayAlphaValue,
-        UserDefaultsAppSettingsRepository.defaultCompositeLayoutKey: AppSettingsSnapshot.defaultCompositeLayoutFallback,
-        UserDefaultsAppSettingsRepository.watermarkEnabledKey: AppSettingsSnapshot.defaultWatermarkEnabled,
-        UserDefaultsAppSettingsRepository.languageKey: AppSettingsSnapshot.defaultLanguage.rawValue,
-        UserDefaultsAppSettingsRepository.themeKey: AppSettingsSnapshot.defaultTheme.rawValue,
-    ]
-    // swiftlint:enable trailing_comma
-
     private let defaults: UserDefaults
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
-        defaults.register(defaults: Self.registeredDefaults)
+        defaults.register(defaults: Self.makeRegisteredDefaults())
+    }
+
+    private static func makeRegisteredDefaults() -> [String: Any] {
+        // swiftlint:disable trailing_comma
+        [
+            jpegQualityKey: AppSettingsSnapshot.defaultJpegQuality,
+            fileNamePrefixKey: "",
+            defaultOverlayAlphaKey: AppSettingsSnapshot.defaultOverlayAlphaValue,
+            defaultCompositeLayoutKey: AppSettingsSnapshot.defaultCompositeLayoutFallback,
+            watermarkEnabledKey: AppSettingsSnapshot.defaultWatermarkEnabled,
+            languageKey: AppSettingsSnapshot.defaultLanguage.rawValue,
+            themeKey: AppSettingsSnapshot.defaultTheme.rawValue,
+        ]
+        // swiftlint:enable trailing_comma
     }
 
     func load() -> AppSettingsSnapshot {
@@ -64,7 +66,8 @@ final class UserDefaultsAppSettingsRepository: AppSettingsRepository, @unchecked
         }
         return AsyncStream { continuation in
             continuation.yield(load())
-            let token = NotificationCenter.default.addObserver(
+            let tokenBox = NotificationObserverTokenBox()
+            tokenBox.token = NotificationCenter.default.addObserver(
                 forName: UserDefaults.didChangeNotification,
                 object: observed,
                 queue: nil
@@ -72,7 +75,9 @@ final class UserDefaultsAppSettingsRepository: AppSettingsRepository, @unchecked
                 continuation.yield(load())
             }
             continuation.onTermination = { _ in
-                NotificationCenter.default.removeObserver(token)
+                if let token = tokenBox.token {
+                    NotificationCenter.default.removeObserver(token)
+                }
             }
         }
     }
@@ -131,5 +136,11 @@ final class UserDefaultsAppSettingsRepository: AppSettingsRepository, @unchecked
         defaults.set(raw, forKey: Self.combineSettingsKey)
     }
 
+    deinit {}
+}
+
+private final nonisolated class NotificationObserverTokenBox: @unchecked Sendable {
+    var token: (any NSObjectProtocol)?
+    init() {}
     deinit {}
 }

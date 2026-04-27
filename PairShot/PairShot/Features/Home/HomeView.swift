@@ -3,6 +3,7 @@ import SwiftUI
 
 struct HomeView: View {
     let onOpenAlbum: ((UUID) -> Void)?
+    let onPushExportSettings: (([UUID]) -> Void)?
 
     @Environment(AppEnvironment.self) private var env
     @Query(sort: \PhotoPair.createdAt, order: .reverse) private var allPairs: [PhotoPair]
@@ -14,8 +15,12 @@ struct HomeView: View {
         GridItem(.flexible(), spacing: 8),
     ]
 
-    init(onOpenAlbum: ((UUID) -> Void)? = nil) {
+    init(
+        onOpenAlbum: ((UUID) -> Void)? = nil,
+        onPushExportSettings: (([UUID]) -> Void)? = nil
+    ) {
         self.onOpenAlbum = onOpenAlbum
+        self.onPushExportSettings = onPushExportSettings
     }
 
     var body: some View {
@@ -63,7 +68,8 @@ struct HomeView: View {
             HomeBottomBarHost(
                 viewModel: viewModel,
                 sortedPairs: sortedPairs,
-                sortedAlbums: sortedAlbums
+                sortedAlbums: sortedAlbums,
+                onPushExportSettings: onPushExportSettings
             )
         }
         .modifier(HomeViewSheetModifiers(
@@ -114,7 +120,7 @@ struct HomeView: View {
                             Button(role: .destructive) {
                                 viewModel.requestSinglePairDeletion(pair)
                             } label: {
-                                Label(String(localized: "삭제"), systemImage: "trash")
+                                Label(String(localized: "common_button_delete"), systemImage: "trash")
                             }
                         }
                     }
@@ -149,7 +155,7 @@ struct HomeView: View {
                         Button(role: .destructive) {
                             viewModel.requestSingleAlbumDeletion(album)
                         } label: {
-                            Label(String(localized: "삭제"), systemImage: "trash")
+                            Label(String(localized: "common_button_delete"), systemImage: "trash")
                         }
                     }
                 }

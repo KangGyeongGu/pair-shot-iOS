@@ -1,12 +1,6 @@
 import CryptoKit
 import Foundation
-
-enum CouponVerificationError: Error, Equatable {
-    case malformedSignature
-    case malformedPublicKey
-    case emptyCode
-    case emptySignature
-}
+import OSLog
 
 enum CouponVerifier {
     static let infoPlistKey = "CouponPublicKeyBase64"
@@ -24,31 +18,44 @@ enum CouponVerifier {
     }
 
     static func verify(
-        code: String,
+        payloadJSON: Data,
         signatureBase64: String,
         publicKeyBase64: String = Self.resolvedPublicKeyBase64()
-    ) throws -> Bool {
-        guard !code.isEmpty else { throw CouponVerificationError.emptyCode }
-        guard !signatureBase64.isEmpty else { throw CouponVerificationError.emptySignature }
+    ) -> CouponVerificationOutcome {
+        guard !payloadJSON.isEmpty else { return .invalidPayload }
+        let trimmedSignature = signatureBase64.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedSignature.isEmpty else { return .malformedKeyOrSignature }
 
-        guard let signature = Data(base64Encoded: signatureBase64) else {
-            throw CouponVerificationError.malformedSignature
+        let payload: CouponPayload
+        do {
+            payload = try CouponPayloadDecoder.makeJSONDecoder().decode(CouponPayload.self, from: payloadJSON)
+        } catch {
+            return .invalidPayload
         }
-        guard !signature.isEmpty else { throw CouponVerificationError.emptySignature }
 
-        guard let keyData = Data(base64Encoded: publicKeyBase64) else {
-            throw CouponVerificationError.malformedPublicKey
+        guard payload.version == CouponPayload.currentVersion else { return .invalidVersion }
+        guard let kind = CouponKind(rawString: payload.kind) else { return .invalidKind }
+
+        guard let signatureData = Data(base64Encoded: trimmedSignature), !signatureData.isEmpty else {
+            return .malformedKeyOrSignature
+        }
+        guard let publicKeyData = Data(base64Encoded: publicKeyBase64) else {
+            return .malformedKeyOrSignature
         }
 
         let publicKey: Curve25519.Signing.PublicKey
         do {
-            publicKey = try Curve25519.Signing.PublicKey(rawRepresentation: keyData)
+            publicKey = try Curve25519.Signing.PublicKey(rawRepresentation: publicKeyData)
         } catch {
-            throw CouponVerificationError.malformedPublicKey
+            return .malformedKeyOrSignature
         }
 
-        let payload = Data(code.utf8)
-        return publicKey.isValidSignature(signature, for: payload)
+        guard publicKey.isValidSignature(signatureData, for: payloadJSON) else {
+            AppLogger.coupon.error("Coupon signature verification failed")
+            return .signatureInvalid
+        }
+
+        return .verified(code: payload.code, kind: kind, issuedAt: payload.issuedAt)
     }
 }
 
@@ -59,24 +66,11 @@ struct CouponVerifierAdapter: CouponVerifying {
         self.publicKeyBase64 = publicKeyBase64
     }
 
-    func verify(code: String, signatureBase64: String) -> CouponVerificationOutcome {
-        do {
-            let isValid = try CouponVerifier.verify(
-                code: code,
-                signatureBase64: signatureBase64,
-                publicKeyBase64: publicKeyBase64
-            )
-            return isValid ? .valid : .invalidSignature
-        } catch CouponVerificationError.malformedSignature {
-            return .malformedSignature
-        } catch CouponVerificationError.malformedPublicKey {
-            return .malformedPublicKey
-        } catch CouponVerificationError.emptyCode {
-            return .emptyCode
-        } catch CouponVerificationError.emptySignature {
-            return .emptySignature
-        } catch {
-            return .invalidSignature
-        }
+    func verify(payloadJSON: Data, signatureBase64: String) -> CouponVerificationOutcome {
+        CouponVerifier.verify(
+            payloadJSON: payloadJSON,
+            signatureBase64: signatureBase64,
+            publicKeyBase64: publicKeyBase64
+        )
     }
 }

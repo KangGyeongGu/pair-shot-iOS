@@ -79,29 +79,29 @@ struct PairPreviewView: View {
             } label: {
                 Image(systemName: "xmark")
             }
-            .accessibilityLabel(String(localized: "닫기"))
+            .accessibilityLabel(String(localized: "common_button_close"))
         }
         ToolbarItem(placement: .topBarTrailing) {
             Menu {
                 Button {
                     viewModel?.onShareTapped()
                 } label: {
-                    Label(String(localized: "공유"), systemImage: "square.and.arrow.up")
+                    Label(String(localized: "common_button_share"), systemImage: "square.and.arrow.up")
                 }
                 Button {
                     viewModel?.onRetakeTapped()
                 } label: {
-                    Label(String(localized: "재촬영"), systemImage: "camera.rotate")
+                    Label(String(localized: "pair_preview_menu_recapture"), systemImage: "camera.rotate")
                 }
                 Button(role: .destructive) {
                     viewModel?.onDeleteTapped()
                 } label: {
-                    Label(String(localized: "삭제"), systemImage: "trash")
+                    Label(String(localized: "common_button_delete"), systemImage: "trash")
                 }
             } label: {
                 Image(systemName: "ellipsis.circle")
             }
-            .accessibilityLabel(String(localized: "더 보기"))
+            .accessibilityLabel(String(localized: "common_desc_more"))
             .disabled(viewModel == nil)
         }
     }
@@ -136,9 +136,9 @@ private struct PairPreviewEmptyState: View {
     var body: some View {
         VStack(spacing: 12) {
             Image(systemName: "photo.on.rectangle")
-                .font(.system(size: 48, weight: .light))
+                .font(.largeTitle.weight(.light))
                 .foregroundStyle(.secondary)
-            Text(String(localized: "합성본이 아직 생성되지 않았습니다"))
+            Text(String(localized: "pair_preview_no_composite"))
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -154,22 +154,22 @@ private struct PairPreviewSheetModifiers: ViewModifier {
     func body(content: Content) -> some View {
         content
             .alert(
-                String(localized: "페어 삭제"),
+                String(localized: "dialog_delete_pair_title"),
                 isPresented: $viewModel.showDeleteConfirm
             ) {
-                Button(String(localized: "삭제"), role: .destructive) {
+                Button(String(localized: "common_button_delete"), role: .destructive) {
                     Task { await viewModel.confirmDelete() }
                 }
-                Button(String(localized: "취소"), role: .cancel) {}
+                Button(String(localized: "common_button_cancel"), role: .cancel) {}
             } message: {
-                Text(String(localized: "이 페어를 삭제하시겠습니까?"))
+                Text(String(localized: "dialog_delete_pair_message"))
             }
             .alert(
-                String(localized: "오류"),
+                String(localized: "common_dialog_error_title"),
                 isPresented: errorBinding,
                 presenting: viewModel.errorMessage
             ) { _ in
-                Button(String(localized: "확인"), role: .cancel) {
+                Button(String(localized: "common_button_confirm"), role: .cancel) {
                     viewModel.clearError()
                 }
             } message: { message in

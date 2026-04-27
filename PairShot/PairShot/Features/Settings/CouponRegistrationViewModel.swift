@@ -4,8 +4,6 @@ import Observation
 @MainActor
 @Observable
 final class CouponRegistrationViewModel {
-    static let defaultDurationDays: Int = 365
-
     var inputToken: String = ""
     private(set) var isSubmitting: Bool = false
     var lastError: CouponRegistrationError?
@@ -41,9 +39,20 @@ final class CouponRegistrationViewModel {
             return
         }
 
+        let token: CouponSignedToken
+        do {
+            token = try CouponSignedTokenParser.parse(trimmed)
+        } catch {
+            lastError = .invalidFormat
+            return
+        }
+
         let payload: CouponPayload
         do {
-            payload = try QRPayloadParser.parse(trimmed)
+            payload = try CouponPayloadDecoder.makeJSONDecoder().decode(
+                CouponPayload.self,
+                from: token.payloadJSON
+            )
         } catch {
             lastError = .invalidFormat
             return
@@ -59,8 +68,8 @@ final class CouponRegistrationViewModel {
         defer { isSubmitting = false }
 
         let outcome = await activate(
-            code: payload.code,
-            signatureBase64: payload.signatureBase64
+            payloadJSON: token.payloadJSON,
+            signatureBase64: token.signatureBase64
         )
         applyOutcome(outcome, at: timestamp)
     }

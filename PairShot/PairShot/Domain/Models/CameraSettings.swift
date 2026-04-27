@@ -1,6 +1,6 @@
 import Foundation
 
-enum LensPosition: String, Codable, CaseIterable {
+nonisolated enum LensPosition: String, Codable, CaseIterable {
     case front
     case backWide
     case backUltraWide
@@ -9,14 +9,14 @@ enum LensPosition: String, Codable, CaseIterable {
     case backDualWide
 }
 
-enum FlashMode: String, Codable, CaseIterable {
+nonisolated enum FlashMode: String, Codable, CaseIterable {
     case off
     case on
     case auto
     case torch
 }
 
-struct CameraSettings: Codable, Equatable {
+nonisolated struct CameraSettings: Codable, Equatable {
     var zoomFactor: Double
     var lensPosition: LensPosition
     var flashMode: FlashMode

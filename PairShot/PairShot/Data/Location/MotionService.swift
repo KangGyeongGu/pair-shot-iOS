@@ -1,6 +1,7 @@
 import CoreMotion
 import Foundation
 import Observation
+import OSLog
 
 @MainActor
 @Observable
@@ -28,7 +29,10 @@ final class MotionService {
 
     func start() {
         guard !isStreaming else { return }
-        guard manager.isDeviceMotionAvailable else { return }
+        guard manager.isDeviceMotionAvailable else {
+            AppLogger.camera.info("MotionService: deviceMotion unavailable")
+            return
+        }
         manager.deviceMotionUpdateInterval = updateInterval
         manager.startDeviceMotionUpdates(to: .main) { [weak self] motion, _ in
             guard let self, let motion else { return }

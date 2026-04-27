@@ -1,7 +1,7 @@
 import Foundation
 
-struct WatermarkSettings: Codable, Equatable {
-    enum WatermarkType: String, Codable, CaseIterable {
+nonisolated struct WatermarkSettings: Codable, Equatable {
+    nonisolated enum WatermarkType: String, Codable, CaseIterable {
         case text
         case logo
     }

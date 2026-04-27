@@ -1,6 +1,6 @@
 import Foundation
 
-struct AppSettingsSnapshot: Equatable {
+nonisolated struct AppSettingsSnapshot: Equatable {
     static let defaultJpegQuality: Double = 0.8
     static let defaultOverlayAlphaValue: Double = 0.5
     static let defaultCompositeLayoutFallback: String = "horizontal"
@@ -31,7 +31,7 @@ struct AppSettingsSnapshot: Equatable {
     var combine: CombineSettings?
 }
 
-protocol AppSettingsRepository: Sendable {
+nonisolated protocol AppSettingsRepository: Sendable {
     func load() -> AppSettingsSnapshot
     func save(_ settings: AppSettingsSnapshot) async throws
     func observe() -> AsyncStream<AppSettingsSnapshot>

@@ -29,7 +29,7 @@ struct PermissionDeniedView: View {
             Button {
                 opener()
             } label: {
-                Text(String(localized: "설정으로 이동"))
+                Text(String(localized: "permission_button_open_settings"))
                     .padding(.horizontal, 16)
                     .padding(.vertical, 8)
             }
@@ -44,8 +44,8 @@ extension PermissionDeniedView {
         opener: @MainActor @escaping () -> Void = PermissionDeniedSettingsURL.openSystemSettings
     ) {
         self.init(
-            title: String(localized: "카메라 권한이 필요합니다"),
-            message: String(localized: "설정에서 카메라 사용을 허용해 주세요"),
+            title: String(localized: "permission_camera_title"),
+            message: String(localized: "permission_camera_message"),
             systemImage: "camera.metering.unknown",
             opener: opener
         )
@@ -56,8 +56,8 @@ extension PermissionDeniedView {
         opener: @MainActor @escaping () -> Void = PermissionDeniedSettingsURL.openSystemSettings
     ) {
         self.init(
-            title: String(localized: "사진 라이브러리 권한이 필요합니다"),
-            message: String(localized: "설정에서 사진 저장을 허용해 주세요"),
+            title: String(localized: "permission_photo_title"),
+            message: String(localized: "permission_photo_message"),
             systemImage: "photo.badge.exclamationmark",
             opener: opener
         )

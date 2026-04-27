@@ -1,5 +1,6 @@
 import CoreLocation
 import Foundation
+import OSLog
 
 protocol LocationProviding: Sendable {
     func requestSingleLocation() async -> CLLocation?
@@ -66,8 +67,10 @@ final class CoreLocationService: NSObject, LocationProviding, CLLocationManagerD
         }
     }
 
-    nonisolated func locationManager(_: CLLocationManager, didFailWithError _: Error) {
+    nonisolated func locationManager(_: CLLocationManager, didFailWithError error: Error) {
+        let description = error.localizedDescription
         Task { @MainActor [weak self] in
+            AppLogger.camera.error("Location request failed: \(description, privacy: .public)")
             self?.finish(with: nil)
         }
     }

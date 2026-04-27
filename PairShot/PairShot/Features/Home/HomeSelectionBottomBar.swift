@@ -11,26 +11,26 @@ struct HomePairSelectionBottomBar: View {
         let enabled = selectionCount > 0
         PairShotActionBar(items: [
             PairShotActionItem(
-                title: String(localized: "공유"),
+                title: String(localized: "common_button_share"),
                 systemImage: "square.and.arrow.up",
                 isEnabled: enabled,
                 action: onShare
             ),
             PairShotActionItem(
-                title: String(localized: "기기저장"),
+                title: String(localized: "common_button_save_to_device"),
                 systemImage: "arrow.down.to.line",
                 isEnabled: enabled,
                 action: onSaveToDevice
             ),
             PairShotActionItem(
-                title: String(localized: "삭제"),
+                title: String(localized: "common_button_delete"),
                 systemImage: "trash",
                 role: .destructive,
                 isEnabled: enabled,
                 action: onDelete
             ),
             PairShotActionItem(
-                title: String(localized: "내보내기"),
+                title: String(localized: "common_button_export"),
                 systemImage: "slider.horizontal.3",
                 isEnabled: enabled,
                 action: onExportSettings
@@ -47,13 +47,13 @@ struct HomeAlbumSelectionBottomBar: View {
     var body: some View {
         PairShotActionBar(items: [
             PairShotActionItem(
-                title: String(localized: "이름 수정"),
+                title: String(localized: "common_button_rename"),
                 systemImage: "pencil",
                 isEnabled: selectionCount == 1,
                 action: onRename
             ),
             PairShotActionItem(
-                title: String(localized: "삭제"),
+                title: String(localized: "common_button_delete"),
                 systemImage: "trash",
                 role: .destructive,
                 isEnabled: selectionCount > 0,

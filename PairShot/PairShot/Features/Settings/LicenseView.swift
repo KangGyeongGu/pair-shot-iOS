@@ -22,7 +22,7 @@ struct LicenseView: View {
             .buttonStyle(.plain)
         }
         .listStyle(.plain)
-        .navigationTitle(String(localized: "라이선스"))
+        .navigationTitle(String(localized: "license_title"))
         .navigationBarTitleDisplayMode(.inline)
     }
 }

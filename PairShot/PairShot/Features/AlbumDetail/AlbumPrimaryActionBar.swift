@@ -28,7 +28,7 @@ struct AlbumEmptyActionBar: View {
         VStack(spacing: 8) {
             Button(action: onCapture) {
                 Label(
-                    String(localized: "촬영 시작"),
+                    String(localized: "common_button_start_capture"),
                     systemImage: "camera.fill"
                 )
                 .font(.headline)
@@ -39,7 +39,7 @@ struct AlbumEmptyActionBar: View {
 
             Button(action: onPickPair) {
                 Label(
-                    String(localized: "페어 추가"),
+                    String(localized: "album_button_add_pair"),
                     systemImage: "plus.rectangle.on.rectangle"
                 )
                 .font(.headline)
@@ -58,15 +58,16 @@ struct AlbumEmptyActionBar: View {
 struct AlbumDetailBottomBarHost: View {
     let viewModel: AlbumDetailViewModel
     let sortedPairs: [PhotoPair]
+    let onPushExportSettings: (([UUID]) -> Void)?
 
     var body: some View {
         if viewModel.isSelectionMode {
             AlbumDetailSelectionBottomBar(
                 selectionCount: viewModel.selectedPairIds.count,
-                onShare: { viewModel.presentExport(from: sortedPairs) },
-                onSaveToDevice: { viewModel.presentExport(from: sortedPairs) },
+                onShare: pushExport,
+                onSaveToDevice: pushExport,
                 onDelete: { viewModel.requestPairDeletion(from: sortedPairs) },
-                onExportSettings: { viewModel.presentExport(from: sortedPairs) }
+                onExportSettings: pushExport
             )
         } else if sortedPairs.isEmpty {
             AlbumEmptyActionBar(
@@ -75,11 +76,19 @@ struct AlbumDetailBottomBarHost: View {
             )
         } else {
             AlbumPrimaryActionBar(
-                title: String(localized: "촬영 시작"),
+                title: String(localized: "common_button_start_capture"),
                 systemImage: "camera.fill",
                 action: viewModel.startCapture
             )
         }
+    }
+
+    private func pushExport() {
+        let chosen = sortedPairs
+            .filter { viewModel.selectedPairIds.contains($0.id) }
+            .map(\.id)
+        guard !chosen.isEmpty else { return }
+        onPushExportSettings?(chosen)
     }
 }
 
@@ -94,26 +103,26 @@ struct AlbumDetailSelectionBottomBar: View {
         let enabled = selectionCount > 0
         PairShotActionBar(items: [
             PairShotActionItem(
-                title: String(localized: "공유"),
+                title: String(localized: "common_button_share"),
                 systemImage: "square.and.arrow.up",
                 isEnabled: enabled,
                 action: onShare
             ),
             PairShotActionItem(
-                title: String(localized: "기기저장"),
+                title: String(localized: "common_button_save_to_device"),
                 systemImage: "arrow.down.to.line",
                 isEnabled: enabled,
                 action: onSaveToDevice
             ),
             PairShotActionItem(
-                title: String(localized: "삭제"),
+                title: String(localized: "common_button_delete"),
                 systemImage: "trash",
                 role: .destructive,
                 isEnabled: enabled,
                 action: onDelete
             ),
             PairShotActionItem(
-                title: String(localized: "내보내기"),
+                title: String(localized: "common_button_export"),
                 systemImage: "slider.horizontal.3",
                 isEnabled: enabled,
                 action: onExportSettings

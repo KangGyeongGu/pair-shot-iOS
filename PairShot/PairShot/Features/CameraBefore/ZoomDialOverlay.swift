@@ -24,7 +24,7 @@ struct ZoomDialOverlay: View {
             .frame(maxWidth: .infinity)
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(String(localized: "줌 다이얼"))
+        .accessibilityLabel(String(localized: "camera_desc_zoom_dial"))
         .accessibilityValue(formatZoomLabel(currentRatio))
     }
 
@@ -75,7 +75,7 @@ struct ZoomDialOverlay: View {
 
 #Preview {
     ZStack {
-        Color.black
+        Color.appCameraBackground
         ZoomDialOverlay(currentRatio: 1.3, minRatio: 0.5, maxRatio: 5.0)
             .padding()
     }

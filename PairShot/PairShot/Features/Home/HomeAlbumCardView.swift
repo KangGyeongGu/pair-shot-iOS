@@ -17,10 +17,10 @@ struct HomeAlbumCardView: View {
                 if let label = trimmedLocation {
                     HStack(spacing: 4) {
                         Image(systemName: "location")
-                            .font(.system(size: 12, weight: .regular))
+                            .font(.appCaption)
                             .foregroundStyle(.secondary)
                         Text(label)
-                            .font(.caption)
+                            .font(.appCaption)
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
                     }
@@ -29,10 +29,10 @@ struct HomeAlbumCardView: View {
                 HStack(spacing: 4) {
                     Spacer()
                     Image(systemName: "camera")
-                        .font(.system(size: 12, weight: .regular))
+                        .font(.appCaption)
                         .foregroundStyle(.secondary)
-                    Text(String(format: String(localized: "%lld"), album.pairs.count))
-                        .font(.caption)
+                    Text("\(album.pairs.count)")
+                        .font(.appCaption)
                         .foregroundStyle(.secondary)
                 }
             }
@@ -61,9 +61,9 @@ struct HomeAlbumCardView: View {
         isSelected: Bool,
         isSelectionMode: Bool
     ) -> String {
-        let countText = String(format: String(localized: "%d개 페어"), album.pairs.count)
+        let countText = String(format: String(localized: "home_pair_count_int"), album.pairs.count)
         let selectionText: String? = isSelectionMode
-            ? (isSelected ? String(localized: "선택됨") : String(localized: "선택 안 됨"))
+            ? (isSelected ? String(localized: "common_state_selected") : String(localized: "common_state_unselected"))
             : nil
         return [album.name, countText, selectionText]
             .compactMap(\.self)
@@ -71,7 +71,7 @@ struct HomeAlbumCardView: View {
     }
 
     private var displayName: String {
-        album.name.isEmpty ? String(localized: "(이름 없음)") : album.name
+        album.name.isEmpty ? String(localized: "home_album_untitled") : album.name
     }
 
     private var trimmedLocation: String? {

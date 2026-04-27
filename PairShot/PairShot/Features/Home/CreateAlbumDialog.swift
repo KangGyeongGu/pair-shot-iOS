@@ -13,32 +13,30 @@ struct CreateAlbumDialog: View {
             Form {
                 Section {
                     TextField(
-                        String(localized: "앨범 이름 입력"),
+                        String(localized: "album_dialog_rename_placeholder"),
                         text: $name
                     )
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled(true)
                 } header: {
-                    Text(String(localized: "제목"))
+                    Text(String(localized: "create_album_dialog_title_field"))
                 }
 
                 Section {
-                    Toggle(String(localized: "위치 정보 포함"), isOn: $includeLocation)
+                    Toggle(String(localized: "create_album_dialog_include_location"), isOn: $includeLocation)
                 } footer: {
-                    Text(String(
-                        localized: "프로젝트 생성 시 현재 위치를 1회 기록합니다. 권한이 없으면 위치 없이 생성됩니다."
-                    ))
+                    Text(String(localized: "create_album_dialog_location_hint"))
                 }
             }
-            .navigationTitle(String(localized: "앨범 생성"))
+            .navigationTitle(String(localized: "home_button_create_album"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(String(localized: "취소")) { isPresented = false }
+                    Button(String(localized: "common_button_cancel")) { isPresented = false }
                         .disabled(isCreating)
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(String(localized: "생성")) {
+                    Button(String(localized: "common_button_create")) {
                         Task { await create() }
                     }
                     .disabled(trimmedName.isEmpty || isCreating)

@@ -18,7 +18,7 @@ struct CouponRegistrationView: View {
                     ProgressView()
                 }
             }
-            .navigationTitle(String(localized: "쿠폰 등록"))
+            .navigationTitle(String(localized: "coupon_dialog_register_title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { toolbarContent }
         }
@@ -53,11 +53,11 @@ struct CouponRegistrationView: View {
             )
         }
         .alert(
-            String(localized: "쿠폰 등록 실패"),
+            String(localized: "coupon_dialog_register_failed_title"),
             isPresented: errorBinding(for: viewModel),
             presenting: viewModel.lastError
         ) { _ in
-            Button(String(localized: "확인"), role: .cancel) {
+            Button(String(localized: "common_button_confirm"), role: .cancel) {
                 viewModel.lastError = nil
             }
         } message: { error in
@@ -79,7 +79,7 @@ struct CouponRegistrationView: View {
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
         ToolbarItem(placement: .topBarLeading) {
-            Button(String(localized: "닫기")) {
+            Button(String(localized: "common_button_close")) {
                 dismiss()
             }
         }
@@ -115,23 +115,23 @@ struct CouponRegistrationView: View {
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.dateFormat = "yyyy-MM-dd"
         let formatted = formatter.string(from: expiration)
-        let template = String(localized: "쿠폰이 등록되었습니다 · 만료일 %@")
+        let template = String(localized: "coupon_register_success_template")
         return String(format: template, formatted)
     }
 
     private func message(for error: CouponRegistrationError) -> String {
         switch error {
             case .invalidFormat:
-                String(localized: "코드 형식이 올바르지 않습니다")
+                String(localized: "coupon_error_invalid_code_format")
 
             case .registrationFailed:
-                String(localized: "쿠폰 검증 실패")
+                String(localized: "coupon_error_verify_failed")
 
             case .duplicate:
-                String(localized: "이미 등록된 쿠폰입니다")
+                String(localized: "coupon_error_already_registered")
 
             case .persistFailed:
-                String(localized: "쿠폰 저장에 실패했습니다")
+                String(localized: "coupon_error_save_failed")
         }
     }
 }

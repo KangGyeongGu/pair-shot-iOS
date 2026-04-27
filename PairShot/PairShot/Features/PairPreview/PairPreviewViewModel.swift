@@ -64,7 +64,7 @@ final class PairPreviewViewModel {
 
     func onShareTapped() {
         guard !shareItems.isEmpty else {
-            errorMessage = String(localized: "공유할 사진을 찾을 수 없습니다")
+            errorMessage = String(localized: "pair_preview_share_no_photo")
             return
         }
         showShareSheet = true
@@ -83,7 +83,7 @@ final class PairPreviewViewModel {
             try await deletePairs(ids: [pair.id], mode: .wholePair)
             eventsContinuation.yield(.dismiss)
         } catch {
-            errorMessage = String(localized: "페어 삭제에 실패했습니다")
+            errorMessage = String(localized: "pair_preview_delete_failed")
         }
     }
 

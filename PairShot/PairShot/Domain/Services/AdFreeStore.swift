@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import OSLog
 import SwiftData
 
 @MainActor
@@ -28,7 +29,13 @@ final class AdFreeStore {
                 coupon.status = .expired
             }
         }
-        try? context.save()
+        do {
+            try context.save()
+        } catch {
+            AppLogger.coupon.error(
+                "AdFreeStore context save failed: \(error.localizedDescription, privacy: .public)"
+            )
+        }
 
         let refreshedAll = fetchAllCoupons()
         activeCoupons = AdFreeCouponSorter.active(refreshedAll, now: now)
@@ -41,6 +48,11 @@ final class AdFreeStore {
             currentExpiration = nil
             isAdFree = false
         }
+        let snapshotAdFree = isAdFree
+        let snapshotActiveCount = activeCoupons.count
+        AppLogger.coupon.debug(
+            "AdFreeStore refreshed isAdFree=\(snapshotAdFree, privacy: .public) active=\(snapshotActiveCount, privacy: .public)"
+        )
     }
 
     private func fetchAllCoupons() -> [Coupon] {

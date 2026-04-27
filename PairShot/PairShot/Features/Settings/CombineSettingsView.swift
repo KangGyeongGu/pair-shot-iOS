@@ -15,7 +15,7 @@ struct CombineSettingsView: View {
             previewSection
         }
         .listStyle(.insetGrouped)
-        .navigationTitle(String(localized: "합성 설정"))
+        .navigationTitle(String(localized: "export_settings_section_combine"))
         .navigationBarTitleDisplayMode(.inline)
         .onChange(of: viewModel.settings) { _, _ in
             Task { await viewModel.saveSettings() }
@@ -24,119 +24,120 @@ struct CombineSettingsView: View {
 
     private var directionSection: some View {
         Section {
-            Picker(String(localized: "방향"), selection: $viewModel.settings.direction) {
-                Text(String(localized: "가로")).tag(CombineSettings.Direction.horizontal)
-                Text(String(localized: "세로")).tag(CombineSettings.Direction.vertical)
+            Picker(String(localized: "combine_field_direction"), selection: $viewModel.settings.direction) {
+                Text(String(localized: "combine_direction_horizontal_full")).tag(CombineSettings.Direction.horizontal)
+                Text(String(localized: "combine_direction_vertical_full")).tag(CombineSettings.Direction.vertical)
             }
             .pickerStyle(.segmented)
         } header: {
-            Text(String(localized: "정렬"))
+            Text(String(localized: "combine_field_alignment"))
         }
     }
 
     private var borderSection: some View {
         Section {
             Toggle(isOn: $viewModel.settings.border.isEnabled) {
-                Label(String(localized: "테두리 사용"), systemImage: "square.dashed")
+                Label(String(localized: "combine_item_border_use"), systemImage: "square.dashed")
             }
             if viewModel.settings.border.isEnabled {
                 CombineSliderRow(
-                    title: String(localized: "두께"),
+                    title: String(localized: "combine_field_thickness"),
                     value: $viewModel.settings.border.thickness,
                     range: CombineSettings.borderThicknessRange,
                     step: 1,
                     valueLabel: "\(Int(viewModel.settings.border.thickness))pt"
                 )
                 ColorPicker(
-                    String(localized: "색상"),
+                    String(localized: "combine_field_color"),
                     selection: borderColorBinding,
                     supportsOpacity: false
                 )
             }
         } header: {
-            Text(String(localized: "테두리"))
+            Text(String(localized: "combine_section_border"))
         }
     }
 
     private var labelSection: some View {
         Section {
             Toggle(isOn: $viewModel.settings.label.isEnabled) {
-                Label(String(localized: "레이블 사용"), systemImage: "textformat")
+                Label(String(localized: "combine_item_label_use"), systemImage: "textformat")
             }
             if viewModel.settings.label.isEnabled {
                 CombineLabelTextField(
-                    title: String(localized: "Before 텍스트"),
+                    title: String(localized: "combine_field_label_before"),
                     text: $viewModel.settings.label.beforeText
                 )
                 CombineLabelTextField(
-                    title: String(localized: "After 텍스트"),
+                    title: String(localized: "combine_field_label_after"),
                     text: $viewModel.settings.label.afterText
                 )
                 CombineSliderRow(
-                    title: String(localized: "텍스트 크기"),
+                    title: String(localized: "combine_field_text_size"),
                     value: $viewModel.settings.label.textSizePercent,
                     range: CombineSettings.labelTextSizeRange,
                     step: 1,
                     valueLabel: "\(Int(viewModel.settings.label.textSizePercent))%"
                 )
                 ColorPicker(
-                    String(localized: "텍스트 색상"),
+                    String(localized: "combine_field_text_color"),
                     selection: labelTextColorBinding,
                     supportsOpacity: false
                 )
             }
         } header: {
-            Text(String(localized: "레이블"))
+            Text(String(localized: "combine_section_label"))
         }
     }
 
     private var labelModeSection: some View {
         Section {
-            Picker(String(localized: "모드"), selection: $viewModel.settings.labelMode) {
-                Text(String(localized: "전체너비")).tag(CombineSettings.LabelMode.fullWidth)
-                Text(String(localized: "자유")).tag(CombineSettings.LabelMode.free)
+            Picker(String(localized: "combine_field_mode"), selection: $viewModel.settings.labelMode) {
+                Text(String(localized: "combine_label_mode_full_width")).tag(CombineSettings.LabelMode.fullWidth)
+                Text(String(localized: "combine_label_mode_free")).tag(CombineSettings.LabelMode.free)
             }
             .pickerStyle(.segmented)
 
             if viewModel.settings.labelMode == .fullWidth {
-                Picker(String(localized: "위치"), selection: $viewModel.settings.fullWidthVertical) {
-                    Text(String(localized: "상단")).tag(CombineSettings.LabelPosition.Vertical.top)
-                    Text(String(localized: "하단")).tag(CombineSettings.LabelPosition.Vertical.bottom)
+                Picker(String(localized: "combine_field_position"), selection: $viewModel.settings.fullWidthVertical) {
+                    Text(String(localized: "combine_position_top")).tag(CombineSettings.LabelPosition.Vertical.top)
+                    Text(String(localized: "combine_position_bottom"))
+                        .tag(CombineSettings.LabelPosition.Vertical.bottom)
                 }
                 .pickerStyle(.segmented)
             } else {
                 CombinePositionPicker3x3(
-                    label: String(localized: "Before 위치"),
+                    label: String(localized: "combine_field_position_before"),
                     selection: $viewModel.settings.beforePosition
                 )
                 CombinePositionPicker3x3(
-                    label: String(localized: "After 위치"),
+                    label: String(localized: "combine_field_position_after"),
                     selection: $viewModel.settings.afterPosition
                 )
             }
         } header: {
-            Text(String(localized: "레이블 모드"))
+            Text(String(localized: "combine_section_label_mode"))
         }
     }
 
     private var labelBackgroundSection: some View {
         Section {
             Toggle(isOn: $viewModel.settings.labelBackground.isEnabled) {
-                Label(String(localized: "배경 사용"), systemImage: "rectangle.fill")
+                Label(String(localized: "combine_item_background_use"), systemImage: "rectangle.fill")
             }
             if viewModel.settings.labelBackground.isEnabled {
                 Toggle(isOn: $viewModel.settings.labelBackground.matchBorderColor) {
-                    Text(String(localized: "테두리색상과 일치"))
+                    Text(String(localized: "combine_dialog_match_border_color"))
                 }
                 if !viewModel.settings.labelBackground.matchBorderColor {
                     ColorPicker(
-                        String(localized: "색상"),
+                        String(localized: "combine_field_color"),
                         selection: labelBackgroundColorBinding,
                         supportsOpacity: false
                     )
                 }
                 CombineSliderRow(
-                    title: String(localized: "불투명도"),
+                    title: String(localized: "combine_field_opacity"),
                     value: $viewModel.settings.labelBackground.opacity,
                     range: CombineSettings.labelBackgroundOpacityRange,
                     step: nil,
@@ -144,7 +145,7 @@ struct CombineSettingsView: View {
                 )
                 if viewModel.settings.labelMode == .free {
                     CombineSliderRow(
-                        title: String(localized: "곡률"),
+                        title: String(localized: "combine_field_curvature"),
                         value: $viewModel.settings.labelBackground.cornerRadius,
                         range: CombineSettings.labelBackgroundCornerRadiusRange,
                         step: 1,
@@ -153,7 +154,7 @@ struct CombineSettingsView: View {
                 }
             }
         } header: {
-            Text(String(localized: "레이블 배경"))
+            Text(String(localized: "combine_section_label_background"))
         }
     }
 
@@ -162,7 +163,7 @@ struct CombineSettingsView: View {
             CombinePreviewCard(settings: viewModel.settings)
                 .frame(maxWidth: .infinity)
         } header: {
-            Text(String(localized: "미리보기"))
+            Text(String(localized: "combine_section_preview"))
         }
     }
 

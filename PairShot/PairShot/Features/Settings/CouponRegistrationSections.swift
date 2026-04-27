@@ -1,18 +1,6 @@
 import Foundation
 import SwiftUI
 
-struct CouponPayload: Equatable {
-    let code: String
-    let signatureBase64: String
-}
-
-enum QRPayloadParseError: Error, Equatable {
-    case empty
-    case wrongSeparatorCount
-    case emptyCode
-    case emptySignature
-}
-
 enum CouponRegistrationError: Error, Equatable {
     case invalidFormat
     case registrationFailed
@@ -20,20 +8,38 @@ enum CouponRegistrationError: Error, Equatable {
     case persistFailed
 }
 
-enum QRPayloadParser {
-    static func parse(_ raw: String) throws -> CouponPayload {
+struct CouponSignedToken: Equatable {
+    let payloadJSON: Data
+    let signatureBase64: String
+}
+
+enum CouponSignedTokenParseError: Error, Equatable {
+    case empty
+    case wrongSeparatorCount
+    case malformedPayloadBase64
+    case emptyPayload
+    case emptySignature
+}
+
+enum CouponSignedTokenParser {
+    static func parse(_ raw: String) throws -> CouponSignedToken {
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { throw QRPayloadParseError.empty }
+        guard !trimmed.isEmpty else { throw CouponSignedTokenParseError.empty }
 
-        let parts = trimmed.split(separator: ".", omittingEmptySubsequences: false)
-        guard parts.count == 2 else { throw QRPayloadParseError.wrongSeparatorCount }
+        let parts = trimmed.split(separator: ".", maxSplits: 1, omittingEmptySubsequences: false)
+        guard parts.count == 2 else { throw CouponSignedTokenParseError.wrongSeparatorCount }
 
-        let code = String(parts[0])
-        let signature = String(parts[1])
-        guard !code.isEmpty else { throw QRPayloadParseError.emptyCode }
-        guard !signature.isEmpty else { throw QRPayloadParseError.emptySignature }
+        let payloadBase64 = String(parts[0])
+        let signatureBase64 = String(parts[1])
+        guard !payloadBase64.isEmpty else { throw CouponSignedTokenParseError.emptyPayload }
+        guard !signatureBase64.isEmpty else { throw CouponSignedTokenParseError.emptySignature }
 
-        return CouponPayload(code: code, signatureBase64: signature)
+        guard let payloadData = Data(base64Encoded: payloadBase64) else {
+            throw CouponSignedTokenParseError.malformedPayloadBase64
+        }
+        guard !payloadData.isEmpty else { throw CouponSignedTokenParseError.emptyPayload }
+
+        return CouponSignedToken(payloadJSON: payloadData, signatureBase64: signatureBase64)
     }
 }
 
@@ -44,7 +50,7 @@ struct ManualEntrySection: View {
     var body: some View {
         Section {
             TextField(
-                String(localized: "쿠폰 토큰 (code.signature)"),
+                String(localized: "coupon_dialog_token_field"),
                 text: $viewModel.inputToken,
                 axis: .vertical
             )
@@ -59,14 +65,14 @@ struct ManualEntrySection: View {
                 if viewModel.isSubmitting {
                     ProgressView()
                 } else {
-                    Text(String(localized: "등록"))
+                    Text(String(localized: "coupon_dialog_register"))
                 }
             }
             .disabled(submitDisabled)
         } header: {
-            Text(String(localized: "수동 입력"))
+            Text(String(localized: "coupon_section_manual_input"))
         } footer: {
-            Text(String(localized: "발급받은 쿠폰 토큰을 그대로 붙여넣으세요"))
+            Text(String(localized: "coupon_section_manual_hint"))
         }
     }
 
@@ -85,11 +91,11 @@ struct QRScanSection: View {
             Button {
                 onTap()
             } label: {
-                Label(String(localized: "QR 코드 스캔"), systemImage: "qrcode.viewfinder")
+                Label(String(localized: "coupon_button_scan_qr"), systemImage: "qrcode.viewfinder")
             }
             .disabled(isSubmitting)
         } header: {
-            Text(String(localized: "QR 스캔"))
+            Text(String(localized: "coupon_section_qr"))
         }
     }
 }

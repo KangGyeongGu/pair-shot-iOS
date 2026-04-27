@@ -1,6 +1,7 @@
 import AppTrackingTransparency
 import Foundation
 import Observation
+import OSLog
 import UIKit
 #if canImport(GoogleMobileAds)
     import GoogleMobileAds
@@ -62,10 +63,11 @@ final class RewardedAdManager {
                 attStatus: ATTrackingManager.trackingAuthorizationStatus
             ) else { return }
             isLoading = true
+            AppLogger.ads.info("Rewarded load requested")
             GADRewardedAd.load(
                 withAdUnitID: resolvedUnitID,
                 request: request
-            ) { [weak self] ad, _ in
+            ) { [weak self] ad, error in
                 Task { @MainActor [weak self] in
                     guard let self else { return }
                     isLoading = false
@@ -73,9 +75,15 @@ final class RewardedAdManager {
                         self.ad = ad
                         isLoaded = true
                         ad.fullScreenContentDelegate = presentationDelegate
+                        AppLogger.ads.info("Rewarded loaded")
                     } else {
                         self.ad = nil
                         isLoaded = false
+                        if let error {
+                            AppLogger.ads.error(
+                                "Rewarded load failed: \(error.localizedDescription, privacy: .public)"
+                            )
+                        }
                     }
                 }
             }
@@ -129,6 +137,7 @@ final class RewardedAdManager {
                         resume(.failed(reason: reason))
                     }
                 }
+                AppLogger.ads.info("Rewarded presented")
                 ad.present(fromRootViewController: rootViewController) {
                     earned = true
                 }
@@ -176,6 +185,7 @@ final class RewardedAdManager {
         ) {
             let reason = error.localizedDescription
             Task { @MainActor [weak self] in
+                AppLogger.ads.error("Rewarded failed to present: \(reason, privacy: .public)")
                 self?.onFailToPresent?(reason)
             }
         }

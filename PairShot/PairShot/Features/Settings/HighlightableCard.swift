@@ -4,6 +4,8 @@ struct HighlightableCard<Content: View>: View {
     let isHighlighted: Bool
     @ViewBuilder let content: Content
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     @State private var pulseOpacity: Double = 0.0
 
     var body: some View {
@@ -19,6 +21,7 @@ struct HighlightableCard<Content: View>: View {
     }
 
     private func startPulse() {
+        if reduceMotion { return }
         Task { @MainActor in
             for _ in 0 ..< 2 {
                 withAnimation(.easeInOut(duration: 0.6)) {

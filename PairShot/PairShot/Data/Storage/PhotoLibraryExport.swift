@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 import Photos
 
 protocol PhotoLibraryExporting: Sendable {
@@ -38,26 +39,35 @@ final class PhotoLibraryExport: PhotoLibraryExporting {
     func saveImageData(_ data: Data, type: ImageMediaType) async throws {
         let status = PHPhotoLibrary.authorizationStatus(for: .addOnly)
         guard status == .authorized || status == .limited else {
+            AppLogger.storage.error("PhotoLibraryExport not authorized")
             throw PhotoLibraryExportError.notAuthorized
         }
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            PHPhotoLibrary.shared().performChanges {
-                let request = PHAssetCreationRequest.forAsset()
-                let resourceType: PHAssetResourceType = switch type {
-                    case .photo: .photo
-                }
-                request.addResource(with: resourceType, data: data, options: nil)
-            } completionHandler: { success, error in
-                if success {
-                    continuation.resume(returning: ())
-                } else if let error {
-                    continuation.resume(throwing: PhotoLibraryExportError.writeFailed(
-                        String(describing: error)
-                    ))
-                } else {
-                    continuation.resume(throwing: PhotoLibraryExportError.writeFailed("unknown"))
+        do {
+            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+                PHPhotoLibrary.shared().performChanges {
+                    let request = PHAssetCreationRequest.forAsset()
+                    let resourceType: PHAssetResourceType = switch type {
+                        case .photo: .photo
+                    }
+                    request.addResource(with: resourceType, data: data, options: nil)
+                } completionHandler: { success, error in
+                    if success {
+                        continuation.resume(returning: ())
+                    } else if let error {
+                        continuation.resume(throwing: PhotoLibraryExportError.writeFailed(
+                            String(describing: error)
+                        ))
+                    } else {
+                        continuation.resume(throwing: PhotoLibraryExportError.writeFailed("unknown"))
+                    }
                 }
             }
+        } catch {
+            AppLogger.storage.error(
+                "PhotoLibraryExport saveImageData failed: \(error.localizedDescription, privacy: .public)"
+            )
+            throw error
         }
+        AppLogger.storage.info("PhotoLibraryExport saveImageData success")
     }
 }
