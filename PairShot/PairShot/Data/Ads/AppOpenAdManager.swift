@@ -56,7 +56,7 @@ final class AppOpenAdManager {
                 attStatus: ATTrackingManager.trackingAuthorizationStatus
             ) else { return }
             isLoading = true
-            AppLogger.ads.info("AppOpen load requested")
+            AppLogger.ads.debug("AppOpen load requested")
             GADAppOpenAd.load(
                 withAdUnitID: resolvedUnitID,
                 request: request
@@ -68,7 +68,7 @@ final class AppOpenAdManager {
                         self.ad = ad
                         isLoaded = true
                         ad.fullScreenContentDelegate = presentationDelegate
-                        AppLogger.ads.info("AppOpen loaded")
+                        AppLogger.ads.debug("AppOpen loaded")
                     } else {
                         self.ad = nil
                         isLoaded = false
@@ -112,7 +112,7 @@ final class AppOpenAdManager {
                 Task { await coordinator?.release() }
             }
             ad.present(fromRootViewController: rootViewController)
-            AppLogger.ads.info("AppOpen presented")
+            AppLogger.ads.debug("AppOpen presented")
             lastShownAt = now
             self.ad = nil
             isLoaded = false

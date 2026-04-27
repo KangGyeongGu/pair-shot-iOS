@@ -6,6 +6,7 @@ struct SettingsView: View {
     @Environment(\.openURL) private var openURL
     @Environment(AppEnvironment.self) private var env
     @Environment(AdFreeStore.self) private var adFreeStore
+    @Environment(RewardedAdManager.self) private var rewardedManager
     @State private var viewModel: SettingsViewModel?
     @State private var path: [Route] = []
 
@@ -32,21 +33,38 @@ struct SettingsView: View {
         .task { ensureViewModel() }
         .task { await observeEvents() }
         .task { await initialStorageRefresh() }
+        .task { rewardedManager.loadIfNeeded(adFreeStore: adFreeStore) }
     }
 
     private func ensureViewModel() {
         if viewModel == nil {
             viewModel = env.makeSettingsViewModel()
         }
+        consumePendingPulseIfNeeded()
     }
+
+    // swiftlint:disable switch_case_alignment switch_case_on_newline
+    private func consumePendingPulseIfNeeded() {
+        guard let viewModel,
+              let target = env.settingsRedirectCoordinator.consume()
+        else { return }
+        switch target {
+            case .watermark: viewModel.triggerWatermarkPulse()
+            case .combine: viewModel.triggerCombinePulse()
+        }
+    }
+
+    // swiftlint:enable switch_case_alignment switch_case_on_newline
 
     private func observeEvents() async {
         guard let viewModel else { return }
         for await event in viewModel.events {
+            // swiftlint:disable switch_case_alignment
             switch event {
                 case .dismiss:
                     dismiss()
             }
+            // swiftlint:enable switch_case_alignment
         }
     }
 
@@ -56,32 +74,43 @@ struct SettingsView: View {
     }
 
     @ViewBuilder
-    // swiftlint:disable switch_case_alignment
+    // swiftlint:disable switch_case_alignment cyclomatic_complexity
     private func destination(for route: Route) -> some View {
         switch route {
             case .watermarkSettings:
                 WatermarkSettingsView(viewModel: env.makeWatermarkSettingsViewModel())
 
             case .combineSettings:
-                CompositionSettingsGate {
-                    CombineSettingsView(viewModel: env.makeCombineSettingsViewModel())
-                }
+                CombineSettingsView(viewModel: env.makeCombineSettingsViewModel())
 
             case .license:
                 LicenseView()
+
+            case .languagePicker:
+                if let viewModel { LanguagePickerView(viewModel: viewModel) }
+
+            case .themePicker:
+                if let viewModel { ThemePickerView(viewModel: viewModel) }
+
+            case .imageQualityPicker:
+                if let viewModel { ImageQualityPickerView(viewModel: viewModel) }
+
+            case .filenamePrefixEditor:
+                if let viewModel { FilenamePrefixView(viewModel: viewModel) }
 
             default:
                 EmptyView()
         }
     }
 
-    // swiftlint:enable switch_case_alignment
+    // swiftlint:enable switch_case_alignment cyclomatic_complexity
 
     private func form(for viewModel: SettingsViewModel) -> some View {
         SettingsFormBody(
             viewModel: viewModel,
             adFreeStore: adFreeStore,
-            openURL: openURL
+            openURL: openURL,
+            path: $path
         )
     }
 }
@@ -90,38 +119,28 @@ private struct SettingsFormBody: View {
     @Bindable var viewModel: SettingsViewModel
     let adFreeStore: AdFreeStore
     let openURL: OpenURLAction
+    @Binding var path: [Route]
+
+    @Environment(RewardedAdManager.self) private var rewardedManager
+    @Environment(\.fullscreenAdCoordinator) private var coordinator
 
     var body: some View {
         Form {
-            SettingsGeneralSection(viewModel: viewModel)
-            SettingsCaptureFileSection(viewModel: viewModel)
-            SettingsWatermarkSection(viewModel: viewModel)
-            SettingsCombineSection(viewModel: viewModel)
+            Section {
+                BannerAdSlot()
+                    .listRowInsets(EdgeInsets())
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+            }
+            SettingsGeneralSection(viewModel: viewModel, path: $path)
+            SettingsCaptureFileSection(viewModel: viewModel, path: $path)
+            SettingsWatermarkSection(viewModel: viewModel, path: $path)
+            SettingsCombineSection(viewModel: viewModel, path: $path)
             SettingsCouponSection(adFreeStore: adFreeStore)
             SettingsStorageInfoSection(viewModel: viewModel, openURL: openURL)
         }
         .listStyle(.insetGrouped)
         .refreshable { await viewModel.refreshStorageInfo() }
-        .confirmationDialog(
-            String(localized: "settings_dialog_language_title"),
-            isPresented: $viewModel.showLanguagePicker,
-            titleVisibility: .visible
-        ) {
-            Button(String(localized: "language_system")) { viewModel.setLanguage(.system) }
-            Button(String(localized: "language_korean")) { viewModel.setLanguage(.korean) }
-            Button(String(localized: "English")) { viewModel.setLanguage(.english) }
-            Button(String(localized: "common_button_cancel"), role: .cancel) {}
-        }
-        .confirmationDialog(
-            String(localized: "settings_dialog_theme_title"),
-            isPresented: $viewModel.showThemePicker,
-            titleVisibility: .visible
-        ) {
-            Button(String(localized: "theme_system")) { viewModel.setTheme(.system) }
-            Button(String(localized: "theme_light")) { viewModel.setTheme(.light) }
-            Button(String(localized: "theme_dark")) { viewModel.setTheme(.dark) }
-            Button(String(localized: "common_button_cancel"), role: .cancel) {}
-        }
         .alert(
             String(localized: "settings_dialog_cache_clear_title"),
             isPresented: $viewModel.showCacheClearConfirm
@@ -132,6 +151,64 @@ private struct SettingsFormBody: View {
             Button(String(localized: "common_button_cancel"), role: .cancel) {}
         } message: {
             Text(String(localized: "settings_dialog_cache_clear_message"))
+        }
+        .alert(
+            String(localized: "rewarded_gate_title"),
+            isPresented: $viewModel.showWatermarkGateDialog
+        ) {
+            Button(String(localized: "rewarded_gate_confirm")) {
+                Task { await confirmWatermarkGate() }
+            }
+            Button(String(localized: "common_button_cancel"), role: .cancel) {}
+        } message: {
+            Text(String(localized: "rewarded_gate_body_watermark_detail"))
+        }
+        .alert(
+            String(localized: "rewarded_gate_title"),
+            isPresented: $viewModel.showCombineGateDialog
+        ) {
+            Button(String(localized: "rewarded_gate_confirm")) {
+                Task { await confirmCombineGate() }
+            }
+            Button(String(localized: "common_button_cancel"), role: .cancel) {}
+        } message: {
+            Text(String(localized: "rewarded_gate_body_combine_detail"))
+        }
+        .alert(
+            String(localized: "settings_language_restart_title"),
+            isPresented: $viewModel.showLanguageRestartAlert
+        ) {
+            Button(String(localized: "common_button_confirm"), role: .cancel) {
+                viewModel.showLanguageRestartAlert = false
+            }
+        } message: {
+            Text(String(localized: "settings_language_restart_message"))
+        }
+    }
+
+    @MainActor
+    private func confirmWatermarkGate() async {
+        let result = await viewModel.confirmWatermarkGateAd(
+            rewardedManager: rewardedManager,
+            adFreeStore: adFreeStore,
+            coordinator: coordinator,
+            rootViewController: BannerAdView.resolveTopPresentedViewController()
+        )
+        if case .proceed = result {
+            path.append(.watermarkSettings)
+        }
+    }
+
+    @MainActor
+    private func confirmCombineGate() async {
+        let result = await viewModel.confirmCombineGateAd(
+            rewardedManager: rewardedManager,
+            adFreeStore: adFreeStore,
+            coordinator: coordinator,
+            rootViewController: BannerAdView.resolveTopPresentedViewController()
+        )
+        if case .proceed = result {
+            path.append(.combineSettings)
         }
     }
 }

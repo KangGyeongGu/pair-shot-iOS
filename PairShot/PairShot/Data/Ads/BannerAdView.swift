@@ -40,7 +40,7 @@ struct BannerAdView: UIViewRepresentable {
 
     #if canImport(GoogleMobileAds)
         func makeUIView(context: Context) -> GADBannerView {
-            let initialWidth = Self.currentBannerWidth()
+            let initialWidth = context.coordinator.resolveBannerWidth()
             let view = GADBannerView(adSize: BannerAdSize.adaptive(width: initialWidth))
             view.adUnitID = adUnitID
             view.rootViewController = Self.resolveRootViewController()
@@ -49,7 +49,7 @@ struct BannerAdView: UIViewRepresentable {
                 isAdFree: false,
                 attStatus: ATTrackingManager.trackingAuthorizationStatus
             ) ?? GADRequest()
-            AppLogger.ads.info("Banner load requested")
+            AppLogger.ads.debug("Banner load requested")
             view.load(request)
             return view
         }
@@ -58,7 +58,7 @@ struct BannerAdView: UIViewRepresentable {
             if uiView.rootViewController == nil {
                 uiView.rootViewController = Self.resolveRootViewController()
             }
-            let width = Self.currentBannerWidth()
+            let width = context.coordinator.resolveBannerWidth()
             if BannerAdSize.shouldReload(previous: context.coordinator.lastWidth, current: width) {
                 context.coordinator.lastWidth = width
                 uiView.adSize = BannerAdSize.adaptive(width: width)
@@ -72,6 +72,25 @@ struct BannerAdView: UIViewRepresentable {
         @MainActor
         final class Coordinator {
             var lastWidth: CGFloat = 0
+            private var cachedWidth: CGFloat?
+            private var cachedScreenBoundsHash: Int?
+
+            func resolveBannerWidth() -> CGFloat {
+                let bounds = UIScreen.main.bounds
+                let hash = bounds.size.width.hashValue ^ bounds.size.height.hashValue
+                if hash == cachedScreenBoundsHash, let cached = cachedWidth {
+                    return cached
+                }
+                let width = BannerAdView.currentBannerWidth()
+                cachedWidth = width
+                cachedScreenBoundsHash = hash
+                return width
+            }
+
+            func invalidateCache() {
+                cachedWidth = nil
+                cachedScreenBoundsHash = nil
+            }
         }
 
         @MainActor
@@ -81,6 +100,15 @@ struct BannerAdView: UIViewRepresentable {
                 .flatMap(\.windows)
                 .first(where: \.isKeyWindow)?
                 .rootViewController
+        }
+
+        @MainActor
+        static func resolveTopPresentedViewController() -> UIViewController? {
+            var current = resolveRootViewController()
+            while let presented = current?.presentedViewController {
+                current = presented
+            }
+            return current
         }
 
         @MainActor

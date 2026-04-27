@@ -3,6 +3,8 @@ import SwiftUI
 import UIKit
 
 struct AfterCameraStack: View {
+    @Environment(AdFreeStore.self) private var adFreeStore
+
     let captureSession: AVCaptureSession
     let onMakePreviewView: (CameraPreviewView) -> Void
 
@@ -13,12 +15,17 @@ struct AfterCameraStack: View {
     let pairs: [PhotoPair]
     let selectedPairId: Binding<UUID?>
     let storage: PhotoStorageService
-    let stripProgress: AfterCameraStripProgress?
 
     let rotationDirection: RotationGuideDirection
 
-    let activePreset: ZoomPreset?
-    let isPresetSupported: (ZoomPreset) -> Bool
+    let isGridOn: Bool
+    let isLevelOn: Bool
+    let isNightModeOn: Bool
+    let flashMode: CameraFlashMode
+
+    let presets: [ZoomPresetSpec]
+    let displayMultiplier: Double
+    let activePreset: ZoomPresetSpec?
     let isDraggingZoom: Bool
     let currentZoomRatio: Double
     let minZoomRatio: Double
@@ -28,71 +35,111 @@ struct AfterCameraStack: View {
     let canCapture: Bool
 
     let pinchGesture: AnyGesture<Void>
-    let onApplyPreset: (ZoomPreset) -> Void
+    let onApplyPreset: (ZoomPresetSpec) -> Void
     let onZoomDragChanged: (Double) -> Void
     let onZoomDragEnded: () -> Void
     let onShutter: () -> Void
-    let onSettingsTap: () -> Void
     let onLeadingTap: () -> Void
     let onToggleLens: () -> Void
+    let onToggleGrid: () -> Void
+    let onToggleLevel: () -> Void
+    let onToggleNightMode: () -> Void
+    let onCycleFlash: () -> Void
+    let onToggleOverlay: () -> Void
+    let onAlphaChange: (Double) -> Void
+    let onSettingsTap: () -> Void
 
     var body: some View {
-        VStack(spacing: 0) {
-            BannerAdSlot()
-
-            previewArea
-
-            AfterCameraStrip(
-                pairs: pairs,
-                selectedPairId: selectedPairId,
-                storage: storage,
-                progress: stripProgress
+        GeometryReader { geo in
+            let layout = CameraLayoutMath.compute(
+                totalSize: geo.size,
+                isAdFree: adFreeStore.isAdFree
             )
 
-            CameraBottomBar(
-                lastThumbnail: nil,
-                isCapturing: isCapturing,
-                canShowHomeIcon: true,
-                onLeadingTap: onLeadingTap,
-                onShutter: onShutter,
-                onSettingsTap: onSettingsTap
-            )
-            .opacity(canCapture ? 1.0 : 0.6)
+            ZStack(alignment: .top) {
+                Color.appCameraBackground.ignoresSafeArea()
 
-            Spacer(minLength: 0)
-                .frame(height: 32)
+                VStack(spacing: 0) {
+                    previewArea(width: layout.previewWidth, height: layout.previewHeight)
+                        .frame(width: layout.previewWidth, height: layout.previewHeight)
+                        .background(Color.appCameraBackground)
+
+                    AfterCameraStrip(
+                        pairs: pairs,
+                        selectedPairId: selectedPairId,
+                        storage: storage
+                    )
+                    .frame(height: layout.stripHeight)
+                    .clipped()
+
+                    CameraBottomBar(
+                        lastThumbnail: nil,
+                        isCapturing: isCapturing,
+                        onLeadingTap: onLeadingTap,
+                        onShutter: onShutter,
+                        onSettingsTap: onSettingsTap
+                    )
+                    .opacity(canCapture ? 1.0 : 0.6)
+                    .frame(height: layout.bottomBarHeight)
+                    .clipped()
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+
+                if !layout.isAdFree {
+                    BannerAdSlot()
+                        .frame(height: layout.bannerHeight)
+                        .frame(maxWidth: .infinity)
+                }
+            }
         }
-        .background(Color.appCameraBackground.ignoresSafeArea())
+        .ignoresSafeArea(edges: .bottom)
     }
 
-    private var previewArea: some View {
+    private func previewArea(width: CGFloat, height previewHeight: CGFloat) -> some View {
         ZStack {
             AfterCameraPreviewLayer(
                 session: captureSession,
                 onMakeView: onMakePreviewView
             )
-            .aspectRatio(3.0 / 4.0, contentMode: .fit)
             .clipped()
 
-            GhostOverlayView(image: ghostImage, alpha: alpha, isEnabled: overlayEnabled)
-                .aspectRatio(3.0 / 4.0, contentMode: .fit)
+            GhostOverlayView(
+                image: ghostImage,
+                alpha: alpha,
+                isEnabled: overlayEnabled,
+                width: width,
+                height: previewHeight
+            )
+
+            if isGridOn {
+                GridOverlay()
+                    .allowsHitTesting(false)
+            }
 
             Color.clear
                 .contentShape(Rectangle())
                 .gesture(pinchGesture)
-                .aspectRatio(3.0 / 4.0, contentMode: .fit)
 
             if rotationDirection != .upright {
                 RotationGuideOverlay(direction: rotationDirection)
             }
 
-            VStack {
-                Spacer()
-                HStack(alignment: .center, spacing: 8) {
-                    Spacer(minLength: 0)
+            zoomBottomOverlay
+        }
+        .frame(width: width, height: previewHeight)
+        .background(Color.appCameraBackground)
+    }
+
+    private var zoomBottomOverlay: some View {
+        VStack {
+            Spacer()
+            ZStack(alignment: .trailing) {
+                HStack {
+                    Spacer()
                     ZoomControl(
+                        presets: presets,
+                        displayMultiplier: displayMultiplier,
                         activePreset: activePreset,
-                        isSupported: isPresetSupported,
                         isDragging: isDraggingZoom,
                         currentRatio: currentZoomRatio,
                         minRatio: minZoomRatio,
@@ -101,16 +148,15 @@ struct AfterCameraStack: View {
                         onDragChanged: onZoomDragChanged,
                         onDragEnded: onZoomDragEnded
                     )
-                    Spacer(minLength: 0)
-                    lensFlipButton
-                        .opacity(isDraggingZoom ? 0 : 1)
+                    Spacer()
                 }
-                .padding(.horizontal, 12)
-                .padding(.bottom, 12)
+
+                lensFlipButton
+                    .opacity(isDraggingZoom ? 0 : 1)
+                    .padding(.trailing, 12)
             }
+            .padding(.bottom, 12)
         }
-        .frame(maxWidth: .infinity)
-        .background(Color.appCameraBackground)
     }
 
     private var lensFlipButton: some View {

@@ -18,17 +18,20 @@ struct AfterCaptureOutcome {
 struct AfterCaptureCoordinator {
     let session: CameraSession
     let storage: PhotoStorageService
+    let pairRepo: PhotoPairRepository?
     let fileNamePrefix: String
     let jpegQuality: CGFloat
 
     init(
         session: CameraSession,
         storage: PhotoStorageService,
+        pairRepo: PhotoPairRepository? = nil,
         fileNamePrefix: String = "",
         jpegQuality: CGFloat = ExifNormalizer.defaultJPEGQuality
     ) {
         self.session = session
         self.storage = storage
+        self.pairRepo = pairRepo
         self.fileNamePrefix = fileNamePrefix
         self.jpegQuality = jpegQuality
     }
@@ -57,10 +60,17 @@ struct AfterCaptureCoordinator {
             jpegQuality: jpegQuality
         )
 
+        let sequenceNumber: Int = if let extracted = FileNameBuilder.extractSequenceNumber(from: pair.beforeFileName) {
+            extracted
+        } else if let pairRepo, let next = try? await pairRepo.nextSequenceNumber() {
+            next
+        } else {
+            PairSequenceResolver.fallback(in: context)
+        }
         let fileName = FileNameBuilder.after(
             prefix: fileNamePrefix,
             timestamp: captured.capturedAt,
-            pairId: pair.id
+            sequenceNumber: sequenceNumber
         )
 
         do {
@@ -88,20 +98,32 @@ struct AfterCaptureCoordinator {
 }
 
 enum AfterCameraPairLoader {
-    static func pendingPairs(in pairs: [PhotoPair]) -> [PhotoPair] {
-        pairs
-            .filter { $0.afterFileName == nil }
-            .sorted { $0.createdAt < $1.createdAt }
+    static func pendingPairs(in pairs: [PhotoPair], sortOrder: HomeSortOrder = .newest) -> [PhotoPair] {
+        let pending = pairs.filter { $0.afterFileName == nil }
+        return sort(pending, sortOrder: sortOrder)
     }
 
-    static func firstPendingPair(in pairs: [PhotoPair]) -> PhotoPair? {
-        pendingPairs(in: pairs).first
+    static func firstPendingPair(in pairs: [PhotoPair], sortOrder: HomeSortOrder = .newest) -> PhotoPair? {
+        pendingPairs(in: pairs, sortOrder: sortOrder).first
     }
 
-    static func nextPendingPair(after current: PhotoPair, in pairs: [PhotoPair]) -> PhotoPair? {
-        pairs
-            .filter { $0.id != current.id && $0.afterFileName == nil }
-            .min { $0.createdAt < $1.createdAt }
+    static func nextPendingPair(
+        after current: PhotoPair,
+        in pairs: [PhotoPair],
+        sortOrder: HomeSortOrder = .newest
+    ) -> PhotoPair? {
+        let remaining = pairs.filter { $0.id != current.id && $0.afterFileName == nil }
+        return sort(remaining, sortOrder: sortOrder).first
+    }
+
+    private static func sort(_ pairs: [PhotoPair], sortOrder: HomeSortOrder) -> [PhotoPair] {
+        switch sortOrder {
+            case .newest:
+                pairs.sorted { $0.createdAt > $1.createdAt }
+
+            case .oldest:
+                pairs.sorted { $0.createdAt < $1.createdAt }
+        }
     }
 }
 
@@ -109,17 +131,33 @@ struct AfterCameraScopeFetch {
     let pairRepo: PhotoPairRepository
     let albumId: UUID?
 
-    func fetch() async -> AfterCameraScopeSnapshot {
+    func fetch(
+        initialPairId: UUID? = nil,
+        sortOrder: HomeSortOrder = .newest,
+        calendar: Calendar = .current
+    ) async -> AfterCameraScopeSnapshot {
         let fetched = try? await pairRepo.fetchAll()
         let all = fetched ?? []
-        let scoped: [PhotoPair] = if let albumId {
+        let albumScoped: [PhotoPair] = if let albumId {
             all.filter { pair in pair.albums.contains(where: { $0.id == albumId }) }
         } else {
             all
         }
-        let pending = AfterCameraPairLoader.pendingPairs(in: scoped)
-        let completed = scoped.count(where: { $0.afterFileName != nil })
-        return AfterCameraScopeSnapshot(pending: pending, completedCount: completed)
+        let pending = albumScoped.filter { $0.afterFileName == nil }
+        let dayScoped: [PhotoPair]
+        if let initialPairId,
+           let initialPair = albumScoped.first(where: { $0.id == initialPairId })
+        {
+            let day = calendar.startOfDay(for: initialPair.createdAt)
+            dayScoped = pending.filter {
+                calendar.startOfDay(for: $0.createdAt) == day
+            }
+        } else {
+            dayScoped = pending
+        }
+        let sorted = AfterCameraPairLoader.pendingPairs(in: dayScoped, sortOrder: sortOrder)
+        let completed = albumScoped.count(where: { $0.afterFileName != nil })
+        return AfterCameraScopeSnapshot(pending: sorted, completedCount: completed)
     }
 }
 

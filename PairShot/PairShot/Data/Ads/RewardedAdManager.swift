@@ -24,6 +24,7 @@ enum RewardedSessionGate {
 final class RewardedAdManager {
     enum UnlockID: String, Hashable {
         case compositionSettings
+        case watermarkSettings
     }
 
     enum RewardOutcome: Equatable {
@@ -63,7 +64,7 @@ final class RewardedAdManager {
                 attStatus: ATTrackingManager.trackingAuthorizationStatus
             ) else { return }
             isLoading = true
-            AppLogger.ads.info("Rewarded load requested")
+            AppLogger.ads.debug("Rewarded load requested")
             GADRewardedAd.load(
                 withAdUnitID: resolvedUnitID,
                 request: request
@@ -75,7 +76,7 @@ final class RewardedAdManager {
                         self.ad = ad
                         isLoaded = true
                         ad.fullScreenContentDelegate = presentationDelegate
-                        AppLogger.ads.info("Rewarded loaded")
+                        AppLogger.ads.debug("Rewarded loaded")
                     } else {
                         self.ad = nil
                         isLoaded = false
@@ -108,6 +109,10 @@ final class RewardedAdManager {
         }
 
         guard isLoaded else { return .failed(reason: "not-loaded") }
+        if let rootViewController, rootViewController.presentedViewController != nil {
+            AppLogger.ads.warning("Rewarded skipped — root already presenting another view controller")
+            return .failed(reason: "already-presenting")
+        }
         guard await coordinator.tryAcquire() else {
             return .failed(reason: "coordinator-busy")
         }
@@ -137,7 +142,7 @@ final class RewardedAdManager {
                         resume(.failed(reason: reason))
                     }
                 }
-                AppLogger.ads.info("Rewarded presented")
+                AppLogger.ads.debug("Rewarded presented")
                 ad.present(fromRootViewController: rootViewController) {
                     earned = true
                 }

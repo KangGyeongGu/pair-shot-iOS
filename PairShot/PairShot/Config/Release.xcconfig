@@ -1,38 +1,12 @@
-// P10.5 / Audit-B — Release build configuration overlay.
-//
-// AdMob production unit ids and the coupon-issuer Ed25519 public key
-// are injected here as build settings, then surfaced through
-// `Info.plist` (`AdUnitID_*` / `GADApplicationIdentifier` /
-// `CouponPublicKeyBase64`), and finally read at runtime by
-// `Services/AdsConfig.swift` and `Services/CouponVerifier.swift` via
-// `Bundle.main.object(forInfoDictionaryKey:)`.
-//
-// Until real production values are minted, the strings stay as the
-// literal placeholder `INSERT_PRODUCTION_*_HERE`. The runtime
-// callers detect those placeholders and fall back to safe defaults
-// (Google's official test ad unit id / 32-byte zero key) so a release
-// build is still safe to ship for an internal TestFlight pass without
-// serving live ads against the wrong account.
-//
-// Replacement procedure (sub-step of P10.6 — see
-// `docs/02-testflight-upload-guide.md`):
-//   1. Mint each AdMob unit id + GAD application id in the console.
-//   2. Generate a 32-byte Ed25519 public key (Base64) for coupon
-//      verification (paired with the issuer's private key).
-//   3. Replace the placeholder strings below with the real values.
-//   4. Archive + upload via Xcode Organizer.
-//   5. Verify in TestFlight that ads load without the test-id banner
-//      and that a real coupon redeems successfully.
-//
-// Order: alphabetical by key for diff stability.
+ADUNIT_ID_APP_OPEN = ca-app-pub-9413236072720050/1972095824
+ADUNIT_ID_BANNER = ca-app-pub-9413236072720050/5148923502
+ADUNIT_ID_INTERSTITIAL = ca-app-pub-9413236072720050/2067779224
+ADUNIT_ID_NATIVE = ca-app-pub-9413236072720050/7068735178
+ADUNIT_ID_REWARDED = ca-app-pub-9413236072720050/2742477354
+GAD_APPLICATION_ID = ca-app-pub-9413236072720050~6382339465
 
-ADUNIT_ID_APP_OPEN = INSERT_PRODUCTION_ID_HERE
-ADUNIT_ID_BANNER = INSERT_PRODUCTION_ID_HERE
-ADUNIT_ID_INTERSTITIAL = INSERT_PRODUCTION_ID_HERE
-ADUNIT_ID_NATIVE = INSERT_PRODUCTION_ID_HERE
-ADUNIT_ID_REWARDED = INSERT_PRODUCTION_ID_HERE
-ADUNIT_ID_REWARDED_INTERSTITIAL = INSERT_PRODUCTION_ID_HERE
-COUPON_PUBLIC_KEY = INSERT_COUPON_PUBLIC_KEY_BASE64_HERE
-GAD_APPLICATION_ID = INSERT_PRODUCTION_APP_ID_HERE
+COUPON_API_BASE_URL = https:/$()/pairshot.kangkyeonggu.com/api/pairshot
+COUPON_API_AUTH_KEY = SsH8lb9KwAhAlZtoSHXaLr9THvZNy9NZUam1pG1fGi8
+COUPON_DEVICE_HASH_SALT = pairshot-coupon-v1-device-salt
 
 SWIFT_TREAT_WARNINGS_AS_ERRORS = YES

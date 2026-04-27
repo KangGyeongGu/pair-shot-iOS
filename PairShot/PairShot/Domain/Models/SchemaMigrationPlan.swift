@@ -3,11 +3,11 @@ import SwiftData
 
 nonisolated enum PairShotMigrationPlan: SchemaMigrationPlan {
     nonisolated static var schemas: [any VersionedSchema.Type] {
-        [SchemaV1.self, SchemaV2.self, SchemaV3.self]
+        [SchemaV1.self, SchemaV2.self]
     }
 
     nonisolated static var stages: [MigrationStage] {
-        [v1ToV2, v2ToV3]
+        [v1ToV2]
     }
 
     nonisolated static let v1ToV2 = MigrationStage.custom(
@@ -20,39 +20,6 @@ nonisolated enum PairShotMigrationPlan: SchemaMigrationPlan {
             try V1ToV2Migrator.didMigrate(context: context)
         }
     )
-
-    nonisolated static let v2ToV3 = MigrationStage.custom(
-        fromVersion: SchemaV2.self,
-        toVersion: SchemaV3.self,
-        willMigrate: nil,
-        didMigrate: { context in
-            try V2ToV3Migrator.didMigrate(context: context)
-        }
-    )
-}
-
-nonisolated enum V2ToV3Migrator {
-    nonisolated static func didMigrate(context: ModelContext) throws {
-        let coupons = try context.fetch(FetchDescriptor<Coupon>())
-        var changed = false
-        for coupon in coupons {
-            if coupon.kindRawString.isEmpty {
-                coupon.kindRawString = "\(CouponKind.timedPrefix)\(coupon.durationDays)"
-                changed = true
-            }
-            if coupon.payloadVersion == 0 {
-                coupon.payloadVersion = CouponPayload.currentVersion
-                changed = true
-            }
-            if coupon.issuedAt == Date(timeIntervalSince1970: 0) {
-                coupon.issuedAt = coupon.activatedAt
-                changed = true
-            }
-        }
-        if changed {
-            try context.save()
-        }
-    }
 }
 
 nonisolated enum V1ToV2Migrator {

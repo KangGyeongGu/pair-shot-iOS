@@ -22,6 +22,7 @@ enum InterstitialFrequencyGate {
 @Observable
 final class InterstitialAdManager {
     nonisolated static let defaultMinimumInterval: TimeInterval = 300
+    nonisolated static let cooldownSeconds: TimeInterval = 5.0
 
     private(set) var isLoaded: Bool = false
 
@@ -56,7 +57,7 @@ final class InterstitialAdManager {
                 attStatus: ATTrackingManager.trackingAuthorizationStatus
             ) else { return }
             isLoading = true
-            AppLogger.ads.info("Interstitial load requested")
+            AppLogger.ads.debug("Interstitial load requested")
             GADInterstitialAd.load(
                 withAdUnitID: resolvedUnitID,
                 request: request
@@ -68,7 +69,7 @@ final class InterstitialAdManager {
                         self.ad = ad
                         isLoaded = true
                         ad.fullScreenContentDelegate = presentationDelegate
-                        AppLogger.ads.info("Interstitial loaded")
+                        AppLogger.ads.debug("Interstitial loaded")
                     } else {
                         self.ad = nil
                         isLoaded = false
@@ -112,7 +113,7 @@ final class InterstitialAdManager {
                 Task { await coordinator?.release() }
             }
             ad.present(fromRootViewController: rootViewController)
-            AppLogger.ads.info("Interstitial presented")
+            AppLogger.ads.debug("Interstitial presented")
             lastShownAt = now
             self.ad = nil
             isLoaded = false
@@ -121,6 +122,84 @@ final class InterstitialAdManager {
         #else
             lastShownAt = now
             await coordinator.release()
+            return true
+        #endif
+    }
+
+    @discardableResult
+    func showIfAvailable(
+        from rootViewController: UIViewController?,
+        adFreeStore: AdFreeStore,
+        coordinator: FullscreenAdCoordinator,
+        adUnitID: String? = nil,
+        now: Date = .now,
+        onFinished: @escaping @MainActor () -> Void
+    ) async -> Bool {
+        if adFreeStore.isAdFree {
+            onFinished()
+            return false
+        }
+
+        if let lastShownAt, now.timeIntervalSince(lastShownAt) < Self.cooldownSeconds {
+            onFinished()
+            loadIfNeeded(adUnitID: adUnitID, adFreeStore: adFreeStore)
+            return false
+        }
+
+        guard isLoaded else {
+            onFinished()
+            loadIfNeeded(adUnitID: adUnitID, adFreeStore: adFreeStore)
+            return false
+        }
+
+        guard await coordinator.tryAcquire() else {
+            onFinished()
+            return false
+        }
+
+        #if canImport(GoogleMobileAds)
+            guard let ad else {
+                await coordinator.release()
+                onFinished()
+                loadIfNeeded(adUnitID: adUnitID, adFreeStore: adFreeStore)
+                return false
+            }
+            await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+                var resumed = false
+                let resume: () -> Void = {
+                    guard !resumed else { return }
+                    resumed = true
+                    continuation.resume()
+                }
+                presentationDelegate.onDismiss = { [weak coordinator, weak self] in
+                    Task { @MainActor in
+                        await coordinator?.release()
+                        self?.lastShownAt = Date()
+                        self?.ad = nil
+                        self?.isLoaded = false
+                        self?.loadIfNeeded(adUnitID: adUnitID, adFreeStore: adFreeStore)
+                        onFinished()
+                        resume()
+                    }
+                }
+                presentationDelegate.onFailToPresent = { [weak coordinator, weak self] in
+                    Task { @MainActor in
+                        await coordinator?.release()
+                        self?.ad = nil
+                        self?.isLoaded = false
+                        self?.loadIfNeeded(adUnitID: adUnitID, adFreeStore: adFreeStore)
+                        onFinished()
+                        resume()
+                    }
+                }
+                AppLogger.ads.debug("Interstitial showIfAvailable presented")
+                ad.present(fromRootViewController: rootViewController)
+            }
+            return true
+        #else
+            await coordinator.release()
+            lastShownAt = now
+            onFinished()
             return true
         #endif
     }

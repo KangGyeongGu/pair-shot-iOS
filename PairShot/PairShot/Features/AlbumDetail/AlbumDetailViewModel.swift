@@ -36,9 +36,12 @@ final class AlbumDetailViewModel {
     var pendingPairDelete: AlbumDetailPairDeleteRequest?
     var pendingSinglePairDelete: AlbumDetailSinglePairDeleteRequest?
     var pendingPreviewPair: AlbumDetailPairPreviewRequest?
+    var pendingShareItems: ExportShareItems?
+    var isExporting: Bool = false
 
     var showBeforeCamera: Bool = false
     var showAfterCamera: Bool = false
+    var afterCameraTargetPairId: UUID?
     var navigateToPairPicker: Bool = false
 
     private let pairRepo: PhotoPairRepository
@@ -46,6 +49,10 @@ final class AlbumDetailViewModel {
     private let deletePairs: DeletePairsUseCase
     private let toggleAlbumMembership: ToggleAlbumMembershipUseCase
     private let thumbnailCache: ThumbnailCache
+    private let immediateExport: ImmediateExportService
+    private let interstitialAdManager: InterstitialAdManager?
+    private let adFreeStore: AdFreeStore?
+    private let fullscreenAdCoordinator: FullscreenAdCoordinator?
 
     init(
         albumId: UUID,
@@ -54,7 +61,11 @@ final class AlbumDetailViewModel {
         deletePairs: DeletePairsUseCase,
         toggleAlbumMembership: ToggleAlbumMembershipUseCase,
         storage: PhotoStorageService,
-        thumbnailCache: ThumbnailCache = .shared
+        immediateExport: ImmediateExportService,
+        thumbnailCache: ThumbnailCache = .shared,
+        interstitialAdManager: InterstitialAdManager? = nil,
+        adFreeStore: AdFreeStore? = nil,
+        fullscreenAdCoordinator: FullscreenAdCoordinator? = nil
     ) {
         self.albumId = albumId
         self.pairRepo = pairRepo
@@ -62,7 +73,11 @@ final class AlbumDetailViewModel {
         self.deletePairs = deletePairs
         self.toggleAlbumMembership = toggleAlbumMembership
         self.storage = storage
+        self.immediateExport = immediateExport
         self.thumbnailCache = thumbnailCache
+        self.interstitialAdManager = interstitialAdManager
+        self.adFreeStore = adFreeStore
+        self.fullscreenAdCoordinator = fullscreenAdCoordinator
     }
 
     func sortedPairs(from album: Album?) -> [PhotoPair] {
@@ -114,6 +129,7 @@ final class AlbumDetailViewModel {
             return
         }
         if pair.afterFileName == nil {
+            afterCameraTargetPairId = pair.id
             showAfterCamera = true
             return
         }
@@ -135,6 +151,76 @@ final class AlbumDetailViewModel {
 
     func startPairPicker() {
         navigateToPairPicker = true
+    }
+
+    func shareSelectedPairs(from all: [PhotoPair]) async {
+        let chosen = all.filter { selectedPairIds.contains($0.id) }
+        guard !chosen.isEmpty else { return }
+        guard !isExporting else { return }
+        await runWithInterstitial { [weak self] in
+            await self?.performShare(pairs: chosen)
+        }
+    }
+
+    func saveSelectedPairsToDevice(from all: [PhotoPair]) async {
+        let chosen = all.filter { selectedPairIds.contains($0.id) }
+        guard !chosen.isEmpty else { return }
+        guard !isExporting else { return }
+        await runWithInterstitial { [weak self] in
+            await self?.performSaveToDevice(pairs: chosen)
+        }
+    }
+
+    private func performShare(pairs: [PhotoPair]) async {
+        isExporting = true
+        defer { isExporting = false }
+        do {
+            let items = try await immediateExport.makeShareItems(for: pairs)
+            guard !items.values.isEmpty else { return }
+            pendingShareItems = items
+        } catch {
+            immediateExport.notifyShareFailure()
+        }
+    }
+
+    private func performSaveToDevice(pairs: [PhotoPair]) async {
+        isExporting = true
+        defer { isExporting = false }
+        await immediateExport.saveToDevice(pairs: pairs)
+        cancelSelection()
+    }
+
+    private func runWithInterstitial(_ work: @escaping @MainActor () async -> Void) async {
+        guard
+            let interstitialAdManager,
+            let adFreeStore,
+            let fullscreenAdCoordinator
+        else {
+            await work()
+            return
+        }
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            Task { @MainActor in
+                await interstitialAdManager.showIfAvailable(
+                    from: BannerAdView.resolveTopPresentedViewController(),
+                    adFreeStore: adFreeStore,
+                    coordinator: fullscreenAdCoordinator
+                ) {
+                    Task { @MainActor in
+                        await work()
+                        continuation.resume()
+                    }
+                }
+            }
+        }
+    }
+
+    func clearShareItems() {
+        if let items = pendingShareItems {
+            immediateExport.cleanup(items: items)
+        }
+        pendingShareItems = nil
+        cancelSelection()
     }
 
     func requestPairDeletion(from all: [PhotoPair]) {

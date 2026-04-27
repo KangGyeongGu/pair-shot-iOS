@@ -1,16 +1,17 @@
 import Foundation
 
 nonisolated struct AppSettingsSnapshot: Equatable {
-    static let defaultJpegQuality: Double = 0.8
-    static let defaultOverlayAlphaValue: Double = 0.5
+    static let defaultJpegQuality: Double = 0.95
+    static let defaultOverlayAlphaValue: Double = 0.35
     static let defaultCompositeLayoutFallback: String = "horizontal"
-    static let defaultWatermarkEnabled: Bool = true
+    static let defaultWatermarkEnabled: Bool = false
     static let defaultLanguage: AppLanguage = .system
     static let defaultTheme: AppTheme = .system
+    static let defaultFileNamePrefix: String = "PAIRSHOT"
 
     static let `default` = Self(
         jpegQuality: Self.defaultJpegQuality,
-        fileNamePrefix: "",
+        fileNamePrefix: Self.defaultFileNamePrefix,
         defaultOverlayAlpha: Self.defaultOverlayAlphaValue,
         defaultCompositeLayoutRawValue: Self.defaultCompositeLayoutFallback,
         watermarkEnabled: Self.defaultWatermarkEnabled,

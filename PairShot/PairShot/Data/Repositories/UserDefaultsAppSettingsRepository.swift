@@ -22,7 +22,7 @@ final nonisolated class UserDefaultsAppSettingsRepository: AppSettingsRepository
         // swiftlint:disable trailing_comma
         [
             jpegQualityKey: AppSettingsSnapshot.defaultJpegQuality,
-            fileNamePrefixKey: "",
+            fileNamePrefixKey: AppSettingsSnapshot.defaultFileNamePrefix,
             defaultOverlayAlphaKey: AppSettingsSnapshot.defaultOverlayAlphaValue,
             defaultCompositeLayoutKey: AppSettingsSnapshot.defaultCompositeLayoutFallback,
             watermarkEnabledKey: AppSettingsSnapshot.defaultWatermarkEnabled,

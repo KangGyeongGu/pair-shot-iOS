@@ -8,28 +8,30 @@ struct HomePairCardView: View {
     let isSelected: Bool
 
     var body: some View {
-        ZStack(alignment: .topTrailing) {
-            splitContainer
-            if pair.status == .combined {
-                combinedIndicator
-                    .padding(8)
+        Color.clear
+            .aspectRatio(1.8, contentMode: .fit)
+            .overlay {
+                ZStack(alignment: .topTrailing) {
+                    splitContainer
+                    if pair.status == .combined {
+                        combinedIndicator
+                            .padding(8)
+                    }
+                    if isSelectionMode {
+                        selectionMarker
+                            .padding(8)
+                    }
+                }
             }
-            if isSelectionMode {
-                selectionMarker
-                    .padding(8)
-            }
-        }
-        .aspectRatio(1.5, contentMode: .fit)
-        .frame(maxWidth: .infinity)
-        .clipShape(RoundedRectangle(cornerRadius: 10))
-        .overlay(borderOverlay)
-        .overlay(selectionTint)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(Self.accessibilityLabel(
-            for: pair,
-            isSelected: isSelected,
-            isSelectionMode: isSelectionMode
-        ))
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .overlay(borderOverlay)
+            .overlay(selectionTint)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(Self.accessibilityLabel(
+                for: pair,
+                isSelected: isSelected,
+                isSelectionMode: isSelectionMode
+            ))
     }
 
     static func accessibilityLabel(

@@ -53,19 +53,53 @@
 	<string>$(ADUNIT_ID_INTERSTITIAL)</string>
 	<key>AdUnitID_Rewarded</key>
 	<string>$(ADUNIT_ID_REWARDED)</string>
-	<key>AdUnitID_RewardedInterstitial</key>
-	<string>$(ADUNIT_ID_REWARDED_INTERSTITIAL)</string>
 	<key>AdUnitID_Native</key>
 	<string>$(ADUNIT_ID_NATIVE)</string>
 	<key>AdUnitID_AppOpen</key>
 	<string>$(ADUNIT_ID_APP_OPEN)</string>
-	<key>CouponPublicKeyBase64</key>
-	<string>$(COUPON_PUBLIC_KEY)</string>
+	<key>CouponApiBaseUrl</key>
+	<string>$(COUPON_API_BASE_URL)</string>
+	<key>CouponApiAuthKey</key>
+	<string>$(COUPON_API_AUTH_KEY)</string>
+	<key>CouponDeviceHashSalt</key>
+	<string>$(COUPON_DEVICE_HASH_SALT)</string>
 	<key>SKAdNetworkItems</key>
 	<array>
 		<dict>
 			<key>SKAdNetworkIdentifier</key>
 			<string>cstr6suwn9.skadnetwork</string>
+		</dict>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>wg4vff78zm.skadnetwork</string>
+		</dict>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>gta9lk7p23.skadnetwork</string>
+		</dict>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>vutu7akeur.skadnetwork</string>
+		</dict>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>44jx6755aq.skadnetwork</string>
+		</dict>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>k674qkevps.skadnetwork</string>
+		</dict>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>kbmxgpxpgc.skadnetwork</string>
+		</dict>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>c3frkrj4fj.skadnetwork</string>
+		</dict>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>97r2b46745.skadnetwork</string>
 		</dict>
 		<dict>
 			<key>SKAdNetworkIdentifier</key>
@@ -270,6 +304,22 @@
 		<dict>
 			<key>SKAdNetworkIdentifier</key>
 			<string>9nlqeag3gk.skadnetwork</string>
+		</dict>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>5lm9lj6jb7.skadnetwork</string>
+		</dict>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>su67r6k2v3.skadnetwork</string>
+		</dict>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>424m5254lk.skadnetwork</string>
+		</dict>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>mtkv5xtk9e.skadnetwork</string>
 		</dict>
 	</array>
 </dict>

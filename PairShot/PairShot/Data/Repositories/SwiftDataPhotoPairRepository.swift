@@ -74,6 +74,14 @@ final class SwiftDataPhotoPairRepository: PhotoPairRepository {
         try context.save()
     }
 
+    func nextSequenceNumber() async throws -> Int {
+        let all = try fetchAllSync()
+        let maxSeq = all
+            .compactMap { FileNameBuilder.extractSequenceNumber(from: $0.beforeFileName) }
+            .max() ?? 0
+        return maxSeq + 1
+    }
+
     private func fetchAllSync() throws -> [PhotoPair] {
         let descriptor = FetchDescriptor<PhotoPair>(
             sortBy: [SortDescriptor(\.createdAt, order: .reverse)]

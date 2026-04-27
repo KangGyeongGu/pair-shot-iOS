@@ -1,6 +1,8 @@
 import Foundation
 import SwiftUI
 
+// swiftlint:disable switch_case_on_newline type_contents_order switch_case_alignment
+
 nonisolated enum CompositeLayout: String, CaseIterable, Identifiable {
     case horizontal
     case vertical
@@ -28,10 +30,16 @@ nonisolated struct CompositeOptions: Equatable {
     var layout: CompositeLayout
     var jpegQuality: CGFloat
     var watermarkEnabled: Bool
+    var watermark: WatermarkSettings?
+    var combineSettings: CombineSettings?
 
     static let `default` = Self(
         layout: .horizontal,
         jpegQuality: 0.9,
-        watermarkEnabled: true
+        watermarkEnabled: false,
+        watermark: nil,
+        combineSettings: nil
     )
 }
+
+// swiftlint:enable switch_case_on_newline type_contents_order switch_case_alignment

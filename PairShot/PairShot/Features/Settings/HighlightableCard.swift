@@ -15,6 +15,9 @@ struct HighlightableCard<Content: View>: View {
                     ? Color.accentColor.opacity(pulseOpacity)
                     : Color(.secondarySystemGroupedBackground)
             )
+            .onAppear {
+                if isHighlighted { startPulse() }
+            }
             .onChange(of: isHighlighted) { _, newValue in
                 if newValue { startPulse() }
             }

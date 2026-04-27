@@ -20,4 +20,24 @@ nonisolated enum AppLanguage: String, Codable, CaseIterable {
             case .english: Locale(identifier: "en")
         }
     }
+
+    var appleLanguagesIdentifier: String? {
+        switch self {
+            case .system: nil
+            case .korean: "ko"
+            case .english: "en"
+        }
+    }
+}
+
+enum AppLanguageBundleSync {
+    static let appleLanguagesKey = "AppleLanguages"
+
+    static func apply(_ language: AppLanguage, defaults: UserDefaults = .standard) {
+        if let identifier = language.appleLanguagesIdentifier {
+            defaults.set([identifier], forKey: appleLanguagesKey)
+        } else {
+            defaults.removeObject(forKey: appleLanguagesKey)
+        }
+    }
 }

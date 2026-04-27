@@ -15,7 +15,9 @@ final class AppEnvironment {
     let location: LocationFetching
     let fileNameBuilder: FileNameBuilding
     let exifNormalizer: ExifNormalizing
-    let couponVerifier: CouponVerifying
+    let couponApiConfig: CouponApiConfig
+    let couponApi: any CouponActivationApi
+    let deviceHashProvider: any DeviceHashProviding
     let zipExporter: ZipExporting
     let photoLibraryExporter: any PhotoLibraryExporting
     let photoStorageService: PhotoStorageService
@@ -42,7 +44,10 @@ final class AppEnvironment {
     let snackbarQueue: SnackbarQueue
     let backgroundTaskGuard: BackgroundTaskGuard
     let compositorService: any CompositorService
+    let immediateExport: ImmediateExportService
+    let settingsRedirectCoordinator: SettingsRedirectCoordinator
 
+    // swiftlint:disable:next function_body_length
     init(
         modelContainer: ModelContainer,
         appSettings: AppSettings? = nil,
@@ -55,7 +60,8 @@ final class AppEnvironment {
         appOpenAdManager: AppOpenAdManager? = nil,
         fullscreenAdCoordinator: FullscreenAdCoordinator? = nil,
         snackbarQueue: SnackbarQueue? = nil,
-        backgroundTaskGuard: BackgroundTaskGuard? = nil
+        backgroundTaskGuard: BackgroundTaskGuard? = nil,
+        settingsRedirectCoordinator: SettingsRedirectCoordinator? = nil
     ) {
         self.modelContainer = modelContainer
         self.appSettings = appSettings ?? AppSettings()
@@ -71,6 +77,7 @@ final class AppEnvironment {
         let resolvedBackgroundTaskGuard = backgroundTaskGuard ?? BackgroundTaskGuard()
         self.snackbarQueue = resolvedSnackbarQueue
         self.backgroundTaskGuard = resolvedBackgroundTaskGuard
+        self.settingsRedirectCoordinator = settingsRedirectCoordinator ?? SettingsRedirectCoordinator()
 
         let services = AppServiceBundle.make()
         storage = services.storage
@@ -78,10 +85,16 @@ final class AppEnvironment {
         location = services.location
         fileNameBuilder = services.fileNameBuilder
         exifNormalizer = services.exifNormalizer
-        couponVerifier = services.couponVerifier
+        couponApiConfig = services.couponApiConfig
+        couponApi = services.couponApi
+        deviceHashProvider = services.deviceHashProvider
         photoLibraryExporter = services.photoLibraryExporter
 
-        let repositories = AppRepositoryBundle.make(container: modelContainer)
+        let repositories = AppRepositoryBundle.make(
+            container: modelContainer,
+            couponApi: services.couponApi,
+            deviceHashProvider: services.deviceHashProvider
+        )
         pairRepo = repositories.pairRepo
         albumRepo = repositories.albumRepo
         couponRepo = repositories.couponRepo
@@ -100,10 +113,7 @@ final class AppEnvironment {
         let useCases = AppUseCaseBundle.make(
             services: services,
             repositories: repositories,
-            zipExporter: zipExporter,
-            compositor: resolvedCompositor,
-            backgroundTaskGuard: resolvedBackgroundTaskGuard,
-            snackbarQueue: resolvedSnackbarQueue
+            zipExporter: zipExporter
         )
         createPair = useCases.createPair
         captureAfter = useCases.captureAfter
@@ -112,6 +122,15 @@ final class AppEnvironment {
         toggleAlbumMembership = useCases.toggleAlbumMembership
         activateCoupon = useCases.activateCoupon
         checkAdFreeState = useCases.checkAdFreeState
+
+        immediateExport = ImmediateExportService(
+            storage: services.photoStorageService,
+            exportPairs: useCases.exportPairs,
+            photoLibrary: services.photoLibraryExporter,
+            snackbarQueue: resolvedSnackbarQueue,
+            compositor: resolvedCompositor,
+            appSettings: self.appSettings
+        )
     }
 
     func makeBeforeCameraViewModel(albumId: UUID?) -> BeforeCameraViewModel {
@@ -128,12 +147,14 @@ final class AppEnvironment {
     func makeAfterCameraViewModel(
         albumId: UUID?,
         initialPairId: UUID? = nil,
-        retakeMode: Bool = false
+        retakeMode: Bool = false,
+        sortOrder: HomeSortOrder = .newest
     ) -> AfterCameraViewModel {
         AfterCameraViewModel(
             albumId: albumId,
             initialPairId: initialPairId,
             retakeMode: retakeMode,
+            sortOrder: sortOrder,
             captureAfter: captureAfter,
             pairRepo: pairRepo,
             storage: storage,
@@ -156,7 +177,11 @@ final class AppEnvironment {
             albumRepo: albumRepo,
             deletePairs: deletePairs,
             toggleAlbumMembership: toggleAlbumMembership,
-            storage: photoStorageService
+            storage: photoStorageService,
+            immediateExport: immediateExport,
+            interstitialAdManager: interstitialAdManager,
+            adFreeStore: adFreeStore,
+            fullscreenAdCoordinator: fullscreenAdCoordinator
         )
     }
 
@@ -175,7 +200,11 @@ final class AppEnvironment {
             deletePairs: deletePairs,
             toggleAlbumMembership: toggleAlbumMembership,
             storage: photoStorageService,
-            location: location
+            location: location,
+            immediateExport: immediateExport,
+            interstitialAdManager: interstitialAdManager,
+            adFreeStore: adFreeStore,
+            fullscreenAdCoordinator: fullscreenAdCoordinator
         )
     }
 
@@ -218,7 +247,11 @@ final class AppEnvironment {
             storage: photoStorageService,
             exportPairs: exportPairs,
             photoLibrary: photoLibraryExporter,
-            snackbarQueue: snackbarQueue
+            snackbarQueue: snackbarQueue,
+            appSettings: appSettings,
+            interstitialAdManager: interstitialAdManager,
+            adFreeStore: adFreeStore,
+            fullscreenAdCoordinator: fullscreenAdCoordinator
         )
     }
 
@@ -232,18 +265,25 @@ struct AppServiceBundle {
     let location: LocationFetching
     let fileNameBuilder: FileNameBuilding
     let exifNormalizer: ExifNormalizing
-    let couponVerifier: CouponVerifying
+    let couponApiConfig: CouponApiConfig
+    let couponApi: any CouponActivationApi
+    let deviceHashProvider: any DeviceHashProviding
     let photoLibraryExporter: any PhotoLibraryExporting
 
     static func make() -> Self {
         let storage = PhotoStorageService()
+        let apiConfig = CouponApiConfig.resolve()
+        let api = URLSessionCouponActivationApi(config: apiConfig)
+        let hashProvider = DeviceHashProvider(salt: apiConfig.deviceHashSalt)
         return Self(
             storage: storage,
             photoStorageService: storage,
             location: LocationFetcherAdapter(provider: CoreLocationService()),
             fileNameBuilder: FileNameBuilderAdapter(),
             exifNormalizer: ExifNormalizerAdapter(),
-            couponVerifier: CouponVerifierAdapter(),
+            couponApiConfig: apiConfig,
+            couponApi: api,
+            deviceHashProvider: hashProvider,
             photoLibraryExporter: PhotoLibraryExport()
         )
     }
@@ -255,11 +295,19 @@ struct AppRepositoryBundle {
     let albumRepo: AlbumRepository
     let couponRepo: CouponRepository
 
-    static func make(container: ModelContainer) -> Self {
+    static func make(
+        container: ModelContainer,
+        couponApi: any CouponActivationApi,
+        deviceHashProvider: any DeviceHashProviding
+    ) -> Self {
         Self(
             pairRepo: SwiftDataPhotoPairRepository(container: container),
             albumRepo: SwiftDataAlbumRepository(container: container),
-            couponRepo: SwiftDataCouponRepository(container: container)
+            couponRepo: SwiftDataCouponRepository(
+                container: container,
+                api: couponApi,
+                deviceHashProvider: deviceHashProvider
+            )
         )
     }
 }
@@ -277,10 +325,7 @@ struct AppUseCaseBundle {
     static func make(
         services: AppServiceBundle,
         repositories: AppRepositoryBundle,
-        zipExporter: ZipExporting,
-        compositor: any CompositorService,
-        backgroundTaskGuard: BackgroundTaskGuard,
-        snackbarQueue: SnackbarQueue
+        zipExporter: ZipExporting
     ) -> Self {
         Self(
             createPair: CreatePairUseCase(
@@ -294,23 +339,7 @@ struct AppUseCaseBundle {
                 pairRepo: repositories.pairRepo,
                 storage: services.storage,
                 fileNameBuilder: services.fileNameBuilder,
-                exifNormalizer: services.exifNormalizer,
-                compositor: compositor,
-                backgroundTaskGuard: backgroundTaskGuard,
-                onCompositeCompleted: { [weak snackbarQueue] in
-                    snackbarQueue?.enqueue(
-                        "snackbar_success_composite_completed",
-                        variant: .success,
-                        debounceKey: "composite-success"
-                    )
-                },
-                onCompositeFailed: { [weak snackbarQueue] _ in
-                    snackbarQueue?.enqueue(
-                        "snackbar_error_composite_failed",
-                        variant: .error,
-                        debounceKey: "composite-error"
-                    )
-                }
+                exifNormalizer: services.exifNormalizer
             ),
             deletePairs: DeletePairsUseCase(
                 pairRepo: repositories.pairRepo,
@@ -325,8 +354,7 @@ struct AppUseCaseBundle {
                 albumRepo: repositories.albumRepo
             ),
             activateCoupon: ActivateCouponUseCase(
-                couponRepo: repositories.couponRepo,
-                verifier: services.couponVerifier
+                couponRepo: repositories.couponRepo
             ),
             checkAdFreeState: CheckAdFreeStateUseCase(
                 couponRepo: repositories.couponRepo

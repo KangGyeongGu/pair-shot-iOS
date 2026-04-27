@@ -8,13 +8,13 @@ struct HomePrimaryActionBar: View {
     var body: some View {
         Button(action: action) {
             Label(title, systemImage: systemImage)
-                .font(.headline)
-                .frame(maxWidth: .infinity, minHeight: 52)
+                .font(.subheadline.weight(.semibold))
+                .frame(maxWidth: .infinity, minHeight: 36)
         }
         .buttonStyle(.borderedProminent)
-        .controlSize(.large)
+        .controlSize(.regular)
         .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+        .padding(.vertical, 4)
         .frame(maxWidth: .infinity)
         .background(Color(.systemBackground))
     }

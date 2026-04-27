@@ -10,10 +10,12 @@ struct BeforeCameraView: View {
     @Environment(AppEnvironment.self) private var env
 
     @State private var viewModel: BeforeCameraViewModel?
+    @State private var didStartViewModel = false
     @State private var motion = MotionService()
     @State private var focusIndicator: FocusIndicatorState?
     @State private var previewView: CameraPreviewView?
     @State private var afterCameraTarget: AfterCameraTarget?
+    @State private var showSettingsSheet = false
 
     init(albumId: UUID? = nil, onHome: (() -> Void)? = nil) {
         self.albumId = albumId
@@ -26,15 +28,23 @@ struct BeforeCameraView: View {
 
             if let viewModel {
                 content(for: viewModel)
-            } else {
-                ProgressView().tint(.white)
             }
+
+            settingsOverlay
         }
         .toolbar(.hidden, for: .navigationBar)
         .preferredColorScheme(.dark)
         .statusBarHidden(false)
-        .task { await ensureViewModel() }
-        .task { await observeEvents() }
+        .onAppear { ensureViewModelSync() }
+        .task {
+            ensureViewModelSync()
+            guard let vm = viewModel else { return }
+            if !didStartViewModel {
+                didStartViewModel = true
+                Task { await vm.onAppear() }
+            }
+            await observeEvents(viewModel: vm)
+        }
         .onDisappear {
             viewModel?.onDisappear()
             motion.stop()
@@ -47,20 +57,37 @@ struct BeforeCameraView: View {
         .onChange(of: viewModel?.isLevelOn ?? false) { _, isOn in
             if isOn { motion.start() } else { motion.stop() }
         }
-        .sheet(isPresented: settingsSheetBinding) {
-            if let viewModel {
-                CameraSettingsSheet(viewModel: viewModel)
-            }
-        }
         .fullScreenCover(item: $afterCameraTarget) { target in
             NavigationStack {
-                AfterCameraView(albumId: albumId, initialPairId: target.pairId)
+                AfterCameraView(
+                    albumId: albumId,
+                    initialPairId: target.pairId,
+                    sortOrder: .newest
+                )
             }
         }
         .captureErrorAlert(message: Binding(
             get: { viewModel?.captureErrorMessage },
             set: { viewModel?.captureErrorMessage = $0 }
         ))
+    }
+
+    @ViewBuilder
+    private var settingsOverlay: some View {
+        if showSettingsSheet, let viewModel {
+            BeforeCameraSettingsOverlay(
+                isPresented: $showSettingsSheet,
+                isGridOn: viewModel.isGridOn,
+                isLevelOn: viewModel.isLevelOn,
+                isNightModeOn: viewModel.isNightModeOn,
+                flashMode: viewModel.flashMode,
+                onToggleGrid: viewModel.toggleGrid,
+                onToggleLevel: viewModel.toggleLevel,
+                onToggleNightMode: viewModel.toggleNightMode,
+                onCycleFlash: viewModel.cycleFlash
+            )
+            .animation(.spring(response: 0.3, dampingFraction: 0.85), value: showSettingsSheet)
+        }
     }
 
     @ViewBuilder
@@ -75,9 +102,12 @@ struct BeforeCameraView: View {
                 previewLayerProvider: { previewView?.previewLayer },
                 isGridOn: viewModel.isGridOn,
                 isLevelOn: viewModel.isLevelOn,
+                isNightModeOn: viewModel.isNightModeOn,
+                flashMode: viewModel.flashMode,
                 rollDegrees: motion.rollDegrees,
+                presets: viewModel.availablePresets,
+                displayMultiplier: viewModel.displayMultiplier,
                 activePreset: viewModel.activePreset,
-                isPresetSupported: viewModel.isPresetSupported(_:),
                 isDraggingZoom: viewModel.isDraggingZoom,
                 currentZoomRatio: viewModel.currentZoomRatio,
                 minZoomRatio: viewModel.minZoom,
@@ -86,7 +116,6 @@ struct BeforeCameraView: View {
                 focusIndicator: $focusIndicator,
                 isCapturing: viewModel.isCapturing,
                 lastThumbnail: viewModel.lastThumbnail,
-                canShowHomeIcon: onHome != nil,
                 pendingPairs: viewModel.pendingPairs,
                 storage: env.photoStorageService,
                 onTapFocus: viewModel.onTapFocus(devicePoint:),
@@ -96,19 +125,15 @@ struct BeforeCameraView: View {
                 onZoomDragChanged: viewModel.onZoomDragChanged(deltaPx:),
                 onZoomDragEnded: viewModel.onZoomDragEnded,
                 onShutter: { handleShutter(viewModel: viewModel) },
-                onSettingsTap: viewModel.onSettingsTap,
                 onLeadingTap: handleLeadingTap,
-                onStripPairTap: viewModel.onStripPairTap,
-                onToggleLens: viewModel.toggleLens
+                onToggleLens: viewModel.toggleLens,
+                onToggleGrid: viewModel.toggleGrid,
+                onToggleLevel: viewModel.toggleLevel,
+                onToggleNightMode: viewModel.toggleNightMode,
+                onCycleFlash: viewModel.cycleFlash,
+                onSettingsTap: { showSettingsSheet = true }
             )
         }
-    }
-
-    private var settingsSheetBinding: Binding<Bool> {
-        Binding(
-            get: { viewModel?.showSettingsSheet ?? false },
-            set: { viewModel?.showSettingsSheet = $0 }
-        )
     }
 
     private func pinchGesture(for viewModel: BeforeCameraViewModel) -> some Gesture {
@@ -130,18 +155,12 @@ struct BeforeCameraView: View {
         }
     }
 
-    private func ensureViewModel() async {
-        if viewModel == nil {
-            viewModel = env.makeBeforeCameraViewModel(albumId: albumId)
-        }
-        await viewModel?.onAppear()
+    private func ensureViewModelSync() {
+        guard viewModel == nil else { return }
+        viewModel = env.makeBeforeCameraViewModel(albumId: albumId)
     }
 
-    private func observeEvents() async {
-        while viewModel == nil {
-            try? await Task.sleep(nanoseconds: 50_000_000)
-        }
-        guard let viewModel else { return }
+    private func observeEvents(viewModel: BeforeCameraViewModel) async {
         for await event in viewModel.events {
             switch event {
                 case .dismiss:

@@ -2,16 +2,19 @@ import SwiftUI
 
 // swiftlint:disable switch_case_alignment vertical_whitespace_between_cases
 struct CombinePreviewCard: View {
+    static let referenceImageWidth: CGFloat = 1024
+
     let settings: CombineSettings
 
     var body: some View {
-        contentStack
-            .frame(maxWidth: .infinity)
-            .aspectRatio(aspectRatio, contentMode: .fit)
-            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-            .overlay(borderOverlay)
-            .accessibilityElement(children: .combine)
-            .accessibilityLabel(String(localized: "combine_preview_desc"))
+        GeometryReader { proxy in
+            let scaleFactor = max(proxy.size.width / Self.referenceImageWidth, 0.1)
+            content(scaleFactor: scaleFactor, size: proxy.size)
+        }
+        .aspectRatio(aspectRatio, contentMode: .fit)
+        .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(String(localized: "combine_preview_desc"))
     }
 
     private var aspectRatio: CGFloat {
@@ -23,38 +26,6 @@ struct CombinePreviewCard: View {
         }
     }
 
-    @ViewBuilder
-    private var contentStack: some View {
-        switch settings.direction {
-            case .horizontal:
-                HStack(spacing: 0) {
-                    pane(
-                        text: settings.label.beforeText,
-                        background: Color.appOnSurfaceVariant.opacity(0.4),
-                        position: settings.beforePosition
-                    )
-                    pane(
-                        text: settings.label.afterText,
-                        background: Color.appOnSurfaceVariant.opacity(0.6),
-                        position: settings.afterPosition
-                    )
-                }
-            case .vertical:
-                VStack(spacing: 0) {
-                    pane(
-                        text: settings.label.beforeText,
-                        background: Color.appOnSurfaceVariant.opacity(0.4),
-                        position: settings.beforePosition
-                    )
-                    pane(
-                        text: settings.label.afterText,
-                        background: Color.appOnSurfaceVariant.opacity(0.6),
-                        position: settings.afterPosition
-                    )
-                }
-        }
-    }
-
     private var labelBackgroundColor: Color {
         let base = settings.labelBackground.matchBorderColor
             ? settings.border.color
@@ -62,49 +33,115 @@ struct CombinePreviewCard: View {
         return Color(rgba: base).opacity(settings.labelBackground.opacity)
     }
 
-    private var borderOverlay: some View {
-        RoundedRectangle(cornerRadius: 8, style: .continuous)
+    @ViewBuilder
+    private func content(scaleFactor: CGFloat, size: CGSize) -> some View {
+        let paneHeight = paneHeight(in: size)
+        contentStack(scaleFactor: scaleFactor, paneHeight: paneHeight)
+            .overlay(borderOverlay(scaleFactor: scaleFactor))
+    }
+
+    private func paneHeight(in size: CGSize) -> CGFloat {
+        switch settings.direction {
+            case .horizontal:
+                size.height
+            case .vertical:
+                size.height / 2
+        }
+    }
+
+    @ViewBuilder
+    private func contentStack(scaleFactor: CGFloat, paneHeight: CGFloat) -> some View {
+        switch settings.direction {
+            case .horizontal:
+                HStack(spacing: 0) {
+                    pane(
+                        text: settings.label.beforeText,
+                        background: Color.appOnSurfaceVariant.opacity(0.4),
+                        position: settings.beforePosition,
+                        scaleFactor: scaleFactor,
+                        paneHeight: paneHeight
+                    )
+                    pane(
+                        text: settings.label.afterText,
+                        background: Color.appOnSurfaceVariant.opacity(0.6),
+                        position: settings.afterPosition,
+                        scaleFactor: scaleFactor,
+                        paneHeight: paneHeight
+                    )
+                }
+            case .vertical:
+                VStack(spacing: 0) {
+                    pane(
+                        text: settings.label.beforeText,
+                        background: Color.appOnSurfaceVariant.opacity(0.4),
+                        position: settings.beforePosition,
+                        scaleFactor: scaleFactor,
+                        paneHeight: paneHeight
+                    )
+                    pane(
+                        text: settings.label.afterText,
+                        background: Color.appOnSurfaceVariant.opacity(0.6),
+                        position: settings.afterPosition,
+                        scaleFactor: scaleFactor,
+                        paneHeight: paneHeight
+                    )
+                }
+        }
+    }
+
+    private func borderOverlay(scaleFactor: CGFloat) -> some View {
+        let lineWidth = settings.border.isEnabled
+            ? CGFloat(settings.border.thickness) * scaleFactor
+            : 0
+        return Rectangle()
             .strokeBorder(
                 settings.border.isEnabled ? Color(rgba: settings.border.color) : Color.clear,
-                lineWidth: settings.border.isEnabled ? CGFloat(settings.border.thickness) : 0
+                lineWidth: lineWidth
             )
     }
 
     private func pane(
         text: String,
         background: Color,
-        position: CombineSettings.LabelPosition
+        position: CombineSettings.LabelPosition,
+        scaleFactor: CGFloat,
+        paneHeight: CGFloat
     ) -> some View {
-        ZStack {
+        let padding = max(2, 8 * scaleFactor)
+        return ZStack {
             background
             if settings.label.isEnabled {
-                labelView(text: text)
+                labelView(text: text, scaleFactor: scaleFactor, paneHeight: paneHeight)
                     .frame(
                         maxWidth: .infinity,
                         maxHeight: .infinity,
                         alignment: alignment(for: position)
                     )
-                    .padding(8)
+                    .padding(padding)
             }
         }
     }
 
     @ViewBuilder
-    private func labelView(text: String) -> some View {
-        let fontSize = max(8.0, settings.label.textSizePercent * 2)
+    private func labelView(text: String, scaleFactor: CGFloat, paneHeight: CGFloat) -> some View {
+        let scaledMinFontSize: CGFloat = 10 * scaleFactor
+        let percentFontSize = CGFloat(settings.label.textSizePercent) * 0.01 * paneHeight
+        let fontSize = max(scaledMinFontSize, percentFontSize)
+        let scaledHorizontalPadding = max(1, 6 * scaleFactor)
+        let scaledVerticalPadding = max(1, 2 * scaleFactor)
+        let scaledCornerRadius = CGFloat(settings.labelBackground.cornerRadius) * scaleFactor
+
         let textView = Text(text)
-            .font(.system(size: fontSize, weight: .bold))
+            .font(.system(size: fontSize, weight: .semibold))
             .foregroundStyle(Color(rgba: settings.label.textColor))
 
         if settings.labelBackground.isEnabled {
             textView
-                .padding(.horizontal, 6)
-                .padding(.vertical, 2)
+                .padding(.horizontal, scaledHorizontalPadding)
+                .padding(.vertical, scaledVerticalPadding)
                 .background(
                     RoundedRectangle(
-                        cornerRadius: settings.labelMode == .free
-                            ? CGFloat(settings.labelBackground.cornerRadius)
-                            : 0,
+                        cornerRadius: settings.labelMode == .free ? scaledCornerRadius : 0,
                         style: .continuous
                     )
                     .fill(labelBackgroundColor)

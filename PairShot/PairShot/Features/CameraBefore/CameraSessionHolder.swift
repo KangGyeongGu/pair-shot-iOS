@@ -6,7 +6,8 @@ import Observation
 final class CameraSessionHolder {
     let session: CameraSession
     var cachedExposureRange: ClosedRange<Float>?
-    private var supportedPresets: Set<ZoomPreset> = []
+    var availablePresets: [ZoomPresetSpec] = []
+    var firstSwitchOver: Double = 1.0
 
     init() {
         session = CameraSession()
@@ -14,15 +15,7 @@ final class CameraSessionHolder {
 
     func refreshCapabilities() async {
         cachedExposureRange = await session.exposureBiasRange
-
-        var supported: Set<ZoomPreset> = []
-        for preset in ZoomPreset.allCases where await session.isPresetSupported(preset) {
-            supported.insert(preset)
-        }
-        supportedPresets = supported
-    }
-
-    nonisolated func isPresetSupported(_ preset: ZoomPreset) -> Bool {
-        MainActor.assumeIsolated { supportedPresets.contains(preset) }
+        availablePresets = await session.availablePresets
+        firstSwitchOver = await session.firstSwitchOver
     }
 }

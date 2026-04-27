@@ -2,10 +2,25 @@ import SwiftUI
 
 struct ExportSettingsView: View {
     @Bindable var viewModel: ExportSettingsViewModel
+    let onRequestSettingsRedirect: ((ExportSettingsRedirectTarget) -> Void)?
     @Environment(\.dismiss) private var dismiss
+
+    init(
+        viewModel: ExportSettingsViewModel,
+        onRequestSettingsRedirect: ((ExportSettingsRedirectTarget) -> Void)? = nil
+    ) {
+        self.viewModel = viewModel
+        self.onRequestSettingsRedirect = onRequestSettingsRedirect
+    }
 
     var body: some View {
         Form {
+            Section {
+                BannerAdSlot()
+                    .listRowInsets(EdgeInsets())
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+            }
             includesSection
             formatSection
             watermarkSection
@@ -48,6 +63,14 @@ struct ExportSettingsView: View {
         }
         .onDisappear { viewModel.cleanupPendingZip() }
         .task { await observeEvents() }
+        .onChange(of: viewModel.pendingRedirect) { _, _ in
+            handlePendingRedirect()
+        }
+    }
+
+    private func handlePendingRedirect() {
+        guard let target = viewModel.consumeRedirect() else { return }
+        onRequestSettingsRedirect?(target)
     }
 
     private var includesSection: some View {
@@ -85,9 +108,12 @@ struct ExportSettingsView: View {
         Section {
             Toggle(String(localized: "export_settings_apply_watermark"), isOn: $viewModel.applyWatermark)
             if viewModel.applyWatermark {
-                NavigationLink(value: Route.watermarkSettings) {
-                    Text(String(localized: "export_settings_button_detail"))
+                Button {
+                    viewModel.requestWatermarkRedirect()
+                } label: {
+                    redirectRowLabel
                 }
+                .buttonStyle(.plain)
             }
         } header: {
             Text(String(localized: "export_settings_section_watermark"))
@@ -98,13 +124,28 @@ struct ExportSettingsView: View {
         Section {
             Toggle(String(localized: "export_settings_apply_combine"), isOn: $viewModel.applyCombineSettings)
             if viewModel.applyCombineSettings {
-                NavigationLink(value: Route.combineSettings) {
-                    Text(String(localized: "export_settings_button_detail"))
+                Button {
+                    viewModel.requestCombineRedirect()
+                } label: {
+                    redirectRowLabel
                 }
+                .buttonStyle(.plain)
             }
         } header: {
             Text(String(localized: "export_settings_section_combine"))
         }
+    }
+
+    private var redirectRowLabel: some View {
+        HStack {
+            Text(String(localized: "export_settings_button_detail_redirect"))
+                .foregroundStyle(.primary)
+            Spacer()
+            Image(systemName: "chevron.right")
+                .font(.caption.bold())
+                .foregroundStyle(.tertiary)
+        }
+        .contentShape(Rectangle())
     }
 
     private var shareButton: some View {

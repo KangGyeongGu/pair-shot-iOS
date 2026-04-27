@@ -14,17 +14,26 @@ final class MotionService {
 
     private let manager: CMMotionManager
     private let isManagerOwned: Bool
+    private let motionQueue: OperationQueue
 
     init(updateInterval: TimeInterval = 1.0) {
         self.updateInterval = updateInterval
         manager = CMMotionManager()
         isManagerOwned = true
+        motionQueue = OperationQueue()
+        motionQueue.name = "com.pairshot.motion"
+        motionQueue.qualityOfService = .utility
+        motionQueue.maxConcurrentOperationCount = 1
     }
 
     init(manager: CMMotionManager, updateInterval: TimeInterval = 1.0) {
         self.updateInterval = updateInterval
         self.manager = manager
         isManagerOwned = false
+        motionQueue = OperationQueue()
+        motionQueue.name = "com.pairshot.motion"
+        motionQueue.qualityOfService = .utility
+        motionQueue.maxConcurrentOperationCount = 1
     }
 
     func start() {
@@ -34,10 +43,11 @@ final class MotionService {
             return
         }
         manager.deviceMotionUpdateInterval = updateInterval
-        manager.startDeviceMotionUpdates(to: .main) { [weak self] motion, _ in
-            guard let self, let motion else { return }
-            MainActor.assumeIsolated {
-                self.rollDegrees = motion.attitude.roll * 180 / .pi
+        manager.startDeviceMotionUpdates(to: motionQueue) { [weak self] motion, _ in
+            guard let motion else { return }
+            let degrees = motion.attitude.roll * 180 / .pi
+            Task { @MainActor [weak self] in
+                self?.rollDegrees = degrees
             }
         }
         isStreaming = true

@@ -64,12 +64,15 @@ final class HomeViewModel {
 
     var showBeforeCamera: Bool = false
     var showAfterCamera: Bool = false
+    var afterCameraTargetPairId: UUID?
     var pendingPreviewPair: HomePairPreviewRequest?
     var pendingPairDelete: HomePairDeleteRequest?
     var pendingAlbumDelete: HomeAlbumDeleteRequest?
     var pendingSinglePairDelete: HomeSinglePairDeleteRequest?
     var pendingSingleAlbumDelete: HomeSingleAlbumDeleteRequest?
     var pendingAlbumRename: HomeAlbumRenameRequest?
+    var pendingShareItems: ExportShareItems?
+    var isExporting: Bool = false
     var showCreateAlbum: Bool = false
     var showSettings: Bool = false
 
@@ -79,6 +82,10 @@ final class HomeViewModel {
     private let toggleAlbumMembership: ToggleAlbumMembershipUseCase
     private let location: LocationFetching
     private let thumbnailCache: ThumbnailCache
+    private let immediateExport: ImmediateExportService
+    private let interstitialAdManager: InterstitialAdManager?
+    private let adFreeStore: AdFreeStore?
+    private let fullscreenAdCoordinator: FullscreenAdCoordinator?
 
     init(
         pairRepo: PhotoPairRepository,
@@ -87,7 +94,11 @@ final class HomeViewModel {
         toggleAlbumMembership: ToggleAlbumMembershipUseCase,
         storage: PhotoStorageService,
         location: LocationFetching,
-        thumbnailCache: ThumbnailCache = .shared
+        immediateExport: ImmediateExportService,
+        thumbnailCache: ThumbnailCache = .shared,
+        interstitialAdManager: InterstitialAdManager? = nil,
+        adFreeStore: AdFreeStore? = nil,
+        fullscreenAdCoordinator: FullscreenAdCoordinator? = nil
     ) {
         self.pairRepo = pairRepo
         self.albumRepo = albumRepo
@@ -95,7 +106,11 @@ final class HomeViewModel {
         self.toggleAlbumMembership = toggleAlbumMembership
         self.storage = storage
         self.location = location
+        self.immediateExport = immediateExport
         self.thumbnailCache = thumbnailCache
+        self.interstitialAdManager = interstitialAdManager
+        self.adFreeStore = adFreeStore
+        self.fullscreenAdCoordinator = fullscreenAdCoordinator
     }
 
     func sortedPairs(from all: [PhotoPair]) -> [PhotoPair] {
@@ -106,6 +121,14 @@ final class HomeViewModel {
             case .oldest:
                 all.sorted { $0.createdAt < $1.createdAt }
         }
+    }
+
+    func groupedPairs(from all: [PhotoPair], calendar: Calendar = .current) -> [(date: Date, pairs: [PhotoPair])] {
+        let sorted = sortedPairs(from: all)
+        let grouped = Dictionary(grouping: sorted) { calendar.startOfDay(for: $0.createdAt) }
+        return grouped
+            .map { (date: $0.key, pairs: $0.value) }
+            .sorted { $0.date > $1.date }
     }
 
     func sortedAlbums(from all: [Album]) -> [Album] {
@@ -177,6 +200,7 @@ final class HomeViewModel {
             return
         }
         if pair.afterFileName == nil {
+            afterCameraTargetPairId = pair.id
             showAfterCamera = true
             return
         }
@@ -209,6 +233,76 @@ final class HomeViewModel {
 
     func startCapture() {
         showBeforeCamera = true
+    }
+
+    func shareSelectedPairs(from all: [PhotoPair]) async {
+        let chosen = all.filter { selectedPairIds.contains($0.id) }
+        guard !chosen.isEmpty else { return }
+        guard !isExporting else { return }
+        await runWithInterstitial { [weak self] in
+            await self?.performShare(pairs: chosen)
+        }
+    }
+
+    func saveSelectedPairsToDevice(from all: [PhotoPair]) async {
+        let chosen = all.filter { selectedPairIds.contains($0.id) }
+        guard !chosen.isEmpty else { return }
+        guard !isExporting else { return }
+        await runWithInterstitial { [weak self] in
+            await self?.performSaveToDevice(pairs: chosen)
+        }
+    }
+
+    private func performShare(pairs: [PhotoPair]) async {
+        isExporting = true
+        defer { isExporting = false }
+        do {
+            let items = try await immediateExport.makeShareItems(for: pairs)
+            guard !items.values.isEmpty else { return }
+            pendingShareItems = items
+        } catch {
+            immediateExport.notifyShareFailure()
+        }
+    }
+
+    private func performSaveToDevice(pairs: [PhotoPair]) async {
+        isExporting = true
+        defer { isExporting = false }
+        await immediateExport.saveToDevice(pairs: pairs)
+        cancelSelection()
+    }
+
+    private func runWithInterstitial(_ work: @escaping @MainActor () async -> Void) async {
+        guard
+            let interstitialAdManager,
+            let adFreeStore,
+            let fullscreenAdCoordinator
+        else {
+            await work()
+            return
+        }
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            Task { @MainActor in
+                await interstitialAdManager.showIfAvailable(
+                    from: BannerAdView.resolveTopPresentedViewController(),
+                    adFreeStore: adFreeStore,
+                    coordinator: fullscreenAdCoordinator
+                ) {
+                    Task { @MainActor in
+                        await work()
+                        continuation.resume()
+                    }
+                }
+            }
+        }
+    }
+
+    func clearShareItems() {
+        if let items = pendingShareItems {
+            immediateExport.cleanup(items: items)
+        }
+        pendingShareItems = nil
+        cancelSelection()
     }
 
     func openCreateAlbum() {
@@ -295,16 +389,20 @@ final class HomeViewModel {
         cancelSelection()
     }
 
-    func createAlbum(name: String, includeLocation: Bool) async {
+    func createAlbum(
+        name: String,
+        latitude: Double?,
+        longitude: Double?,
+        locationLabel: String?
+    ) async {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
-        var latitude: Double?
-        var longitude: Double?
-        if includeLocation, let coord = await location.fetchOnce() {
-            latitude = coord.latitude
-            longitude = coord.longitude
-        }
-        let album = Album(name: trimmed, latitude: latitude, longitude: longitude)
+        let album = Album(
+            name: trimmed,
+            latitude: latitude,
+            longitude: longitude,
+            locationLabel: locationLabel
+        )
         try? await albumRepo.add(album)
     }
 

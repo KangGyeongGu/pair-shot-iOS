@@ -18,7 +18,10 @@ final class BeforeCameraViewModel {
 
     var lensPosition: CameraLensPosition = .back
     var flashMode: CameraFlashMode = .off
-    var activePreset: ZoomPreset?
+    var activePreset: ZoomPresetSpec?
+    var availablePresets: [ZoomPresetSpec] = []
+    var firstSwitchOver: Double = 1.0
+    var displayMultiplier: Double = 1.0
     var minZoom: Double = 1
     var maxZoom: Double = 1
     var pinchBaseFactor: Double = 1.0
@@ -28,7 +31,6 @@ final class BeforeCameraViewModel {
     var isLevelOn: Bool = false
     var isNightModeOn: Bool = false
     var isCapturing: Bool = false
-    var showSettingsSheet: Bool = false
     var cameraPermissionGranted: Bool?
     var captureErrorMessage: String?
     var cachedExposureRange: ClosedRange<Float>?
@@ -46,11 +48,13 @@ final class BeforeCameraViewModel {
     private let captureSource: BeforeCameraCaptureSource
     private let permissionProbe: @Sendable () async -> Bool
     private let eventsContinuation: AsyncStream<Event>.Continuation
-    private var supportedPresets: Set<ZoomPreset> = []
     private var dragAccumulatorPx: Double = 0
     private var dragStartRatio: Double = 1.0
     private var lastMinorTickIndex: Int?
     private var lastMajorTickIndex: Int?
+    private var sessionStartedAt: Date = .distantPast
+    private var zoomRampTask: Task<Void, Never>?
+    private var pinchRampTask: Task<Void, Never>?
 
     init(
         albumId: UUID?,
@@ -73,7 +77,6 @@ final class BeforeCameraViewModel {
         self.session = resolvedSession
         self.captureSource = captureSource ?? CameraSessionCaptureSource(session: resolvedSession)
         self.permissionProbe = permissionProbe
-        activePreset = .wide
         var continuation: AsyncStream<Event>.Continuation!
         events = AsyncStream { continuation = $0 }
         eventsContinuation = continuation
@@ -83,19 +86,27 @@ final class BeforeCameraViewModel {
         session.captureSession
     }
 
-    nonisolated func isPresetSupported(_ preset: ZoomPreset) -> Bool {
-        MainActor.assumeIsolated { supportedPresets.contains(preset) }
+    func onAppear() async {
+        sessionStartedAt = .now
+        pendingPairs = []
+        async let permission = permissionProbe()
+        async let startTask: Void = session.start()
+        cameraPermissionGranted = await permission
+        guard cameraPermissionGranted == true else { return }
+        _ = await startTask
+        let snapshot = await session.zoomSnapshot()
+        applyZoomSnapshot(snapshot)
+        activePreset = matchingPreset(for: currentZoomRatio)
     }
 
-    func onAppear() async {
-        cameraPermissionGranted = await permissionProbe()
-        guard cameraPermissionGranted == true else { return }
-        await session.start()
-        await refreshCapabilities()
-        minZoom = await session.minZoomFactor
-        maxZoom = await session.maxZoomFactor
-        currentZoomRatio = await session.currentZoomFactor
-        await refreshPendingPairs()
+    private func applyZoomSnapshot(_ snapshot: CameraZoomSnapshot) {
+        minZoom = snapshot.minFactor
+        maxZoom = snapshot.maxFactor
+        currentZoomRatio = snapshot.currentFactor
+        availablePresets = snapshot.presets
+        firstSwitchOver = snapshot.firstSwitchOver
+        displayMultiplier = snapshot.displayMultiplier
+        cachedExposureRange = snapshot.exposureBiasRange
     }
 
     func onDisappear() {
@@ -118,13 +129,19 @@ final class BeforeCameraViewModel {
 
     func onPinchChanged(_ scale: Double) {
         let target = pinchBaseFactor * scale
-        Task { await session.ramp(toZoomFactor: target, rate: 6.0) }
         currentZoomRatio = clampZoom(target)
         activePreset = matchingPreset(for: target)
+        pinchRampTask?.cancel()
+        pinchRampTask = Task { [session] in
+            guard !Task.isCancelled else { return }
+            await session.ramp(toZoomFactor: target, rate: 6.0)
+        }
     }
 
     func onPinchEnded(_ scale: Double) {
         pinchBaseFactor *= scale
+        pinchRampTask?.cancel()
+        pinchRampTask = nil
     }
 
     func onTapFocus(devicePoint: CGPoint) {
@@ -152,13 +169,11 @@ final class BeforeCameraViewModel {
         let next: CameraLensPosition = lensPosition == .back ? .front : .back
         Task {
             await session.switchLens(to: next)
-            await refreshCapabilities()
+            let snapshot = await session.zoomSnapshot()
             lensPosition = next
-            minZoom = await session.minZoomFactor
-            maxZoom = await session.maxZoomFactor
-            pinchBaseFactor = await session.currentZoomFactor
-            currentZoomRatio = pinchBaseFactor
-            activePreset = matchingPreset(for: pinchBaseFactor) ?? .wide
+            applyZoomSnapshot(snapshot)
+            pinchBaseFactor = snapshot.currentFactor
+            activePreset = matchingPreset(for: pinchBaseFactor)
         }
     }
 
@@ -176,11 +191,11 @@ final class BeforeCameraViewModel {
         Task { await session.setLowLightBoost(enabled: enabled) }
     }
 
-    func applyPreset(_ preset: ZoomPreset) {
+    func applyPreset(_ preset: ZoomPresetSpec) {
         activePreset = preset
         pinchBaseFactor = preset.factor
         currentZoomRatio = preset.factor
-        Task { await session.setZoomFactor(preset.factor) }
+        Task { await session.ramp(toZoomFactor: preset.factor, rate: 32.0) }
     }
 
     func onZoomDragBegan() {
@@ -202,7 +217,11 @@ final class BeforeCameraViewModel {
         let target = clampZoom(dragStartRatio + zoomDelta)
         currentZoomRatio = target
         activePreset = matchingPreset(for: target)
-        Task { await session.ramp(toZoomFactor: target, rate: 6.0) }
+        zoomRampTask?.cancel()
+        zoomRampTask = Task { [session] in
+            guard !Task.isCancelled else { return }
+            await session.ramp(toZoomFactor: target, rate: 32.0)
+        }
         emitTickHaptics(for: target)
     }
 
@@ -211,10 +230,8 @@ final class BeforeCameraViewModel {
         pinchBaseFactor = currentZoomRatio
         lastMinorTickIndex = nil
         lastMajorTickIndex = nil
-    }
-
-    func onSettingsTap() {
-        showSettingsSheet = true
+        zoomRampTask?.cancel()
+        zoomRampTask = nil
     }
 
     func onStripPairTap(_ pair: PhotoPair) {
@@ -270,6 +287,7 @@ final class BeforeCameraViewModel {
         }
         pendingPairs = scoped
             .filter { $0.afterFileName == nil }
+            .filter { $0.createdAt >= sessionStartedAt }
             .sorted { $0.createdAt > $1.createdAt }
     }
 
@@ -290,18 +308,8 @@ final class BeforeCameraViewModel {
         max(minZoom, min(value, maxZoom))
     }
 
-    private func refreshCapabilities() async {
-        cachedExposureRange = await session.exposureBiasRange
-        var supported: Set<ZoomPreset> = []
-        for preset in ZoomPreset.allCases where await session.isPresetSupported(preset) {
-            supported.insert(preset)
-        }
-        supportedPresets = supported
-    }
-
-    private func matchingPreset(for factor: Double) -> ZoomPreset? {
-        let tolerance = 0.05
-        return ZoomPreset.allCases.first { abs($0.factor - factor) <= tolerance }
+    private func matchingPreset(for factor: Double) -> ZoomPresetSpec? {
+        availablePresets.last { $0.factor <= factor + 0.05 } ?? availablePresets.first
     }
 
     static func captureErrorText(for error: Error) -> String {

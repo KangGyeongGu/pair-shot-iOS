@@ -4,7 +4,7 @@ import Observation
 @MainActor
 @Observable
 final class CouponRegistrationViewModel {
-    var inputToken: String = ""
+    var inputCode: String = ""
     private(set) var isSubmitting: Bool = false
     var lastError: CouponRegistrationError?
     private(set) var lastSuccessExpiration: Date?
@@ -27,39 +27,20 @@ final class CouponRegistrationViewModel {
     }
 
     func acceptScannedToken(_ raw: String) async {
-        inputToken = raw
+        inputCode = raw
         await submit()
     }
 
     func submit() async {
         guard !isSubmitting else { return }
-        let trimmed = inputToken.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmed = inputCode.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
             lastError = .invalidFormat
             return
         }
 
-        let token: CouponSignedToken
-        do {
-            token = try CouponSignedTokenParser.parse(trimmed)
-        } catch {
-            lastError = .invalidFormat
-            return
-        }
-
-        let payload: CouponPayload
-        do {
-            payload = try CouponPayloadDecoder.makeJSONDecoder().decode(
-                CouponPayload.self,
-                from: token.payloadJSON
-            )
-        } catch {
-            lastError = .invalidFormat
-            return
-        }
-
         let timestamp = now()
-        if await isDuplicateActiveCoupon(code: payload.code, at: timestamp) {
+        if await isDuplicateActiveCoupon(code: trimmed, at: timestamp) {
             lastError = .duplicate
             return
         }
@@ -67,10 +48,7 @@ final class CouponRegistrationViewModel {
         isSubmitting = true
         defer { isSubmitting = false }
 
-        let outcome = await activate(
-            payloadJSON: token.payloadJSON,
-            signatureBase64: token.signatureBase64
-        )
+        let outcome = await activate(code: trimmed)
         applyOutcome(outcome, at: timestamp)
     }
 
@@ -80,17 +58,26 @@ final class CouponRegistrationViewModel {
                 store.refresh(now: timestamp)
                 lastSuccessExpiration = expiresAt
 
-            case .duplicate:
-                lastError = .duplicate
-
             case .invalidFormat:
                 lastError = .invalidFormat
 
-            case .signatureMismatch:
-                lastError = .registrationFailed
+            case .invalidSignature:
+                lastError = .invalidSignature
 
-            case .repositoryError:
-                lastError = .persistFailed
+            case .notFound:
+                lastError = .notFound
+
+            case .alreadyUsedOnAnotherDevice:
+                lastError = .alreadyUsedOnAnotherDevice
+
+            case .revoked:
+                lastError = .revoked
+
+            case .networkError:
+                lastError = .networkError
+
+            case .serverError:
+                lastError = .serverError
         }
     }
 

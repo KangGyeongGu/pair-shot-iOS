@@ -25,7 +25,9 @@ struct PairShotApp: App {
         #endif
 
         _showFallbackAlert = State(initialValue: containerBootstrap.fallbackActive)
-        _env = State(initialValue: AppEnvironment(modelContainer: containerBootstrap.container))
+        let environment = AppEnvironment(modelContainer: containerBootstrap.container)
+        AppLanguageBundleSync.apply(environment.appSettings.language)
+        _env = State(initialValue: environment)
     }
 
     var body: some Scene {
@@ -115,7 +117,7 @@ struct ModelContainerBootstrap {
     let fallbackActive: Bool
 
     static func bootstrap() -> Self {
-        let schema = Schema(versionedSchema: SchemaV3.self)
+        let schema = Schema(versionedSchema: SchemaV2.self)
         do {
             let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
             let container = try ModelContainer(

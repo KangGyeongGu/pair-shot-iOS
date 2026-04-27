@@ -65,6 +65,17 @@ extension Color {
     }
 }
 
+extension UIColor {
+    convenience nonisolated init(rgba: ColorRGBA) {
+        self.init(
+            red: CGFloat(rgba.red),
+            green: CGFloat(rgba.green),
+            blue: CGFloat(rgba.blue),
+            alpha: CGFloat(rgba.alpha)
+        )
+    }
+}
+
 nonisolated struct CombineSettings: Codable, Equatable {
     nonisolated enum Direction: String, Codable, CaseIterable {
         case horizontal
@@ -84,9 +95,9 @@ nonisolated struct CombineSettings: Codable, Equatable {
         var color: ColorRGBA
 
         init(
-            isEnabled: Bool = false,
-            thickness: Double = 4.0,
-            color: ColorRGBA = .black
+            isEnabled: Bool = true,
+            thickness: Double = 16.0,
+            color: ColorRGBA = .white
         ) {
             self.isEnabled = isEnabled
             self.thickness = thickness
@@ -104,11 +115,11 @@ nonisolated struct CombineSettings: Codable, Equatable {
         var textColor: ColorRGBA
 
         init(
-            isEnabled: Bool = true,
+            isEnabled: Bool = false,
             beforeText: String = "BEFORE",
             afterText: String = "AFTER",
-            textSizePercent: Double = 4.0,
-            textColor: ColorRGBA = .white
+            textSizePercent: Double = 5.0,
+            textColor: ColorRGBA = .black
         ) {
             self.isEnabled = isEnabled
             self.beforeText = beforeText
@@ -150,11 +161,11 @@ nonisolated struct CombineSettings: Codable, Equatable {
         var matchBorderColor: Bool
 
         init(
-            isEnabled: Bool = false,
+            isEnabled: Bool = true,
             color: ColorRGBA = .black,
-            opacity: Double = 0.6,
-            cornerRadius: Double = 8.0,
-            matchBorderColor: Bool = false
+            opacity: Double = 0.5,
+            cornerRadius: Double = 25.0,
+            matchBorderColor: Bool = true
         ) {
             self.isEnabled = isEnabled
             self.color = color
@@ -184,10 +195,10 @@ nonisolated struct CombineSettings: Codable, Equatable {
         direction: Direction = .horizontal,
         border: Border = .default,
         label: Label = .default,
-        labelMode: LabelMode = .fullWidth,
+        labelMode: LabelMode = .free,
         beforePosition: LabelPosition = LabelPosition(horizontal: .leading, vertical: .top),
-        afterPosition: LabelPosition = LabelPosition(horizontal: .trailing, vertical: .top),
-        fullWidthVertical: LabelPosition.Vertical = .top,
+        afterPosition: LabelPosition = LabelPosition(horizontal: .leading, vertical: .top),
+        fullWidthVertical: LabelPosition.Vertical = .bottom,
         labelBackground: LabelBackground = .default
     ) {
         self.direction = direction

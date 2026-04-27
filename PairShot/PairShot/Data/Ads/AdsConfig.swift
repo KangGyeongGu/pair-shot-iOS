@@ -7,16 +7,14 @@ enum AdsConfig {
         static let banner = "ca-app-pub-3940256099942544/2934735716"
         static let interstitial = "ca-app-pub-3940256099942544/4411468910"
         static let rewarded = "ca-app-pub-3940256099942544/1712485313"
-        static let rewardedInterstitial = "ca-app-pub-3940256099942544/6978759866"
         static let native = "ca-app-pub-3940256099942544/3986624511"
-        static let appOpen = "ca-app-pub-3940256099942544/5662855259"
+        static let appOpen = "ca-app-pub-3940256099942544/5575463023"
     }
 
     enum InfoPlistKey {
         static let banner = "AdUnitID_Banner"
         static let interstitial = "AdUnitID_Interstitial"
         static let rewarded = "AdUnitID_Rewarded"
-        static let rewardedInterstitial = "AdUnitID_RewardedInterstitial"
         static let native = "AdUnitID_Native"
         static let appOpen = "AdUnitID_AppOpen"
     }
@@ -31,13 +29,6 @@ enum AdsConfig {
 
     static var rewarded: String {
         resolve(testID: TestUnitID.rewarded, infoKey: InfoPlistKey.rewarded)
-    }
-
-    static var rewardedInterstitial: String {
-        resolve(
-            testID: TestUnitID.rewardedInterstitial,
-            infoKey: InfoPlistKey.rewardedInterstitial
-        )
     }
 
     static var native: String {

@@ -6,6 +6,7 @@ struct AlbumDetailView: View {
     let onPushExportSettings: (([UUID]) -> Void)?
 
     @Environment(AppEnvironment.self) private var env
+    @Environment(AdFreeStore.self) private var adFreeStore
     @Environment(\.dismiss) private var dismiss
     @Query private var albums: [Album]
 
@@ -72,6 +73,7 @@ struct AlbumDetailView: View {
         .modifier(AlbumDetailRenameAlert(viewModel: viewModel, album: album))
         .modifier(AlbumDetailDeleteAlbumAlert(viewModel: viewModel))
         .modifier(AlbumDetailPairPickerNavigation(viewModel: viewModel))
+        .modifier(AlbumDetailShareSheet(viewModel: viewModel))
     }
 
     @ViewBuilder
@@ -79,33 +81,54 @@ struct AlbumDetailView: View {
         if pairs.isEmpty {
             AlbumDetailEmptyState()
         } else {
+            let chunks = PairListWithAdsBuilder.buildChunks(
+                pairs: pairs,
+                adFree: adFreeStore.isAdFree
+            ).chunks
             ScrollView {
-                LazyVGrid(columns: columns, spacing: 8) {
-                    ForEach(pairs) { pair in
-                        HomePairCardView(
-                            pair: pair,
-                            storage: viewModel.storage,
-                            isSelectionMode: viewModel.isSelectionMode,
-                            isSelected: viewModel.selectedPairIds.contains(pair.id)
-                        )
-                        .contentShape(.rect)
-                        .onTapGesture { viewModel.tapPair(pair, allPairs: pairs) }
-                        .onLongPressGesture(minimumDuration: 0.4) { viewModel.longPressPair(pair) }
-                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                            if !viewModel.isSelectionMode {
-                                Button(role: .destructive) {
-                                    viewModel.requestSinglePairDeletion(pair)
-                                } label: {
-                                    Label(String(localized: "common_button_delete"), systemImage: "trash")
-                                }
+                LazyVStack(spacing: 12) {
+                    ForEach(chunks) { chunk in
+                        LazyVGrid(columns: columns, spacing: 8) {
+                            ForEach(chunk.pairs) { pair in
+                                pairCell(viewModel: viewModel, pair: pair, allPairs: pairs)
                             }
+                        }
+                        .padding(.horizontal, 12)
+
+                        if let adSlotIndex = chunk.adSlotIndex {
+                            NativeAdCard(slotIndex: adSlotIndex)
+                                .padding(.horizontal, 12)
                         }
                     }
                 }
-                .padding(.horizontal, 12)
                 .padding(.vertical, 8)
             }
             .refreshable { await viewModel.reload() }
+        }
+    }
+
+    private func pairCell(
+        viewModel: AlbumDetailViewModel,
+        pair: PhotoPair,
+        allPairs: [PhotoPair]
+    ) -> some View {
+        HomePairCardView(
+            pair: pair,
+            storage: viewModel.storage,
+            isSelectionMode: viewModel.isSelectionMode,
+            isSelected: viewModel.selectedPairIds.contains(pair.id)
+        )
+        .contentShape(.rect)
+        .onTapGesture { viewModel.tapPair(pair, allPairs: allPairs) }
+        .onLongPressGesture(minimumDuration: 0.4) { viewModel.longPressPair(pair) }
+        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+            if !viewModel.isSelectionMode {
+                Button(role: .destructive) {
+                    viewModel.requestSinglePairDeletion(pair)
+                } label: {
+                    Label(String(localized: "common_button_delete"), systemImage: "trash")
+                }
+            }
         }
     }
 
@@ -150,7 +173,13 @@ struct AlbumDetailCameraCovers: ViewModifier {
                 NavigationStack { BeforeCameraView(albumId: viewModel.albumId) }
             }
             .fullScreenCover(isPresented: $viewModel.showAfterCamera) {
-                NavigationStack { AfterCameraView(albumId: viewModel.albumId) }
+                NavigationStack {
+                    AfterCameraView(
+                        albumId: viewModel.albumId,
+                        initialPairId: viewModel.afterCameraTargetPairId,
+                        sortOrder: viewModel.sortOrder
+                    )
+                }
             }
             .sheet(item: $viewModel.pendingPreviewPair) { request in
                 PairPreviewView(pair: request.pair)
@@ -167,6 +196,19 @@ struct AlbumDetailPairPickerNavigation: ViewModifier {
         content
             .navigationDestination(isPresented: $viewModel.navigateToPairPicker) {
                 PairPickerView(albumId: viewModel.albumId)
+            }
+    }
+}
+
+struct AlbumDetailShareSheet: ViewModifier {
+    @Bindable var viewModel: AlbumDetailViewModel
+
+    func body(content: Content) -> some View {
+        content
+            .sheet(item: $viewModel.pendingShareItems) { items in
+                ShareSheet(activityItems: items.values) {
+                    viewModel.clearShareItems()
+                }
             }
     }
 }

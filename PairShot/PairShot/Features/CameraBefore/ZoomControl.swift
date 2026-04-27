@@ -1,31 +1,34 @@
 import SwiftUI
 
 struct ZoomControl: View {
-    let activePreset: ZoomPreset?
-    let isSupported: (ZoomPreset) -> Bool
+    let presets: [ZoomPresetSpec]
+    let displayMultiplier: Double
+    let activePreset: ZoomPresetSpec?
     let isDragging: Bool
     let currentRatio: Double
     let minRatio: Double
     let maxRatio: Double
-    let onSelect: (ZoomPreset) -> Void
+    let onSelect: (ZoomPresetSpec) -> Void
     let onDragChanged: (Double) -> Void
     let onDragEnded: () -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     init(
-        activePreset: ZoomPreset?,
-        isSupported: @escaping (ZoomPreset) -> Bool,
+        presets: [ZoomPresetSpec],
+        displayMultiplier: Double,
+        activePreset: ZoomPresetSpec?,
         isDragging: Bool = false,
         currentRatio: Double = 1.0,
         minRatio: Double = 1.0,
         maxRatio: Double = 1.0,
-        onSelect: @escaping (ZoomPreset) -> Void,
+        onSelect: @escaping (ZoomPresetSpec) -> Void,
         onDragChanged: @escaping (Double) -> Void = { _ in },
         onDragEnded: @escaping () -> Void = {}
     ) {
+        self.presets = presets
+        self.displayMultiplier = displayMultiplier
         self.activePreset = activePreset
-        self.isSupported = isSupported
         self.isDragging = isDragging
         self.currentRatio = currentRatio
         self.minRatio = minRatio
@@ -41,7 +44,8 @@ struct ZoomControl: View {
                 ZoomDialOverlay(
                     currentRatio: currentRatio,
                     minRatio: minRatio,
-                    maxRatio: maxRatio
+                    maxRatio: maxRatio,
+                    displayMultiplier: displayMultiplier
                 )
                 .frame(maxWidth: .infinity)
                 .padding(.horizontal, AppSpacing.lg)
@@ -51,42 +55,47 @@ struct ZoomControl: View {
                     .transition(reduceMotion ? .opacity : .opacity.combined(with: .move(edge: .top)))
             }
         }
-        .frame(height: 60)
+        .frame(height: 80)
         .animation(reduceMotion ? nil : .easeOut(duration: 0.18), value: isDragging)
-        .gesture(dragGesture)
+        .contentShape(Rectangle())
+        .simultaneousGesture(dragGesture)
     }
 
     private var presetCapsule: some View {
-        HStack(spacing: 4) {
-            ForEach(ZoomPreset.allCases, id: \.self) { preset in
-                if isSupported(preset) {
-                    button(for: preset)
-                }
+        HStack(spacing: 2) {
+            ForEach(presets) { preset in
+                button(for: preset)
             }
         }
-        .padding(.horizontal, 8)
+        .padding(.horizontal, 4)
         .padding(.vertical, 4)
-        .background(Capsule().fill(Color.black.opacity(0.45)))
+        .background(Capsule().fill(Color.black.opacity(0.35)))
     }
 
     @ViewBuilder
-    private func button(for preset: ZoomPreset) -> some View {
+    private func button(for preset: ZoomPresetSpec) -> some View {
         let isActive = preset == activePreset
+        let display = label(for: preset, isActive: isActive)
         Button {
             onSelect(preset)
         } label: {
-            Text(preset.label)
-                .font(.caption.bold().monospacedDigit())
-                .foregroundStyle(isActive ? .black : .white)
+            Text(display)
+                .font(.caption.weight(.semibold).monospacedDigit())
+                .foregroundStyle(isActive ? Color.black : Color.white.opacity(0.85))
+                .frame(minWidth: 32, minHeight: 28)
                 .padding(.horizontal, 10)
-                .padding(.vertical, 5)
                 .background(
-                    Circle()
-                        .fill(isActive ? Color.yellow : Color.clear)
+                    Capsule().fill(isActive ? Color.appBrandPrimary : Color.clear)
                 )
-                .accessibilityLabel(preset.label)
+                .accessibilityLabel(display)
         }
         .buttonStyle(.plain)
+    }
+
+    private func label(for preset: ZoomPresetSpec, isActive: Bool) -> String {
+        guard isActive else { return preset.label }
+        if abs(preset.factor - currentRatio) < 0.05 { return preset.label }
+        return ZoomPresetBuilder.formatLabel(currentRatio * displayMultiplier)
     }
 
     private var dragGesture: some Gesture {
@@ -104,8 +113,14 @@ struct ZoomControl: View {
     ZStack {
         Color.appOnSurfaceVariant
         ZoomControl(
-            activePreset: .wide,
-            isSupported: { _ in true },
+            presets: [
+                ZoomPresetSpec(id: "uw", factor: 0.5, label: "0.5x"),
+                ZoomPresetSpec(id: "w", factor: 1.0, label: "1x"),
+                ZoomPresetSpec(id: "2x", factor: 2.0, label: "2x"),
+                ZoomPresetSpec(id: "tele", factor: 5.0, label: "5x"),
+            ],
+            displayMultiplier: 1.0,
+            activePreset: ZoomPresetSpec(id: "w", factor: 1.0, label: "1x"),
             isDragging: false,
             currentRatio: 1.0,
             minRatio: 0.5,

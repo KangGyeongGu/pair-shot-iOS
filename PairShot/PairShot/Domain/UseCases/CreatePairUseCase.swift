@@ -32,7 +32,12 @@ struct CreatePairUseCase {
     ) async throws -> PhotoPair {
         let timestamp = now()
         let pairId = UUID()
-        let fileName = fileNameBuilder.before(prefix: prefix, timestamp: timestamp, pairId: pairId)
+        let sequenceNumber = try await pairRepo.nextSequenceNumber()
+        let fileName = fileNameBuilder.before(
+            prefix: prefix,
+            timestamp: timestamp,
+            sequenceNumber: sequenceNumber
+        )
         let normalized = await exifNormalizer.normalize(beforeJPEG, jpegQuality: jpegQuality)
         let savedName = try storage.saveBeforeJPEG(normalized, fileName: fileName)
         let resolvedLocation = await location.fetchOnce()

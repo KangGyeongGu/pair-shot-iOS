@@ -50,10 +50,10 @@ final class TrackingAuthorizationService {
             currentStatus = snapshot
             return snapshot
         }
-        AppLogger.ads.info("ATT prompt requested")
+        AppLogger.ads.debug("ATT prompt requested")
         let result = await provider.requestAuthorization()
         currentStatus = result
-        AppLogger.ads.info("ATT prompt result rawValue=\(result.rawValue, privacy: .public)")
+        AppLogger.ads.debug("ATT prompt result rawValue=\(result.rawValue, privacy: .public)")
         return result
     }
 

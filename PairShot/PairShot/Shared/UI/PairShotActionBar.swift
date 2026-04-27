@@ -35,14 +35,18 @@ struct PairShotActionBar: View {
         .frame(maxWidth: .infinity)
         .frame(height: 72)
         .padding(.horizontal, 20)
-        .background(.regularMaterial)
+        .background {
+            Color.appSurfaceContainer
+                .ignoresSafeArea(edges: .bottom)
+        }
     }
 
     private func actionColumn(_ item: PairShotActionItem) -> some View {
         Button(role: item.role, action: item.action) {
-            VStack(spacing: -6) {
+            VStack(spacing: 4) {
                 Image(systemName: item.systemImage)
                     .font(.title3)
+                    .frame(height: 24)
                 Text(item.title)
                     .font(.appLabel)
             }

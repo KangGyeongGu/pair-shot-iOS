@@ -11,7 +11,10 @@ final class AppSettings {
     }
 
     var fileNamePrefix: String {
-        get { defaults.string(forKey: Self.fileNamePrefixKey) ?? "" }
+        get {
+            let stored = defaults.string(forKey: Self.fileNamePrefixKey) ?? ""
+            return stored.isEmpty ? AndroidParityDefaults.fileNamePrefix : stored
+        }
         set { defaults.set(newValue, forKey: Self.fileNamePrefixKey) }
     }
 
@@ -29,8 +32,41 @@ final class AppSettings {
     }
 
     var watermarkEnabled: Bool {
-        get { defaults.bool(forKey: WatermarkOverlay.userDefaultsKey) }
-        set { defaults.set(newValue, forKey: WatermarkOverlay.userDefaultsKey) }
+        didSet {
+            defaults.set(watermarkEnabled, forKey: WatermarkOverlay.userDefaultsKey)
+        }
+    }
+
+    var watermarkSettings: WatermarkSettings {
+        get {
+            guard let raw = defaults.string(forKey: Self.watermarkSettingsKey),
+                  let data = raw.data(using: .utf8),
+                  let decoded = try? JSONDecoder().decode(WatermarkSettings.self, from: data)
+            else { return .default }
+            return decoded
+        }
+        set {
+            guard let data = try? JSONEncoder().encode(newValue),
+                  let raw = String(data: data, encoding: .utf8)
+            else { return }
+            defaults.set(raw, forKey: Self.watermarkSettingsKey)
+        }
+    }
+
+    var combineSettings: CombineSettings {
+        get {
+            guard let raw = defaults.string(forKey: Self.combineSettingsKey),
+                  let data = raw.data(using: .utf8),
+                  let decoded = try? JSONDecoder().decode(CombineSettings.self, from: data)
+            else { return .default }
+            return decoded
+        }
+        set {
+            guard let data = try? JSONEncoder().encode(newValue),
+                  let raw = String(data: data, encoding: .utf8)
+            else { return }
+            defaults.set(raw, forKey: Self.combineSettingsKey)
+        }
     }
 
     var language: AppLanguage {
@@ -61,6 +97,8 @@ final class AppSettings {
     static let fileNamePrefixKey = "pairshot.fileNamePrefix"
     static let defaultOverlayAlphaKey = "pairshot.defaultOverlayAlpha"
     static let defaultCompositeLayoutKey = "pairshot.defaultCompositeLayout"
+    static let watermarkSettingsKey = "pairshot.watermarkSettings"
+    static let combineSettingsKey = "pairshot.combineSettings"
     static let languageKey = "pairshot.language"
     static let themeKey = "pairshot.theme"
     static let shared = AppSettings()
@@ -70,20 +108,25 @@ final class AppSettings {
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         defaults.register(defaults: [
-            Self.jpegQualityKey: CaptureQualityPreset.standard.rawValue,
-            Self.fileNamePrefixKey: "",
+            Self.jpegQualityKey: CaptureQualityPreset.high.rawValue,
+            Self.fileNamePrefixKey: AndroidParityDefaults.fileNamePrefix,
             Self.defaultOverlayAlphaKey: CompositionDefaults.fallbackAlpha,
             Self.defaultCompositeLayoutKey: CompositionDefaults.fallbackLayout.rawValue,
             WatermarkOverlay.userDefaultsKey: WatermarkOverlay.defaultEnabled,
             Self.languageKey: AppLanguage.system.rawValue,
             Self.themeKey: AppTheme.system.rawValue,
         ])
+        watermarkEnabled = defaults.bool(forKey: WatermarkOverlay.userDefaultsKey)
     }
+}
+
+nonisolated enum AndroidParityDefaults {
+    static let fileNamePrefix: String = "PAIRSHOT"
 }
 
 nonisolated enum CompositionDefaults {
     static let alphaRange: ClosedRange<Double> = 0.0 ... 1.0
-    static let fallbackAlpha: Double = 0.5
+    static let fallbackAlpha: Double = 0.35
     static let fallbackLayout: CompositeLayout = .horizontal
 
     static func clampAlpha(_ value: Double) -> Double {

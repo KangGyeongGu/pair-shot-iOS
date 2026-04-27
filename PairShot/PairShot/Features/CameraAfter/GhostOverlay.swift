@@ -16,6 +16,7 @@ enum GhostOverlayLoader {
         beforeFileName: String,
         storage: PhotoStorageService
     ) -> UIImage? {
+        assert(!Thread.isMainThread, "GhostOverlayLoader.loadImage must be called off the main thread")
         guard !beforeFileName.isEmpty else { return nil }
         guard let url = storage.resolveBefore(fileName: beforeFileName) else { return nil }
         guard FileManager.default.fileExists(atPath: url.path) else { return nil }
@@ -27,11 +28,21 @@ struct GhostOverlayView: View {
     let image: UIImage?
     let alpha: Double
     let isEnabled: Bool
+    let width: CGFloat?
+    let height: CGFloat?
 
-    init(image: UIImage?, alpha: Double, isEnabled: Bool = true) {
+    init(
+        image: UIImage?,
+        alpha: Double,
+        isEnabled: Bool = true,
+        width: CGFloat? = nil,
+        height: CGFloat? = nil
+    ) {
         self.image = image
         self.alpha = alpha
         self.isEnabled = isEnabled
+        self.width = width
+        self.height = height
     }
 
     var body: some View {
@@ -40,9 +51,12 @@ struct GhostOverlayView: View {
                 Image(uiImage: image)
                     .resizable()
                     .scaledToFill()
+                    .frame(width: width, height: height)
+                    .clipped()
                     .opacity(GhostOverlayMath.clamp(alpha))
             } else {
-                Color.clear
+                Color.black.opacity(0.001)
+                    .frame(width: width, height: height)
             }
         }
         .allowsHitTesting(false)

@@ -6,21 +6,27 @@ struct AfterCameraView: View {
     let albumId: UUID?
     let initialPairId: UUID?
     let retakeMode: Bool
+    let sortOrder: HomeSortOrder
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var scenePhase
     @Environment(AppEnvironment.self) private var env
 
     @State private var viewModel: AfterCameraViewModel?
+    @State private var showSettingsSheet = false
+    @State private var cachedGhostImage: UIImage?
+    @State private var didStartViewModel = false
 
     init(
         albumId: UUID? = nil,
         initialPairId: UUID? = nil,
-        retakeMode: Bool = false
+        retakeMode: Bool = false,
+        sortOrder: HomeSortOrder = .newest
     ) {
         self.albumId = albumId
         self.initialPairId = initialPairId
         self.retakeMode = retakeMode
+        self.sortOrder = sortOrder
     }
 
     var body: some View {
@@ -29,24 +35,34 @@ struct AfterCameraView: View {
 
             if let viewModel {
                 content(for: viewModel)
-            } else {
-                ProgressView().tint(.white)
             }
+
+            settingsOverlay
         }
         .toolbar(.hidden, for: .navigationBar)
         .preferredColorScheme(.dark)
         .statusBarHidden(false)
-        .task { await ensureViewModel() }
-        .task { await observeEvents() }
-        .task { await observeOrientation() }
+        .onAppear { ensureViewModelSync() }
+        .task {
+            ensureViewModelSync()
+            guard let vm = viewModel else { return }
+            if !didStartViewModel {
+                didStartViewModel = true
+                Task { await vm.onAppear() }
+            }
+            await observeEvents(viewModel: vm)
+        }
+        .task {
+            ensureViewModelSync()
+            guard let vm = viewModel else { return }
+            await observeOrientation(viewModel: vm)
+        }
         .onDisappear { viewModel?.onDisappear() }
         .onChange(of: scenePhase) { _, newPhase in
             viewModel?.handleScenePhaseAction(CameraScenePhaseGate.action(for: newPhase))
         }
-        .sheet(isPresented: settingsSheetBinding) {
-            if let viewModel {
-                AfterCameraSettingsSheet(viewModel: viewModel)
-            }
+        .onChange(of: viewModel?.ghostImageData) { _, newData in
+            updateCachedGhostImage(from: newData)
         }
         .captureErrorAlert(message: Binding(
             get: { viewModel?.captureErrorMessage },
@@ -59,6 +75,28 @@ struct AfterCameraView: View {
     }
 
     @ViewBuilder
+    private var settingsOverlay: some View {
+        if showSettingsSheet, let viewModel {
+            AfterCameraSettingsOverlay(
+                isPresented: $showSettingsSheet,
+                isGridOn: viewModel.isGridOn,
+                isLevelOn: viewModel.isLevelOn,
+                isNightModeOn: viewModel.isNightModeOn,
+                flashMode: viewModel.flashMode,
+                overlayEnabled: viewModel.overlayEnabled,
+                alpha: viewModel.alpha,
+                onToggleGrid: viewModel.toggleGrid,
+                onToggleLevel: viewModel.toggleLevel,
+                onToggleNightMode: viewModel.toggleNightMode,
+                onCycleFlash: viewModel.cycleFlash,
+                onToggleOverlay: viewModel.toggleOverlay,
+                onAlphaChange: viewModel.setAlpha
+            )
+            .animation(.spring(response: 0.3, dampingFraction: 0.85), value: showSettingsSheet)
+        }
+    }
+
+    @ViewBuilder
     private func content(for viewModel: AfterCameraViewModel) -> some View {
         if viewModel.cameraPermissionGranted == false {
             PermissionDeniedView(forCamera: ())
@@ -67,16 +105,20 @@ struct AfterCameraView: View {
             AfterCameraStack(
                 captureSession: viewModel.captureSession,
                 onMakePreviewView: { _ in },
-                ghostImage: ghostImage(for: viewModel),
+                ghostImage: cachedGhostImage,
                 alpha: viewModel.alpha,
                 overlayEnabled: viewModel.overlayEnabled,
                 pairs: viewModel.pairs,
                 selectedPairId: selectedPairIdBinding(for: viewModel),
                 storage: env.photoStorageService,
-                stripProgress: viewModel.stripProgress,
                 rotationDirection: viewModel.rotationDirection,
+                isGridOn: viewModel.isGridOn,
+                isLevelOn: viewModel.isLevelOn,
+                isNightModeOn: viewModel.isNightModeOn,
+                flashMode: viewModel.flashMode,
+                presets: viewModel.availablePresets,
+                displayMultiplier: viewModel.displayMultiplier,
                 activePreset: viewModel.activePreset,
-                isPresetSupported: viewModel.isPresetSupported(_:),
                 isDraggingZoom: viewModel.isDraggingZoom,
                 currentZoomRatio: viewModel.currentZoomRatio,
                 minZoomRatio: viewModel.minZoom,
@@ -88,18 +130,17 @@ struct AfterCameraView: View {
                 onZoomDragChanged: viewModel.onZoomDragChanged(deltaPx:),
                 onZoomDragEnded: viewModel.onZoomDragEnded,
                 onShutter: { handleShutter(viewModel: viewModel) },
-                onSettingsTap: viewModel.onSettingsTap,
                 onLeadingTap: { dismiss() },
-                onToggleLens: viewModel.toggleLens
+                onToggleLens: viewModel.toggleLens,
+                onToggleGrid: viewModel.toggleGrid,
+                onToggleLevel: viewModel.toggleLevel,
+                onToggleNightMode: viewModel.toggleNightMode,
+                onCycleFlash: viewModel.cycleFlash,
+                onToggleOverlay: viewModel.toggleOverlay,
+                onAlphaChange: viewModel.setAlpha,
+                onSettingsTap: { showSettingsSheet = true }
             )
         }
-    }
-
-    private var settingsSheetBinding: Binding<Bool> {
-        Binding(
-            get: { viewModel?.showSettingsSheet ?? false },
-            set: { viewModel?.showSettingsSheet = $0 }
-        )
     }
 
     private func selectedPairIdBinding(for viewModel: AfterCameraViewModel) -> Binding<UUID?> {
@@ -112,9 +153,17 @@ struct AfterCameraView: View {
         )
     }
 
-    private func ghostImage(for viewModel: AfterCameraViewModel) -> UIImage? {
-        guard let data = viewModel.ghostImageData else { return nil }
-        return UIImage(data: data)
+    private func updateCachedGhostImage(from data: Data?) {
+        guard let data else {
+            cachedGhostImage = nil
+            return
+        }
+        Task { @MainActor in
+            let image = await Task.detached(priority: .userInitiated) {
+                UIImage(data: data)
+            }.value
+            cachedGhostImage = image
+        }
     }
 
     private func pinchGesture(for viewModel: AfterCameraViewModel) -> some Gesture {
@@ -128,22 +177,17 @@ struct AfterCameraView: View {
         Task { await viewModel.shutter() }
     }
 
-    private func ensureViewModel() async {
-        if viewModel == nil {
-            viewModel = env.makeAfterCameraViewModel(
-                albumId: albumId,
-                initialPairId: initialPairId,
-                retakeMode: retakeMode
-            )
-        }
-        await viewModel?.onAppear()
+    private func ensureViewModelSync() {
+        guard viewModel == nil else { return }
+        viewModel = env.makeAfterCameraViewModel(
+            albumId: albumId,
+            initialPairId: initialPairId,
+            retakeMode: retakeMode,
+            sortOrder: sortOrder
+        )
     }
 
-    private func observeEvents() async {
-        while viewModel == nil {
-            try? await Task.sleep(nanoseconds: 50_000_000)
-        }
-        guard let viewModel else { return }
+    private func observeEvents(viewModel: AfterCameraViewModel) async {
         for await event in viewModel.events {
             switch event {
                 case .dismiss:
@@ -163,20 +207,12 @@ struct AfterCameraView: View {
         }
     }
 
-    private func observeOrientation() async {
-        while viewModel == nil {
-            try? await Task.sleep(nanoseconds: 50_000_000)
-        }
-        guard let viewModel else { return }
-        await MainActor.run {
-            UIDevice.current.beginGeneratingDeviceOrientationNotifications()
-            viewModel.updateRotation(orientation: UIDevice.current.orientation)
-        }
+    private func observeOrientation(viewModel: AfterCameraViewModel) async {
+        UIDevice.current.beginGeneratingDeviceOrientationNotifications()
+        viewModel.updateRotation(orientation: UIDevice.current.orientation)
         let stream = NotificationCenter.default.notifications(named: UIDevice.orientationDidChangeNotification)
         for await _ in stream {
-            await MainActor.run {
-                viewModel.updateRotation(orientation: UIDevice.current.orientation)
-            }
+            viewModel.updateRotation(orientation: UIDevice.current.orientation)
         }
     }
 }

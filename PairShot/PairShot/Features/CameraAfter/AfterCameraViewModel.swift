@@ -3,6 +3,8 @@ import Foundation
 import Observation
 import UIKit
 
+// swiftlint:disable type_contents_order switch_case_alignment
+
 @MainActor
 @Observable
 final class AfterCameraViewModel {
@@ -15,6 +17,7 @@ final class AfterCameraViewModel {
     let albumId: UUID?
     let initialPairId: UUID?
     let retakeMode: Bool
+    let sortOrder: HomeSortOrder
 
     let session: CameraSession
 
@@ -24,7 +27,10 @@ final class AfterCameraViewModel {
     var ghostImageData: Data?
     var alpha: Double = GhostOverlayMath.defaultAlpha
     var overlayEnabled: Bool = true
-    var activePreset: ZoomPreset?
+    var activePreset: ZoomPresetSpec?
+    var availablePresets: [ZoomPresetSpec] = []
+    var firstSwitchOver: Double = 1.0
+    var displayMultiplier: Double = 1.0
     var minZoom: Double = 1
     var maxZoom: Double = 1
     var pinchBaseFactor: Double = 1.0
@@ -41,7 +47,6 @@ final class AfterCameraViewModel {
     var isNightModeOn: Bool = false
     var flashMode: CameraFlashMode = .off
     var lensPosition: CameraLensPosition = .back
-    var showSettingsSheet: Bool = false
 
     var rotationDirection: RotationGuideDirection = .upright
     var allCompleted: Bool = false
@@ -60,13 +65,13 @@ final class AfterCameraViewModel {
     private let captureSource: AfterCameraCaptureSource
     private let permissionProbe: @Sendable () async -> Bool
     private let eventsContinuation: AsyncStream<Event>.Continuation
-    private(set) var supportedPresets: Set<ZoomPreset> = []
     private var allCompletedDismissTask: Task<Void, Never>?
 
     init(
         albumId: UUID?,
         initialPairId: UUID? = nil,
         retakeMode: Bool = false,
+        sortOrder: HomeSortOrder = .newest,
         captureAfter: CaptureAfterUseCase,
         pairRepo: PhotoPairRepository,
         storage: PhotoStoring,
@@ -78,6 +83,7 @@ final class AfterCameraViewModel {
         self.albumId = albumId
         self.initialPairId = initialPairId
         self.retakeMode = retakeMode
+        self.sortOrder = sortOrder
         self.captureAfter = captureAfter
         self.pairRepo = pairRepo
         self.storage = storage
@@ -86,37 +92,34 @@ final class AfterCameraViewModel {
         self.session = resolvedSession
         self.captureSource = captureSource ?? AfterCameraSessionCaptureSource(session: resolvedSession)
         self.permissionProbe = permissionProbe
-        activePreset = .wide
         var continuation: AsyncStream<Event>.Continuation!
         events = AsyncStream { continuation = $0 }
         eventsContinuation = continuation
-    }
-
-    var stripProgress: AfterCameraStripProgress? {
-        guard !retakeMode else { return nil }
-        let total = pendingPairCount + completedPairCount
-        guard total > 0 else { return nil }
-        return AfterCameraStripProgress(completed: completedPairCount, total: total)
     }
 
     nonisolated var captureSession: AVCaptureSession {
         session.captureSession
     }
 
-    nonisolated func isPresetSupported(_ preset: ZoomPreset) -> Bool {
-        MainActor.assumeIsolated { supportedPresets.contains(preset) }
-    }
-
     func onAppear() async {
         alpha = GhostOverlayMath.clamp(appSettings.defaultOverlayAlpha)
-        cameraPermissionGranted = await permissionProbe()
+        async let permission = permissionProbe()
+        async let startTask: Void = session.start()
+        cameraPermissionGranted = await permission
         guard cameraPermissionGranted == true else { return }
-        await session.start()
-        await refreshCapabilities()
-        minZoom = await session.minZoomFactor
-        maxZoom = await session.maxZoomFactor
-        currentZoomRatio = await session.currentZoomFactor
+        _ = await startTask
+        let snapshot = await session.zoomSnapshot()
+        applyZoomSnapshot(snapshot)
         await loadPendingScopeAndStart()
+    }
+
+    func applyZoomSnapshot(_ snapshot: CameraZoomSnapshot) {
+        minZoom = snapshot.minFactor
+        maxZoom = snapshot.maxFactor
+        currentZoomRatio = snapshot.currentFactor
+        availablePresets = snapshot.presets
+        firstSwitchOver = snapshot.firstSwitchOver
+        displayMultiplier = snapshot.displayMultiplier
     }
 
     func onDisappear() {
@@ -147,10 +150,6 @@ final class AfterCameraViewModel {
         adopt(pair: pair)
     }
 
-    func onSettingsTap() {
-        showSettingsSheet = true
-    }
-
     func updateRotation(orientation: UIDeviceOrientation) {
         rotationDirection = RotationGuideResolver.direction(for: orientation)
     }
@@ -166,17 +165,11 @@ final class AfterCameraViewModel {
         do {
             let captured = try await captureSource.capturePhoto()
             let prefix = FileNamePrefixValidator.sanitize(appSettings.fileNamePrefix)
-            let options = CompositeOptions(
-                layout: appSettings.defaultCompositeLayout,
-                jpegQuality: CGFloat(appSettings.jpegQuality),
-                watermarkEnabled: appSettings.watermarkEnabled
-            )
             let updated = try await captureAfter(
                 pairId: pair.id,
                 afterJPEG: captured.jpegData,
                 prefix: prefix,
-                jpegQuality: appSettings.jpegQuality,
-                compositeOptions: options
+                jpegQuality: appSettings.jpegQuality
             )
             currentPair = updated
             eventsContinuation.yield(.snackbarSuccess)
@@ -244,22 +237,26 @@ final class AfterCameraViewModel {
     private func adopt(pair: PhotoPair) {
         currentPair = pair
         selectedPairId = pair.id
-        let loaded = AfterCameraGhostLoader.loadData(beforeFileName: pair.beforeFileName, storage: storage)
+        ghostImageData = nil
+        alpha = GhostOverlayMath.clamp(appSettings.defaultOverlayAlpha)
+        hasRestoredZoom = false
+        Task { await loadGhost(for: pair) }
+        Task { await restoreZoom(for: pair) }
+    }
+
+    private func loadGhost(for pair: PhotoPair) async {
+        let fileName = pair.beforeFileName
+        guard !fileName.isEmpty else { return }
+        guard let url = storage.resolveBefore(fileName: fileName) else { return }
+        let loaded = await Task.detached(priority: .userInitiated) {
+            guard FileManager.default.fileExists(atPath: url.path) else { return nil as Data? }
+            return try? Data(contentsOf: url)
+        }.value
+        guard currentPair?.id == pair.id else { return }
         ghostImageData = loaded
         if loaded == nil {
             ghostWarningToast = String(localized: "after_ghost_missing_warning")
         }
-        alpha = GhostOverlayMath.clamp(appSettings.defaultOverlayAlpha)
-        hasRestoredZoom = false
-        Task { await restoreZoom(for: pair) }
-    }
-
-    func refreshCapabilities() async {
-        var supported: Set<ZoomPreset> = []
-        for preset in ZoomPreset.allCases where await session.isPresetSupported(preset) {
-            supported.insert(preset)
-        }
-        supportedPresets = supported
     }
 
     private func restoreZoom(for pair: PhotoPair) async {
@@ -269,12 +266,13 @@ final class AfterCameraViewModel {
         let actual = await session.currentZoomFactor
         pinchBaseFactor = actual
         currentZoomRatio = actual
-        activePreset = AfterCameraZoomPresetMatcher.match(actual)
+        activePreset = AfterCameraZoomPresetMatcher.match(actual, in: availablePresets)
         hasRestoredZoom = true
     }
 
     private func refreshPairs() async {
-        let snapshot = await AfterCameraScopeFetch(pairRepo: pairRepo, albumId: albumId).fetch()
+        let snapshot = await AfterCameraScopeFetch(pairRepo: pairRepo, albumId: albumId)
+            .fetch(initialPairId: initialPairId, sortOrder: sortOrder)
         pairs = snapshot.pending
         pendingPairCount = snapshot.pending.count
         completedPairCount = snapshot.completedCount
@@ -368,3 +366,5 @@ enum AfterCameraGhostLoader {
         return try? Data(contentsOf: url)
     }
 }
+
+// swiftlint:enable type_contents_order switch_case_alignment

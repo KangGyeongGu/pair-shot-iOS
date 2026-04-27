@@ -71,15 +71,37 @@ struct RootView: View {
                     viewModel: env.makeExportSettingsViewModel(
                         pairIds: pairIds,
                         albumId: albumId
-                    )
+                    ),
+                    onRequestSettingsRedirect: { target in
+                        handleExportSettingsRedirect(target)
+                    }
                 )
 
             case .pairPreview,
-                 .settings:
+                 .settings,
+                 .languagePicker,
+                 .themePicker,
+                 .imageQualityPicker,
+                 .filenamePrefixEditor:
                 EmptyView()
         }
     }
+
     // swiftlint:enable switch_case_alignment
+
+    private func handleExportSettingsRedirect(_ target: ExportSettingsRedirectTarget) {
+        env.settingsRedirectCoordinator.request(pulseTarget(for: target))
+        path = [.home]
+    }
+
+    // swiftlint:disable switch_case_alignment switch_case_on_newline
+    private func pulseTarget(for target: ExportSettingsRedirectTarget) -> SettingsPulseTarget {
+        switch target {
+            case .watermarkSettings: .watermark
+            case .combineSettings: .combine
+        }
+    }
+    // swiftlint:enable switch_case_alignment switch_case_on_newline
 }
 
 private struct RootViewPreviewWrapper: View {

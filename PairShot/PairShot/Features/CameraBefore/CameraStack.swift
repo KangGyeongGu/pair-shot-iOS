@@ -3,16 +3,21 @@ import SwiftUI
 import UIKit
 
 struct BeforeCameraStack: View {
+    @Environment(AdFreeStore.self) private var adFreeStore
+
     let captureSession: AVCaptureSession
     let onMakePreviewView: (CameraPreviewView) -> Void
     let previewLayerProvider: () -> AVCaptureVideoPreviewLayer?
 
     let isGridOn: Bool
     let isLevelOn: Bool
+    let isNightModeOn: Bool
+    let flashMode: CameraFlashMode
     let rollDegrees: Double
 
-    let activePreset: ZoomPreset?
-    let isPresetSupported: (ZoomPreset) -> Bool
+    let presets: [ZoomPresetSpec]
+    let displayMultiplier: Double
+    let activePreset: ZoomPresetSpec?
     let isDraggingZoom: Bool
     let currentZoomRatio: Double
     let minZoomRatio: Double
@@ -22,7 +27,6 @@ struct BeforeCameraStack: View {
 
     let isCapturing: Bool
     let lastThumbnail: UIImage?
-    let canShowHomeIcon: Bool
 
     let pendingPairs: [PhotoPair]
     let storage: PhotoStorageService
@@ -31,54 +35,72 @@ struct BeforeCameraStack: View {
     let onExposureBias: (Float) -> Void
     let pinchGesture: AnyGesture<Void>
 
-    let onApplyPreset: (ZoomPreset) -> Void
+    let onApplyPreset: (ZoomPresetSpec) -> Void
     let onZoomDragChanged: (Double) -> Void
     let onZoomDragEnded: () -> Void
     let onShutter: () -> Void
-    let onSettingsTap: () -> Void
     let onLeadingTap: () -> Void
-    let onStripPairTap: (PhotoPair) -> Void
     let onToggleLens: () -> Void
+    let onToggleGrid: () -> Void
+    let onToggleLevel: () -> Void
+    let onToggleNightMode: () -> Void
+    let onCycleFlash: () -> Void
+    let onSettingsTap: () -> Void
 
     var body: some View {
-        VStack(spacing: 0) {
-            BannerAdSlot()
-
-            previewArea
-
-            BeforeCameraStrip(
-                pendingPairs: pendingPairs,
-                storage: storage,
-                onTapPair: onStripPairTap
+        GeometryReader { geo in
+            let layout = CameraLayoutMath.compute(
+                totalSize: geo.size,
+                isAdFree: adFreeStore.isAdFree
             )
 
-            CameraBottomBar(
-                lastThumbnail: lastThumbnail,
-                isCapturing: isCapturing,
-                canShowHomeIcon: canShowHomeIcon,
-                onLeadingTap: onLeadingTap,
-                onShutter: onShutter,
-                onSettingsTap: onSettingsTap
-            )
+            ZStack(alignment: .top) {
+                Color.appCameraBackground.ignoresSafeArea()
 
-            Spacer(minLength: 0)
-                .frame(height: 32)
+                VStack(spacing: 0) {
+                    previewArea(width: layout.previewWidth, height: layout.previewHeight)
+                        .frame(width: layout.previewWidth, height: layout.previewHeight)
+                        .background(Color.appCameraBackground)
+
+                    BeforeCameraStrip(
+                        pendingPairs: pendingPairs,
+                        storage: storage
+                    )
+                    .frame(height: layout.stripHeight)
+                    .clipped()
+
+                    CameraBottomBar(
+                        lastThumbnail: lastThumbnail,
+                        isCapturing: isCapturing,
+                        onLeadingTap: onLeadingTap,
+                        onShutter: onShutter,
+                        onSettingsTap: onSettingsTap
+                    )
+                    .frame(height: layout.bottomBarHeight)
+                    .clipped()
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+
+                if !layout.isAdFree {
+                    BannerAdSlot()
+                        .frame(height: layout.bannerHeight)
+                        .frame(maxWidth: .infinity)
+                }
+            }
         }
-        .background(Color.appCameraBackground.ignoresSafeArea())
+        .ignoresSafeArea(edges: .bottom)
     }
 
-    private var previewArea: some View {
+    private func previewArea(width: CGFloat, height previewHeight: CGFloat) -> some View {
         ZStack {
             BeforeCameraPreviewLayer(
                 session: captureSession,
                 onMakeView: onMakePreviewView
             )
-            .aspectRatio(3.0 / 4.0, contentMode: .fit)
             .clipped()
 
             if isGridOn {
                 GridOverlay()
-                    .aspectRatio(3.0 / 4.0, contentMode: .fit)
                     .allowsHitTesting(false)
             }
 
@@ -89,28 +111,40 @@ struct BeforeCameraStack: View {
                 exposureRangeProvider: exposureRangeProvider,
                 indicator: focusIndicator
             )
-            .aspectRatio(3.0 / 4.0, contentMode: .fit)
             .gesture(pinchGesture)
 
             if let indicator = focusIndicator.wrappedValue {
                 FocusReticleView(state: indicator)
             }
 
-            if isLevelOn {
-                VStack {
-                    LevelIndicator(rollDegrees: rollDegrees)
-                        .padding(.top, 12)
-                    Spacer()
-                }
-            }
+            levelOverlay
+            zoomBottomOverlay
+        }
+        .frame(width: width, height: previewHeight)
+        .background(Color.appCameraBackground)
+    }
 
+    @ViewBuilder
+    private var levelOverlay: some View {
+        if isLevelOn {
             VStack {
+                Spacer().frame(height: 24)
+                LevelIndicator(rollDegrees: rollDegrees)
                 Spacer()
-                HStack(alignment: .center, spacing: 8) {
-                    Spacer(minLength: 0)
+            }
+        }
+    }
+
+    private var zoomBottomOverlay: some View {
+        VStack {
+            Spacer()
+            ZStack(alignment: .trailing) {
+                HStack {
+                    Spacer()
                     ZoomControl(
+                        presets: presets,
+                        displayMultiplier: displayMultiplier,
                         activePreset: activePreset,
-                        isSupported: isPresetSupported,
                         isDragging: isDraggingZoom,
                         currentRatio: currentZoomRatio,
                         minRatio: minZoomRatio,
@@ -119,16 +153,15 @@ struct BeforeCameraStack: View {
                         onDragChanged: onZoomDragChanged,
                         onDragEnded: onZoomDragEnded
                     )
-                    Spacer(minLength: 0)
-                    lensFlipButton
-                        .opacity(isDraggingZoom ? 0 : 1)
+                    Spacer()
                 }
-                .padding(.horizontal, 12)
-                .padding(.bottom, 12)
+
+                lensFlipButton
+                    .opacity(isDraggingZoom ? 0 : 1)
+                    .padding(.trailing, 12)
             }
+            .padding(.bottom, 12)
         }
-        .frame(maxWidth: .infinity)
-        .background(Color.appCameraBackground)
     }
 
     private var lensFlipButton: some View {
@@ -156,4 +189,50 @@ struct BeforeCameraPreviewLayer: UIViewRepresentable {
     }
 
     func updateUIView(_: CameraPreviewView, context _: Context) {}
+}
+
+struct CameraLayoutResult {
+    let isAdFree: Bool
+    let bannerHeight: CGFloat
+    let previewWidth: CGFloat
+    let previewHeight: CGFloat
+    let stripHeight: CGFloat
+    let bottomBarHeight: CGFloat
+}
+
+enum CameraLayoutMath {
+    static let bannerHeight: CGFloat = 50
+    static let preferredBottomBarHeight: CGFloat = 116
+
+    static func compute(
+        totalSize: CGSize,
+        isAdFree: Bool
+    ) -> CameraLayoutResult {
+        let banner: CGFloat = isAdFree ? 0 : bannerHeight
+        let preferredPreview = totalSize.width * 4.0 / 3.0
+        let previewHeight = min(preferredPreview, max(0, totalSize.height))
+        let bottomTotal = max(0, totalSize.height - previewHeight)
+        let preferredStrip = StripDesign.stripHeight
+        let preferredBottomTotal = preferredStrip + preferredBottomBarHeight
+
+        let strip: CGFloat
+        let bottomBar: CGFloat
+        if bottomTotal >= preferredBottomTotal {
+            strip = preferredStrip
+            bottomBar = bottomTotal - preferredStrip
+        } else {
+            let stripRatio = preferredStrip / preferredBottomTotal
+            strip = bottomTotal * stripRatio
+            bottomBar = bottomTotal - strip
+        }
+
+        return CameraLayoutResult(
+            isAdFree: isAdFree,
+            bannerHeight: banner,
+            previewWidth: totalSize.width,
+            previewHeight: previewHeight,
+            stripHeight: strip,
+            bottomBarHeight: bottomBar
+        )
+    }
 }

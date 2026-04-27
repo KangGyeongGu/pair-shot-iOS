@@ -1,38 +1,7 @@
-// P10.5 / Audit-B — Debug build configuration overlay.
-//
-// In DEBUG builds `AdsConfig` always returns Google's official test
-// unit ids (see `Services/AdsConfig.swift`) regardless of what's in
-// `Info.plist`, so most `ADUNIT_ID_*` keys remain unset here. The
-// few keys defined below are required because they are read at SDK
-// initialisation time (not via `AdsConfig.resolve`) or by non-ad
-// code paths that don't have a DEBUG short-circuit:
-//
-//   * `GAD_APPLICATION_ID` — `GADMobileAds.sharedInstance().start(...)`
-//     uses the Info.plist value verbatim. Without this the SDK fails
-//     to initialise and emits a warning at every app launch.
-//     Audit-B: variabilised so Release.xcconfig can override with a
-//     real production app id.
-//   * `ADUNIT_ID_REWARDED_INTERSTITIAL` — kept here as a placeholder
-//     to mirror `Release.xcconfig` and to give the Info.plist key
-//     `AdUnitID_RewardedInterstitial` a non-empty resolution at build
-//     time. The runtime `AdsConfig.rewardedInterstitial` still routes
-//     through the DEBUG test-id short-circuit.
-//   * `COUPON_PUBLIC_KEY` — left empty in DEBUG so `CouponVerifier`
-//     falls back to its 32-byte zero placeholder. Production builds
-//     replace via `Release.xcconfig`.
-//
-// Audit-B: previously this file was effectively empty; the missing
-// `GAD_APPLICATION_ID` definition meant DEBUG builds would have
-// resolved Info.plist's `$(GAD_APPLICATION_ID)` to the literal
-// substitution sentinel and the SDK would have failed to start.
-//
-// Note: Adding this file to the Debug build configurations also
-// confirms the xcconfig wiring is correct end-to-end (build settings
-// resolve from xcconfig → target → project for both Debug and
-// Release).
-
 GAD_APPLICATION_ID = ca-app-pub-3940256099942544~1458002511
-ADUNIT_ID_REWARDED_INTERSTITIAL = ca-app-pub-3940256099942544/6978759866
-COUPON_PUBLIC_KEY =
+
+COUPON_API_BASE_URL = https:/$()/pairshot.kangkyeonggu.com/api/pairshot
+COUPON_API_AUTH_KEY = SsH8lb9KwAhAlZtoSHXaLr9THvZNy9NZUam1pG1fGi8
+COUPON_DEVICE_HASH_SALT = pairshot-coupon-v1-device-salt
 
 SWIFT_TREAT_WARNINGS_AS_ERRORS = YES

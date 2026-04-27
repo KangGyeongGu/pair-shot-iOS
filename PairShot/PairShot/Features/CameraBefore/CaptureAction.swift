@@ -12,17 +12,20 @@ enum CaptureActionError: Error {
 struct BeforeCaptureCoordinator {
     let session: CameraSession
     let storage: PhotoStorageService
+    let pairRepo: PhotoPairRepository?
     let fileNamePrefix: String
     let jpegQuality: CGFloat
 
     init(
         session: CameraSession,
         storage: PhotoStorageService,
+        pairRepo: PhotoPairRepository? = nil,
         fileNamePrefix: String = "",
         jpegQuality: CGFloat = ExifNormalizer.defaultJPEGQuality
     ) {
         self.session = session
         self.storage = storage
+        self.pairRepo = pairRepo
         self.fileNamePrefix = fileNamePrefix
         self.jpegQuality = jpegQuality
     }
@@ -57,10 +60,15 @@ struct BeforeCaptureCoordinator {
             useGrid: false,
             useNightMode: false
         )
+        let sequenceNumber: Int = if let pairRepo {
+            await (try? pairRepo.nextSequenceNumber()) ?? PairSequenceResolver.fallback(in: context)
+        } else {
+            PairSequenceResolver.fallback(in: context)
+        }
         let fileName = FileNameBuilder.before(
             prefix: fileNamePrefix,
             timestamp: captured.capturedAt,
-            pairId: pairId
+            sequenceNumber: sequenceNumber
         )
 
         do {
@@ -97,6 +105,17 @@ struct BeforeCaptureCoordinator {
         }
 
         return pair
+    }
+}
+
+enum PairSequenceResolver {
+    static func fallback(in context: ModelContext) -> Int {
+        let descriptor = FetchDescriptor<PhotoPair>()
+        let all = (try? context.fetch(descriptor)) ?? []
+        let maxSeq = all
+            .compactMap { FileNameBuilder.extractSequenceNumber(from: $0.beforeFileName) }
+            .max() ?? 0
+        return maxSeq + 1
     }
 }
 

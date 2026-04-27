@@ -53,7 +53,7 @@ final class NativeAdLoader: NSObject {
                 attStatus: ATTrackingManager.trackingAuthorizationStatus
             ) else { return }
             isLoading = true
-            AppLogger.ads.info("Native prefetch requested count=\(count, privacy: .public)")
+            AppLogger.ads.debug("Native prefetch requested count=\(count, privacy: .public)")
             let multipleOptions = GADMultipleAdsAdLoaderOptions()
             multipleOptions.numberOfAds = count
             let loader = GADAdLoader(
@@ -74,6 +74,19 @@ final class NativeAdLoader: NSObject {
         guard !loadedAds.isEmpty else { return nil }
         let safeIndex = ((index % loadedAds.count) + loadedAds.count) % loadedAds.count
         return loadedAds[safeIndex]
+    }
+
+    func dequeue(adFreeStore: AdFreeStore? = nil) -> Any? {
+        if let adFreeStore, adFreeStore.isAdFree { return nil }
+        guard !loadedAds.isEmpty else {
+            prefetch(count: 1, adFreeStore: adFreeStore)
+            return nil
+        }
+        let ad = loadedAds.removeFirst()
+        if loadedAds.count < 2 {
+            prefetch(count: 5, adFreeStore: adFreeStore)
+        }
+        return ad
     }
 
     var loadedCount: Int {

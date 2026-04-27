@@ -10,4 +10,8 @@ enum Route: Hashable, Codable {
     case combineSettings
     case license
     case exportSettings(pairIds: [UUID], albumId: UUID?)
+    case languagePicker
+    case themePicker
+    case imageQualityPicker
+    case filenamePrefixEditor
 }

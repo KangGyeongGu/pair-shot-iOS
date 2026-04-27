@@ -45,6 +45,26 @@ nonisolated enum CameraSessionError: Error {
     case noPhotoData
 }
 
+struct CameraZoomSnapshot {
+    let minFactor: Double
+    let maxFactor: Double
+    let currentFactor: Double
+    let firstSwitchOver: Double
+    let displayMultiplier: Double
+    let presets: [ZoomPresetSpec]
+    let exposureBiasRange: ClosedRange<Float>?
+
+    nonisolated static let empty = Self(
+        minFactor: 1,
+        maxFactor: 1,
+        currentFactor: 1,
+        firstSwitchOver: 1,
+        displayMultiplier: 1,
+        presets: [],
+        exposureBiasRange: nil
+    )
+}
+
 private final class CaptureSessionBox: @unchecked Sendable {
     nonisolated(unsafe) let session: AVCaptureSession
     nonisolated init() {
@@ -52,8 +72,23 @@ private final class CaptureSessionBox: @unchecked Sendable {
     }
 }
 
+private final class InterruptionObserverBox: @unchecked Sendable {
+    nonisolated(unsafe) var observers: [NSObjectProtocol] = []
+    nonisolated init() {}
+
+    nonisolated func cleanup() {
+        let center = NotificationCenter.default
+        for observer in observers {
+            center.removeObserver(observer)
+        }
+        observers.removeAll()
+    }
+}
+
 actor CameraSession {
     private let box = CaptureSessionBox()
+    private let observerBox = InterruptionObserverBox()
+    private let sessionQueue = DispatchQueue(label: "com.pairshot.camera.session", qos: .userInitiated)
     private var didConfigure = false
     private var hasInputInternal = false
 
@@ -77,7 +112,74 @@ actor CameraSession {
         box.session.isRunning
     }
 
-    init() {}
+    init() {
+        registerInterruptionObservers()
+    }
+
+    deinit {
+        observerBox.cleanup()
+    }
+
+    private nonisolated func registerInterruptionObservers() {
+        let session = box.session
+        let observerBox = observerBox
+        let center = NotificationCenter.default
+        let interrupted = center.addObserver(
+            forName: AVCaptureSession.wasInterruptedNotification,
+            object: session,
+            queue: nil
+        ) { notification in
+            if let reasonValue = notification.userInfo?[AVCaptureSessionInterruptionReasonKey] as? Int,
+               let reason = AVCaptureSession.InterruptionReason(rawValue: reasonValue)
+            {
+                AppLogger.camera.info("Capture session interrupted: reason \(reason.rawValue, privacy: .public)")
+            } else {
+                AppLogger.camera.info("Capture session interrupted: reason unknown")
+            }
+        }
+        let resumed = center.addObserver(
+            forName: AVCaptureSession.interruptionEndedNotification,
+            object: session,
+            queue: nil
+        ) { [weak self] _ in
+            guard let self else { return }
+            Task { await self.resumeAfterInterruption() }
+        }
+        let runtimeError = center.addObserver(
+            forName: AVCaptureSession.runtimeErrorNotification,
+            object: session,
+            queue: nil
+        ) { [weak self] notification in
+            guard let self else { return }
+            let description = (notification.userInfo?[AVCaptureSessionErrorKey] as? Error)?
+                .localizedDescription ?? "unknown"
+            AppLogger.camera.error("Capture session runtime error: \(description, privacy: .public)")
+            Task { await self.resumeAfterRuntimeError() }
+        }
+        observerBox.observers = [interrupted, resumed, runtimeError]
+    }
+
+    private func resumeAfterInterruption() async {
+        guard didConfigure, hasInputInternal else { return }
+        let session = box.session
+        await runOnSessionQueueVoid {
+            guard !session.isRunning else { return }
+            session.startRunning()
+        }
+        AppLogger.camera.info("Capture session resumed after interruption")
+    }
+
+    private func resumeAfterRuntimeError() async {
+        guard didConfigure, hasInputInternal else { return }
+        let session = box.session
+        await runOnSessionQueueVoid {
+            if session.isRunning {
+                session.stopRunning()
+            }
+            session.startRunning()
+        }
+        AppLogger.camera.info("Capture session resumed after runtime error")
+    }
 
     func authorizationState() -> CameraAuthorizationState {
         switch AVCaptureDevice.authorizationStatus(for: .video) {
@@ -90,7 +192,7 @@ actor CameraSession {
     }
 
     func start() async {
-        AppLogger.camera.info("Camera session start requested")
+        AppLogger.camera.debug("Camera session start requested")
         switch AVCaptureDevice.authorizationStatus(for: .video) {
             case .authorized:
                 break
@@ -98,12 +200,12 @@ actor CameraSession {
             case .notDetermined:
                 let granted = await AVCaptureDevice.requestAccess(for: .video)
                 guard granted else {
-                    AppLogger.camera.info("Camera permission denied at prompt")
+                    AppLogger.camera.debug("Camera permission denied at prompt")
                     return
                 }
 
             case .denied, .restricted:
-                AppLogger.camera.info("Camera permission unavailable (denied/restricted)")
+                AppLogger.camera.debug("Camera permission unavailable (denied/restricted)")
                 return
 
             @unknown default:
@@ -111,7 +213,14 @@ actor CameraSession {
         }
 
         if !didConfigure {
-            configureInitialInput()
+            let configured = await configureInitialInputOnQueue()
+            activeDevice = configured.device
+            activeInput = configured.input
+            photoOutput = configured.photoOutput
+            hasInputInternal = configured.hasInput
+            if configured.hasInput {
+                lensPosition = .back
+            }
             didConfigure = true
         }
 
@@ -120,113 +229,180 @@ actor CameraSession {
             return
         }
 
-        guard !box.session.isRunning else { return }
-        box.session.startRunning()
-        AppLogger.camera.info("Camera session started")
+        let session = box.session
+        await runOnSessionQueueVoid {
+            guard !session.isRunning else { return }
+            session.startRunning()
+        }
+        AppLogger.camera.debug("Camera session started")
     }
 
-    func stop() {
-        guard box.session.isRunning else { return }
-        box.session.stopRunning()
-        AppLogger.camera.info("Camera session stopped")
+    func stop() async {
+        let session = box.session
+        await runOnSessionQueueVoid {
+            guard session.isRunning else { return }
+            session.stopRunning()
+        }
+        AppLogger.camera.debug("Camera session stopped")
+    }
+
+    func zoomSnapshot() async -> CameraZoomSnapshot {
+        guard let device = activeDevice else { return CameraZoomSnapshot.empty }
+        return await runOnSessionQueue {
+            let presets = ZoomPresetBuilder.build(for: device)
+            let firstSwitch = device.virtualDeviceSwitchOverVideoZoomFactors
+                .first.map { Double(truncating: $0) } ?? 1.0
+            let recommendedMax = if #available(iOS 18.0, *),
+                                    let range = device.activeFormat.systemRecommendedVideoZoomRange
+            {
+                Double(range.upperBound)
+            } else {
+                Double(device.maxAvailableVideoZoomFactor)
+            }
+            let multiplier: Double
+            if #available(iOS 18.0, *) {
+                let raw = Double(device.displayVideoZoomFactorMultiplier)
+                multiplier = raw > 0 ? raw : 1.0
+            } else {
+                multiplier = firstSwitch > 0 ? 1.0 / firstSwitch : 1.0
+            }
+            return CameraZoomSnapshot(
+                minFactor: Double(device.minAvailableVideoZoomFactor),
+                maxFactor: recommendedMax,
+                currentFactor: Double(device.videoZoomFactor),
+                firstSwitchOver: firstSwitch,
+                displayMultiplier: multiplier,
+                presets: presets,
+                exposureBiasRange: device.minExposureTargetBias ... device.maxExposureTargetBias
+            )
+        }
     }
 
     var minZoomFactor: Double {
-        guard let device = activeDevice else { return 1.0 }
-        return Double(device.minAvailableVideoZoomFactor)
+        get async {
+            guard let device = activeDevice else { return 1.0 }
+            return await runOnSessionQueue { Double(device.minAvailableVideoZoomFactor) }
+        }
     }
 
     var maxZoomFactor: Double {
-        guard let device = activeDevice else { return 1.0 }
-        return Double(device.maxAvailableVideoZoomFactor)
+        get async {
+            guard let device = activeDevice else { return 1.0 }
+            return await runOnSessionQueue {
+                if #available(iOS 18.0, *), let range = device.activeFormat.systemRecommendedVideoZoomRange {
+                    return Double(range.upperBound)
+                }
+                return Double(device.maxAvailableVideoZoomFactor)
+            }
+        }
     }
 
     var currentZoomFactor: Double {
-        guard let device = activeDevice else { return 1.0 }
-        return Double(device.videoZoomFactor)
+        get async {
+            guard let device = activeDevice else { return 1.0 }
+            return await runOnSessionQueue { Double(device.videoZoomFactor) }
+        }
     }
 
     var ultraWideSwitchOverFactor: Double? {
-        guard let device = activeDevice else { return nil }
-        return device.virtualDeviceSwitchOverVideoZoomFactors.first.map { Double(truncating: $0) }
-    }
-
-    func ramp(toZoomFactor factor: Double, rate: Float = 4.0) {
-        guard let device = activeDevice else { return }
-        let clamped = clamp(zoom: factor, device: device)
-        do {
-            try device.lockForConfiguration()
-            defer { device.unlockForConfiguration() }
-            device.ramp(toVideoZoomFactor: CGFloat(clamped), withRate: rate)
-        } catch {
-            AppLogger.camera.error("Camera zoom ramp failed: \(error.localizedDescription, privacy: .public)")
-            return
-        }
-    }
-
-    func setZoomFactor(_ factor: Double) {
-        guard let device = activeDevice else { return }
-        let clamped = clamp(zoom: factor, device: device)
-        do {
-            try device.lockForConfiguration()
-            defer { device.unlockForConfiguration() }
-            if device.isRampingVideoZoom { device.cancelVideoZoomRamp() }
-            device.videoZoomFactor = CGFloat(clamped)
-        } catch {
-            AppLogger.camera.error("Camera zoom set failed: \(error.localizedDescription, privacy: .public)")
-            return
-        }
-    }
-
-    private func clamp(zoom: Double, device: AVCaptureDevice) -> Double {
-        let minF = Double(device.minAvailableVideoZoomFactor)
-        let maxF = Double(device.maxAvailableVideoZoomFactor)
-        return max(minF, min(zoom, maxF))
-    }
-
-    func isPresetSupported(_ preset: ZoomPreset) -> Bool {
-        guard let device = activeDevice else { return false }
-        let target = preset.factor
-        if target < 1.0 {
-            guard let switchOver = device.virtualDeviceSwitchOverVideoZoomFactors.first else {
-                return false
+        get async {
+            guard let device = activeDevice else { return nil }
+            return await runOnSessionQueue {
+                device.virtualDeviceSwitchOverVideoZoomFactors
+                    .first.map { Double(truncating: $0) }
             }
-            _ = switchOver
-            return Double(device.minAvailableVideoZoomFactor) <= target + 0.0001
         }
-        return target <= Double(device.maxAvailableVideoZoomFactor)
     }
 
-    func switchLens(to position: CameraLensPosition) {
+    var firstSwitchOver: Double {
+        get async {
+            guard let device = activeDevice else { return 1.0 }
+            return await runOnSessionQueue {
+                device.virtualDeviceSwitchOverVideoZoomFactors
+                    .first.map { Double(truncating: $0) } ?? 1.0
+            }
+        }
+    }
+
+    var availablePresets: [ZoomPresetSpec] {
+        get async {
+            guard let device = activeDevice else { return [] }
+            return await runOnSessionQueue { ZoomPresetBuilder.build(for: device) }
+        }
+    }
+
+    func ramp(toZoomFactor factor: Double, rate: Float = 4.0) async {
+        guard let device = activeDevice else { return }
+        await runOnSessionQueueVoid {
+            let minF = Double(device.minAvailableVideoZoomFactor)
+            let maxF = Double(device.maxAvailableVideoZoomFactor)
+            let clamped = max(minF, min(factor, maxF))
+            do {
+                try device.lockForConfiguration()
+                defer { device.unlockForConfiguration() }
+                device.ramp(toVideoZoomFactor: CGFloat(clamped), withRate: rate)
+            } catch {
+                AppLogger.camera.error("Camera zoom ramp failed: \(error.localizedDescription, privacy: .public)")
+                return
+            }
+        }
+    }
+
+    func setZoomFactor(_ factor: Double) async {
+        guard let device = activeDevice else { return }
+        await runOnSessionQueueVoid {
+            let minF = Double(device.minAvailableVideoZoomFactor)
+            let maxF = Double(device.maxAvailableVideoZoomFactor)
+            let clamped = max(minF, min(factor, maxF))
+            do {
+                try device.lockForConfiguration()
+                defer { device.unlockForConfiguration() }
+                if device.isRampingVideoZoom { device.cancelVideoZoomRamp() }
+                device.videoZoomFactor = CGFloat(clamped)
+            } catch {
+                AppLogger.camera.error("Camera zoom set failed: \(error.localizedDescription, privacy: .public)")
+                return
+            }
+        }
+    }
+
+    func switchLens(to position: CameraLensPosition) async {
         guard didConfigure else { return }
 
         let avPosition: AVCaptureDevice.Position = position == .back ? .back : .front
-        guard let device = preferredDevice(for: avPosition) else { return }
+        let session = box.session
+        let priorInput = activeInput
 
-        box.session.beginConfiguration()
-        defer { box.session.commitConfiguration() }
+        let result = await runOnSessionQueue { () -> SwitchLensResult? in
+            guard let device = Self.preferredDevice(for: avPosition) else { return nil }
 
-        if let activeInput {
-            box.session.removeInput(activeInput)
-        }
+            session.beginConfiguration()
+            defer { session.commitConfiguration() }
 
-        do {
-            let input = try AVCaptureDeviceInput(device: device)
-            if box.session.canAddInput(input) {
-                box.session.addInput(input)
-                activeInput = input
-                activeDevice = device
-                lensPosition = position
-                hasInputInternal = true
-                AppLogger.camera.info("Camera lens switched to \(position.rawValue, privacy: .public)")
+            if let priorInput {
+                session.removeInput(priorInput)
             }
-        } catch {
-            AppLogger.camera.error("Camera lens switch failed: \(error.localizedDescription, privacy: .public)")
-            return
+
+            do {
+                let input = try AVCaptureDeviceInput(device: device)
+                guard session.canAddInput(input) else { return nil }
+                session.addInput(input)
+                return SwitchLensResult(device: device, input: input)
+            } catch {
+                AppLogger.camera.error("Camera lens switch failed: \(error.localizedDescription, privacy: .public)")
+                return nil
+            }
         }
+
+        guard let result else { return }
+        activeDevice = result.device
+        activeInput = result.input
+        lensPosition = position
+        hasInputInternal = true
+        AppLogger.camera.debug("Camera lens switched to \(position.rawValue, privacy: .public)")
     }
 
-    private func preferredDevice(for position: AVCaptureDevice.Position) -> AVCaptureDevice? {
+    private static func preferredDevice(for position: AVCaptureDevice.Position) -> AVCaptureDevice? {
         let preferredTypes: [AVCaptureDevice.DeviceType] = [
             .builtInTripleCamera,
             .builtInDualWideCamera,
@@ -241,96 +417,111 @@ actor CameraSession {
         return nil
     }
 
-    func setFlashMode(_ mode: CameraFlashMode) {
+    func setFlashMode(_ mode: CameraFlashMode) async {
         flashMode = mode
-        applyTorchState()
+        await applyTorchState()
     }
 
-    func setLowLightBoost(enabled: Bool) {
+    func setLowLightBoost(enabled: Bool) async {
         guard let device = activeDevice else { return }
-        guard device.isLowLightBoostSupported else { return }
-        do {
-            try device.lockForConfiguration()
-            defer { device.unlockForConfiguration() }
-            device.automaticallyEnablesLowLightBoostWhenAvailable = enabled
-        } catch {
-            AppLogger.camera
-                .error("Camera low-light boost configure failed: \(error.localizedDescription, privacy: .public)")
-            return
+        await runOnSessionQueueVoid {
+            guard device.isLowLightBoostSupported else { return }
+            do {
+                try device.lockForConfiguration()
+                defer { device.unlockForConfiguration() }
+                device.automaticallyEnablesLowLightBoostWhenAvailable = enabled
+            } catch {
+                AppLogger.camera
+                    .error("Camera low-light boost configure failed: \(error.localizedDescription, privacy: .public)")
+                return
+            }
         }
     }
 
-    func cycleFlashMode() -> CameraFlashMode {
+    func cycleFlashMode() async -> CameraFlashMode {
         let next = flashMode.next
-        setFlashMode(next)
+        await setFlashMode(next)
         return next
     }
 
-    private func applyTorchState() {
+    private func applyTorchState() async {
         guard let device = activeDevice else { return }
-        guard device.hasTorch else { return }
-        do {
-            try device.lockForConfiguration()
-            defer { device.unlockForConfiguration() }
-            switch flashMode {
-                case .torch:
-                    if device.isTorchModeSupported(.on) {
-                        device.torchMode = .on
-                    }
+        let mode = flashMode
+        await runOnSessionQueueVoid {
+            guard device.hasTorch else { return }
+            do {
+                try device.lockForConfiguration()
+                defer { device.unlockForConfiguration() }
+                switch mode {
+                    case .torch:
+                        if device.isTorchModeSupported(.on) {
+                            device.torchMode = .on
+                        }
 
-                case .off, .on, .auto:
-                    if device.isTorchModeSupported(.off) {
-                        device.torchMode = .off
-                    }
+                    case .off, .on, .auto:
+                        if device.isTorchModeSupported(.off) {
+                            device.torchMode = .off
+                        }
+                }
+            } catch {
+                AppLogger.camera.error("Camera torch configure failed: \(error.localizedDescription, privacy: .public)")
+                return
             }
-        } catch {
-            AppLogger.camera.error("Camera torch configure failed: \(error.localizedDescription, privacy: .public)")
-            return
         }
     }
 
-    func focus(at point: CGPoint) {
+    func focus(at point: CGPoint) async {
         guard let device = activeDevice else { return }
-        do {
-            try device.lockForConfiguration()
-            defer { device.unlockForConfiguration() }
-            if device.isFocusPointOfInterestSupported,
-               device.isFocusModeSupported(.autoFocus)
-            {
-                device.focusPointOfInterest = point
-                device.focusMode = .autoFocus
+        await runOnSessionQueueVoid {
+            do {
+                try device.lockForConfiguration()
+                defer { device.unlockForConfiguration() }
+                if device.isFocusPointOfInterestSupported,
+                   device.isFocusModeSupported(.autoFocus)
+                {
+                    device.focusPointOfInterest = point
+                    device.focusMode = .autoFocus
+                }
+                if device.isExposurePointOfInterestSupported,
+                   device.isExposureModeSupported(.autoExpose)
+                {
+                    device.exposurePointOfInterest = point
+                    device.exposureMode = .autoExpose
+                }
+            } catch {
+                AppLogger.camera.error("Camera focus configure failed: \(error.localizedDescription, privacy: .public)")
+                return
             }
-            if device.isExposurePointOfInterestSupported,
-               device.isExposureModeSupported(.autoExpose)
-            {
-                device.exposurePointOfInterest = point
-                device.exposureMode = .autoExpose
-            }
-        } catch {
-            AppLogger.camera.error("Camera focus configure failed: \(error.localizedDescription, privacy: .public)")
-            return
         }
     }
 
     var exposureBiasRange: ClosedRange<Float>? {
-        guard let device = activeDevice else { return nil }
-        return device.minExposureTargetBias ... device.maxExposureTargetBias
+        get async {
+            guard let device = activeDevice else { return nil }
+            return await runOnSessionQueue {
+                device.minExposureTargetBias ... device.maxExposureTargetBias
+            }
+        }
     }
 
     func setExposureBias(_ bias: Float) async {
         guard let device = activeDevice else { return }
-        do {
-            try device.lockForConfiguration()
-            let clamped = max(device.minExposureTargetBias, min(bias, device.maxExposureTargetBias))
-            await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
-                device.setExposureTargetBias(clamped) { _ in
+        let queue = sessionQueue
+        await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
+            queue.async {
+                do {
+                    try device.lockForConfiguration()
+                    let clamped = max(device.minExposureTargetBias, min(bias, device.maxExposureTargetBias))
+                    device.setExposureTargetBias(clamped) { _ in
+                        device.unlockForConfiguration()
+                        cont.resume()
+                    }
+                } catch {
+                    AppLogger.camera
+                        .error("Camera exposure bias set failed: \(error.localizedDescription, privacy: .public)")
                     cont.resume()
                 }
             }
-            device.unlockForConfiguration()
-        } catch {
-            AppLogger.camera.error("Camera exposure bias set failed: \(error.localizedDescription, privacy: .public)")
-            return
         }
     }
 
@@ -351,6 +542,7 @@ actor CameraSession {
 
         let zoom = Double(device.videoZoomFactor)
         let lens = lensIdentifier(for: device)
+        let queue = sessionQueue
 
         return try await withCheckedThrowingContinuation { cont in
             let id = UUID()
@@ -373,7 +565,9 @@ actor CameraSession {
                 }
             }
             inFlightDelegates[id] = delegate
-            photoOutput.capturePhoto(with: settings, delegate: delegate)
+            queue.async {
+                photoOutput.capturePhoto(with: settings, delegate: delegate)
+            }
         }
     }
 
@@ -393,67 +587,112 @@ actor CameraSession {
         return "\(stripped).\(position)"
     }
 
-    private func configureInitialInput() {
+    private func configureInitialInputOnQueue() async -> InitialInputResult {
         let session = box.session
-        session.beginConfiguration()
-        defer { session.commitConfiguration() }
+        return await runOnSessionQueue {
+            session.beginConfiguration()
+            defer { session.commitConfiguration() }
 
-        let candidates: [AVCaptureDevice.DeviceType] = [
-            .builtInTripleCamera,
-            .builtInDualWideCamera,
-            .builtInDualCamera,
-            .builtInWideAngleCamera,
-        ]
-        for type in candidates {
-            guard let device = AVCaptureDevice.default(type, for: .video, position: .back) else {
-                continue
+            let candidates: [AVCaptureDevice.DeviceType] = [
+                .builtInTripleCamera,
+                .builtInDualWideCamera,
+                .builtInDualCamera,
+                .builtInWideAngleCamera,
+            ]
+            var resolvedDevice: AVCaptureDevice?
+            var resolvedInput: AVCaptureDeviceInput?
+            for type in candidates {
+                guard let device = AVCaptureDevice.default(type, for: .video, position: .back) else {
+                    continue
+                }
+                guard let input = try? AVCaptureDeviceInput(device: device),
+                      session.canAddInput(input)
+                else {
+                    continue
+                }
+                session.addInput(input)
+                resolvedDevice = device
+                resolvedInput = input
+                break
             }
-            guard let input = try? AVCaptureDeviceInput(device: device),
-                  session.canAddInput(input)
-            else {
-                continue
+
+            guard let device = resolvedDevice, let input = resolvedInput else {
+                return InitialInputResult(device: nil, input: nil, photoOutput: nil, hasInput: false)
             }
-            session.addInput(input)
-            activeInput = input
-            activeDevice = device
-            lensPosition = .back
-            hasInputInternal = true
-            break
+
+            let output = AVCapturePhotoOutput()
+            var resolvedOutput: AVCapturePhotoOutput?
+            if session.canAddOutput(output) {
+                session.addOutput(output)
+                resolvedOutput = output
+            }
+
+            return InitialInputResult(
+                device: device,
+                input: input,
+                photoOutput: resolvedOutput,
+                hasInput: true
+            )
         }
+    }
 
-        guard hasInputInternal else { return }
+    private func runOnSessionQueue<T: Sendable>(
+        _ body: @escaping @Sendable () -> T
+    ) async -> T {
+        let queue = sessionQueue
+        return await withCheckedContinuation { (cont: CheckedContinuation<T, Never>) in
+            queue.async {
+                cont.resume(returning: body())
+            }
+        }
+    }
 
-        let output = AVCapturePhotoOutput()
-        if session.canAddOutput(output) {
-            session.addOutput(output)
-            photoOutput = output
+    private func runOnSessionQueueVoid(
+        _ body: @escaping @Sendable () -> Void
+    ) async {
+        let queue = sessionQueue
+        await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
+            queue.async {
+                body()
+                cont.resume()
+            }
         }
     }
 }
 
-nonisolated enum ZoomPreset: String, CaseIterable {
-    case ultraWide
-    case wide
-    case tele2x
-    case tele5x
+private final class SwitchLensResult: @unchecked Sendable {
+    nonisolated(unsafe) let device: AVCaptureDevice
+    nonisolated(unsafe) let input: AVCaptureDeviceInput
 
-    var factor: Double {
-        switch self {
-            case .ultraWide: 0.5
-            case .wide: 1.0
-            case .tele2x: 2.0
-            case .tele5x: 5.0
-        }
+    nonisolated init(device: AVCaptureDevice, input: AVCaptureDeviceInput) {
+        self.device = device
+        self.input = input
     }
+}
 
-    var label: String {
-        switch self {
-            case .ultraWide: "0.5x"
-            case .wide: "1x"
-            case .tele2x: "2x"
-            case .tele5x: "5x"
-        }
+private final class InitialInputResult: @unchecked Sendable {
+    nonisolated(unsafe) let device: AVCaptureDevice?
+    nonisolated(unsafe) let input: AVCaptureDeviceInput?
+    nonisolated(unsafe) let photoOutput: AVCapturePhotoOutput?
+    let hasInput: Bool
+
+    nonisolated init(
+        device: AVCaptureDevice?,
+        input: AVCaptureDeviceInput?,
+        photoOutput: AVCapturePhotoOutput?,
+        hasInput: Bool
+    ) {
+        self.device = device
+        self.input = input
+        self.photoOutput = photoOutput
+        self.hasInput = hasInput
     }
+}
+
+struct ZoomPresetSpec: Identifiable, Hashable {
+    let id: String
+    let factor: Double
+    let label: String
 }
 
 final class PhotoCaptureDelegate: NSObject, AVCapturePhotoCaptureDelegate, @unchecked Sendable {

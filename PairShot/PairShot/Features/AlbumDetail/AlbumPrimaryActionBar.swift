@@ -8,13 +8,13 @@ struct AlbumPrimaryActionBar: View {
     var body: some View {
         Button(action: action) {
             Label(title, systemImage: systemImage)
-                .font(.headline)
-                .frame(maxWidth: .infinity, minHeight: 52)
+                .font(.subheadline.weight(.semibold))
+                .frame(maxWidth: .infinity, minHeight: 36)
         }
         .buttonStyle(.borderedProminent)
-        .controlSize(.large)
+        .controlSize(.regular)
         .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+        .padding(.vertical, 4)
         .frame(maxWidth: .infinity)
         .background(Color(.systemBackground))
     }
@@ -31,25 +31,25 @@ struct AlbumEmptyActionBar: View {
                     String(localized: "common_button_start_capture"),
                     systemImage: "camera.fill"
                 )
-                .font(.headline)
-                .frame(maxWidth: .infinity, minHeight: 52)
+                .font(.subheadline.weight(.semibold))
+                .frame(maxWidth: .infinity, minHeight: 36)
             }
             .buttonStyle(.borderedProminent)
-            .controlSize(.large)
+            .controlSize(.regular)
 
             Button(action: onPickPair) {
                 Label(
                     String(localized: "album_button_add_pair"),
                     systemImage: "plus.rectangle.on.rectangle"
                 )
-                .font(.headline)
-                .frame(maxWidth: .infinity, minHeight: 52)
+                .font(.subheadline.weight(.semibold))
+                .frame(maxWidth: .infinity, minHeight: 36)
             }
             .buttonStyle(.bordered)
-            .controlSize(.large)
+            .controlSize(.regular)
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+        .padding(.vertical, 4)
         .frame(maxWidth: .infinity)
         .background(Color(.systemBackground))
     }
@@ -64,8 +64,8 @@ struct AlbumDetailBottomBarHost: View {
         if viewModel.isSelectionMode {
             AlbumDetailSelectionBottomBar(
                 selectionCount: viewModel.selectedPairIds.count,
-                onShare: pushExport,
-                onSaveToDevice: pushExport,
+                onShare: { Task { await viewModel.shareSelectedPairs(from: sortedPairs) } },
+                onSaveToDevice: { Task { await viewModel.saveSelectedPairsToDevice(from: sortedPairs) } },
                 onDelete: { viewModel.requestPairDeletion(from: sortedPairs) },
                 onExportSettings: pushExport
             )

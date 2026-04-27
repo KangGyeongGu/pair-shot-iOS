@@ -1,15 +1,40 @@
 import Foundation
+import OSLog
 import SwiftData
 
 @MainActor
 final class SwiftDataCouponRepository: CouponRepository {
+    private static let isoFormatterBasic: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime]
+        return formatter
+    }()
+
+    private static let isoFormatterFractional: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter
+    }()
+
     private let container: ModelContainer
+    private let api: any CouponActivationApi
+    private let deviceHashProvider: any DeviceHashProviding
+    private let now: @Sendable () -> Date
+
     private var context: ModelContext {
         container.mainContext
     }
 
-    init(container: ModelContainer) {
+    init(
+        container: ModelContainer,
+        api: any CouponActivationApi,
+        deviceHashProvider: any DeviceHashProviding,
+        now: @escaping @Sendable () -> Date = { .now }
+    ) {
         self.container = container
+        self.api = api
+        self.deviceHashProvider = deviceHashProvider
+        self.now = now
     }
 
     nonisolated func observeAll() -> AsyncStream<[Coupon]> {
@@ -56,11 +81,78 @@ final class SwiftDataCouponRepository: CouponRepository {
         }
     }
 
+    func activate(code: String) async -> CouponActivationOutcome {
+        let trimmed = code.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return .invalidFormat }
+
+        let deviceHash = deviceHashProvider.deviceHash()
+        let request = ActivateRequestDto(code: trimmed, deviceHash: deviceHash)
+        let apiResult = await api.activate(request)
+
+        switch apiResult {
+            case let .success(response):
+                return await handleSuccess(code: trimmed, response: response)
+
+            case .invalidCodeFormat:
+                return .invalidFormat
+
+            case .invalidSignature:
+                return .invalidSignature
+
+            case .notFound:
+                return .notFound
+
+            case .alreadyUsedOnAnotherDevice:
+                return .alreadyUsedOnAnotherDevice
+
+            case .revoked:
+                return .revoked
+
+            case .networkError:
+                return .networkError
+
+            case .serverError:
+                return .serverError
+        }
+    }
+
+    private func handleSuccess(code: String, response: ActivateResponseDto) async -> CouponActivationOutcome {
+        let timestamp = now()
+        let activatedAt = Self.parseIso8601(response.activatedAt) ?? timestamp
+        let durationDays = response.durationDays ?? 0
+        let coupon = Coupon(
+            code: code,
+            activatedAt: activatedAt,
+            durationDays: durationDays,
+            signatureBase64: "",
+            status: .active,
+            kindRawString: nil,
+            payloadVersion: 1,
+            issuedAt: activatedAt
+        )
+        do {
+            try await add(coupon)
+        } catch {
+            AppLogger.coupon.error(
+                "Coupon persistence error: \(error.localizedDescription, privacy: .public)"
+            )
+            return .serverError
+        }
+        let expiresAt = Self.parseIso8601(response.expiresAt) ?? coupon.expirationDate
+        return .success(coupon: coupon, expiresAt: expiresAt)
+    }
+
     private func fetchAllSync() throws -> [Coupon] {
         let descriptor = FetchDescriptor<Coupon>(
             sortBy: [SortDescriptor(\.activatedAt, order: .reverse)]
         )
         return try context.fetch(descriptor)
+    }
+
+    private static func parseIso8601(_ raw: String?) -> Date? {
+        guard let raw, !raw.isEmpty else { return nil }
+        if let date = isoFormatterFractional.date(from: raw) { return date }
+        return isoFormatterBasic.date(from: raw)
     }
 
     deinit {}

@@ -13,8 +13,8 @@ struct HomeBottomBarHost: View {
                 case .pairs:
                     HomePairSelectionBottomBar(
                         selectionCount: viewModel.selectedPairIds.count,
-                        onShare: pushExport,
-                        onSaveToDevice: pushExport,
+                        onShare: { Task { await viewModel.shareSelectedPairs(from: sortedPairs) } },
+                        onSaveToDevice: { Task { await viewModel.saveSelectedPairsToDevice(from: sortedPairs) } },
                         onDelete: { viewModel.requestPairDeletion(from: sortedPairs) },
                         onExportSettings: pushExport
                     )
@@ -155,7 +155,12 @@ struct HomeCameraCovers: ViewModifier {
                 NavigationStack { BeforeCameraView() }
             }
             .fullScreenCover(isPresented: $viewModel.showAfterCamera) {
-                NavigationStack { AfterCameraView() }
+                NavigationStack {
+                    AfterCameraView(
+                        initialPairId: viewModel.afterCameraTargetPairId,
+                        sortOrder: viewModel.sortOrder
+                    )
+                }
             }
             .sheet(item: $viewModel.pendingPreviewPair) { request in
                 PairPreviewView(pair: request.pair)
@@ -172,8 +177,13 @@ struct HomeSheets: ViewModifier {
         content
             .sheet(isPresented: $viewModel.showSettings) { SettingsView() }
             .sheet(isPresented: $viewModel.showCreateAlbum) {
-                CreateAlbumDialog(isPresented: $viewModel.showCreateAlbum) { name, includeLocation in
-                    await viewModel.createAlbum(name: name, includeLocation: includeLocation)
+                CreateAlbumDialog(isPresented: $viewModel.showCreateAlbum) { name, latitude, longitude, label in
+                    await viewModel.createAlbum(
+                        name: name,
+                        latitude: latitude,
+                        longitude: longitude,
+                        locationLabel: label
+                    )
                 }
             }
             .sheet(item: $viewModel.pendingAlbumRename) { request in
@@ -185,6 +195,11 @@ struct HomeSheets: ViewModifier {
                     )
                 ) { newName in
                     await viewModel.renameAlbum(request.album, to: newName)
+                }
+            }
+            .sheet(item: $viewModel.pendingShareItems) { items in
+                ShareSheet(activityItems: items.values) {
+                    viewModel.clearShareItems()
                 }
             }
     }

@@ -8,12 +8,16 @@ final nonisolated class ThumbnailCache: @unchecked Sendable {
     nonisolated static let defaultThumbnailPixelSize: CGFloat = 600
 
     private let cache: NSCache<NSString, UIImage>
+    private let failedKeys: NSCache<NSString, NSNumber>
 
     nonisolated init(countLimit: Int = 256, totalCostLimit: Int = 64 * 1024 * 1024) {
         let cache = NSCache<NSString, UIImage>()
         cache.countLimit = countLimit
         cache.totalCostLimit = totalCostLimit
         self.cache = cache
+        let failed = NSCache<NSString, NSNumber>()
+        failed.countLimit = 256
+        failedKeys = failed
     }
 
     nonisolated func cached(kind: PhotoStorageService.PhotoKind, fileName: String) -> UIImage? {
@@ -33,6 +37,9 @@ final nonisolated class ThumbnailCache: @unchecked Sendable {
         if let hit = cache.object(forKey: key) {
             return hit
         }
+        if failedKeys.object(forKey: key) != nil {
+            return nil
+        }
         let thumbnailFileName = FileNameBuilder.thumbnail(forBaseName: fileName)
         if let thumbnailURL = storage.resolveThumbnail(kind: kind, fileName: thumbnailFileName),
            FileManager.default.fileExists(atPath: thumbnailURL.path),
@@ -41,9 +48,16 @@ final nonisolated class ThumbnailCache: @unchecked Sendable {
             cache.setObject(image, forKey: key, cost: Self.estimatedByteCost(image))
             return image
         }
-        guard let url = storage.resolve(kind: kind, fileName: fileName) else { return nil }
-        guard FileManager.default.fileExists(atPath: url.path) else { return nil }
+        guard let url = storage.resolve(kind: kind, fileName: fileName) else {
+            failedKeys.setObject(NSNumber(value: 1), forKey: key)
+            return nil
+        }
+        guard FileManager.default.fileExists(atPath: url.path) else {
+            failedKeys.setObject(NSNumber(value: 1), forKey: key)
+            return nil
+        }
         guard let image = Self.downsample(at: url, pixelSize: pixelSize) else {
+            failedKeys.setObject(NSNumber(value: 1), forKey: key)
             AppLogger.storage.error("Thumbnail downsample failed (kind=\(kind.rawValue, privacy: .public))")
             return nil
         }
@@ -63,7 +77,9 @@ final nonisolated class ThumbnailCache: @unchecked Sendable {
 
     nonisolated func evict(kind: PhotoStorageService.PhotoKind, fileName: String) {
         guard !fileName.isEmpty else { return }
-        cache.removeObject(forKey: cacheKey(kind: kind, fileName: fileName))
+        let key = cacheKey(kind: kind, fileName: fileName)
+        cache.removeObject(forKey: key)
+        failedKeys.removeObject(forKey: key)
     }
 
     nonisolated func evict(beforeFileName: String) {
@@ -80,6 +96,7 @@ final nonisolated class ThumbnailCache: @unchecked Sendable {
 
     nonisolated func removeAll() {
         cache.removeAllObjects()
+        failedKeys.removeAllObjects()
     }
 
     private nonisolated func cacheKey(kind: PhotoStorageService.PhotoKind, fileName: String) -> NSString {

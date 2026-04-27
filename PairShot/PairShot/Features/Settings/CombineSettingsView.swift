@@ -5,6 +5,12 @@ struct CombineSettingsView: View {
 
     var body: some View {
         Form {
+            Section {
+                BannerAdSlot()
+                    .listRowInsets(EdgeInsets())
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+            }
             directionSection
             borderSection
             labelSection
@@ -161,7 +167,8 @@ struct CombineSettingsView: View {
     private var previewSection: some View {
         Section {
             CombinePreviewCard(settings: viewModel.settings)
-                .frame(maxWidth: .infinity)
+                .listRowInsets(EdgeInsets())
+                .listRowBackground(Color.clear)
         } header: {
             Text(String(localized: "combine_section_preview"))
         }
