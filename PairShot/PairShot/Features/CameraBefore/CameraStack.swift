@@ -81,8 +81,8 @@ struct BeforeCameraStack: View {
 
                 if !layout.isAdFree {
                     BannerAdSlot()
-                        .frame(height: layout.bannerHeight)
-                        .frame(maxWidth: .infinity)
+                        .frame(maxWidth: .infinity, maxHeight: layout.bannerHeight, alignment: .top)
+                        .clipped()
                 }
             }
         }
@@ -137,21 +137,23 @@ struct BeforeCameraStack: View {
         VStack {
             Spacer()
             ZStack(alignment: .trailing) {
-                HStack {
-                    Spacer()
-                    ZoomControl(
-                        presets: presets,
-                        displayMultiplier: displayMultiplier,
-                        activePreset: activePreset,
-                        isDragging: isDraggingZoom,
-                        currentRatio: currentZoomRatio,
-                        minRatio: minZoomRatio,
-                        maxRatio: maxZoomRatio,
-                        onSelect: onApplyPreset,
-                        onDragChanged: onZoomDragChanged,
-                        onDragEnded: onZoomDragEnded
-                    )
-                    Spacer()
+                if !presets.isEmpty {
+                    HStack {
+                        Spacer()
+                        ZoomControl(
+                            presets: presets,
+                            displayMultiplier: displayMultiplier,
+                            activePreset: activePreset,
+                            isDragging: isDraggingZoom,
+                            currentRatio: currentZoomRatio,
+                            minRatio: minZoomRatio,
+                            maxRatio: maxZoomRatio,
+                            onSelect: onApplyPreset,
+                            onDragChanged: onZoomDragChanged,
+                            onDragEnded: onZoomDragEnded
+                        )
+                        Spacer()
+                    }
                 }
 
                 lensFlipButton

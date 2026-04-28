@@ -26,13 +26,15 @@ struct BannerAdSlot: View {
     var body: some View {
         if BannerAdGate.shouldShow(isAdFree: adFreeStore.isAdFree) {
             let width = BannerAdView.currentBannerWidth()
+            let height = BannerAdSize.adaptiveHeight(width: width)
             BannerAdView(
                 adUnitID: adUnitID,
                 width: width,
                 attStatus: tracking.currentStatus
             )
-            .frame(width: width, height: BannerAdSize.adaptiveHeight(width: width))
-            .frame(maxWidth: .infinity)
+            .frame(width: width, height: height)
+            .frame(maxWidth: .infinity, maxHeight: height, alignment: .top)
+            .clipped()
             .task {
                 guard !hasRequestedATT else { return }
                 hasRequestedATT = true

@@ -75,9 +75,20 @@ extension CameraSession {
         to output: AVCapturePhotoOutput,
         device: AVCaptureDevice
     ) {
-        let supported = device.activeFormat.supportedMaxPhotoDimensions
-        guard let largest = supported.last else { return }
+        guard let largest = resolveMaxPhotoDimensions(for: device) else { return }
         output.maxPhotoDimensions = largest
+    }
+
+    nonisolated static func resolveMaxPhotoDimensions(
+        for device: AVCaptureDevice
+    ) -> CMVideoDimensions? {
+        let supported = device.activeFormat.supportedMaxPhotoDimensions
+        guard !supported.isEmpty else { return nil }
+        let valid = supported.filter { $0.width > 0 && $0.height > 0 }
+        guard !valid.isEmpty else { return nil }
+        return valid.max { lhs, rhs in
+            Int64(lhs.width) * Int64(lhs.height) < Int64(rhs.width) * Int64(rhs.height)
+        }
     }
 }
 
