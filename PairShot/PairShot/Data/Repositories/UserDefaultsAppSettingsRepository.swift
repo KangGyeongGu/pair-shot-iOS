@@ -1,24 +1,6 @@
 import Foundation
 
-nonisolated final class UserDefaultsAppSettingsRepository: AppSettingsRepository, @unchecked Sendable {
-    static let jpegQualityKey = "pairshot.jpegQuality"
-    static let fileNamePrefixKey = "pairshot.fileNamePrefix"
-    static let defaultOverlayAlphaKey = "pairshot.defaultOverlayAlpha"
-    static let defaultCompositeLayoutKey = "pairshot.defaultCompositeLayout"
-    static let watermarkEnabledKey = "watermarkEnabled"
-    static let watermarkSettingsKey = "pairshot.watermarkSettings"
-    static let combineSettingsKey = "pairshot.combineSettings"
-    static let languageKey = "pairshot.language"
-    static let themeKey = "pairshot.theme"
-    static let cameraGridEnabledKey = "pairshot.cameraGridEnabled"
-    static let cameraLevelEnabledKey = "pairshot.cameraLevelEnabled"
-    static let cameraFlashModeKey = "pairshot.cameraFlashMode"
-    static let cameraNightModeKey = "pairshot.cameraNightMode"
-    static let cameraHDRKey = "pairshot.cameraHDR"
-    static let overlayEnabledKey = "pairshot.overlayEnabled"
-    static let homeSortOrderKey = "pairshot.homeSortOrder"
-    static let albumSortOrderKey = "pairshot.albumSortOrder"
-
+final nonisolated class UserDefaultsAppSettingsRepository: AppSettingsRepository, @unchecked Sendable {
     private let defaults: UserDefaults
 
     init(defaults: UserDefaults = .standard) {
@@ -28,32 +10,32 @@ nonisolated final class UserDefaultsAppSettingsRepository: AppSettingsRepository
 
     private static func makeRegisteredDefaults() -> [String: Any] {
         [
-            jpegQualityKey: AppSettingsSnapshot.defaultJpegQuality,
-            fileNamePrefixKey: AppSettingsSnapshot.defaultFileNamePrefix,
-            defaultOverlayAlphaKey: AppSettingsSnapshot.defaultOverlayAlphaValue,
-            defaultCompositeLayoutKey: AppSettingsSnapshot.defaultCompositeLayoutFallback,
-            watermarkEnabledKey: AppSettingsSnapshot.defaultWatermarkEnabled,
-            languageKey: AppSettingsSnapshot.defaultLanguage.rawValue,
-            themeKey: AppSettingsSnapshot.defaultTheme.rawValue,
-            cameraGridEnabledKey: AppSettingsHandoffDefaults.cameraGridEnabled,
-            cameraLevelEnabledKey: AppSettingsHandoffDefaults.cameraLevelEnabled,
-            cameraFlashModeKey: AppSettingsHandoffDefaults.cameraFlashMode,
-            cameraNightModeKey: AppSettingsHandoffDefaults.cameraNightMode,
-            cameraHDRKey: AppSettingsHandoffDefaults.cameraHDR,
-            overlayEnabledKey: AppSettingsHandoffDefaults.overlayEnabled,
-            homeSortOrderKey: AppSettingsHandoffDefaults.homeSortOrder,
-            albumSortOrderKey: AppSettingsHandoffDefaults.albumSortOrder,
+            AppSettingsKeys.jpegQuality: AppSettingsSnapshot.defaultJpegQuality,
+            AppSettingsKeys.fileNamePrefix: AppSettingsSnapshot.defaultFileNamePrefix,
+            AppSettingsKeys.defaultOverlayAlpha: AppSettingsSnapshot.defaultOverlayAlphaValue,
+            AppSettingsKeys.defaultCompositeLayout: AppSettingsSnapshot.defaultCompositeLayoutFallback,
+            AppSettingsKeys.watermarkEnabled: AppSettingsSnapshot.defaultWatermarkEnabled,
+            AppSettingsKeys.language: AppSettingsSnapshot.defaultLanguage.rawValue,
+            AppSettingsKeys.theme: AppSettingsSnapshot.defaultTheme.rawValue,
+            AppSettingsKeys.cameraGridEnabled: AppSettingsHandoffDefaults.cameraGridEnabled,
+            AppSettingsKeys.cameraLevelEnabled: AppSettingsHandoffDefaults.cameraLevelEnabled,
+            AppSettingsKeys.cameraFlashMode: AppSettingsHandoffDefaults.cameraFlashMode,
+            AppSettingsKeys.cameraNightMode: AppSettingsHandoffDefaults.cameraNightMode,
+            AppSettingsKeys.cameraHDR: AppSettingsHandoffDefaults.cameraHDR,
+            AppSettingsKeys.overlayEnabled: AppSettingsHandoffDefaults.overlayEnabled,
+            AppSettingsKeys.homeSortOrder: AppSettingsHandoffDefaults.homeSortOrder,
+            AppSettingsKeys.albumSortOrder: AppSettingsHandoffDefaults.albumSortOrder,
         ]
     }
 
     func load() -> AppSettingsSnapshot {
         AppSettingsSnapshot(
-            jpegQuality: defaults.double(forKey: Self.jpegQualityKey),
-            fileNamePrefix: defaults.string(forKey: Self.fileNamePrefixKey) ?? "",
-            defaultOverlayAlpha: defaults.double(forKey: Self.defaultOverlayAlphaKey),
-            defaultCompositeLayoutRawValue: defaults.string(forKey: Self.defaultCompositeLayoutKey)
+            jpegQuality: defaults.double(forKey: AppSettingsKeys.jpegQuality),
+            fileNamePrefix: defaults.string(forKey: AppSettingsKeys.fileNamePrefix) ?? "",
+            defaultOverlayAlpha: defaults.double(forKey: AppSettingsKeys.defaultOverlayAlpha),
+            defaultCompositeLayoutRawValue: defaults.string(forKey: AppSettingsKeys.defaultCompositeLayout)
                 ?? AppSettingsSnapshot.defaultCompositeLayoutFallback,
-            watermarkEnabled: defaults.bool(forKey: Self.watermarkEnabledKey),
+            watermarkEnabled: defaults.bool(forKey: AppSettingsKeys.watermarkEnabled),
             language: decodeLanguage(),
             theme: decodeTheme(),
             watermark: decodeWatermark(),
@@ -62,13 +44,13 @@ nonisolated final class UserDefaultsAppSettingsRepository: AppSettingsRepository
     }
 
     func save(_ settings: AppSettingsSnapshot) async throws {
-        defaults.set(settings.jpegQuality, forKey: Self.jpegQualityKey)
-        defaults.set(settings.fileNamePrefix, forKey: Self.fileNamePrefixKey)
-        defaults.set(settings.defaultOverlayAlpha, forKey: Self.defaultOverlayAlphaKey)
-        defaults.set(settings.defaultCompositeLayoutRawValue, forKey: Self.defaultCompositeLayoutKey)
-        defaults.set(settings.watermarkEnabled, forKey: Self.watermarkEnabledKey)
-        defaults.set(settings.language.rawValue, forKey: Self.languageKey)
-        defaults.set(settings.theme.rawValue, forKey: Self.themeKey)
+        defaults.set(settings.jpegQuality, forKey: AppSettingsKeys.jpegQuality)
+        defaults.set(settings.fileNamePrefix, forKey: AppSettingsKeys.fileNamePrefix)
+        defaults.set(settings.defaultOverlayAlpha, forKey: AppSettingsKeys.defaultOverlayAlpha)
+        defaults.set(settings.defaultCompositeLayoutRawValue, forKey: AppSettingsKeys.defaultCompositeLayout)
+        defaults.set(settings.watermarkEnabled, forKey: AppSettingsKeys.watermarkEnabled)
+        defaults.set(settings.language.rawValue, forKey: AppSettingsKeys.language)
+        defaults.set(settings.theme.rawValue, forKey: AppSettingsKeys.theme)
         encodeWatermark(settings.watermark)
         encodeCombine(settings.combine)
     }
@@ -97,17 +79,17 @@ nonisolated final class UserDefaultsAppSettingsRepository: AppSettingsRepository
     }
 
     private func decodeLanguage() -> AppLanguage {
-        let raw = defaults.string(forKey: Self.languageKey) ?? AppSettingsSnapshot.defaultLanguage.rawValue
+        let raw = defaults.string(forKey: AppSettingsKeys.language) ?? AppSettingsSnapshot.defaultLanguage.rawValue
         return AppLanguage(rawValue: raw) ?? AppSettingsSnapshot.defaultLanguage
     }
 
     private func decodeTheme() -> AppTheme {
-        let raw = defaults.string(forKey: Self.themeKey) ?? AppSettingsSnapshot.defaultTheme.rawValue
+        let raw = defaults.string(forKey: AppSettingsKeys.theme) ?? AppSettingsSnapshot.defaultTheme.rawValue
         return AppTheme(rawValue: raw) ?? AppSettingsSnapshot.defaultTheme
     }
 
     private func decodeWatermark() -> WatermarkSettings? {
-        guard let raw = defaults.string(forKey: Self.watermarkSettingsKey),
+        guard let raw = defaults.string(forKey: AppSettingsKeys.watermarkSettings),
               let data = raw.data(using: .utf8)
         else {
             return nil
@@ -117,7 +99,7 @@ nonisolated final class UserDefaultsAppSettingsRepository: AppSettingsRepository
 
     private func encodeWatermark(_ watermark: WatermarkSettings?) {
         guard let watermark else {
-            defaults.removeObject(forKey: Self.watermarkSettingsKey)
+            defaults.removeObject(forKey: AppSettingsKeys.watermarkSettings)
             return
         }
         guard let data = try? JSONEncoder().encode(watermark),
@@ -125,11 +107,11 @@ nonisolated final class UserDefaultsAppSettingsRepository: AppSettingsRepository
         else {
             return
         }
-        defaults.set(raw, forKey: Self.watermarkSettingsKey)
+        defaults.set(raw, forKey: AppSettingsKeys.watermarkSettings)
     }
 
     private func decodeCombine() -> CombineSettings? {
-        guard let raw = defaults.string(forKey: Self.combineSettingsKey),
+        guard let raw = defaults.string(forKey: AppSettingsKeys.combineSettings),
               let data = raw.data(using: .utf8)
         else {
             return nil
@@ -139,7 +121,7 @@ nonisolated final class UserDefaultsAppSettingsRepository: AppSettingsRepository
 
     private func encodeCombine(_ combine: CombineSettings?) {
         guard let combine else {
-            defaults.removeObject(forKey: Self.combineSettingsKey)
+            defaults.removeObject(forKey: AppSettingsKeys.combineSettings)
             return
         }
         guard let data = try? JSONEncoder().encode(combine),
@@ -147,13 +129,13 @@ nonisolated final class UserDefaultsAppSettingsRepository: AppSettingsRepository
         else {
             return
         }
-        defaults.set(raw, forKey: Self.combineSettingsKey)
+        defaults.set(raw, forKey: AppSettingsKeys.combineSettings)
     }
 
     deinit {}
 }
 
-nonisolated private final class NotificationObserverTokenBox: @unchecked Sendable {
+private final nonisolated class NotificationObserverTokenBox: @unchecked Sendable {
     var token: (any NSObjectProtocol)?
     init() {}
     deinit {}

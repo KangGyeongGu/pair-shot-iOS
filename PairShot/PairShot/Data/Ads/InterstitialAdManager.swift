@@ -207,7 +207,7 @@ final class InterstitialAdManager {
 }
 
 #if canImport(GoogleMobileAds)
-    nonisolated private final class InterstitialAdBox: @unchecked Sendable {
+    private final nonisolated class InterstitialAdBox: @unchecked Sendable {
         let ad: GADInterstitialAd?
         init(ad: GADInterstitialAd?) {
             self.ad = ad

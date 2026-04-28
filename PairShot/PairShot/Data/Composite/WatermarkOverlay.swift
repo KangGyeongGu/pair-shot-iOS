@@ -3,14 +3,12 @@ import Foundation
 import UIKit
 
 nonisolated enum WatermarkOverlay {
-    static let userDefaultsKey = "watermarkEnabled"
-
     static let defaultEnabled = false
 
     static var isEnabled: Bool {
         let defaults = UserDefaults.standard
-        defaults.register(defaults: [userDefaultsKey: defaultEnabled])
-        return defaults.bool(forKey: userDefaultsKey)
+        defaults.register(defaults: [AppSettingsKeys.watermarkEnabled: defaultEnabled])
+        return defaults.bool(forKey: AppSettingsKeys.watermarkEnabled)
     }
 
     static func apply(to source: UIImage, settings: WatermarkSettings) -> UIImage {

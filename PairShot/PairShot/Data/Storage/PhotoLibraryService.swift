@@ -116,7 +116,7 @@ final class PhotoLibraryService {
     }
 }
 
-nonisolated private final class PhotoLibraryPlaceholderBox: @unchecked Sendable {
+private final nonisolated class PhotoLibraryPlaceholderBox: @unchecked Sendable {
     var placeholder: PHObjectPlaceholder?
 }
 

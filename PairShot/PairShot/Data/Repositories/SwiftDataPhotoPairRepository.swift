@@ -66,6 +66,25 @@ final class SwiftDataPhotoPairRepository: PhotoPairRepository {
         try context.save()
     }
 
+    func deleteCombinedExportRecords(forPairIds ids: Set<UUID>) async throws {
+        guard !ids.isEmpty else { return }
+        let descriptor = FetchDescriptor<PhotoPair>(
+            predicate: #Predicate { ids.contains($0.id) }
+        )
+        let pairs = try context.fetch(descriptor)
+        var didDelete = false
+        for pair in pairs {
+            let combined = pair.exportHistory.filter { $0.kind == .combined }
+            for record in combined {
+                context.delete(record)
+                didDelete = true
+            }
+        }
+        if didDelete {
+            try context.save()
+        }
+    }
+
     func nextSequenceNumber() async throws -> Int {
         let all = try fetchAllSync()
         return all.count + 1

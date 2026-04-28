@@ -1,5 +1,4 @@
 import Foundation
-import SwiftData
 
 @MainActor
 protocol CompositorService: AnyObject {

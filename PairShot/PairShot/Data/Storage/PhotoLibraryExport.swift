@@ -80,6 +80,6 @@ final class PhotoLibraryExport: PhotoLibraryExporting {
     }
 }
 
-nonisolated private final class PlaceholderBox: @unchecked Sendable {
+private final nonisolated class PlaceholderBox: @unchecked Sendable {
     var placeholder: PHObjectPlaceholder?
 }

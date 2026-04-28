@@ -1,39 +1,38 @@
 import Foundation
 import Observation
-import SwiftUI
 
 @MainActor
 @Observable
 final class AppSettings {
     var jpegQuality: Double {
-        get { defaults.double(forKey: Self.jpegQualityKey) }
-        set { defaults.set(newValue, forKey: Self.jpegQualityKey) }
+        get { defaults.double(forKey: AppSettingsKeys.jpegQuality) }
+        set { defaults.set(newValue, forKey: AppSettingsKeys.jpegQuality) }
     }
 
     var fileNamePrefix: String {
         get {
-            let stored = defaults.string(forKey: Self.fileNamePrefixKey) ?? ""
+            let stored = defaults.string(forKey: AppSettingsKeys.fileNamePrefix) ?? ""
             return stored.isEmpty ? AndroidParityDefaults.fileNamePrefix : stored
         }
-        set { defaults.set(newValue, forKey: Self.fileNamePrefixKey) }
+        set { defaults.set(newValue, forKey: AppSettingsKeys.fileNamePrefix) }
     }
 
     var defaultOverlayAlpha: Double {
-        get { CompositionDefaults.clampAlpha(defaults.double(forKey: Self.defaultOverlayAlphaKey)) }
-        set { defaults.set(CompositionDefaults.clampAlpha(newValue), forKey: Self.defaultOverlayAlphaKey) }
+        get { CompositionDefaults.clampAlpha(defaults.double(forKey: AppSettingsKeys.defaultOverlayAlpha)) }
+        set { defaults.set(CompositionDefaults.clampAlpha(newValue), forKey: AppSettingsKeys.defaultOverlayAlpha) }
     }
 
     var defaultCompositeLayout: CompositeLayout {
         get {
-            let raw = defaults.string(forKey: Self.defaultCompositeLayoutKey) ?? ""
+            let raw = defaults.string(forKey: AppSettingsKeys.defaultCompositeLayout) ?? ""
             return CompositionDefaults.layout(forRawValue: raw)
         }
-        set { defaults.set(newValue.rawValue, forKey: Self.defaultCompositeLayoutKey) }
+        set { defaults.set(newValue.rawValue, forKey: AppSettingsKeys.defaultCompositeLayout) }
     }
 
     var watermarkEnabled: Bool {
         didSet {
-            defaults.set(watermarkEnabled, forKey: WatermarkOverlay.userDefaultsKey)
+            defaults.set(watermarkEnabled, forKey: AppSettingsKeys.watermarkEnabled)
         }
     }
 
@@ -48,7 +47,7 @@ final class AppSettings {
             guard let data = try? JSONEncoder().encode(newValue),
                   let raw = String(data: data, encoding: .utf8)
             else { return }
-            defaults.set(raw, forKey: Self.watermarkSettingsKey)
+            defaults.set(raw, forKey: AppSettingsKeys.watermarkSettings)
             cachedWatermarkSettings = newValue
         }
     }
@@ -64,13 +63,13 @@ final class AppSettings {
             guard let data = try? JSONEncoder().encode(newValue),
                   let raw = String(data: data, encoding: .utf8)
             else { return }
-            defaults.set(raw, forKey: Self.combineSettingsKey)
+            defaults.set(raw, forKey: AppSettingsKeys.combineSettings)
             cachedCombineSettings = newValue
         }
     }
 
     private static func decodeWatermarkSettings(defaults: UserDefaults) -> WatermarkSettings {
-        guard let raw = defaults.string(forKey: watermarkSettingsKey),
+        guard let raw = defaults.string(forKey: AppSettingsKeys.watermarkSettings),
               let data = raw.data(using: .utf8),
               let decoded = try? JSONDecoder().decode(WatermarkSettings.self, from: data)
         else { return .default }
@@ -78,7 +77,7 @@ final class AppSettings {
     }
 
     private static func decodeCombineSettings(defaults: UserDefaults) -> CombineSettings {
-        guard let raw = defaults.string(forKey: combineSettingsKey),
+        guard let raw = defaults.string(forKey: AppSettingsKeys.combineSettings),
               let data = raw.data(using: .utf8),
               let decoded = try? JSONDecoder().decode(CombineSettings.self, from: data)
         else { return .default }
@@ -87,75 +86,75 @@ final class AppSettings {
 
     var language: AppLanguage {
         get {
-            let raw = defaults.string(forKey: Self.languageKey) ?? AppLanguage.system.rawValue
+            let raw = defaults.string(forKey: AppSettingsKeys.language) ?? AppLanguage.system.rawValue
             return AppLanguage(rawValue: raw) ?? .system
         }
-        set { defaults.set(newValue.rawValue, forKey: Self.languageKey) }
+        set { defaults.set(newValue.rawValue, forKey: AppSettingsKeys.language) }
     }
 
     var theme: AppTheme {
         get {
-            let raw = defaults.string(forKey: Self.themeKey) ?? AppTheme.system.rawValue
+            let raw = defaults.string(forKey: AppSettingsKeys.theme) ?? AppTheme.system.rawValue
             return AppTheme(rawValue: raw) ?? .system
         }
-        set { defaults.set(newValue.rawValue, forKey: Self.themeKey) }
+        set { defaults.set(newValue.rawValue, forKey: AppSettingsKeys.theme) }
     }
 
     var cameraGridEnabled: Bool {
-        get { defaults.bool(forKey: Self.cameraGridEnabledKey) }
-        set { defaults.set(newValue, forKey: Self.cameraGridEnabledKey) }
+        get { defaults.bool(forKey: AppSettingsKeys.cameraGridEnabled) }
+        set { defaults.set(newValue, forKey: AppSettingsKeys.cameraGridEnabled) }
     }
 
     var cameraLevelEnabled: Bool {
-        get { defaults.bool(forKey: Self.cameraLevelEnabledKey) }
-        set { defaults.set(newValue, forKey: Self.cameraLevelEnabledKey) }
+        get { defaults.bool(forKey: AppSettingsKeys.cameraLevelEnabled) }
+        set { defaults.set(newValue, forKey: AppSettingsKeys.cameraLevelEnabled) }
     }
 
     var cameraFlashMode: String {
         get {
-            let raw = defaults.string(forKey: Self.cameraFlashModeKey)
+            let raw = defaults.string(forKey: AppSettingsKeys.cameraFlashMode)
                 ?? CameraFlashModePersistence.defaultRawValue
             return CameraFlashModePersistence.normalize(raw)
         }
         set {
-            defaults.set(CameraFlashModePersistence.normalize(newValue), forKey: Self.cameraFlashModeKey)
+            defaults.set(CameraFlashModePersistence.normalize(newValue), forKey: AppSettingsKeys.cameraFlashMode)
         }
     }
 
     var cameraNightMode: Bool {
-        get { defaults.bool(forKey: Self.cameraNightModeKey) }
-        set { defaults.set(newValue, forKey: Self.cameraNightModeKey) }
+        get { defaults.bool(forKey: AppSettingsKeys.cameraNightMode) }
+        set { defaults.set(newValue, forKey: AppSettingsKeys.cameraNightMode) }
     }
 
     var cameraHDR: Bool {
-        get { defaults.bool(forKey: Self.cameraHDRKey) }
-        set { defaults.set(newValue, forKey: Self.cameraHDRKey) }
+        get { defaults.bool(forKey: AppSettingsKeys.cameraHDR) }
+        set { defaults.set(newValue, forKey: AppSettingsKeys.cameraHDR) }
     }
 
     var overlayEnabled: Bool {
-        get { defaults.bool(forKey: Self.overlayEnabledKey) }
-        set { defaults.set(newValue, forKey: Self.overlayEnabledKey) }
+        get { defaults.bool(forKey: AppSettingsKeys.overlayEnabled) }
+        set { defaults.set(newValue, forKey: AppSettingsKeys.overlayEnabled) }
     }
 
     var homeSortOrder: String {
         get {
-            let raw = defaults.string(forKey: Self.homeSortOrderKey)
+            let raw = defaults.string(forKey: AppSettingsKeys.homeSortOrder)
                 ?? SortOrderPersistence.defaultRawValue
             return SortOrderPersistence.normalize(raw)
         }
         set {
-            defaults.set(SortOrderPersistence.normalize(newValue), forKey: Self.homeSortOrderKey)
+            defaults.set(SortOrderPersistence.normalize(newValue), forKey: AppSettingsKeys.homeSortOrder)
         }
     }
 
     var albumSortOrder: String {
         get {
-            let raw = defaults.string(forKey: Self.albumSortOrderKey)
+            let raw = defaults.string(forKey: AppSettingsKeys.albumSortOrder)
                 ?? SortOrderPersistence.defaultRawValue
             return SortOrderPersistence.normalize(raw)
         }
         set {
-            defaults.set(SortOrderPersistence.normalize(newValue), forKey: Self.albumSortOrderKey)
+            defaults.set(SortOrderPersistence.normalize(newValue), forKey: AppSettingsKeys.albumSortOrder)
         }
     }
 
@@ -163,26 +162,6 @@ final class AppSettings {
         language.locale ?? Locale.autoupdatingCurrent
     }
 
-    var resolvedColorScheme: ColorScheme? {
-        theme.preferredColorScheme
-    }
-
-    static let jpegQualityKey = "pairshot.jpegQuality"
-    static let fileNamePrefixKey = "pairshot.fileNamePrefix"
-    static let defaultOverlayAlphaKey = "pairshot.defaultOverlayAlpha"
-    static let defaultCompositeLayoutKey = "pairshot.defaultCompositeLayout"
-    static let watermarkSettingsKey = "pairshot.watermarkSettings"
-    static let combineSettingsKey = "pairshot.combineSettings"
-    static let languageKey = "pairshot.language"
-    static let themeKey = "pairshot.theme"
-    static let cameraGridEnabledKey = "pairshot.cameraGridEnabled"
-    static let cameraLevelEnabledKey = "pairshot.cameraLevelEnabled"
-    static let cameraFlashModeKey = "pairshot.cameraFlashMode"
-    static let cameraNightModeKey = "pairshot.cameraNightMode"
-    static let cameraHDRKey = "pairshot.cameraHDR"
-    static let overlayEnabledKey = "pairshot.overlayEnabled"
-    static let homeSortOrderKey = "pairshot.homeSortOrder"
-    static let albumSortOrderKey = "pairshot.albumSortOrder"
     static let shared = AppSettings()
 
     private let defaults: UserDefaults
@@ -192,22 +171,22 @@ final class AppSettings {
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         defaults.register(defaults: [
-            Self.jpegQualityKey: CaptureQualityPreset.high.rawValue,
-            Self.fileNamePrefixKey: AndroidParityDefaults.fileNamePrefix,
-            Self.defaultOverlayAlphaKey: CompositionDefaults.fallbackAlpha,
-            Self.defaultCompositeLayoutKey: CompositionDefaults.fallbackLayout.rawValue,
-            Self.languageKey: AppLanguage.system.rawValue,
-            Self.themeKey: AppTheme.system.rawValue,
-            Self.cameraGridEnabledKey: false,
-            Self.cameraLevelEnabledKey: false,
-            Self.cameraFlashModeKey: CameraFlashModePersistence.defaultRawValue,
-            Self.cameraNightModeKey: false,
-            Self.cameraHDRKey: false,
-            Self.overlayEnabledKey: true,
-            Self.homeSortOrderKey: SortOrderPersistence.defaultRawValue,
-            Self.albumSortOrderKey: SortOrderPersistence.defaultRawValue,
+            AppSettingsKeys.jpegQuality: CaptureQualityPreset.high.rawValue,
+            AppSettingsKeys.fileNamePrefix: AndroidParityDefaults.fileNamePrefix,
+            AppSettingsKeys.defaultOverlayAlpha: CompositionDefaults.fallbackAlpha,
+            AppSettingsKeys.defaultCompositeLayout: CompositionDefaults.fallbackLayout.rawValue,
+            AppSettingsKeys.language: AppLanguage.system.rawValue,
+            AppSettingsKeys.theme: AppTheme.system.rawValue,
+            AppSettingsKeys.cameraGridEnabled: false,
+            AppSettingsKeys.cameraLevelEnabled: false,
+            AppSettingsKeys.cameraFlashMode: CameraFlashModePersistence.defaultRawValue,
+            AppSettingsKeys.cameraNightMode: false,
+            AppSettingsKeys.cameraHDR: false,
+            AppSettingsKeys.overlayEnabled: true,
+            AppSettingsKeys.homeSortOrder: SortOrderPersistence.defaultRawValue,
+            AppSettingsKeys.albumSortOrder: SortOrderPersistence.defaultRawValue,
         ])
-        watermarkEnabled = defaults.bool(forKey: WatermarkOverlay.userDefaultsKey)
+        watermarkEnabled = defaults.bool(forKey: AppSettingsKeys.watermarkEnabled)
     }
 }
 

@@ -555,7 +555,7 @@ final class ExportSettingsViewModel {
     deinit {}
 }
 
-nonisolated final class ExportPreferences: @unchecked Sendable {
+final nonisolated class ExportPreferences: @unchecked Sendable {
     static let includeCombinedKey = "pairshot.exportIncludeCombined"
     static let includeBeforeKey = "pairshot.exportIncludeBefore"
     static let includeAfterKey = "pairshot.exportIncludeAfter"

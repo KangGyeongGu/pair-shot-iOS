@@ -120,7 +120,7 @@ actor CameraSession {
         observerBox.cleanup()
     }
 
-    nonisolated private func registerInterruptionObservers() {
+    private nonisolated func registerInterruptionObservers() {
         let session = box.session
         let observerBox = observerBox
         let center = NotificationCenter.default
@@ -415,7 +415,7 @@ actor CameraSession {
         return nil
     }
 
-    nonisolated private static func applyDefaultZoom(to device: AVCaptureDevice) {
+    private nonisolated static func applyDefaultZoom(to device: AVCaptureDevice) {
         guard let firstSwitch = device.virtualDeviceSwitchOverVideoZoomFactors.first else { return }
         let target = CGFloat(truncating: firstSwitch)
         do {
@@ -427,7 +427,7 @@ actor CameraSession {
         }
     }
 
-    nonisolated private static func applyMaxPhotoDimensions(
+    private nonisolated static func applyMaxPhotoDimensions(
         to output: AVCapturePhotoOutput,
         device: AVCaptureDevice
     ) {
@@ -703,7 +703,7 @@ private final class SwitchLensResult: @unchecked Sendable {
     }
 }
 
-nonisolated private final class InitialInputResult: @unchecked Sendable {
+private final nonisolated class InitialInputResult: @unchecked Sendable {
     let device: AVCaptureDevice?
     let input: AVCaptureDeviceInput?
     let photoOutput: AVCapturePhotoOutput?

@@ -151,8 +151,7 @@ final class AppEnvironment {
         let useCases = AppUseCaseBundle.make(
             services: services,
             repositories: repositories,
-            zipExporter: zipExporter,
-            modelContainer: modelContainer
+            zipExporter: zipExporter
         )
         let immediateExport = ImmediateExportService(
             photoLibrary: services.photoLibrary,
@@ -401,8 +400,7 @@ struct AppUseCaseBundle {
     static func make(
         services: AppServiceBundle,
         repositories: AppRepositoryBundle,
-        zipExporter: ZipExporting,
-        modelContainer: ModelContainer
+        zipExporter: ZipExporting
     ) -> Self {
         Self(
             createPair: CreatePairUseCase(
@@ -422,8 +420,7 @@ struct AppUseCaseBundle {
             ),
             deleteCombinedExports: DeleteCombinedExportsUseCase(
                 pairRepo: repositories.pairRepo,
-                photoLibrary: services.photoLibrary,
-                modelContainer: modelContainer
+                photoLibrary: services.photoLibrary
             ),
             exportPairs: ExportPairsUseCase(
                 pairRepo: repositories.pairRepo,
