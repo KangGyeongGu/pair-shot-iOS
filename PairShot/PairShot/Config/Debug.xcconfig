@@ -1,7 +1,0 @@
-GAD_APPLICATION_ID = ca-app-pub-3940256099942544~1458002511
-
-COUPON_API_BASE_URL = https:/$()/pairshot.kangkyeonggu.com/api/pairshot
-COUPON_API_AUTH_KEY = SsH8lb9KwAhAlZtoSHXaLr9THvZNy9NZUam1pG1fGi8
-COUPON_DEVICE_HASH_SALT = pairshot-coupon-v1-device-salt
-
-SWIFT_TREAT_WARNINGS_AS_ERRORS = YES

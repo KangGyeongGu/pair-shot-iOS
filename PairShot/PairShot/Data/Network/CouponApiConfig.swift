@@ -5,7 +5,6 @@ struct CouponApiConfig {
     static let statusPath: String = "/coupons/status"
     static let byDevicePath: String = "/coupons/by-device"
     static let defaultTimeoutSeconds: TimeInterval = 10
-    static let defaultDeviceHashSalt: String = "pairshot-coupon-v1-device-salt"
 
     static let baseUrlInfoKey: String = "CouponApiBaseUrl"
     static let authKeyInfoKey: String = "CouponApiAuthKey"
@@ -17,7 +16,7 @@ struct CouponApiConfig {
     let timeoutSeconds: TimeInterval
 
     var isEnabled: Bool {
-        !baseUrl.isEmpty
+        !baseUrl.isEmpty && !authKey.isEmpty && !deviceHashSalt.isEmpty
     }
 
     var authHeaderValue: String? {
@@ -27,8 +26,7 @@ struct CouponApiConfig {
     static func resolve(bundle: Bundle = .main) -> Self {
         let base = trimmedString(bundle.object(forInfoDictionaryKey: baseUrlInfoKey))
         let auth = trimmedString(bundle.object(forInfoDictionaryKey: authKeyInfoKey))
-        let saltRaw = trimmedString(bundle.object(forInfoDictionaryKey: deviceHashSaltInfoKey))
-        let salt = saltRaw.isEmpty ? defaultDeviceHashSalt : saltRaw
+        let salt = trimmedString(bundle.object(forInfoDictionaryKey: deviceHashSaltInfoKey))
         return Self(
             baseUrl: base,
             authKey: auth,
