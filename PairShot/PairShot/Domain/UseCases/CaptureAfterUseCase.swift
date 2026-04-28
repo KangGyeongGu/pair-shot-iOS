@@ -40,6 +40,4 @@ final class CaptureAfterUseCase {
         try await pairRepo.update(pair)
         return pair
     }
-
-    deinit {}
 }

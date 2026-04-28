@@ -169,7 +169,7 @@ struct AfterCameraView: View {
     }
 
     private func handleShutter(viewModel: AfterCameraViewModel) {
-        HapticService.shared.impact(.heavy)
+        env.hapticService.impact(.heavy)
         Task { await viewModel.shutter() }
     }
 
@@ -189,10 +189,10 @@ struct AfterCameraView: View {
                     dismiss()
 
                 case .snackbarSuccess:
-                    CaptureHaptics.success()
+                    CaptureHaptics.success(env.hapticService)
 
                 case .snackbarAllCompleted:
-                    CaptureHaptics.success()
+                    CaptureHaptics.success(env.hapticService)
                     env.snackbarQueue.enqueue(
                         "snackbar_success_all_after_captured",
                         variant: .success,

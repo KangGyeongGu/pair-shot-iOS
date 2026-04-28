@@ -116,8 +116,8 @@ extension AfterCameraViewModel {
         )
         zoomDragState.lastMinorTickIndex = result.minorIndex
         zoomDragState.lastMajorTickIndex = result.majorIndex
-        if result.didCrossMinor { HapticService.shared.impact(.light) }
-        if result.didCrossMajor { HapticService.shared.impact(.medium) }
+        if result.didCrossMinor { hapticService.impact(.light) }
+        if result.didCrossMajor { hapticService.impact(.medium) }
     }
 
     private func clampedZoom(_ value: Double) -> Double {
@@ -145,8 +145,6 @@ final class AfterCameraZoomDragState {
         lastMinorTickIndex = nil
         lastMajorTickIndex = nil
     }
-
-    deinit {}
 }
 
 enum AfterCameraZoomPresetMatcher {

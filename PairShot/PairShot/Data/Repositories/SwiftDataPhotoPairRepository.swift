@@ -84,6 +84,4 @@ final class SwiftDataPhotoPairRepository: PhotoPairRepository {
         )
         return try context.fetch(descriptor)
     }
-
-    deinit {}
 }

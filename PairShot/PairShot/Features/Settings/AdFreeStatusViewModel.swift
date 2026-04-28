@@ -45,6 +45,4 @@ final class AdFreeStatusViewModel {
     func refresh(now: Date = .now) {
         store.refresh(now: now)
     }
-
-    deinit {}
 }

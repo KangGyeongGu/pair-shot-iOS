@@ -81,6 +81,7 @@ final class AfterCameraViewModel {
     private let pairRepo: PhotoPairRepository
     private let photoLibrary: PhotoLibraryService
     private let appSettings: AppSettings
+    let hapticService: HapticService
     private let captureSource: AfterCameraCaptureSource
     private let permissionProbe: @Sendable () async -> Bool
     private let eventsContinuation: AsyncStream<Event>.Continuation
@@ -94,6 +95,7 @@ final class AfterCameraViewModel {
         pairRepo: PhotoPairRepository,
         photoLibrary: PhotoLibraryService,
         appSettings: AppSettings,
+        hapticService: HapticService,
         session: CameraSession? = nil,
         captureSource: AfterCameraCaptureSource? = nil,
         permissionProbe: @escaping @Sendable () async -> Bool = AfterCameraPermissionProbe.resolve
@@ -105,6 +107,7 @@ final class AfterCameraViewModel {
         self.pairRepo = pairRepo
         self.photoLibrary = photoLibrary
         self.appSettings = appSettings
+        self.hapticService = hapticService
         let resolvedSession = session ?? CameraSession()
         self.session = resolvedSession
         self.captureSource = captureSource ?? AfterCameraSessionCaptureSource(session: resolvedSession)
@@ -273,8 +276,6 @@ final class AfterCameraViewModel {
     static func captureErrorText(for error: Error) -> String {
         AfterCameraCaptureErrorMessages.text(for: error)
     }
-
-    deinit {}
 }
 
 enum AfterCameraCaptureErrorMessages {

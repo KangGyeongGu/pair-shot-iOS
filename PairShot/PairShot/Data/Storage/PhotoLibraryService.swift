@@ -116,14 +116,12 @@ final class PhotoLibraryService {
     }
 }
 
-private final nonisolated class PhotoLibraryPlaceholderBox: @unchecked Sendable {
+nonisolated private final class PhotoLibraryPlaceholderBox: @unchecked Sendable {
     var placeholder: PHObjectPlaceholder?
 }
 
 @MainActor
 final class PhotoLibraryThumbnailCache {
-    static let shared = PhotoLibraryThumbnailCache()
-
     private let cache: NSCache<NSString, UIImage>
     private let manager = PHCachingImageManager()
     private let failedKeys: NSCache<NSString, NSNumber>

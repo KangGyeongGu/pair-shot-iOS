@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct CameraSettingsOverlayChip: View {
+    @Environment(AppEnvironment.self) private var env
+
     let systemImage: String
     let isOn: Bool
     let label: String
@@ -34,7 +36,7 @@ struct CameraSettingsOverlayChip: View {
     }
 
     private func handleTap() {
-        HapticService.shared.impact(.light)
+        env.hapticService.impact(.light)
         action()
     }
 }

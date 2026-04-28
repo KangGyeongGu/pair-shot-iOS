@@ -71,6 +71,4 @@ final class CreatePairUseCase {
         try await pairRepo.update(pair)
         return pair
     }
-
-    deinit {}
 }

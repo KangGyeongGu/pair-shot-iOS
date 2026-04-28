@@ -2,6 +2,9 @@ import SwiftUI
 import UIKit
 
 struct StripCard: View {
+    @Environment(AppEnvironment.self) private var env
+    @Environment(\.displayScale) private var displayScale
+
     let pair: PhotoPair
     let isActive: Bool
 
@@ -40,9 +43,10 @@ struct StripCard: View {
 
     private func loadThumbnail() async {
         guard let identifier = pair.beforePhotoLocalIdentifier, !identifier.isEmpty else { return }
-        thumbnail = await ThumbnailCache.shared.image(
+        let scale = max(1, displayScale)
+        thumbnail = await env.thumbnailCache.image(
             for: identifier,
-            pixelSize: StripDesign.cardWidth * UIScreen.main.scale
+            pixelSize: StripDesign.cardWidth * scale
         )
     }
 }

@@ -30,6 +30,4 @@ final class BackgroundTaskGuard {
     private func expire(id: UUID) {
         end(id: id)
     }
-
-    deinit {}
 }

@@ -61,6 +61,7 @@ final class BeforeCameraViewModel {
     private let pairRepo: PhotoPairRepository
     private let albumRepo: AlbumRepository
     private let appSettings: AppSettings
+    let hapticService: HapticService
     private let captureSource: BeforeCameraCaptureSource
     private let permissionProbe: @Sendable () async -> Bool
     private let eventsContinuation: AsyncStream<Event>.Continuation
@@ -79,6 +80,7 @@ final class BeforeCameraViewModel {
         pairRepo: PhotoPairRepository,
         albumRepo: AlbumRepository,
         appSettings: AppSettings,
+        hapticService: HapticService,
         session: CameraSession? = nil,
         captureSource: BeforeCameraCaptureSource? = nil,
         permissionProbe: @escaping @Sendable () async -> Bool = BeforeCameraPermissionProbe.resolve
@@ -89,6 +91,7 @@ final class BeforeCameraViewModel {
         self.pairRepo = pairRepo
         self.albumRepo = albumRepo
         self.appSettings = appSettings
+        self.hapticService = hapticService
         let resolvedSession = session ?? CameraSession()
         self.session = resolvedSession
         self.captureSource = captureSource ?? CameraSessionCaptureSource(session: resolvedSession)
@@ -322,12 +325,12 @@ final class BeforeCameraViewModel {
         let minorIndex = Int((ratio * 10).rounded())
         if minorIndex != lastMinorTickIndex {
             lastMinorTickIndex = minorIndex
-            HapticService.shared.impact(.light)
+            hapticService.impact(.light)
         }
         let majorIndex = Int(ratio.rounded())
         if abs(ratio - Double(majorIndex)) < 0.05, majorIndex != lastMajorTickIndex {
             lastMajorTickIndex = majorIndex
-            HapticService.shared.impact(.medium)
+            hapticService.impact(.medium)
         }
     }
 
@@ -352,8 +355,6 @@ final class BeforeCameraViewModel {
         }
         return String(localized: "camera_error_unknown")
     }
-
-    deinit {}
 }
 
 enum ZoomDialMetrics {

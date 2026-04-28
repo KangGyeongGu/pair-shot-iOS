@@ -86,6 +86,4 @@ final class SwiftDataAlbumRepository: AlbumRepository {
         )
         return try context.fetch(descriptor).first
     }
-
-    deinit {}
 }

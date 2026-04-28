@@ -541,11 +541,9 @@ final class ExportSettingsViewModel {
             applyWatermark: applyWatermark
         )
     }
-
-    deinit {}
 }
 
-final nonisolated class ExportPreferences: @unchecked Sendable {
+nonisolated final class ExportPreferences: @unchecked Sendable {
     static let includeCombinedKey = "pairshot.exportIncludeCombined"
     static let includeBeforeKey = "pairshot.exportIncludeBefore"
     static let includeAfterKey = "pairshot.exportIncludeAfter"
@@ -599,6 +597,4 @@ final nonisolated class ExportPreferences: @unchecked Sendable {
             Self.applyCombineKey: true,
         ])
     }
-
-    deinit {}
 }

@@ -66,8 +66,8 @@ struct StorageInfoView: View {
         guard !isClearingCache else { return }
         isClearingCache = true
         defer { isClearingCache = false }
-        ThumbnailCache.shared.removeAll()
-        HapticService.shared.notify(.success)
+        env.thumbnailCache.removeAll()
+        env.hapticService.notify(.success)
         lastResult = String(localized: "storage_section_cache_clean")
     }
 }

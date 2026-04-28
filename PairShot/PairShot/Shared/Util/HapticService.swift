@@ -41,8 +41,6 @@ protocol HapticServicing: AnyObject {
 
 @MainActor
 final class HapticService: HapticServicing {
-    static let shared = HapticService()
-
     init() {}
 
     func impact(_ style: HapticImpactStyle) {

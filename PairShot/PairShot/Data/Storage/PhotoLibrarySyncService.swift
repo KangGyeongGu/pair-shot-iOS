@@ -16,11 +16,11 @@ final class PhotoLibrarySyncService: NSObject, PHPhotoLibraryChangeObserver {
     init(
         modelContainer: ModelContainer,
         photoLibrary: PhotoLibraryService,
-        thumbnailCache: ThumbnailCache? = nil
+        thumbnailCache: ThumbnailCache
     ) {
         self.modelContainer = modelContainer
         self.photoLibrary = photoLibrary
-        self.thumbnailCache = thumbnailCache ?? ThumbnailCache.shared
+        self.thumbnailCache = thumbnailCache
         super.init()
     }
 
@@ -132,6 +132,4 @@ final class PhotoLibrarySyncService: NSObject, PHPhotoLibraryChangeObserver {
         }
         return alive
     }
-
-    deinit {}
 }

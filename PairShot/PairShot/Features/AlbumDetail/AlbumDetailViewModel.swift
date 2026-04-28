@@ -72,7 +72,7 @@ final class AlbumDetailViewModel {
         photoLibrary: PhotoLibraryService,
         immediateExport: ImmediateExportService,
         appSettings: AppSettings,
-        thumbnailCache: ThumbnailCache? = nil,
+        thumbnailCache: ThumbnailCache,
         interstitialAdManager: InterstitialAdManager? = nil,
         adFreeStore: AdFreeStore? = nil,
         fullscreenAdCoordinator: FullscreenAdCoordinator? = nil,
@@ -87,7 +87,7 @@ final class AlbumDetailViewModel {
         self.photoLibrary = photoLibrary
         self.immediateExport = immediateExport
         self.appSettings = appSettings
-        self.thumbnailCache = thumbnailCache ?? ThumbnailCache.shared
+        self.thumbnailCache = thumbnailCache
         self.interstitialAdManager = interstitialAdManager
         self.adFreeStore = adFreeStore
         self.fullscreenAdCoordinator = fullscreenAdCoordinator
@@ -329,8 +329,6 @@ final class AlbumDetailViewModel {
             thumbnailCache.evict(localIdentifier: afterId)
         }
     }
-
-    deinit {}
 }
 
 private struct EvictionSnapshot {

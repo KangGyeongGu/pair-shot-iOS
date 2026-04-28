@@ -47,6 +47,8 @@ final class AppEnvironment {
     let immediateExport: ImmediateExportService
     let settingsRedirectCoordinator: SettingsRedirectCoordinator
     let permissionStatusService: PermissionStatusService
+    let thumbnailCache: ThumbnailCache
+    let hapticService: HapticService
 
     private var sharedSettingsViewModel: SettingsViewModel?
 
@@ -65,7 +67,9 @@ final class AppEnvironment {
         snackbarQueue: SnackbarQueue? = nil,
         backgroundTaskGuard: BackgroundTaskGuard? = nil,
         settingsRedirectCoordinator: SettingsRedirectCoordinator? = nil,
-        permissionStatusService: PermissionStatusService? = nil
+        permissionStatusService: PermissionStatusService? = nil,
+        thumbnailCache: ThumbnailCache? = nil,
+        hapticService: HapticService? = nil
     ) {
         let resolvedAppSettings = appSettings ?? AppSettings()
         let resolvedSnackbarQueue = snackbarQueue ?? SnackbarQueue()
@@ -79,6 +83,9 @@ final class AppEnvironment {
         self.backgroundTaskGuard = backgroundTaskGuard ?? BackgroundTaskGuard()
         self.settingsRedirectCoordinator = settingsRedirectCoordinator ?? SettingsRedirectCoordinator()
         self.permissionStatusService = permissionStatusService ?? PermissionStatusService()
+        let resolvedThumbnailCache = thumbnailCache ?? ThumbnailCache()
+        self.thumbnailCache = resolvedThumbnailCache
+        self.hapticService = hapticService ?? HapticService()
 
         let ads = Self.makeAdManagers(
             interstitialAdManager: interstitialAdManager,
@@ -117,7 +124,8 @@ final class AppEnvironment {
         photoLibrary = services.photoLibrary
         photoLibrarySyncService = PhotoLibrarySyncService(
             modelContainer: modelContainer,
-            photoLibrary: services.photoLibrary
+            photoLibrary: services.photoLibrary,
+            thumbnailCache: resolvedThumbnailCache
         )
         pairRepo = repositories.pairRepo
         albumRepo = repositories.albumRepo
@@ -204,6 +212,7 @@ final class AppEnvironment {
             pairRepo: pairRepo,
             albumRepo: albumRepo,
             appSettings: appSettings,
+            hapticService: hapticService,
             session: bundle.session,
             permissionProbe: bundle.probe
         )
@@ -223,6 +232,7 @@ final class AppEnvironment {
             pairRepo: pairRepo,
             photoLibrary: photoLibrary,
             appSettings: appSettings,
+            hapticService: hapticService,
             session: bundle.session,
             permissionProbe: bundle.probe
         )
@@ -260,6 +270,7 @@ final class AppEnvironment {
             photoLibrary: photoLibrary,
             immediateExport: immediateExport,
             appSettings: appSettings,
+            thumbnailCache: thumbnailCache,
             interstitialAdManager: interstitialAdManager,
             adFreeStore: adFreeStore,
             fullscreenAdCoordinator: fullscreenAdCoordinator,
@@ -285,6 +296,7 @@ final class AppEnvironment {
             location: location,
             immediateExport: immediateExport,
             appSettings: appSettings,
+            thumbnailCache: thumbnailCache,
             interstitialAdManager: interstitialAdManager,
             adFreeStore: adFreeStore,
             fullscreenAdCoordinator: fullscreenAdCoordinator,
@@ -296,7 +308,9 @@ final class AppEnvironment {
         if let sharedSettingsViewModel { return sharedSettingsViewModel }
         let viewModel = SettingsViewModel(
             appSettings: appSettings,
-            appSettingsRepo: appSettingsRepo
+            appSettingsRepo: appSettingsRepo,
+            thumbnailCache: thumbnailCache,
+            hapticService: hapticService
         )
         sharedSettingsViewModel = viewModel
         return viewModel
@@ -342,8 +356,6 @@ final class AppEnvironment {
             modelContainer: modelContainer
         )
     }
-
-    deinit {}
 }
 
 @MainActor

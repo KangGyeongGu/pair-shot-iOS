@@ -3,6 +3,7 @@ import SwiftUI
 struct CameraSettingsOverlayChrome<Content: View>: View {
     @Binding var isPresented: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(AppEnvironment.self) private var env
     @ViewBuilder let content: Content
 
     var body: some View {
@@ -38,7 +39,7 @@ struct CameraSettingsOverlayChrome<Content: View>: View {
     }
 
     private func dismiss() {
-        HapticService.shared.impact(.light)
+        env.hapticService.impact(.light)
         isPresented = false
     }
 }

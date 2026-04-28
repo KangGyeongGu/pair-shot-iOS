@@ -95,6 +95,4 @@ final class PairPreviewViewModel {
     private func clamp(_ value: CGFloat) -> CGFloat {
         max(Self.minZoom, min(Self.maxZoom, value))
     }
-
-    deinit {}
 }

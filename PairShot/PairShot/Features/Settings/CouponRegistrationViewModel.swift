@@ -87,6 +87,4 @@ final class CouponRegistrationViewModel {
             existing.code == code && existing.isCurrentlyActive(now: timestamp)
         }
     }
-
-    deinit {}
 }

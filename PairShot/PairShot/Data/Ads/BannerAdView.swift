@@ -25,11 +25,14 @@ struct BannerAdSlot: View {
 
     var body: some View {
         if BannerAdGate.shouldShow(isAdFree: adFreeStore.isAdFree) {
-            BannerAdView(
-                adUnitID: adUnitID,
-                width: UIScreen.main.bounds.width,
-                attStatus: tracking.currentStatus
-            )
+            GeometryReader { proxy in
+                BannerAdView(
+                    adUnitID: adUnitID,
+                    width: bannerWidth(geometryWidth: proxy.size.width),
+                    attStatus: tracking.currentStatus
+                )
+                .frame(maxWidth: .infinity)
+            }
             .frame(height: 50)
             .frame(maxWidth: .infinity)
             .task {
@@ -38,6 +41,11 @@ struct BannerAdSlot: View {
                 _ = await tracking.requestIfUndetermined()
             }
         }
+    }
+
+    private func bannerWidth(geometryWidth: CGFloat) -> CGFloat {
+        if geometryWidth > 0 { return geometryWidth }
+        return BannerAdView.currentBannerWidth()
     }
 }
 
@@ -110,15 +118,19 @@ struct BannerAdView: UIViewRepresentable {
 
         @MainActor
         static func currentBannerWidth() -> CGFloat {
-            let window = UIApplication.shared.connectedScenes
+            let scene = UIApplication.shared.connectedScenes
                 .compactMap { $0 as? UIWindowScene }
-                .flatMap(\.windows)
-                .first(where: \.isKeyWindow)
+                .first { $0.activationState == .foregroundActive }
+                ?? UIApplication.shared.connectedScenes
+                .compactMap { $0 as? UIWindowScene }
+                .first
+            let window = scene?.windows.first(where: \.isKeyWindow) ?? scene?.windows.first
             if let width = window?.bounds.width, width > 0 {
                 return width
             }
-            let screenWidth = UIScreen.main.bounds.width
-            if screenWidth > 0 { return screenWidth }
+            if let sceneWidth = scene?.coordinateSpace.bounds.width, sceneWidth > 0 {
+                return sceneWidth
+            }
             return BannerAdSize.fallbackWidth
         }
     #else

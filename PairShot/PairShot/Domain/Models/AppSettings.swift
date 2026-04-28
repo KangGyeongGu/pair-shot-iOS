@@ -162,8 +162,6 @@ final class AppSettings {
         language.locale ?? Locale.autoupdatingCurrent
     }
 
-    static let shared = AppSettings()
-
     private let defaults: UserDefaults
     @ObservationIgnored private var cachedWatermarkSettings: WatermarkSettings?
     @ObservationIgnored private var cachedCombineSettings: CombineSettings?

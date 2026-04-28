@@ -103,7 +103,7 @@ struct QRScannerView: View {
     }
 
     private func handleScan(_ payload: String) {
-        HapticService.shared.notify(.success)
+        env.hapticService.notify(.success)
         onScan(payload)
     }
 

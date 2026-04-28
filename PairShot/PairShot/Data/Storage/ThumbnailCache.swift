@@ -4,14 +4,12 @@ import UIKit
 
 @MainActor
 final class ThumbnailCache {
-    static let shared = ThumbnailCache()
-
     nonisolated static let defaultThumbnailPixelSize: CGFloat = 600
 
     let underlying: PhotoLibraryThumbnailCache
 
     init() {
-        underlying = PhotoLibraryThumbnailCache.shared
+        underlying = PhotoLibraryThumbnailCache()
     }
 
     init(underlying: PhotoLibraryThumbnailCache) {

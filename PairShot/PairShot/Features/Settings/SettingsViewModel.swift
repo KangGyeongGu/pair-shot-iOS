@@ -18,6 +18,8 @@ final class SettingsViewModel {
 
     let appSettings: AppSettings
     let appSettingsRepo: AppSettingsRepository
+    let thumbnailCache: ThumbnailCache
+    let hapticService: HapticService
     let events: AsyncStream<Event>
 
     var showCacheClearConfirm: Bool = false
@@ -149,10 +151,14 @@ final class SettingsViewModel {
 
     init(
         appSettings: AppSettings,
-        appSettingsRepo: AppSettingsRepository
+        appSettingsRepo: AppSettingsRepository,
+        thumbnailCache: ThumbnailCache,
+        hapticService: HapticService
     ) {
         self.appSettings = appSettings
         self.appSettingsRepo = appSettingsRepo
+        self.thumbnailCache = thumbnailCache
+        self.hapticService = hapticService
         var continuation: AsyncStream<Event>.Continuation!
         events = AsyncStream { continuation = $0 }
         eventsContinuation = continuation
@@ -303,8 +309,6 @@ final class SettingsViewModel {
     }
 
     // swiftlint:enable switch_case_alignment
-
-    deinit {}
 }
 
 extension SettingsViewModel {
@@ -333,10 +337,11 @@ extension SettingsViewModel {
         guard !isClearingCache else { return }
         isClearingCache = true
         defer { isClearingCache = false }
+        let cache = thumbnailCache
         await Task { @MainActor in
-            ThumbnailCache.shared.removeAll()
+            cache.removeAll()
         }.value
-        HapticService.shared.notify(.success)
+        hapticService.notify(.success)
         await refreshStorageInfo()
     }
 }

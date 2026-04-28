@@ -19,6 +19,4 @@ final class CombineSettingsViewModel {
         snapshot.combine = settings
         try? await appSettingsRepo.save(snapshot)
     }
-
-    deinit {}
 }

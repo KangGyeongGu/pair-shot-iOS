@@ -60,6 +60,4 @@ final class WatermarkSettingsViewModel {
         }
         return resized.pngData()
     }
-
-    deinit {}
 }

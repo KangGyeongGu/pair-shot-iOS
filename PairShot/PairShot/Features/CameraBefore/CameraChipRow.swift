@@ -8,6 +8,8 @@ enum CameraChipMetrics {
 }
 
 struct CameraChip: View {
+    @Environment(AppEnvironment.self) private var env
+
     let systemImage: String
     let isOn: Bool
     let label: String
@@ -30,7 +32,7 @@ struct CameraChip: View {
     }
 
     private func handleTap() {
-        HapticService.shared.impact(.light)
+        env.hapticService.impact(.light)
         action()
     }
 }

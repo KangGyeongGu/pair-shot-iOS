@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct AfterCameraStrip: View {
+    @Environment(AppEnvironment.self) private var env
+
     let pairs: [PhotoPair]
     @Binding var selectedPairId: UUID?
 
@@ -44,7 +46,7 @@ struct AfterCameraStrip: View {
         .onChange(of: scrolledId) { _, newValue in
             if selectedPairId != newValue {
                 selectedPairId = newValue
-                HapticService.shared.impact(.light)
+                env.hapticService.impact(.light)
             }
         }
     }

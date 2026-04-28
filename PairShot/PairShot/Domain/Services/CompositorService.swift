@@ -29,6 +29,4 @@ final class DefaultCompositorService: CompositorService {
             now: now
         )
     }
-
-    deinit {}
 }

@@ -115,8 +115,6 @@ final class PermissionStatusService: NSObject {
         }
         locationStatus = locationManager.authorizationStatus
     }
-
-    deinit {}
 }
 
 extension PermissionStatusService: CLLocationManagerDelegate {

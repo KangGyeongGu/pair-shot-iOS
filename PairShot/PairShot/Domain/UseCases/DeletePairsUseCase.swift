@@ -46,6 +46,4 @@ final class DeletePairsUseCase {
         try? await photoLibrary.deleteAssets(localIdentifiers: assetIdsToDelete)
         try await pairRepo.delete(ids: ids)
     }
-
-    deinit {}
 }

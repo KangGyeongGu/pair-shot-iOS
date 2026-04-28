@@ -143,6 +143,8 @@ private struct HomePairCardSide: View {
 
     static let longLoadThresholdNanoseconds: UInt64 = 350_000_000
 
+    @Environment(AppEnvironment.self) private var env
+
     let localIdentifier: String?
     let placeholder: Placeholder
 
@@ -176,7 +178,7 @@ private struct HomePairCardSide: View {
             isLongLoading = false
             return
         }
-        if let cached = ThumbnailCache.shared.cached(localIdentifier: identifier) {
+        if let cached = env.thumbnailCache.cached(localIdentifier: identifier) {
             thumbnail = cached
             isLongLoading = false
             return
@@ -187,7 +189,7 @@ private struct HomePairCardSide: View {
                 await MainActor.run { isLongLoading = true }
             }
         }
-        let loaded = await ThumbnailCache.shared.image(for: identifier)
+        let loaded = await env.thumbnailCache.image(for: identifier)
         longLoadTask.cancel()
         thumbnail = loaded
         isLongLoading = false

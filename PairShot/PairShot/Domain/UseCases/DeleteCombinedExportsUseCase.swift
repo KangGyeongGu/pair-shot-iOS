@@ -28,6 +28,4 @@ final class DeleteCombinedExportsUseCase {
         try await photoLibrary.deleteAssets(localIdentifiers: assetIdsToDelete)
         try await pairRepo.deleteCombinedExportRecords(forPairIds: ids)
     }
-
-    deinit {}
 }

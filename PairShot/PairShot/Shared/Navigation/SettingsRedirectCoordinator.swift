@@ -22,6 +22,4 @@ final class SettingsRedirectCoordinator {
         pendingPulse = nil
         return value
     }
-
-    deinit {}
 }

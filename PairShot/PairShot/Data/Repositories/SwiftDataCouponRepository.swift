@@ -153,6 +153,4 @@ final class SwiftDataCouponRepository: CouponRepository {
         if let date = isoFormatterFractional.date(from: raw) { return date }
         return isoFormatterBasic.date(from: raw)
     }
-
-    deinit {}
 }

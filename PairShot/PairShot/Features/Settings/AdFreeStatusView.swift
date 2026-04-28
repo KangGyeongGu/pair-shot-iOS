@@ -233,7 +233,7 @@ struct AdFreeStatusView: View {
         registrationViewModel: CouponRegistrationViewModel
     ) async {
         guard let expiration = registrationViewModel.lastSuccessExpiration else { return }
-        HapticService.shared.notify(.success)
+        env.hapticService.notify(.success)
         successMessage = successMessage(for: expiration)
         registrationViewModel.inputCode = ""
         statusViewModel.refresh()

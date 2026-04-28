@@ -101,12 +101,12 @@ struct BeforeCaptureCoordinator {
 
 @MainActor
 enum CaptureHaptics {
-    static func shutter() async {
-        HapticService.shared.impact(.heavy)
+    static func shutter(_ haptics: HapticService) async {
+        haptics.impact(.heavy)
     }
 
-    static func success() {
-        HapticService.shared.notify(.success)
+    static func success(_ haptics: HapticService) {
+        haptics.notify(.success)
     }
 }
 

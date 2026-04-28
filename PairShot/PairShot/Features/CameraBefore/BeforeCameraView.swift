@@ -148,7 +148,7 @@ struct BeforeCameraView: View {
     }
 
     private func handleShutter(viewModel: BeforeCameraViewModel) {
-        HapticService.shared.impact(.heavy)
+        env.hapticService.impact(.heavy)
         Task { await viewModel.shutter() }
     }
 
@@ -175,7 +175,7 @@ struct BeforeCameraView: View {
                     dismiss()
 
                 case .snackbarSuccess:
-                    CaptureHaptics.success()
+                    CaptureHaptics.success(env.hapticService)
 
                 case let .openAfterCamera(pairId):
                     afterCameraTarget = AfterCameraTarget(pairId: pairId)

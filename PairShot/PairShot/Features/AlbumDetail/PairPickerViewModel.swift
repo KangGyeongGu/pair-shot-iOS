@@ -77,6 +77,4 @@ final class PairPickerViewModel {
     var isConfirmDisabled: Bool {
         selection.isEmpty || isConfirming
     }
-
-    deinit {}
 }

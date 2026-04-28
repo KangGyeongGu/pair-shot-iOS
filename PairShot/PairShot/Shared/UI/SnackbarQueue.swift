@@ -215,6 +215,4 @@ final class SnackbarQueue {
             }
         }
     }
-
-    deinit {}
 }
