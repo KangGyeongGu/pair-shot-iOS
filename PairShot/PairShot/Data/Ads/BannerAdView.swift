@@ -25,15 +25,13 @@ struct BannerAdSlot: View {
 
     var body: some View {
         if BannerAdGate.shouldShow(isAdFree: adFreeStore.isAdFree) {
-            GeometryReader { proxy in
-                BannerAdView(
-                    adUnitID: adUnitID,
-                    width: bannerWidth(geometryWidth: proxy.size.width),
-                    attStatus: tracking.currentStatus
-                )
-                .frame(maxWidth: .infinity)
-            }
-            .frame(height: 50)
+            let width = BannerAdView.currentBannerWidth()
+            BannerAdView(
+                adUnitID: adUnitID,
+                width: width,
+                attStatus: tracking.currentStatus
+            )
+            .frame(width: width, height: BannerAdSize.adaptiveHeight(width: width))
             .frame(maxWidth: .infinity)
             .task {
                 guard !hasRequestedATT else { return }
@@ -41,11 +39,6 @@ struct BannerAdSlot: View {
                 _ = await tracking.requestIfUndetermined()
             }
         }
-    }
-
-    private func bannerWidth(geometryWidth: CGFloat) -> CGFloat {
-        if geometryWidth > 0 { return geometryWidth }
-        return BannerAdView.currentBannerWidth()
     }
 }
 
@@ -145,6 +138,8 @@ struct BannerAdView: UIViewRepresentable {
 enum BannerAdSize {
     static let fallbackWidth: CGFloat = 320
 
+    static let fallbackHeight: CGFloat = 50
+
     static let reloadThreshold: CGFloat = 1.0
 
     static func shouldReload(previous: CGFloat, current: CGFloat) -> Bool {
@@ -157,6 +152,18 @@ enum BannerAdSize {
         static func adaptive(width: CGFloat) -> GADAdSize {
             guard width > 0 else { return GADAdSizeBanner }
             return GADCurrentOrientationAnchoredAdaptiveBannerAdSizeWithWidth(width)
+        }
+
+        @MainActor
+        static func adaptiveHeight(width: CGFloat) -> CGFloat {
+            guard width > 0 else { return fallbackHeight }
+            let height = GADCurrentOrientationAnchoredAdaptiveBannerAdSizeWithWidth(width).size.height
+            return height > 0 ? height : fallbackHeight
+        }
+    #else
+        @MainActor
+        static func adaptiveHeight(width _: CGFloat) -> CGFloat {
+            fallbackHeight
         }
     #endif
 }

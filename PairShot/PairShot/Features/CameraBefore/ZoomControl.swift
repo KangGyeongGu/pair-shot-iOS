@@ -39,26 +39,30 @@ struct ZoomControl: View {
     }
 
     var body: some View {
-        ZStack {
-            if isDragging {
-                ZoomDialOverlay(
-                    currentRatio: currentRatio,
-                    minRatio: minRatio,
-                    maxRatio: maxRatio,
-                    displayMultiplier: displayMultiplier
-                )
-                .frame(maxWidth: .infinity)
-                .padding(.horizontal, AppSpacing.lg)
-                .transition(reduceMotion ? .opacity : .opacity.combined(with: .move(edge: .bottom)))
-            } else {
-                presetCapsule
-                    .transition(reduceMotion ? .opacity : .opacity.combined(with: .move(edge: .top)))
+        if presets.isEmpty {
+            EmptyView()
+        } else {
+            ZStack {
+                if isDragging {
+                    ZoomDialOverlay(
+                        currentRatio: currentRatio,
+                        minRatio: minRatio,
+                        maxRatio: maxRatio,
+                        displayMultiplier: displayMultiplier
+                    )
+                    .frame(maxWidth: .infinity)
+                    .padding(.horizontal, AppSpacing.lg)
+                    .transition(reduceMotion ? .opacity : .opacity.combined(with: .move(edge: .bottom)))
+                } else {
+                    presetCapsule
+                        .transition(reduceMotion ? .opacity : .opacity.combined(with: .move(edge: .top)))
+                }
             }
+            .frame(height: 80)
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.18), value: isDragging)
+            .contentShape(Rectangle())
+            .simultaneousGesture(dragGesture)
         }
-        .frame(height: 80)
-        .animation(reduceMotion ? nil : .easeOut(duration: 0.18), value: isDragging)
-        .contentShape(Rectangle())
-        .simultaneousGesture(dragGesture)
     }
 
     private var presetCapsule: some View {

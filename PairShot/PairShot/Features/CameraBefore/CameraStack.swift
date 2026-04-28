@@ -199,14 +199,14 @@ struct CameraLayoutResult {
 }
 
 enum CameraLayoutMath {
-    static let bannerHeight: CGFloat = 50
     static let preferredBottomBarHeight: CGFloat = 116
 
+    @MainActor
     static func compute(
         totalSize: CGSize,
         isAdFree: Bool
     ) -> CameraLayoutResult {
-        let banner: CGFloat = isAdFree ? 0 : bannerHeight
+        let banner: CGFloat = isAdFree ? 0 : BannerAdSize.adaptiveHeight(width: totalSize.width)
         let preferredPreview = totalSize.width * 4.0 / 3.0
         let previewHeight = min(preferredPreview, max(0, totalSize.height))
         let bottomTotal = max(0, totalSize.height - previewHeight)

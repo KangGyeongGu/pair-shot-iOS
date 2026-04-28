@@ -10,7 +10,10 @@ extension CameraSession {
         }
 
         let settings = AVCapturePhotoSettings()
-        settings.maxPhotoDimensions = photoOutput.maxPhotoDimensions
+        let dimensions = photoOutput.maxPhotoDimensions
+        if dimensions.width > 0, dimensions.height > 0 {
+            settings.maxPhotoDimensions = dimensions
+        }
         if device.hasFlash {
             switch flashMode {
                 case .auto: settings.flashMode = .auto
