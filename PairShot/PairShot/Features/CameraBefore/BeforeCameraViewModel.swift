@@ -428,18 +428,7 @@ struct CameraSessionCaptureSource: BeforeCameraCaptureSource {
 enum BeforeCameraPermissionProbe {
     @Sendable
     static func resolve() async -> Bool {
-        switch AVCaptureDevice.authorizationStatus(for: .video) {
-            case .authorized:
-                true
-
-            case .notDetermined:
-                await AVCaptureDevice.requestAccess(for: .video)
-
-            case .denied, .restricted:
-                false
-
-            @unknown default:
-                false
-        }
+        let service = await MainActor.run { PermissionStatusService() }
+        return await service.requestCameraAccessIfNeeded()
     }
 }

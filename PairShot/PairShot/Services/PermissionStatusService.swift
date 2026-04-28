@@ -57,6 +57,29 @@ final class PermissionStatusService: NSObject {
         locationStatus = locationManager.authorizationStatus
     }
 
+    @discardableResult
+    func requestCameraAccessIfNeeded() async -> Bool {
+        let current = AVCaptureDevice.authorizationStatus(for: .video)
+        switch current {
+            case .authorized:
+                cameraStatus = current
+                return true
+
+            case .notDetermined:
+                let granted = await AVCaptureDevice.requestAccess(for: .video)
+                cameraStatus = AVCaptureDevice.authorizationStatus(for: .video)
+                return granted
+
+            case .denied, .restricted:
+                cameraStatus = current
+                return false
+
+            @unknown default:
+                cameraStatus = current
+                return false
+        }
+    }
+
     func requestAllInOrder() async {
         await requestCameraIfNeeded()
         await requestPhotoLibraryIfNeeded()

@@ -40,7 +40,10 @@ struct SnackbarBanner: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .modifier(SnackbarBannerBackground(cornerRadius: 22))
+        .adaptiveGlass(
+            in: RoundedRectangle(cornerRadius: 22, style: .continuous),
+            kind: .regular
+        )
         .shadow(color: Color.black.opacity(0.18), radius: 10, y: 3)
         .padding(.horizontal, 12)
         .accessibilityElement(children: .combine)
@@ -115,19 +118,6 @@ struct SnackbarBanner: View {
 
             case .info, .progress, .indeterminateProgress:
                 Color.appSnackbarInfo
-        }
-    }
-}
-
-private struct SnackbarBannerBackground: ViewModifier {
-    let cornerRadius: CGFloat
-
-    func body(content: Content) -> some View {
-        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-        if #available(iOS 26.0, *) {
-            content.glassEffect(.regular, in: shape)
-        } else {
-            content.background(shape.fill(.regularMaterial))
         }
     }
 }

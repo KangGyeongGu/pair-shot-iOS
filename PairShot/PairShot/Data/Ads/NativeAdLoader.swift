@@ -30,11 +30,14 @@ final class NativeAdLoader: NSObject {
 
     private(set) var lastErrorDescription: String?
 
+    private let trackingService: TrackingAuthorizationService?
+
     #if canImport(GoogleMobileAds)
         private var inflightLoader: GADAdLoader?
     #endif
 
-    override init() {
+    init(trackingService: TrackingAuthorizationService? = nil) {
+        self.trackingService = trackingService
         super.init()
     }
 
@@ -48,10 +51,8 @@ final class NativeAdLoader: NSObject {
         guard !isLoading else { return }
         let resolvedUnitID = adUnitID ?? AdsConfig.native
         #if canImport(GoogleMobileAds)
-            guard let request = AdRequestBuilder.build(
-                isAdFree: adFreeStore?.isAdFree ?? false,
-                attStatus: ATTrackingManager.trackingAuthorizationStatus
-            ) else { return }
+            let attStatus = trackingService?.currentStatus ?? .notDetermined
+            let request = AdRequestBuilder.build(attStatus: attStatus)
             isLoading = true
             AppLogger.ads.debug("Native prefetch requested count=\(count, privacy: .public)")
             let multipleOptions = GADMultipleAdsAdLoaderOptions()

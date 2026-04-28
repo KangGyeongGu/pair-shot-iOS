@@ -36,17 +36,9 @@ struct PairShotActionBar: View {
         .frame(height: 72)
         .padding(.horizontal, 20)
         .background {
-            actionBarBackground
+            Color.clear
+                .adaptiveGlass(in: Rectangle(), kind: .regular, legacyFill: .appSurfaceContainer)
                 .ignoresSafeArea(edges: .bottom)
-        }
-    }
-
-    @ViewBuilder
-    private var actionBarBackground: some View {
-        if #available(iOS 26.0, *) {
-            Color.clear.glassEffect(.regular, in: Rectangle())
-        } else {
-            Color.appSurfaceContainer
         }
     }
 

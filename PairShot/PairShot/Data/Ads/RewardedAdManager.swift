@@ -40,12 +40,15 @@ final class RewardedAdManager {
 
     private(set) var sessionUnlocks: Set<UnlockID> = []
 
+    private let trackingService: TrackingAuthorizationService?
+
     #if canImport(GoogleMobileAds)
         private var ad: GADRewardedAd?
         private let presentationDelegate: RewardedPresentationDelegate
     #endif
 
-    init() {
+    init(trackingService: TrackingAuthorizationService? = nil) {
+        self.trackingService = trackingService
         #if canImport(GoogleMobileAds)
             presentationDelegate = RewardedPresentationDelegate()
         #endif
@@ -59,10 +62,8 @@ final class RewardedAdManager {
         guard !isLoaded, !isLoading else { return }
         let resolvedUnitID = adUnitID ?? AdsConfig.rewarded
         #if canImport(GoogleMobileAds)
-            guard let request = AdRequestBuilder.build(
-                isAdFree: adFreeStore?.isAdFree ?? false,
-                attStatus: ATTrackingManager.trackingAuthorizationStatus
-            ) else { return }
+            let attStatus = trackingService?.currentStatus ?? .notDetermined
+            let request = AdRequestBuilder.build(attStatus: attStatus)
             isLoading = true
             AppLogger.ads.debug("Rewarded load requested")
             GADRewardedAd.load(
@@ -174,7 +175,7 @@ final class RewardedAdManager {
 }
 
 #if canImport(GoogleMobileAds)
-    private final nonisolated class RewardedAdBox: @unchecked Sendable {
+    nonisolated private final class RewardedAdBox: @unchecked Sendable {
         let ad: GADRewardedAd?
         init(ad: GADRewardedAd?) {
             self.ad = ad

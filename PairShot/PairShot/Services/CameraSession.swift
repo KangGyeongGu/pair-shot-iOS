@@ -65,6 +65,27 @@ struct CameraZoomSnapshot {
     )
 }
 
+nonisolated enum CameraZoomCapabilities {
+    static func recommendedMaxFactor(for device: AVCaptureDevice) -> Double {
+        if #available(iOS 18.0, *),
+           let range = device.activeFormat.systemRecommendedVideoZoomRange
+        {
+            return Double(range.upperBound)
+        }
+        return Double(device.maxAvailableVideoZoomFactor)
+    }
+
+    static func displayMultiplier(for device: AVCaptureDevice) -> Double {
+        if #available(iOS 18.0, *) {
+            let raw = Double(device.displayVideoZoomFactorMultiplier)
+            return raw > 0 ? raw : 1.0
+        }
+        let firstSwitch = device.virtualDeviceSwitchOverVideoZoomFactors
+            .first.map { Double(truncating: $0) } ?? 1.0
+        return firstSwitch > 0 ? 1.0 / firstSwitch : 1.0
+    }
+}
+
 private final class CaptureSessionBox: @unchecked Sendable {
     nonisolated(unsafe) let session: AVCaptureSession
     nonisolated init() {
@@ -89,6 +110,7 @@ actor CameraSession {
     private let box = CaptureSessionBox()
     private let observerBox = InterruptionObserverBox()
     private let sessionQueue = DispatchQueue(label: "com.pairshot.camera.session", qos: .userInitiated)
+    private let permissionResolver: @Sendable () async -> CameraAuthorizationState
     private var didConfigure = false
     private var hasInputInternal = false
 
@@ -112,7 +134,11 @@ actor CameraSession {
         box.session.isRunning
     }
 
-    init() {
+    init(
+        permissionResolver: @escaping @Sendable () async -> CameraAuthorizationState =
+            CameraSessionPermissionResolver.systemDefault
+    ) {
+        self.permissionResolver = permissionResolver
         registerInterruptionObservers()
     }
 
@@ -120,7 +146,7 @@ actor CameraSession {
         observerBox.cleanup()
     }
 
-    private nonisolated func registerInterruptionObservers() {
+    nonisolated private func registerInterruptionObservers() {
         let session = box.session
         let observerBox = observerBox
         let center = NotificationCenter.default
@@ -181,34 +207,21 @@ actor CameraSession {
         AppLogger.camera.info("Capture session resumed after runtime error")
     }
 
-    func authorizationState() -> CameraAuthorizationState {
-        switch AVCaptureDevice.authorizationStatus(for: .video) {
-            case .notDetermined: return .notDetermined
-            case .authorized: return .authorized
-            case .denied: return .denied
-            case .restricted: return .restricted
-            @unknown default: return .denied
-        }
+    func authorizationState() async -> CameraAuthorizationState {
+        await permissionResolver()
     }
 
     func start() async {
         AppLogger.camera.debug("Camera session start requested")
-        switch AVCaptureDevice.authorizationStatus(for: .video) {
+        let state = await permissionResolver()
+        switch state {
             case .authorized:
                 break
 
-            case .notDetermined:
-                let granted = await AVCaptureDevice.requestAccess(for: .video)
-                guard granted else {
-                    AppLogger.camera.debug("Camera permission denied at prompt")
-                    return
-                }
-
-            case .denied, .restricted:
-                AppLogger.camera.debug("Camera permission unavailable (denied/restricted)")
-                return
-
-            @unknown default:
+            case .notDetermined, .denied, .restricted:
+                AppLogger.camera.debug(
+                    "Camera permission unavailable state=\(String(describing: state), privacy: .public)"
+                )
                 return
         }
 
@@ -245,26 +258,12 @@ actor CameraSession {
             let presets = ZoomPresetBuilder.build(for: device)
             let firstSwitch = device.virtualDeviceSwitchOverVideoZoomFactors
                 .first.map { Double(truncating: $0) } ?? 1.0
-            let recommendedMax = if #available(iOS 18.0, *),
-                                    let range = device.activeFormat.systemRecommendedVideoZoomRange
-            {
-                Double(range.upperBound)
-            } else {
-                Double(device.maxAvailableVideoZoomFactor)
-            }
-            let multiplier: Double
-            if #available(iOS 18.0, *) {
-                let raw = Double(device.displayVideoZoomFactorMultiplier)
-                multiplier = raw > 0 ? raw : 1.0
-            } else {
-                multiplier = firstSwitch > 0 ? 1.0 / firstSwitch : 1.0
-            }
             return CameraZoomSnapshot(
                 minFactor: Double(device.minAvailableVideoZoomFactor),
-                maxFactor: recommendedMax,
+                maxFactor: CameraZoomCapabilities.recommendedMaxFactor(for: device),
                 currentFactor: Double(device.videoZoomFactor),
                 firstSwitchOver: firstSwitch,
-                displayMultiplier: multiplier,
+                displayMultiplier: CameraZoomCapabilities.displayMultiplier(for: device),
                 presets: presets,
                 exposureBiasRange: device.minExposureTargetBias ... device.maxExposureTargetBias
             )
@@ -282,10 +281,7 @@ actor CameraSession {
         get async {
             guard let device = activeDevice else { return 1.0 }
             return await runOnSessionQueue {
-                if #available(iOS 18.0, *), let range = device.activeFormat.systemRecommendedVideoZoomRange {
-                    return Double(range.upperBound)
-                }
-                return Double(device.maxAvailableVideoZoomFactor)
+                CameraZoomCapabilities.recommendedMaxFactor(for: device)
             }
         }
     }
@@ -415,7 +411,7 @@ actor CameraSession {
         return nil
     }
 
-    private nonisolated static func applyDefaultZoom(to device: AVCaptureDevice) {
+    nonisolated private static func applyDefaultZoom(to device: AVCaptureDevice) {
         guard let firstSwitch = device.virtualDeviceSwitchOverVideoZoomFactors.first else { return }
         let target = CGFloat(truncating: firstSwitch)
         do {
@@ -427,7 +423,7 @@ actor CameraSession {
         }
     }
 
-    private nonisolated static func applyMaxPhotoDimensions(
+    nonisolated private static func applyMaxPhotoDimensions(
         to output: AVCapturePhotoOutput,
         device: AVCaptureDevice
     ) {
@@ -693,6 +689,29 @@ actor CameraSession {
     }
 }
 
+enum CameraSessionPermissionResolver {
+    @Sendable
+    static func systemDefault() async -> CameraAuthorizationState {
+        switch AVCaptureDevice.authorizationStatus(for: .video) {
+            case .authorized:
+                return .authorized
+
+            case .notDetermined:
+                let granted = await AVCaptureDevice.requestAccess(for: .video)
+                return granted ? .authorized : .denied
+
+            case .denied:
+                return .denied
+
+            case .restricted:
+                return .restricted
+
+            @unknown default:
+                return .denied
+        }
+    }
+}
+
 private final class SwitchLensResult: @unchecked Sendable {
     nonisolated(unsafe) let device: AVCaptureDevice
     nonisolated(unsafe) let input: AVCaptureDeviceInput
@@ -703,7 +722,7 @@ private final class SwitchLensResult: @unchecked Sendable {
     }
 }
 
-private final nonisolated class InitialInputResult: @unchecked Sendable {
+nonisolated private final class InitialInputResult: @unchecked Sendable {
     let device: AVCaptureDevice?
     let input: AVCaptureDeviceInput?
     let photoOutput: AVCapturePhotoOutput?

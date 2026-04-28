@@ -85,7 +85,8 @@ final class AppEnvironment {
             rewardedAdManager: rewardedAdManager,
             nativeAdLoader: nativeAdLoader,
             appOpenAdManager: appOpenAdManager,
-            fullscreenAdCoordinator: fullscreenAdCoordinator
+            fullscreenAdCoordinator: fullscreenAdCoordinator,
+            trackingService: self.trackingService
         )
         self.interstitialAdManager = ads.interstitialAdManager
         self.rewardedAdManager = ads.rewardedAdManager
@@ -175,13 +176,18 @@ final class AppEnvironment {
         rewardedAdManager: RewardedAdManager?,
         nativeAdLoader: NativeAdLoader?,
         appOpenAdManager: AppOpenAdManager?,
-        fullscreenAdCoordinator: FullscreenAdCoordinator?
+        fullscreenAdCoordinator: FullscreenAdCoordinator?,
+        trackingService: TrackingAuthorizationService
     ) -> AppAdManagerBundle {
         AppAdManagerBundle(
-            interstitialAdManager: interstitialAdManager ?? InterstitialAdManager(),
-            rewardedAdManager: rewardedAdManager ?? RewardedAdManager(),
-            nativeAdLoader: nativeAdLoader ?? NativeAdLoader(),
-            appOpenAdManager: appOpenAdManager ?? AppOpenAdManager(),
+            interstitialAdManager: interstitialAdManager
+                ?? InterstitialAdManager(trackingService: trackingService),
+            rewardedAdManager: rewardedAdManager
+                ?? RewardedAdManager(trackingService: trackingService),
+            nativeAdLoader: nativeAdLoader
+                ?? NativeAdLoader(trackingService: trackingService),
+            appOpenAdManager: appOpenAdManager
+                ?? AppOpenAdManager(trackingService: trackingService),
             fullscreenAdCoordinator: fullscreenAdCoordinator ?? FullscreenAdCoordinator()
         )
     }
@@ -190,13 +196,16 @@ final class AppEnvironment {
         albumId: UUID?,
         refillPairId: UUID? = nil
     ) -> BeforeCameraViewModel {
-        BeforeCameraViewModel(
+        let bundle = makeCameraSessionBundle()
+        return BeforeCameraViewModel(
             albumId: albumId,
             refillPairId: refillPairId,
             createPair: createPair,
             pairRepo: pairRepo,
             albumRepo: albumRepo,
-            appSettings: appSettings
+            appSettings: appSettings,
+            session: bundle.session,
+            permissionProbe: bundle.probe
         )
     }
 
@@ -205,14 +214,31 @@ final class AppEnvironment {
         initialPairId: UUID? = nil,
         sortOrder: HomeSortOrder = .newest
     ) -> AfterCameraViewModel {
-        AfterCameraViewModel(
+        let bundle = makeCameraSessionBundle()
+        return AfterCameraViewModel(
             albumId: albumId,
             initialPairId: initialPairId,
             sortOrder: sortOrder,
             captureAfter: captureAfter,
             pairRepo: pairRepo,
             photoLibrary: photoLibrary,
-            appSettings: appSettings
+            appSettings: appSettings,
+            session: bundle.session,
+            permissionProbe: bundle.probe
+        )
+    }
+
+    private func makeCameraSessionBundle() -> CameraSessionBundle {
+        let service = permissionStatusService
+        let probe: @Sendable () async -> Bool = {
+            await service.requestCameraAccessIfNeeded()
+        }
+        let resolver: @Sendable () async -> CameraAuthorizationState = {
+            await probe() ? .authorized : .denied
+        }
+        return CameraSessionBundle(
+            session: CameraSession(permissionResolver: resolver),
+            probe: probe
         )
     }
 
@@ -327,6 +353,12 @@ struct AppAdManagerBundle {
     let nativeAdLoader: NativeAdLoader
     let appOpenAdManager: AppOpenAdManager
     let fullscreenAdCoordinator: FullscreenAdCoordinator
+}
+
+@MainActor
+struct CameraSessionBundle {
+    let session: CameraSession
+    let probe: @Sendable () async -> Bool
 }
 
 @MainActor

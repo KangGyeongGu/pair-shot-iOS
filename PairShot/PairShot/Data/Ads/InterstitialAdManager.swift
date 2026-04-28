@@ -31,14 +31,19 @@ final class InterstitialAdManager {
     private(set) var lastShownAt: Date?
 
     private let minimumInterval: TimeInterval
+    private let trackingService: TrackingAuthorizationService?
 
     #if canImport(GoogleMobileAds)
         private var ad: GADInterstitialAd?
         private let presentationDelegate: InterstitialPresentationDelegate
     #endif
 
-    init(minimumInterval: TimeInterval = InterstitialAdManager.defaultMinimumInterval) {
+    init(
+        minimumInterval: TimeInterval = InterstitialAdManager.defaultMinimumInterval,
+        trackingService: TrackingAuthorizationService? = nil
+    ) {
         self.minimumInterval = minimumInterval
+        self.trackingService = trackingService
         #if canImport(GoogleMobileAds)
             presentationDelegate = InterstitialPresentationDelegate()
         #endif
@@ -52,10 +57,8 @@ final class InterstitialAdManager {
         guard !isLoaded, !isLoading else { return }
         let resolvedUnitID = adUnitID ?? AdsConfig.interstitial
         #if canImport(GoogleMobileAds)
-            guard let request = AdRequestBuilder.build(
-                isAdFree: adFreeStore?.isAdFree ?? false,
-                attStatus: ATTrackingManager.trackingAuthorizationStatus
-            ) else { return }
+            let attStatus = trackingService?.currentStatus ?? .notDetermined
+            let request = AdRequestBuilder.build(attStatus: attStatus)
             isLoading = true
             AppLogger.ads.debug("Interstitial load requested")
             GADInterstitialAd.load(

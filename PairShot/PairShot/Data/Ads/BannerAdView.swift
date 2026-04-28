@@ -25,14 +25,18 @@ struct BannerAdSlot: View {
 
     var body: some View {
         if BannerAdGate.shouldShow(isAdFree: adFreeStore.isAdFree) {
-            BannerAdView(adUnitID: adUnitID, width: UIScreen.main.bounds.width)
-                .frame(height: 50)
-                .frame(maxWidth: .infinity)
-                .task {
-                    guard !hasRequestedATT else { return }
-                    hasRequestedATT = true
-                    _ = await tracking.requestIfUndetermined()
-                }
+            BannerAdView(
+                adUnitID: adUnitID,
+                width: UIScreen.main.bounds.width,
+                attStatus: tracking.currentStatus
+            )
+            .frame(height: 50)
+            .frame(maxWidth: .infinity)
+            .task {
+                guard !hasRequestedATT else { return }
+                hasRequestedATT = true
+                _ = await tracking.requestIfUndetermined()
+            }
         }
     }
 }
@@ -40,10 +44,16 @@ struct BannerAdSlot: View {
 struct BannerAdView: UIViewRepresentable {
     let adUnitID: String
     let width: CGFloat
+    let attStatus: ATTrackingManager.AuthorizationStatus
 
-    init(adUnitID: String = AdsConfig.banner, width: CGFloat) {
+    init(
+        adUnitID: String = AdsConfig.banner,
+        width: CGFloat,
+        attStatus: ATTrackingManager.AuthorizationStatus = .notDetermined
+    ) {
         self.adUnitID = adUnitID
         self.width = width
+        self.attStatus = attStatus
     }
 
     #if canImport(GoogleMobileAds)
@@ -52,10 +62,7 @@ struct BannerAdView: UIViewRepresentable {
             view.adUnitID = adUnitID
             view.rootViewController = Self.resolveRootViewController()
             context.coordinator.lastWidth = width
-            let request = AdRequestBuilder.build(
-                isAdFree: false,
-                attStatus: ATTrackingManager.trackingAuthorizationStatus
-            ) ?? GADRequest()
+            let request = AdRequestBuilder.build(attStatus: attStatus)
             AppLogger.ads.debug("Banner load requested width=\(width, privacy: .public)")
             view.load(request)
             return view
@@ -68,10 +75,7 @@ struct BannerAdView: UIViewRepresentable {
             if BannerAdSize.shouldReload(previous: context.coordinator.lastWidth, current: width) {
                 context.coordinator.lastWidth = width
                 uiView.adSize = BannerAdSize.adaptive(width: width)
-                let request = AdRequestBuilder.build(
-                    isAdFree: false,
-                    attStatus: ATTrackingManager.trackingAuthorizationStatus
-                ) ?? GADRequest()
+                let request = AdRequestBuilder.build(attStatus: attStatus)
                 AppLogger.ads.debug("Banner reload width=\(width, privacy: .public)")
                 uiView.load(request)
             }

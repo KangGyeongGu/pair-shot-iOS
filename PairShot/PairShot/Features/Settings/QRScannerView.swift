@@ -1,4 +1,3 @@
-@preconcurrency import AVFoundation
 import SwiftUI
 import UIKit
 
@@ -6,6 +5,7 @@ struct QRScannerView: View {
     let onScan: (String) -> Void
     let onCancel: () -> Void
 
+    @Environment(AppEnvironment.self) private var env
     @State private var permissionState: PermissionState = .checking
 
     enum PermissionState: Equatable {
@@ -113,20 +113,8 @@ struct QRScannerView: View {
     }
 
     private func requestPermissionIfNeeded() async {
-        switch AVCaptureDevice.authorizationStatus(for: .video) {
-            case .authorized:
-                permissionState = .granted
-
-            case .notDetermined:
-                let granted = await AVCaptureDevice.requestAccess(for: .video)
-                permissionState = granted ? .granted : .denied
-
-            case .denied, .restricted:
-                permissionState = .denied
-
-            @unknown default:
-                permissionState = .denied
-        }
+        let granted = await env.permissionStatusService.requestCameraAccessIfNeeded()
+        permissionState = granted ? .granted : .denied
     }
 }
 

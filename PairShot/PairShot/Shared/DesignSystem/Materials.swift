@@ -24,6 +24,14 @@ extension View {
     func adaptiveGlass(in shape: some Shape, kind: AdaptiveGlassKind = .regular) -> some View {
         modifier(AdaptiveGlassModifier(shape: shape, kind: kind))
     }
+
+    func adaptiveGlass(
+        in shape: some Shape,
+        kind: AdaptiveGlassKind = .regular,
+        legacyFill: Color
+    ) -> some View {
+        modifier(AdaptiveGlassFillModifier(shape: shape, kind: kind, legacyFill: legacyFill))
+    }
 }
 
 private struct AppMaterialBackgroundModifier: ViewModifier {
@@ -60,6 +68,20 @@ private struct AdaptiveGlassModifier<S: Shape>: ViewModifier {
             content.glassEffect(kind.liquidGlass, in: shape)
         } else {
             content.background(shape.fill(kind.legacyMaterial))
+        }
+    }
+}
+
+private struct AdaptiveGlassFillModifier<S: Shape>: ViewModifier {
+    let shape: S
+    let kind: AdaptiveGlassKind
+    let legacyFill: Color
+
+    func body(content: Content) -> some View {
+        if #available(iOS 26.0, *) {
+            content.glassEffect(kind.liquidGlass, in: shape)
+        } else {
+            content.background(shape.fill(legacyFill))
         }
     }
 }

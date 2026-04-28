@@ -30,14 +30,19 @@ final class AppOpenAdManager {
     private(set) var lastShownAt: Date?
 
     private let minimumInterval: TimeInterval
+    private let trackingService: TrackingAuthorizationService?
 
     #if canImport(GoogleMobileAds)
         private var ad: GADAppOpenAd?
         private let presentationDelegate: AppOpenPresentationDelegate
     #endif
 
-    init(minimumInterval: TimeInterval = AppOpenAdGate.defaultMinimumInterval) {
+    init(
+        minimumInterval: TimeInterval = AppOpenAdGate.defaultMinimumInterval,
+        trackingService: TrackingAuthorizationService? = nil
+    ) {
         self.minimumInterval = minimumInterval
+        self.trackingService = trackingService
         #if canImport(GoogleMobileAds)
             presentationDelegate = AppOpenPresentationDelegate()
         #endif
@@ -51,10 +56,8 @@ final class AppOpenAdManager {
         guard !isLoaded, !isLoading else { return }
         let resolvedUnitID = adUnitID ?? AdsConfig.appOpen
         #if canImport(GoogleMobileAds)
-            guard let request = AdRequestBuilder.build(
-                isAdFree: adFreeStore?.isAdFree ?? false,
-                attStatus: ATTrackingManager.trackingAuthorizationStatus
-            ) else { return }
+            let attStatus = trackingService?.currentStatus ?? .notDetermined
+            let request = AdRequestBuilder.build(attStatus: attStatus)
             isLoading = true
             AppLogger.ads.debug("AppOpen load requested")
             GADAppOpenAd.load(
@@ -128,7 +131,7 @@ final class AppOpenAdManager {
 }
 
 #if canImport(GoogleMobileAds)
-    private final nonisolated class AppOpenAdBox: @unchecked Sendable {
+    nonisolated private final class AppOpenAdBox: @unchecked Sendable {
         let ad: GADAppOpenAd?
         init(ad: GADAppOpenAd?) {
             self.ad = ad
