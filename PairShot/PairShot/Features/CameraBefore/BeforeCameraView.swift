@@ -12,6 +12,7 @@ struct BeforeCameraView: View {
 
     @State private var viewModel: BeforeCameraViewModel?
     @State private var didStartViewModel = false
+    @State private var hasPresentedColdStartAppOpen = false
     @State private var motion = MotionService()
     @State private var focusIndicator: FocusIndicatorState?
     @State private var previewView: CameraPreviewView?
@@ -47,7 +48,17 @@ struct BeforeCameraView: View {
             guard let vm = viewModel else { return }
             if !didStartViewModel {
                 didStartViewModel = true
-                Task { await vm.onAppear() }
+                Task {
+                    await vm.onAppear()
+                    if !hasPresentedColdStartAppOpen, vm.cameraPermissionGranted == true {
+                        hasPresentedColdStartAppOpen = true
+                        await env.appOpenAdManager.presentIfReady(
+                            from: BannerAdView.resolveRootViewController(),
+                            coordinator: env.fullscreenAdCoordinator,
+                            adFreeStore: env.adFreeStore
+                        )
+                    }
+                }
             }
             await observeEvents(viewModel: vm)
         }
