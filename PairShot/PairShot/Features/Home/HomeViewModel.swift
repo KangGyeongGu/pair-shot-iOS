@@ -1,3 +1,4 @@
+import CoreLocation
 import Foundation
 import Observation
 import SwiftData
@@ -81,10 +82,15 @@ final class HomeViewModel {
 
     private var pendingZipProgress: SnackbarProgressHandle?
     var showCreateAlbum: Bool = false
+    var albumNameInput: String = ""
+    var resolvedAlbumLatitude: Double?
+    var resolvedAlbumLongitude: Double?
+    var resolvedAlbumLabel: String?
 
     private let pairRepo: PhotoPairRepository
     private let albumRepo: AlbumRepository
     private let deletePairs: DeletePairsUseCase
+    private let deleteCombinedExports: DeleteCombinedExportsUseCase?
     private let toggleAlbumMembership: ToggleAlbumMembershipUseCase
     private let location: LocationFetching
     private let thumbnailCache: ThumbnailCache
@@ -106,11 +112,13 @@ final class HomeViewModel {
         thumbnailCache: ThumbnailCache? = nil,
         interstitialAdManager: InterstitialAdManager? = nil,
         adFreeStore: AdFreeStore? = nil,
-        fullscreenAdCoordinator: FullscreenAdCoordinator? = nil
+        fullscreenAdCoordinator: FullscreenAdCoordinator? = nil,
+        deleteCombinedExports: DeleteCombinedExportsUseCase? = nil
     ) {
         self.pairRepo = pairRepo
         self.albumRepo = albumRepo
         self.deletePairs = deletePairs
+        self.deleteCombinedExports = deleteCombinedExports
         self.toggleAlbumMembership = toggleAlbumMembership
         self.photoLibrary = photoLibrary
         self.location = location
@@ -120,6 +128,11 @@ final class HomeViewModel {
         self.interstitialAdManager = interstitialAdManager
         self.adFreeStore = adFreeStore
         self.fullscreenAdCoordinator = fullscreenAdCoordinator
+    }
+
+    func deleteCombinedExports(for pair: PhotoPair) async {
+        guard let useCase = deleteCombinedExports else { return }
+        try? await useCase(ids: [pair.id])
     }
 
     func sortedPairs(from all: [PhotoPair]) -> [PhotoPair] {
@@ -340,7 +353,47 @@ final class HomeViewModel {
     }
 
     func openCreateAlbum() {
+        albumNameInput = ""
+        resolvedAlbumLatitude = nil
+        resolvedAlbumLongitude = nil
+        resolvedAlbumLabel = nil
         showCreateAlbum = true
+    }
+
+    func preloadAlbumLocation() async {
+        guard resolvedAlbumLatitude == nil, resolvedAlbumLongitude == nil else { return }
+        guard let coord = await location.fetchOnce() else { return }
+        resolvedAlbumLatitude = coord.latitude
+        resolvedAlbumLongitude = coord.longitude
+        resolvedAlbumLabel = await HomeReverseGeocoder.label(latitude: coord.latitude, longitude: coord.longitude)
+    }
+
+    func confirmCreateAlbum() async {
+        let trimmed = albumNameInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        let fallback = resolvedAlbumLabel?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let finalName = trimmed.isEmpty ? fallback : trimmed
+        guard !finalName.isEmpty else {
+            resetCreateAlbumState()
+            return
+        }
+        await createAlbum(
+            name: finalName,
+            latitude: resolvedAlbumLatitude,
+            longitude: resolvedAlbumLongitude,
+            locationLabel: resolvedAlbumLabel
+        )
+        resetCreateAlbumState()
+    }
+
+    func cancelCreateAlbum() {
+        resetCreateAlbumState()
+    }
+
+    private func resetCreateAlbumState() {
+        albumNameInput = ""
+        resolvedAlbumLatitude = nil
+        resolvedAlbumLongitude = nil
+        resolvedAlbumLabel = nil
     }
 
     func requestPairDeletion(from all: [PhotoPair]) {
@@ -449,6 +502,38 @@ final class HomeViewModel {
 private struct EvictionSnapshot {
     let beforeIdentifier: String?
     let afterIdentifier: String?
+}
+
+enum HomeReverseGeocoder {
+    static func label(latitude: Double, longitude: Double) async -> String? {
+        let geocoder = CLGeocoder()
+        let location = CLLocation(latitude: latitude, longitude: longitude)
+        guard let placemarks = try? await geocoder.reverseGeocodeLocation(location, preferredLocale: .current),
+              let placemark = placemarks.first
+        else { return nil }
+        let raw = [
+            placemark.locality,
+            placemark.subLocality,
+            placemark.thoroughfare,
+            placemark.name,
+        ].compactMap { value -> String? in
+            guard let value, !value.isEmpty else { return nil }
+            return value
+        }
+        var seen: [String] = []
+        for part in raw {
+            if seen.contains(part) { continue }
+            if let last = seen.last, part.contains(last) || last.contains(part) {
+                if part.count > last.count {
+                    seen[seen.count - 1] = part
+                }
+                continue
+            }
+            seen.append(part)
+        }
+        let combined = seen.joined(separator: " ")
+        return combined.isEmpty ? nil : combined
+    }
 }
 
 nonisolated enum HomeSortOrderMapping {

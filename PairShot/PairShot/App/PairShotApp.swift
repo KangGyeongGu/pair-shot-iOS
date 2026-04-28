@@ -124,7 +124,7 @@ struct ModelContainerBootstrap {
     let fallbackActive: Bool
 
     static func bootstrap() -> Self {
-        let schema = Schema([Album.self, PhotoPair.self, Coupon.self])
+        let schema = Schema([Album.self, PhotoPair.self, Coupon.self, ExportHistory.self])
         do {
             let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
             let container = try ModelContainer(

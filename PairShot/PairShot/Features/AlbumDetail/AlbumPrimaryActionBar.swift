@@ -69,16 +69,10 @@ struct AlbumDetailBottomBarHost: View {
                 onDelete: { viewModel.requestPairDeletion(from: sortedPairs) },
                 onExportSettings: pushExport
             )
-        } else if sortedPairs.isEmpty {
+        } else {
             AlbumEmptyActionBar(
                 onCapture: viewModel.startCapture,
                 onPickPair: viewModel.startPairPicker
-            )
-        } else {
-            AlbumPrimaryActionBar(
-                title: String(localized: "common_button_start_capture"),
-                systemImage: "camera.fill",
-                action: viewModel.startCapture
             )
         }
     }

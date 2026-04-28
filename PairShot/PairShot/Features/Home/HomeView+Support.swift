@@ -178,14 +178,28 @@ struct HomeSheets: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .sheet(isPresented: $viewModel.showCreateAlbum) {
-                CreateAlbumDialog(isPresented: $viewModel.showCreateAlbum) { name, latitude, longitude, label in
-                    await viewModel.createAlbum(
-                        name: name,
-                        latitude: latitude,
-                        longitude: longitude,
-                        locationLabel: label
-                    )
+            .alert(
+                String(localized: "home_button_create_album"),
+                isPresented: $viewModel.showCreateAlbum
+            ) {
+                TextField(
+                    HomeCreateAlbumPlaceholder.text(label: viewModel.resolvedAlbumLabel),
+                    text: $viewModel.albumNameInput
+                )
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled(true)
+                Button(String(localized: "common_button_cancel"), role: .cancel) {
+                    viewModel.cancelCreateAlbum()
+                }
+                Button(String(localized: "common_button_create")) {
+                    Task { await viewModel.confirmCreateAlbum() }
+                }
+            } message: {
+                Text(String(localized: "home_dialog_album_create_hint"))
+            }
+            .task(id: viewModel.showCreateAlbum) {
+                if viewModel.showCreateAlbum {
+                    await viewModel.preloadAlbumLocation()
                 }
             }
             .sheet(item: $viewModel.pendingAlbumRename) { request in
@@ -329,6 +343,16 @@ struct HomeDeleteDialogs: ViewModifier {
             get: { viewModel.pendingSingleAlbumDelete != nil },
             set: { if !$0 { viewModel.pendingSingleAlbumDelete = nil } }
         )
+    }
+}
+
+enum HomeCreateAlbumPlaceholder {
+    static func text(label: String?) -> String {
+        let trimmed = label?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if trimmed.isEmpty {
+            return String(localized: "home_dialog_album_create_placeholder")
+        }
+        return trimmed
     }
 }
 

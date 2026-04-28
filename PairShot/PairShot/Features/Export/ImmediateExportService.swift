@@ -1,5 +1,6 @@
 import Foundation
 import Photos
+import SwiftData
 import UIKit
 
 enum SaveToDeviceOutcome {
@@ -17,6 +18,7 @@ final class ImmediateExportService {
     private let tempDirectoryProvider: @Sendable () -> URL
     private let compositor: any CompositorService
     private let appSettings: AppSettings
+    private let modelContainer: ModelContainer?
 
     private var hasAnyInclude: Bool {
         preferences.includeCombined || preferences.includeBefore || preferences.includeAfter
@@ -29,6 +31,7 @@ final class ImmediateExportService {
         snackbarQueue: SnackbarQueue,
         compositor: any CompositorService,
         appSettings: AppSettings,
+        modelContainer: ModelContainer? = nil,
         preferences: ExportPreferences = ExportPreferences(),
         tempDirectoryProvider: @escaping @Sendable () -> URL = { FileManager.default.temporaryDirectory }
     ) {
@@ -38,6 +41,7 @@ final class ImmediateExportService {
         self.snackbarQueue = snackbarQueue
         self.compositor = compositor
         self.appSettings = appSettings
+        self.modelContainer = modelContainer
         self.preferences = preferences
         self.tempDirectoryProvider = tempDirectoryProvider
     }
@@ -220,7 +224,13 @@ final class ImmediateExportService {
                 continue
             }
             do {
-                try await photoLibraryExporter.saveImageData(data, type: .photo)
+                let identifier = try await photoLibraryExporter.saveImageData(data, type: .photo)
+                recordExportHistory(
+                    identifier: identifier,
+                    pair: item.pair,
+                    entry: item.entry,
+                    renderOptions: renderOptions
+                )
                 saved += 1
                 processed += 1
                 snackbarQueue.updateProgress(progress, value: Double(processed) / Double(total))
@@ -247,6 +257,28 @@ final class ImmediateExportService {
                 finalVariant: .success
             )
         }
+    }
+
+    private func recordExportHistory(
+        identifier: String,
+        pair: PhotoPair,
+        entry: ExportSelection.Entry,
+        renderOptions: ExportRenderOptions
+    ) {
+        guard let modelContainer else { return }
+        guard let kind = ExportHistoryKindResolver.resolve(
+            entryKind: entry.kind,
+            renderOptions: renderOptions,
+            appSettings: appSettings
+        ) else { return }
+        let context = modelContainer.mainContext
+        let record = ExportHistory(
+            kind: kind,
+            photoLocalIdentifier: identifier,
+            pair: pair
+        )
+        context.insert(record)
+        try? context.save()
     }
 
     private func prepareZipForExport(

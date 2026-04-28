@@ -24,6 +24,7 @@ final class AppEnvironment {
     let createPair: CreatePairUseCase
     let captureAfter: CaptureAfterUseCase
     let deletePairs: DeletePairsUseCase
+    let deleteCombinedExports: DeleteCombinedExportsUseCase
     let exportPairs: ExportPairsUseCase
     let toggleAlbumMembership: ToggleAlbumMembershipUseCase
     let activateCoupon: ActivateCouponUseCase
@@ -49,6 +50,7 @@ final class AppEnvironment {
 
     private var sharedSettingsViewModel: SettingsViewModel?
 
+    // swiftlint:disable:next function_body_length
     init(
         modelContainer: ModelContainer,
         appSettings: AppSettings? = nil,
@@ -101,7 +103,8 @@ final class AppEnvironment {
             services: services,
             repositories: repositories,
             appSettings: resolvedAppSettings,
-            snackbarQueue: resolvedSnackbarQueue
+            snackbarQueue: resolvedSnackbarQueue,
+            modelContainer: modelContainer
         )
 
         location = services.location
@@ -123,6 +126,7 @@ final class AppEnvironment {
         createPair = pipeline.useCases.createPair
         captureAfter = pipeline.useCases.captureAfter
         deletePairs = pipeline.useCases.deletePairs
+        deleteCombinedExports = pipeline.useCases.deleteCombinedExports
         exportPairs = pipeline.useCases.exportPairs
         toggleAlbumMembership = pipeline.useCases.toggleAlbumMembership
         activateCoupon = pipeline.useCases.activateCoupon
@@ -134,7 +138,8 @@ final class AppEnvironment {
         services: AppServiceBundle,
         repositories: AppRepositoryBundle,
         appSettings: AppSettings,
-        snackbarQueue: SnackbarQueue
+        snackbarQueue: SnackbarQueue,
+        modelContainer: ModelContainer
     ) -> AppCorePipelineBundle {
         let compositor = DefaultCompositorService(photoLibrary: services.photoLibrary)
         let zipExporter = ZipExporterAdapter(
@@ -146,7 +151,8 @@ final class AppEnvironment {
         let useCases = AppUseCaseBundle.make(
             services: services,
             repositories: repositories,
-            zipExporter: zipExporter
+            zipExporter: zipExporter,
+            modelContainer: modelContainer
         )
         let immediateExport = ImmediateExportService(
             photoLibrary: services.photoLibrary,
@@ -154,7 +160,8 @@ final class AppEnvironment {
             photoLibraryExporter: services.photoLibraryExporter,
             snackbarQueue: snackbarQueue,
             compositor: compositor,
-            appSettings: appSettings
+            appSettings: appSettings,
+            modelContainer: modelContainer
         )
         return AppCorePipelineBundle(
             compositor: compositor,
@@ -230,7 +237,8 @@ final class AppEnvironment {
             appSettings: appSettings,
             interstitialAdManager: interstitialAdManager,
             adFreeStore: adFreeStore,
-            fullscreenAdCoordinator: fullscreenAdCoordinator
+            fullscreenAdCoordinator: fullscreenAdCoordinator,
+            deleteCombinedExports: deleteCombinedExports
         )
     }
 
@@ -254,7 +262,8 @@ final class AppEnvironment {
             appSettings: appSettings,
             interstitialAdManager: interstitialAdManager,
             adFreeStore: adFreeStore,
-            fullscreenAdCoordinator: fullscreenAdCoordinator
+            fullscreenAdCoordinator: fullscreenAdCoordinator,
+            deleteCombinedExports: deleteCombinedExports
         )
     }
 
@@ -304,7 +313,8 @@ final class AppEnvironment {
             appSettings: appSettings,
             interstitialAdManager: interstitialAdManager,
             adFreeStore: adFreeStore,
-            fullscreenAdCoordinator: fullscreenAdCoordinator
+            fullscreenAdCoordinator: fullscreenAdCoordinator,
+            modelContainer: modelContainer
         )
     }
 
@@ -382,6 +392,7 @@ struct AppUseCaseBundle {
     let createPair: CreatePairUseCase
     let captureAfter: CaptureAfterUseCase
     let deletePairs: DeletePairsUseCase
+    let deleteCombinedExports: DeleteCombinedExportsUseCase
     let exportPairs: ExportPairsUseCase
     let toggleAlbumMembership: ToggleAlbumMembershipUseCase
     let activateCoupon: ActivateCouponUseCase
@@ -390,7 +401,8 @@ struct AppUseCaseBundle {
     static func make(
         services: AppServiceBundle,
         repositories: AppRepositoryBundle,
-        zipExporter: ZipExporting
+        zipExporter: ZipExporting,
+        modelContainer: ModelContainer
     ) -> Self {
         Self(
             createPair: CreatePairUseCase(
@@ -407,6 +419,11 @@ struct AppUseCaseBundle {
             deletePairs: DeletePairsUseCase(
                 pairRepo: repositories.pairRepo,
                 photoLibrary: services.photoLibrary
+            ),
+            deleteCombinedExports: DeleteCombinedExportsUseCase(
+                pairRepo: repositories.pairRepo,
+                photoLibrary: services.photoLibrary,
+                modelContainer: modelContainer
             ),
             exportPairs: ExportPairsUseCase(
                 pairRepo: repositories.pairRepo,

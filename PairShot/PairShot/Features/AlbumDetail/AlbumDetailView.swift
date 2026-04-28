@@ -120,6 +120,25 @@ struct AlbumDetailView: View {
         .contentShape(.rect)
         .onTapGesture { viewModel.tapPair(pair, allPairs: allPairs) }
         .onLongPressGesture(minimumDuration: 0.4) { viewModel.longPressPair(pair) }
+        .contextMenu {
+            if !viewModel.isSelectionMode {
+                if pair.hasCombinedExport {
+                    Button(role: .destructive) {
+                        Task { await viewModel.deleteCombinedExports(for: pair) }
+                    } label: {
+                        Label(
+                            String(localized: "pair_card_action_delete_combined"),
+                            systemImage: "square.on.square"
+                        )
+                    }
+                }
+                Button(role: .destructive) {
+                    viewModel.requestSinglePairDeletion(pair)
+                } label: {
+                    Label(String(localized: "common_button_delete"), systemImage: "trash")
+                }
+            }
+        }
         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
             if !viewModel.isSelectionMode {
                 Button(role: .destructive) {

@@ -372,6 +372,7 @@ actor CameraSession {
         let avPosition: AVCaptureDevice.Position = position == .back ? .back : .front
         let session = box.session
         let priorInput = activeInput
+        let currentPhotoOutput = photoOutput
 
         let result = await runOnSessionQueue { () -> SwitchLensResult? in
             guard let device = Self.preferredDevice(for: avPosition) else { return nil }
@@ -387,6 +388,10 @@ actor CameraSession {
                 let input = try AVCaptureDeviceInput(device: device)
                 guard session.canAddInput(input) else { return nil }
                 session.addInput(input)
+                Self.applyDefaultZoom(to: device)
+                if let currentPhotoOutput {
+                    Self.applyMaxPhotoDimensions(to: currentPhotoOutput, device: device)
+                }
                 return SwitchLensResult(device: device, input: input)
             } catch {
                 AppLogger.camera.error("Camera lens switch failed: \(error.localizedDescription, privacy: .public)")
@@ -415,6 +420,27 @@ actor CameraSession {
             }
         }
         return nil
+    }
+
+    private nonisolated static func applyDefaultZoom(to device: AVCaptureDevice) {
+        guard let firstSwitch = device.virtualDeviceSwitchOverVideoZoomFactors.first else { return }
+        let target = CGFloat(truncating: firstSwitch)
+        do {
+            try device.lockForConfiguration()
+            defer { device.unlockForConfiguration() }
+            device.videoZoomFactor = max(target, device.minAvailableVideoZoomFactor)
+        } catch {
+            AppLogger.camera.error("Default zoom set failed: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    private nonisolated static func applyMaxPhotoDimensions(
+        to output: AVCapturePhotoOutput,
+        device: AVCaptureDevice
+    ) {
+        let supported = device.activeFormat.supportedMaxPhotoDimensions
+        guard let largest = supported.last else { return }
+        output.maxPhotoDimensions = largest
     }
 
     func setFlashMode(_ mode: CameraFlashMode) async {
@@ -532,6 +558,7 @@ actor CameraSession {
         }
 
         let settings = AVCapturePhotoSettings()
+        settings.maxPhotoDimensions = photoOutput.maxPhotoDimensions
         if device.hasFlash {
             switch flashMode {
                 case .auto: settings.flashMode = .auto
@@ -593,6 +620,10 @@ actor CameraSession {
             session.beginConfiguration()
             defer { session.commitConfiguration() }
 
+            if session.canSetSessionPreset(.photo) {
+                session.sessionPreset = .photo
+            }
+
             let candidates: [AVCaptureDevice.DeviceType] = [
                 .builtInTripleCamera,
                 .builtInDualWideCamera,
@@ -611,6 +642,7 @@ actor CameraSession {
                     continue
                 }
                 session.addInput(input)
+                Self.applyDefaultZoom(to: device)
                 resolvedDevice = device
                 resolvedInput = input
                 break
@@ -624,6 +656,7 @@ actor CameraSession {
             var resolvedOutput: AVCapturePhotoOutput?
             if session.canAddOutput(output) {
                 session.addOutput(output)
+                Self.applyMaxPhotoDimensions(to: output, device: device)
                 resolvedOutput = output
             }
 

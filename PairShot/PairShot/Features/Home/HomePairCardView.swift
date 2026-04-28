@@ -26,7 +26,17 @@ struct HomePairCardView: View {
     private var topTrailingBadge: some View {
         if isSelectionMode {
             selectionMarker.padding(8)
+        } else if pair.hasCombinedExport {
+            combinedIndicator.padding(8)
         }
+    }
+
+    private var combinedIndicator: some View {
+        Image(systemName: "square.on.square")
+            .font(.appCaptionBold)
+            .foregroundStyle(Color.white)
+            .frame(width: 28, height: 28)
+            .background(Color.accentColor, in: RoundedRectangle(cornerRadius: 8))
     }
 
     static func accessibilityLabel(

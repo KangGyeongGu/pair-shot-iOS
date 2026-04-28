@@ -4,7 +4,8 @@ import Photos
 
 protocol PhotoLibraryExporting: Sendable {
     func authorize() async -> PHAuthorizationStatus
-    func saveImageData(_ data: Data, type: ImageMediaType) async throws
+    @discardableResult
+    func saveImageData(_ data: Data, type: ImageMediaType) async throws -> String
 }
 
 enum ImageMediaType {
@@ -36,23 +37,29 @@ final class PhotoLibraryExport: PhotoLibraryExporting {
         }
     }
 
-    func saveImageData(_ data: Data, type: ImageMediaType) async throws {
+    @discardableResult
+    func saveImageData(_ data: Data, type: ImageMediaType) async throws -> String {
         let status = PHPhotoLibrary.authorizationStatus(for: .addOnly)
         guard status == .authorized || status == .limited else {
             AppLogger.storage.error("PhotoLibraryExport not authorized")
             throw PhotoLibraryExportError.notAuthorized
         }
         do {
-            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            let identifier: String = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<
+                String,
+                Error
+            >) in
+                var placeholder: PHObjectPlaceholder?
                 PHPhotoLibrary.shared().performChanges {
                     let request = PHAssetCreationRequest.forAsset()
                     let resourceType: PHAssetResourceType = switch type {
                         case .photo: .photo
                     }
                     request.addResource(with: resourceType, data: data, options: nil)
+                    placeholder = request.placeholderForCreatedAsset
                 } completionHandler: { success, error in
-                    if success {
-                        continuation.resume(returning: ())
+                    if success, let id = placeholder?.localIdentifier {
+                        continuation.resume(returning: id)
                     } else if let error {
                         continuation.resume(throwing: PhotoLibraryExportError.writeFailed(
                             String(describing: error)
@@ -62,12 +69,13 @@ final class PhotoLibraryExport: PhotoLibraryExporting {
                     }
                 }
             }
+            AppLogger.storage.info("PhotoLibraryExport saveImageData success")
+            return identifier
         } catch {
             AppLogger.storage.error(
                 "PhotoLibraryExport saveImageData failed: \(error.localizedDescription, privacy: .public)"
             )
             throw error
         }
-        AppLogger.storage.info("PhotoLibraryExport saveImageData success")
     }
 }

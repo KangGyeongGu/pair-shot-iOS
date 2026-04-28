@@ -62,30 +62,30 @@ struct ZoomControl: View {
     }
 
     private var presetCapsule: some View {
-        HStack(spacing: 2) {
+        HStack(spacing: 6) {
             ForEach(presets) { preset in
                 button(for: preset)
             }
         }
-        .padding(.horizontal, 4)
-        .padding(.vertical, 4)
-        .background(Capsule().fill(Color.black.opacity(0.35)))
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .adaptiveGlass(in: Capsule())
     }
 
     @ViewBuilder
     private func button(for preset: ZoomPresetSpec) -> some View {
         let isActive = preset == activePreset
         let display = label(for: preset, isActive: isActive)
+        let size: CGFloat = isActive ? 36 : 28
         Button {
             onSelect(preset)
         } label: {
             Text(display)
-                .font(.caption.weight(.semibold).monospacedDigit())
+                .font(.caption2.weight(.semibold).monospacedDigit())
                 .foregroundStyle(isActive ? Color.black : Color.white.opacity(0.85))
-                .frame(minWidth: 32, minHeight: 28)
-                .padding(.horizontal, 10)
+                .frame(width: size, height: size)
                 .background(
-                    Capsule().fill(isActive ? Color.appBrandPrimary : Color.clear)
+                    Circle().fill(isActive ? Color.appBrandPrimary : Color.clear)
                 )
                 .accessibilityLabel(display)
         }

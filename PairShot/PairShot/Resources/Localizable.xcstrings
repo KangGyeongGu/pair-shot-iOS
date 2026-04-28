@@ -1,9 +1,6 @@
 {
   "sourceLanguage" : "ko",
   "strings" : {
-    "—" : {
-
-    },
     "%lld" : {
 
     },
@@ -1705,6 +1702,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "삭제"
+          }
+        }
+      }
+    },
+    "pair_card_action_delete_combined" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete combined photo"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "합성본만 삭제"
           }
         }
       }

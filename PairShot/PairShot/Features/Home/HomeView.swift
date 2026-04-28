@@ -14,7 +14,7 @@ struct HomeView: View {
 
     private let columns: [GridItem] = [
         GridItem(.flexible(), spacing: 8),
-        GridItem(.flexible(), spacing: 8),
+        GridItem(.flexible(), spacing: 8)
     ]
 
     init(
@@ -191,6 +191,16 @@ struct HomeView: View {
         .onTapGesture { viewModel.tapPair(pair, allPairs: allPairs) }
         .contextMenu {
             if !viewModel.isSelectionMode {
+                if pair.hasCombinedExport {
+                    Button(role: .destructive) {
+                        Task { await viewModel.deleteCombinedExports(for: pair) }
+                    } label: {
+                        Label(
+                            String(localized: "pair_card_action_delete_combined"),
+                            systemImage: "square.on.square"
+                        )
+                    }
+                }
                 Button(role: .destructive) {
                     viewModel.requestSinglePairDeletion(pair)
                 } label: {

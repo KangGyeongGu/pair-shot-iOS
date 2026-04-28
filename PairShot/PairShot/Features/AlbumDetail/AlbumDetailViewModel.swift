@@ -54,6 +54,7 @@ final class AlbumDetailViewModel {
     private let pairRepo: PhotoPairRepository
     private let albumRepo: AlbumRepository
     private let deletePairs: DeletePairsUseCase
+    private let deleteCombinedExports: DeleteCombinedExportsUseCase?
     private let toggleAlbumMembership: ToggleAlbumMembershipUseCase
     private let thumbnailCache: ThumbnailCache
     private let immediateExport: ImmediateExportService
@@ -74,12 +75,14 @@ final class AlbumDetailViewModel {
         thumbnailCache: ThumbnailCache? = nil,
         interstitialAdManager: InterstitialAdManager? = nil,
         adFreeStore: AdFreeStore? = nil,
-        fullscreenAdCoordinator: FullscreenAdCoordinator? = nil
+        fullscreenAdCoordinator: FullscreenAdCoordinator? = nil,
+        deleteCombinedExports: DeleteCombinedExportsUseCase? = nil
     ) {
         self.albumId = albumId
         self.pairRepo = pairRepo
         self.albumRepo = albumRepo
         self.deletePairs = deletePairs
+        self.deleteCombinedExports = deleteCombinedExports
         self.toggleAlbumMembership = toggleAlbumMembership
         self.photoLibrary = photoLibrary
         self.immediateExport = immediateExport
@@ -88,6 +91,11 @@ final class AlbumDetailViewModel {
         self.interstitialAdManager = interstitialAdManager
         self.adFreeStore = adFreeStore
         self.fullscreenAdCoordinator = fullscreenAdCoordinator
+    }
+
+    func deleteCombinedExports(for pair: PhotoPair) async {
+        guard let useCase = deleteCombinedExports else { return }
+        try? await useCase(ids: [pair.id])
     }
 
     func sortedPairs(from album: Album?) -> [PhotoPair] {
