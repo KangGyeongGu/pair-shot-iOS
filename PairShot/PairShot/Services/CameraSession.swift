@@ -184,56 +184,66 @@ actor CameraSession {
 
     private func configureInitialInput() async {
         let session = box.session
-        let resultBox = await runOnSessionQueue {
-            session.beginConfiguration()
-            defer { session.commitConfiguration() }
+        var resultBox = InitialInputResult(device: nil, input: nil, photoOutput: nil, hasInput: false)
+        var attempt = 0
+        while attempt < 2 {
+            resultBox = await runOnSessionQueue {
+                session.beginConfiguration()
+                defer { session.commitConfiguration() }
 
-            if session.canSetSessionPreset(.photo) {
-                session.sessionPreset = .photo
-            }
-
-            let candidates: [AVCaptureDevice.DeviceType] = [
-                .builtInTripleCamera,
-                .builtInDualWideCamera,
-                .builtInDualCamera,
-                .builtInWideAngleCamera,
-            ]
-            var resolvedDevice: AVCaptureDevice?
-            var resolvedInput: AVCaptureDeviceInput?
-            for type in candidates {
-                guard let device = AVCaptureDevice.default(type, for: .video, position: .back) else {
-                    continue
+                if session.canSetSessionPreset(.photo) {
+                    session.sessionPreset = .photo
                 }
-                guard let input = try? AVCaptureDeviceInput(device: device),
-                      session.canAddInput(input)
-                else {
-                    continue
+
+                let candidates: [AVCaptureDevice.DeviceType] = [
+                    .builtInTripleCamera,
+                    .builtInDualWideCamera,
+                    .builtInDualCamera,
+                    .builtInWideAngleCamera,
+                ]
+                var resolvedDevice: AVCaptureDevice?
+                var resolvedInput: AVCaptureDeviceInput?
+                for type in candidates {
+                    guard let device = AVCaptureDevice.default(type, for: .video, position: .back) else {
+                        continue
+                    }
+                    guard let input = try? AVCaptureDeviceInput(device: device),
+                          session.canAddInput(input)
+                    else {
+                        continue
+                    }
+                    session.addInput(input)
+                    Self.applyDefaultZoom(to: device)
+                    resolvedDevice = device
+                    resolvedInput = input
+                    break
                 }
-                session.addInput(input)
-                Self.applyDefaultZoom(to: device)
-                resolvedDevice = device
-                resolvedInput = input
-                break
-            }
 
-            guard let device = resolvedDevice, let input = resolvedInput else {
-                return InitialInputResult(device: nil, input: nil, photoOutput: nil, hasInput: false)
-            }
+                guard let device = resolvedDevice, let input = resolvedInput else {
+                    return InitialInputResult(device: nil, input: nil, photoOutput: nil, hasInput: false)
+                }
 
-            let output = AVCapturePhotoOutput()
-            var resolvedOutput: AVCapturePhotoOutput?
-            if session.canAddOutput(output) {
+                let output = AVCapturePhotoOutput()
+                guard session.canAddOutput(output) else {
+                    AppLogger.camera.error("Camera session canAddOutput=false; rolling back input")
+                    session.removeInput(input)
+                    return InitialInputResult(device: nil, input: nil, photoOutput: nil, hasInput: false)
+                }
                 session.addOutput(output)
                 Self.applyMaxPhotoDimensions(to: output, device: device)
-                resolvedOutput = output
-            }
 
-            return InitialInputResult(
-                device: device,
-                input: input,
-                photoOutput: resolvedOutput,
-                hasInput: true
-            )
+                return InitialInputResult(
+                    device: device,
+                    input: input,
+                    photoOutput: output,
+                    hasInput: true
+                )
+            }
+            if resultBox.hasInput, resultBox.photoOutput != nil { break }
+            attempt += 1
+            if attempt < 2 {
+                try? await Task.sleep(for: .milliseconds(150))
+            }
         }
         activeDevice = resultBox.device
         activeInput = resultBox.input
@@ -291,7 +301,7 @@ enum CameraSessionPermissionResolver {
     }
 }
 
-final nonisolated class InitialInputResult: @unchecked Sendable {
+nonisolated final class InitialInputResult: @unchecked Sendable {
     let device: AVCaptureDevice?
     let input: AVCaptureDeviceInput?
     let photoOutput: AVCapturePhotoOutput?

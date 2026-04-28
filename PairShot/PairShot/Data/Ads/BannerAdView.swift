@@ -18,6 +18,7 @@ struct BannerAdSlot: View {
 
     let adUnitID: String
     @State private var hasRequestedATT = false
+    @State private var hasArmed = false
 
     init(adUnitID: String = AdsConfig.banner) {
         self.adUnitID = adUnitID
@@ -27,15 +28,26 @@ struct BannerAdSlot: View {
         if BannerAdGate.shouldShow(isAdFree: adFreeStore.isAdFree) {
             let width = BannerAdView.currentBannerWidth()
             let height = BannerAdSize.adaptiveHeight(width: width)
-            BannerAdView(
-                adUnitID: adUnitID,
-                width: width,
-                attStatus: tracking.currentStatus
-            )
-            .frame(width: width, height: height)
-            .frame(maxWidth: .infinity, maxHeight: height, alignment: .top)
-            .clipped()
+            Group {
+                if hasArmed {
+                    BannerAdView(
+                        adUnitID: adUnitID,
+                        width: width,
+                        attStatus: tracking.currentStatus
+                    )
+                    .frame(width: width, height: height)
+                    .frame(maxWidth: .infinity, maxHeight: height, alignment: .top)
+                    .clipped()
+                } else {
+                    Color.clear
+                        .frame(maxWidth: .infinity, maxHeight: height, alignment: .top)
+                }
+            }
             .task {
+                if !hasArmed {
+                    try? await Task.sleep(for: .milliseconds(900))
+                    hasArmed = true
+                }
                 guard !hasRequestedATT else { return }
                 hasRequestedATT = true
                 _ = await tracking.requestIfUndetermined()

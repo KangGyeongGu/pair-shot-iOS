@@ -45,7 +45,6 @@ struct PairShotApp: App {
                 .preferredColorScheme(env.appSettings.resolvedColorScheme)
                 .task {
                     env.photoLibrarySyncService.register()
-                    await bootstrapAds()
                     await env.adFreeStore.refreshFromServer(
                         api: env.couponApi,
                         deviceHashProvider: env.deviceHashProvider
@@ -55,6 +54,8 @@ struct PairShotApp: App {
                         await env.permissionStatusService.requestAllInOrder()
                     }
                     await env.photoLibrarySyncService.revalidate()
+                    try? await Task.sleep(for: .milliseconds(800))
+                    await bootstrapAds()
                 }
         }
         .modelContainer(sharedModelContainer)
