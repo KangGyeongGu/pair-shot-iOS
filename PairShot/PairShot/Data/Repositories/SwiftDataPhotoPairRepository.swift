@@ -12,18 +12,6 @@ final class SwiftDataPhotoPairRepository: PhotoPairRepository {
         self.container = container
     }
 
-    nonisolated func observeAll() -> AsyncStream<[PhotoPair]> {
-        AsyncStream { continuation in
-            continuation.finish()
-        }
-    }
-
-    nonisolated func observe(albumId _: UUID?) -> AsyncStream<[PhotoPair]> {
-        AsyncStream { continuation in
-            continuation.finish()
-        }
-    }
-
     func fetchAll() async throws -> [PhotoPair] {
         try fetchAllSync()
     }
@@ -95,14 +83,6 @@ final class SwiftDataPhotoPairRepository: PhotoPairRepository {
             sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
         )
         return try context.fetch(descriptor)
-    }
-
-    private func fetchSync(albumId: UUID?) throws -> [PhotoPair] {
-        let all = try fetchAllSync()
-        guard let albumId else { return all }
-        return all.filter { pair in
-            pair.albums.contains { $0.id == albumId }
-        }
     }
 
     deinit {}

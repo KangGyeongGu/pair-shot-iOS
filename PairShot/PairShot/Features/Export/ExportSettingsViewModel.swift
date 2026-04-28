@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import OSLog
 import Photos
 import SwiftData
 import UIKit
@@ -272,14 +273,22 @@ final class ExportSettingsViewModel {
 
     func share() async {
         guard canExecute else { return }
-        await runWithInterstitial { [weak self] in
+        await InterstitialAdManager.runGated(
+            manager: interstitialAdManager,
+            adFreeStore: adFreeStore,
+            coordinator: fullscreenAdCoordinator
+        ) { [weak self] in
             await self?.performShare()
         }
     }
 
     func saveToDevice() async {
         guard canExecute else { return }
-        await runWithInterstitial { [weak self] in
+        await InterstitialAdManager.runGated(
+            manager: interstitialAdManager,
+            adFreeStore: adFreeStore,
+            coordinator: fullscreenAdCoordinator
+        ) { [weak self] in
             await self?.performSaveToDevice()
         }
     }
@@ -340,31 +349,6 @@ final class ExportSettingsViewModel {
 
             case .zip:
                 await saveZipToTemporaryAndNotify(progress: handle)
-        }
-    }
-
-    private func runWithInterstitial(_ work: @escaping @MainActor () async -> Void) async {
-        guard
-            let interstitialAdManager,
-            let adFreeStore,
-            let fullscreenAdCoordinator
-        else {
-            await work()
-            return
-        }
-        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
-            Task { @MainActor in
-                await interstitialAdManager.showIfAvailable(
-                    from: BannerAdView.resolveTopPresentedViewController(),
-                    adFreeStore: adFreeStore,
-                    coordinator: fullscreenAdCoordinator
-                ) {
-                    Task { @MainActor in
-                        await work()
-                        continuation.resume()
-                    }
-                }
-            }
         }
     }
 
@@ -534,7 +518,13 @@ final class ExportSettingsViewModel {
             pair: pair
         )
         context.insert(record)
-        try? context.save()
+        do {
+            try context.save()
+        } catch {
+            AppLogger.storage.error(
+                "ExportHistory persist failed: \(error.localizedDescription, privacy: .public)"
+            )
+        }
     }
 
     private func makeSelection() -> ExportContents {

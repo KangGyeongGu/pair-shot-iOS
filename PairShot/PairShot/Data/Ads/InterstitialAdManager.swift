@@ -206,8 +206,37 @@ final class InterstitialAdManager {
     }
 }
 
+@MainActor
+extension InterstitialAdManager {
+    static func runGated(
+        manager: InterstitialAdManager?,
+        adFreeStore: AdFreeStore?,
+        coordinator: FullscreenAdCoordinator?,
+        work: @escaping @MainActor () async -> Void
+    ) async {
+        guard let manager, let adFreeStore, let coordinator else {
+            await work()
+            return
+        }
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            Task { @MainActor in
+                await manager.showIfAvailable(
+                    from: BannerAdView.resolveTopPresentedViewController(),
+                    adFreeStore: adFreeStore,
+                    coordinator: coordinator
+                ) {
+                    Task { @MainActor in
+                        await work()
+                        continuation.resume()
+                    }
+                }
+            }
+        }
+    }
+}
+
 #if canImport(GoogleMobileAds)
-    private final nonisolated class InterstitialAdBox: @unchecked Sendable {
+    nonisolated private final class InterstitialAdBox: @unchecked Sendable {
         let ad: GADInterstitialAd?
         init(ad: GADInterstitialAd?) {
             self.ad = ad

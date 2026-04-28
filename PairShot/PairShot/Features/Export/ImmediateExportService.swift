@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 import Photos
 import SwiftData
 import UIKit
@@ -278,7 +279,13 @@ final class ImmediateExportService {
             pair: pair
         )
         context.insert(record)
-        try? context.save()
+        do {
+            try context.save()
+        } catch {
+            AppLogger.storage.error(
+                "ExportHistory persist failed: \(error.localizedDescription, privacy: .public)"
+            )
+        }
     }
 
     private func prepareZipForExport(

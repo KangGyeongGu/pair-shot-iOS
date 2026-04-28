@@ -182,7 +182,11 @@ final class AlbumDetailViewModel {
         let chosen = all.filter { selectedPairIds.contains($0.id) }
         guard !chosen.isEmpty else { return }
         guard !isExporting else { return }
-        await runWithInterstitial { [weak self] in
+        await InterstitialAdManager.runGated(
+            manager: interstitialAdManager,
+            adFreeStore: adFreeStore,
+            coordinator: fullscreenAdCoordinator
+        ) { [weak self] in
             await self?.performShare(pairs: chosen)
         }
     }
@@ -191,7 +195,11 @@ final class AlbumDetailViewModel {
         let chosen = all.filter { selectedPairIds.contains($0.id) }
         guard !chosen.isEmpty else { return }
         guard !isExporting else { return }
-        await runWithInterstitial { [weak self] in
+        await InterstitialAdManager.runGated(
+            manager: interstitialAdManager,
+            adFreeStore: adFreeStore,
+            coordinator: fullscreenAdCoordinator
+        ) { [weak self] in
             await self?.performSaveToDevice(pairs: chosen)
         }
     }
@@ -230,31 +238,6 @@ final class AlbumDetailViewModel {
         if let url, let progress {
             immediateExport.finishZipExport(url: url, progress: progress, saved: saved)
             cancelSelection()
-        }
-    }
-
-    private func runWithInterstitial(_ work: @escaping @MainActor () async -> Void) async {
-        guard
-            let interstitialAdManager,
-            let adFreeStore,
-            let fullscreenAdCoordinator
-        else {
-            await work()
-            return
-        }
-        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
-            Task { @MainActor in
-                await interstitialAdManager.showIfAvailable(
-                    from: BannerAdView.resolveTopPresentedViewController(),
-                    adFreeStore: adFreeStore,
-                    coordinator: fullscreenAdCoordinator
-                ) {
-                    Task { @MainActor in
-                        await work()
-                        continuation.resume()
-                    }
-                }
-            }
         }
     }
 
