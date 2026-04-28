@@ -14,6 +14,7 @@ struct PairShotApp: App {
 
     @State private var env: AppEnvironment
     @State private var hasBootstrappedAds = false
+    @State private var hasPresentedColdStartAppOpen = false
     @State private var showFallbackAlert: Bool
     @State private var lastScenePhase: ScenePhase = .background
     @Environment(\.scenePhase) private var scenePhase
@@ -55,6 +56,14 @@ struct PairShotApp: App {
                         await env.permissionStatusService.requestAllInOrder()
                     }
                     await env.photoLibrarySyncService.revalidate()
+                    if !hasPresentedColdStartAppOpen {
+                        hasPresentedColdStartAppOpen = true
+                        await env.appOpenAdManager.presentIfReady(
+                            from: BannerAdView.resolveRootViewController(),
+                            coordinator: env.fullscreenAdCoordinator,
+                            adFreeStore: env.adFreeStore
+                        )
+                    }
                 }
         }
         .modelContainer(sharedModelContainer)

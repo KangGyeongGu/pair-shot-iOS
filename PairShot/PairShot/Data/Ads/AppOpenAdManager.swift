@@ -98,7 +98,7 @@ final class AppOpenAdManager {
         if let adFreeStore, adFreeStore.isAdFree { return false }
         if !isLoaded {
             if isLoading {
-                try? await Task.sleep(for: .milliseconds(800))
+                try? await Task.sleep(for: .milliseconds(1500))
             }
             guard isLoaded else { return false }
         }
