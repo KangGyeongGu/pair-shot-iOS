@@ -14,7 +14,7 @@ struct HomeView: View {
 
     private let columns: [GridItem] = [
         GridItem(.flexible(), spacing: 8),
-        GridItem(.flexible(), spacing: 8)
+        GridItem(.flexible(), spacing: 8),
     ]
 
     init(

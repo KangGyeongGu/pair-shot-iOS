@@ -1,6 +1,6 @@
 import Foundation
 import OSLog
-import SwiftData
+@preconcurrency import SwiftData
 
 @MainActor
 final class SwiftDataCouponRepository: CouponRepository {
@@ -39,11 +39,7 @@ final class SwiftDataCouponRepository: CouponRepository {
 
     nonisolated func observeAll() -> AsyncStream<[Coupon]> {
         AsyncStream { continuation in
-            Task { @MainActor in
-                let snapshot = (try? self.fetchAllSync()) ?? []
-                continuation.yield(snapshot)
-                continuation.finish()
-            }
+            continuation.finish()
         }
     }
 

@@ -299,6 +299,9 @@ private struct WatermarkLogoPickerRow: View {
     @Binding var pickerItem: PhotosPickerItem?
 
     var body: some View {
+        let pickerTitle = imageData == nil
+            ? String(localized: "watermark_logo_pick_action")
+            : String(localized: "watermark_logo_replace_action")
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 12) {
                 logoThumbnail
@@ -308,13 +311,8 @@ private struct WatermarkLogoPickerRow: View {
                     matching: .images,
                     photoLibrary: .shared()
                 ) {
-                    Label(
-                        imageData == nil
-                            ? String(localized: "watermark_logo_pick_action")
-                            : String(localized: "watermark_logo_replace_action"),
-                        systemImage: "photo.on.rectangle"
-                    )
-                    .labelStyle(.titleAndIcon)
+                    Label(pickerTitle, systemImage: "photo.on.rectangle")
+                        .labelStyle(TitleAndIconLabelStyle())
                 }
                 .buttonStyle(.borderless)
             }

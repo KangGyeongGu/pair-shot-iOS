@@ -5,7 +5,7 @@ import OSLog
 import SwiftUI
 import UIKit
 #if canImport(GoogleMobileAds)
-    import GoogleMobileAds
+    @preconcurrency import GoogleMobileAds
 #endif
 
 enum NativeAdInsertionStrategy {

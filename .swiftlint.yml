@@ -55,7 +55,6 @@ opt_in_rules:
   - multiline_function_chains
   - multiline_literal_brackets
   - multiline_parameters
-  - multiline_parameters_brackets
   - nimble_operator
   - no_extension_access_modifier
   - nslocalizedstring_key
@@ -119,6 +118,7 @@ disabled_rules:
   - return_arrow_whitespace  # SwiftFormat: spaceAroundOperators
   - statement_position       # SwiftFormat: elseOnSameLine
   - multiline_parameters_brackets  # Can conflict with SwiftFormat's wrapArguments
+  - trailing_comma           # SwiftFormat: trailingCommas
 
   # Overly strict for SwiftUI / iOS patterns
   - todo                     # TODOs are tracked elsewhere

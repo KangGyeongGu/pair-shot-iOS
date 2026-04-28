@@ -600,7 +600,6 @@ nonisolated final class ExportPreferences: @unchecked Sendable {
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
-        // swiftlint:disable trailing_comma
         defaults.register(defaults: [
             Self.includeCombinedKey: true,
             Self.includeBeforeKey: false,
@@ -609,7 +608,6 @@ nonisolated final class ExportPreferences: @unchecked Sendable {
             Self.applyWatermarkKey: false,
             Self.applyCombineKey: true,
         ])
-        // swiftlint:enable trailing_comma
     }
 
     deinit {}

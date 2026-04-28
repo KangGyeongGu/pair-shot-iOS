@@ -18,7 +18,7 @@ enum CameraSettingsOverlayLayout {
             .adaptive(minimum: CameraSettingsOverlayMetrics.chipMinColumnWidth),
             spacing: CameraSettingsOverlayMetrics.chipSpacing,
             alignment: .center
-        )
+        ),
     ]
 }
 

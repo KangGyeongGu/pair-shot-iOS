@@ -38,15 +38,15 @@ final class PhotoLibraryService {
             throw LibraryError.notAuthorized
         }
         return try await withCheckedThrowingContinuation { continuation in
-            var placeholder: PHObjectPlaceholder?
+            let placeholderBox = PhotoLibraryPlaceholderBox()
             PHPhotoLibrary.shared().performChanges {
                 let request = PHAssetCreationRequest.forAsset()
                 let options = PHAssetResourceCreationOptions()
                 options.uniformTypeIdentifier = "public.jpeg"
                 request.addResource(with: .photo, data: jpegData, options: options)
-                placeholder = request.placeholderForCreatedAsset
+                placeholderBox.placeholder = request.placeholderForCreatedAsset
             } completionHandler: { success, error in
-                if success, let id = placeholder?.localIdentifier {
+                if success, let id = placeholderBox.placeholder?.localIdentifier {
                     continuation.resume(returning: id)
                 } else if let error {
                     continuation.resume(throwing: LibraryError.saveFailed(String(describing: error)))
@@ -114,6 +114,10 @@ final class PhotoLibraryService {
         guard let asset = fetchAsset(localIdentifier: localIdentifier) else { return nil }
         return await requestImageData(for: asset, progressHandler: progressHandler)
     }
+}
+
+nonisolated private final class PhotoLibraryPlaceholderBox: @unchecked Sendable {
+    var placeholder: PHObjectPlaceholder?
 }
 
 @MainActor

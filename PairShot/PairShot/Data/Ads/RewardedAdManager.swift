@@ -4,7 +4,7 @@ import Observation
 import OSLog
 import UIKit
 #if canImport(GoogleMobileAds)
-    import GoogleMobileAds
+    @preconcurrency import GoogleMobileAds
 #endif
 
 enum RewardedSessionGate {
@@ -69,13 +69,14 @@ final class RewardedAdManager {
                 withAdUnitID: resolvedUnitID,
                 request: request
             ) { [weak self] ad, error in
+                let adBox = RewardedAdBox(ad: ad)
                 Task { @MainActor [weak self] in
                     guard let self else { return }
                     isLoading = false
-                    if let ad {
-                        self.ad = ad
+                    if let resolvedAd = adBox.ad {
+                        self.ad = resolvedAd
                         isLoaded = true
-                        ad.fullScreenContentDelegate = presentationDelegate
+                        resolvedAd.fullScreenContentDelegate = presentationDelegate
                         AppLogger.ads.debug("Rewarded loaded")
                     } else {
                         self.ad = nil
@@ -173,6 +174,13 @@ final class RewardedAdManager {
 }
 
 #if canImport(GoogleMobileAds)
+    nonisolated private final class RewardedAdBox: @unchecked Sendable {
+        let ad: GADRewardedAd?
+        init(ad: GADRewardedAd?) {
+            self.ad = ad
+        }
+    }
+
     @MainActor
     private final class RewardedPresentationDelegate: NSObject, GADFullScreenContentDelegate {
         var onDismiss: (() -> Void)?

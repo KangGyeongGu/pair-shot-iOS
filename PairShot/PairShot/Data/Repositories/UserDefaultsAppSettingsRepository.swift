@@ -1,6 +1,6 @@
 import Foundation
 
-final nonisolated class UserDefaultsAppSettingsRepository: AppSettingsRepository, @unchecked Sendable {
+nonisolated final class UserDefaultsAppSettingsRepository: AppSettingsRepository, @unchecked Sendable {
     static let jpegQualityKey = "pairshot.jpegQuality"
     static let fileNamePrefixKey = "pairshot.fileNamePrefix"
     static let defaultOverlayAlphaKey = "pairshot.defaultOverlayAlpha"
@@ -27,7 +27,6 @@ final nonisolated class UserDefaultsAppSettingsRepository: AppSettingsRepository
     }
 
     private static func makeRegisteredDefaults() -> [String: Any] {
-        // swiftlint:disable trailing_comma
         [
             jpegQualityKey: AppSettingsSnapshot.defaultJpegQuality,
             fileNamePrefixKey: AppSettingsSnapshot.defaultFileNamePrefix,
@@ -45,7 +44,6 @@ final nonisolated class UserDefaultsAppSettingsRepository: AppSettingsRepository
             homeSortOrderKey: AppSettingsHandoffDefaults.homeSortOrder,
             albumSortOrderKey: AppSettingsHandoffDefaults.albumSortOrder,
         ]
-        // swiftlint:enable trailing_comma
     }
 
     func load() -> AppSettingsSnapshot {
@@ -155,7 +153,7 @@ final nonisolated class UserDefaultsAppSettingsRepository: AppSettingsRepository
     deinit {}
 }
 
-private final nonisolated class NotificationObserverTokenBox: @unchecked Sendable {
+nonisolated private final class NotificationObserverTokenBox: @unchecked Sendable {
     var token: (any NSObjectProtocol)?
     init() {}
     deinit {}

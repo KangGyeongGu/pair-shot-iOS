@@ -1,7 +1,6 @@
 import SwiftUI
 
 struct CombinePositionPicker3x3: View {
-    // swiftlint:disable trailing_comma
     private static let positions: [(CombineSettings.LabelPosition.Horizontal, CombineSettings.LabelPosition.Vertical)] =
         [
             (.leading, .top),
@@ -14,7 +13,6 @@ struct CombinePositionPicker3x3: View {
             (.center, .bottom),
             (.trailing, .bottom),
         ]
-    // swiftlint:enable trailing_comma
 
     private static let cellSide: CGFloat = 24
     private static let cellGap: CGFloat = 4

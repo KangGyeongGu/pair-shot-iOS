@@ -13,7 +13,6 @@ struct LicenseEntry: Identifiable {
 }
 
 enum LicenseEntries {
-    // swiftlint:disable trailing_comma
     static let all: [LicenseEntry] = [
         LicenseEntry(
             name: "Google Mobile Ads SDK",
@@ -28,7 +27,6 @@ enum LicenseEntries {
             url: zipFoundationURL
         ),
     ]
-    // swiftlint:enable trailing_comma
 
     // swiftlint:disable force_unwrapping
     private static let apacheTwoURL = URL(string: "https://www.apache.org/licenses/LICENSE-2.0")!

@@ -4,7 +4,7 @@ import Observation
 import OSLog
 import UIKit
 #if canImport(GoogleMobileAds)
-    import GoogleMobileAds
+    @preconcurrency import GoogleMobileAds
 #endif
 
 enum InterstitialFrequencyGate {
@@ -62,13 +62,14 @@ final class InterstitialAdManager {
                 withAdUnitID: resolvedUnitID,
                 request: request
             ) { [weak self] ad, error in
+                let adBox = InterstitialAdBox(ad: ad)
                 Task { @MainActor [weak self] in
                     guard let self else { return }
                     isLoading = false
-                    if let ad {
-                        self.ad = ad
+                    if let resolvedAd = adBox.ad {
+                        self.ad = resolvedAd
                         isLoaded = true
-                        ad.fullScreenContentDelegate = presentationDelegate
+                        resolvedAd.fullScreenContentDelegate = presentationDelegate
                         AppLogger.ads.debug("Interstitial loaded")
                     } else {
                         self.ad = nil
@@ -206,6 +207,13 @@ final class InterstitialAdManager {
 }
 
 #if canImport(GoogleMobileAds)
+    nonisolated private final class InterstitialAdBox: @unchecked Sendable {
+        let ad: GADInterstitialAd?
+        init(ad: GADInterstitialAd?) {
+            self.ad = ad
+        }
+    }
+
     @MainActor
     private final class InterstitialPresentationDelegate: NSObject, GADFullScreenContentDelegate {
         var onDismiss: (() -> Void)?

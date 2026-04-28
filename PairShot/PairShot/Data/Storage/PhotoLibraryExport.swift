@@ -49,16 +49,16 @@ final class PhotoLibraryExport: PhotoLibraryExporting {
                 String,
                 Error
             >) in
-                var placeholder: PHObjectPlaceholder?
+                let placeholderBox = PlaceholderBox()
                 PHPhotoLibrary.shared().performChanges {
                     let request = PHAssetCreationRequest.forAsset()
                     let resourceType: PHAssetResourceType = switch type {
                         case .photo: .photo
                     }
                     request.addResource(with: resourceType, data: data, options: nil)
-                    placeholder = request.placeholderForCreatedAsset
+                    placeholderBox.placeholder = request.placeholderForCreatedAsset
                 } completionHandler: { success, error in
-                    if success, let id = placeholder?.localIdentifier {
+                    if success, let id = placeholderBox.placeholder?.localIdentifier {
                         continuation.resume(returning: id)
                     } else if let error {
                         continuation.resume(throwing: PhotoLibraryExportError.writeFailed(
@@ -78,4 +78,8 @@ final class PhotoLibraryExport: PhotoLibraryExporting {
             throw error
         }
     }
+}
+
+nonisolated private final class PlaceholderBox: @unchecked Sendable {
+    var placeholder: PHObjectPlaceholder?
 }

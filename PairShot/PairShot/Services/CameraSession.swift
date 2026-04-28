@@ -120,7 +120,7 @@ actor CameraSession {
         observerBox.cleanup()
     }
 
-    private nonisolated func registerInterruptionObservers() {
+    nonisolated private func registerInterruptionObservers() {
         let session = box.session
         let observerBox = observerBox
         let center = NotificationCenter.default
@@ -213,14 +213,7 @@ actor CameraSession {
         }
 
         if !didConfigure {
-            let configured = await configureInitialInputOnQueue()
-            activeDevice = configured.device
-            activeInput = configured.input
-            photoOutput = configured.photoOutput
-            hasInputInternal = configured.hasInput
-            if configured.hasInput {
-                lensPosition = .back
-            }
+            await configureInitialInput()
             didConfigure = true
         }
 
@@ -422,7 +415,7 @@ actor CameraSession {
         return nil
     }
 
-    private nonisolated static func applyDefaultZoom(to device: AVCaptureDevice) {
+    nonisolated private static func applyDefaultZoom(to device: AVCaptureDevice) {
         guard let firstSwitch = device.virtualDeviceSwitchOverVideoZoomFactors.first else { return }
         let target = CGFloat(truncating: firstSwitch)
         do {
@@ -434,7 +427,7 @@ actor CameraSession {
         }
     }
 
-    private nonisolated static func applyMaxPhotoDimensions(
+    nonisolated private static func applyMaxPhotoDimensions(
         to output: AVCapturePhotoOutput,
         device: AVCaptureDevice
     ) {
@@ -614,9 +607,9 @@ actor CameraSession {
         return "\(stripped).\(position)"
     }
 
-    private func configureInitialInputOnQueue() async -> InitialInputResult {
+    private func configureInitialInput() async {
         let session = box.session
-        return await runOnSessionQueue {
+        let resultBox = await runOnSessionQueue {
             session.beginConfiguration()
             defer { session.commitConfiguration() }
 
@@ -667,6 +660,13 @@ actor CameraSession {
                 hasInput: true
             )
         }
+        activeDevice = resultBox.device
+        activeInput = resultBox.input
+        photoOutput = resultBox.photoOutput
+        hasInputInternal = resultBox.hasInput
+        if resultBox.hasInput {
+            lensPosition = .back
+        }
     }
 
     private func runOnSessionQueue<T: Sendable>(
@@ -703,13 +703,13 @@ private final class SwitchLensResult: @unchecked Sendable {
     }
 }
 
-private final class InitialInputResult: @unchecked Sendable {
-    nonisolated(unsafe) let device: AVCaptureDevice?
-    nonisolated(unsafe) let input: AVCaptureDeviceInput?
-    nonisolated(unsafe) let photoOutput: AVCapturePhotoOutput?
+nonisolated private final class InitialInputResult: @unchecked Sendable {
+    let device: AVCaptureDevice?
+    let input: AVCaptureDeviceInput?
+    let photoOutput: AVCapturePhotoOutput?
     let hasInput: Bool
 
-    nonisolated init(
+    init(
         device: AVCaptureDevice?,
         input: AVCaptureDeviceInput?,
         photoOutput: AVCapturePhotoOutput?,

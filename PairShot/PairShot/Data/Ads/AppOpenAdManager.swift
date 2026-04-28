@@ -4,7 +4,7 @@ import Observation
 import OSLog
 import UIKit
 #if canImport(GoogleMobileAds)
-    import GoogleMobileAds
+    @preconcurrency import GoogleMobileAds
 #endif
 
 enum AppOpenAdGate {
@@ -61,13 +61,14 @@ final class AppOpenAdManager {
                 withAdUnitID: resolvedUnitID,
                 request: request
             ) { [weak self] ad, error in
+                let adBox = AppOpenAdBox(ad: ad)
                 Task { @MainActor [weak self] in
                     guard let self else { return }
                     isLoading = false
-                    if let ad {
-                        self.ad = ad
+                    if let resolvedAd = adBox.ad {
+                        self.ad = resolvedAd
                         isLoaded = true
-                        ad.fullScreenContentDelegate = presentationDelegate
+                        resolvedAd.fullScreenContentDelegate = presentationDelegate
                         AppLogger.ads.debug("AppOpen loaded")
                     } else {
                         self.ad = nil
@@ -127,6 +128,13 @@ final class AppOpenAdManager {
 }
 
 #if canImport(GoogleMobileAds)
+    nonisolated private final class AppOpenAdBox: @unchecked Sendable {
+        let ad: GADAppOpenAd?
+        init(ad: GADAppOpenAd?) {
+            self.ad = ad
+        }
+    }
+
     @MainActor
     private final class AppOpenPresentationDelegate: NSObject, GADFullScreenContentDelegate {
         var onDismiss: (() -> Void)?

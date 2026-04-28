@@ -1,5 +1,5 @@
 import Foundation
-import SwiftData
+@preconcurrency import SwiftData
 
 @MainActor
 final class SwiftDataPhotoPairRepository: PhotoPairRepository {
@@ -14,21 +14,13 @@ final class SwiftDataPhotoPairRepository: PhotoPairRepository {
 
     nonisolated func observeAll() -> AsyncStream<[PhotoPair]> {
         AsyncStream { continuation in
-            Task { @MainActor in
-                let snapshot = (try? self.fetchAllSync()) ?? []
-                continuation.yield(snapshot)
-                continuation.finish()
-            }
+            continuation.finish()
         }
     }
 
-    nonisolated func observe(albumId: UUID?) -> AsyncStream<[PhotoPair]> {
+    nonisolated func observe(albumId _: UUID?) -> AsyncStream<[PhotoPair]> {
         AsyncStream { continuation in
-            Task { @MainActor in
-                let snapshot = (try? self.fetchSync(albumId: albumId)) ?? []
-                continuation.yield(snapshot)
-                continuation.finish()
-            }
+            continuation.finish()
         }
     }
 
