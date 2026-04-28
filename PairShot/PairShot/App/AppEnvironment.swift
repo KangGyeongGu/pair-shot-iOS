@@ -122,11 +122,13 @@ final class AppEnvironment {
         deviceHashProvider = services.deviceHashProvider
         photoLibraryExporter = services.photoLibraryExporter
         photoLibrary = services.photoLibrary
-        photoLibrarySyncService = PhotoLibrarySyncService(
+        let resolvedSyncService = PhotoLibrarySyncService(
             modelContainer: modelContainer,
             photoLibrary: services.photoLibrary,
             thumbnailCache: resolvedThumbnailCache
         )
+        photoLibrarySyncService = resolvedSyncService
+        services.photoLibrary.syncService = resolvedSyncService
         pairRepo = repositories.pairRepo
         albumRepo = repositories.albumRepo
         couponRepo = repositories.couponRepo

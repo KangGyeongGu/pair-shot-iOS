@@ -11,6 +11,7 @@ final class PhotoLibrarySyncService: NSObject, PHPhotoLibraryChangeObserver {
     private let logger = Logger(subsystem: "com.pairshot.PairShot", category: "PhotoLibrarySync")
 
     private var isRegistered = false
+    private var pauseDepth = 0
     private var revalidationTask: Task<Void, Never>?
 
     init(
@@ -36,6 +37,28 @@ final class PhotoLibrarySyncService: NSObject, PHPhotoLibraryChangeObserver {
         isRegistered = false
     }
 
+    func withObserverPaused<T>(
+        _ body: () async throws -> T
+    ) async rethrows -> T {
+        pause()
+        defer { resume() }
+        return try await body()
+    }
+
+    private func pause() {
+        pauseDepth += 1
+        if pauseDepth == 1, isRegistered {
+            PHPhotoLibrary.shared().unregisterChangeObserver(self)
+        }
+    }
+
+    private func resume() {
+        pauseDepth = max(0, pauseDepth - 1)
+        if pauseDepth == 0, isRegistered {
+            PHPhotoLibrary.shared().register(self)
+        }
+    }
+
     func revalidate() async {
         revalidationTask?.cancel()
         let task = Task { @MainActor in
@@ -47,7 +70,9 @@ final class PhotoLibrarySyncService: NSObject, PHPhotoLibraryChangeObserver {
 
     nonisolated func photoLibraryDidChange(_: PHChange) {
         Task { @MainActor [weak self] in
-            await self?.revalidate()
+            guard let self else { return }
+            guard self.pauseDepth == 0 else { return }
+            await self.revalidate()
         }
     }
 
