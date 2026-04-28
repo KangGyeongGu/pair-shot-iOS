@@ -2321,6 +2321,23 @@
         }
       }
     },
+    "coupon_button_enter_code" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter coupon code"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "코드 등록"
+          }
+        }
+      }
+    },
     "coupon_button_scan_qr" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2338,19 +2355,19 @@
         }
       }
     },
-    "coupon_button_enter_code" : {
+    "coupon_dialog_input_hint" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Enter coupon code"
+            "value" : "Coupon code"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "코드 등록"
+            "value" : "쿠폰 코드"
           }
         }
       }
@@ -2372,19 +2389,19 @@
         }
       }
     },
-    "coupon_dialog_input_hint" : {
+    "coupon_dialog_need_coupon" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Coupon code"
+            "value" : "Need a coupon?"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "쿠폰 코드"
+            "value" : "쿠폰이 필요하다면?"
           }
         }
       }
@@ -2457,22 +2474,8 @@
         }
       }
     },
-    "coupon_dialog_need_coupon" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Need a coupon?"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "쿠폰이 필요하다면?"
-          }
-        }
-      }
+    "coupon_dialog_title" : {
+
     },
     "coupon_error_already_registered" : {
       "extractionState" : "manual",
@@ -2644,6 +2647,40 @@
         }
       }
     },
+    "coupon_my_coupons_empty" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No coupons registered yet."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "등록된 쿠폰이 없습니다"
+          }
+        }
+      }
+    },
+    "coupon_my_coupons_section" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "My coupons"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "내 쿠폰"
+          }
+        }
+      }
+    },
     "coupon_qr_align_hint" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2691,40 +2728,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "쿠폰이 등록되었습니다 · 만료일 %@"
-          }
-        }
-      }
-    },
-    "coupon_my_coupons_empty" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No coupons registered yet."
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "등록된 쿠폰이 없습니다"
-          }
-        }
-      }
-    },
-    "coupon_my_coupons_section" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "My coupons"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "내 쿠폰"
           }
         }
       }
@@ -2984,6 +2987,23 @@
         }
       }
     },
+    "coupon_status_inactive_short" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inactive"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "비활성"
+          }
+        }
+      }
+    },
     "coupon_status_none" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3014,23 +3034,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "광고 제거"
-          }
-        }
-      }
-    },
-    "coupon_status_inactive_short" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Inactive"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "비활성"
           }
         }
       }
@@ -5213,19 +5216,19 @@
         }
       }
     },
-    "settings_language_system" : {
+    "settings_language_restart_message" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "System default"
+            "value" : "The new language fully applies after restarting the app."
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "시스템 기본값"
+            "value" : "앱을 재시작하면 새 언어가 완전히 적용됩니다."
           }
         }
       }
@@ -5247,19 +5250,19 @@
         }
       }
     },
-    "settings_language_restart_message" : {
+    "settings_language_system" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "The new language fully applies after restarting the app."
+            "value" : "System default"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "앱을 재시작하면 새 언어가 완전히 적용됩니다."
+            "value" : "시스템 기본값"
           }
         }
       }
@@ -6182,23 +6185,6 @@
         }
       }
     },
-    "watermark_field_text_size" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Text size"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "텍스트 크기"
-          }
-        }
-      }
-    },
     "watermark_field_opacity" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6246,6 +6232,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "텍스트"
+          }
+        }
+      }
+    },
+    "watermark_field_text_size" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Text size"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "텍스트 크기"
           }
         }
       }
@@ -6522,23 +6525,6 @@
         }
       }
     },
-    "watermark_section_logo" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Logo settings"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "로고 설정"
-          }
-        }
-      }
-    },
     "watermark_section_basic" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6552,6 +6538,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "기본 설정"
+          }
+        }
+      }
+    },
+    "watermark_section_logo" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Logo settings"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "로고 설정"
           }
         }
       }

@@ -10,20 +10,9 @@ struct HomePairCardView: View {
     var body: some View {
         Color.clear
             .aspectRatio(1.8, contentMode: .fit)
-            .overlay {
-                ZStack(alignment: .topTrailing) {
-                    splitContainer
-                    if pair.status == .combined {
-                        combinedIndicator
-                            .padding(8)
-                    }
-                    if isSelectionMode {
-                        selectionMarker
-                            .padding(8)
-                    }
-                }
-            }
+            .overlay { splitContainer }
             .clipShape(RoundedRectangle(cornerRadius: 10))
+            .overlay(alignment: .topTrailing) { topTrailingBadge }
             .overlay(borderOverlay)
             .overlay(selectionTint)
             .accessibilityElement(children: .ignore)
@@ -32,6 +21,15 @@ struct HomePairCardView: View {
                 isSelected: isSelected,
                 isSelectionMode: isSelectionMode
             ))
+    }
+
+    @ViewBuilder
+    private var topTrailingBadge: some View {
+        if isSelectionMode {
+            selectionMarker.padding(8)
+        } else if pair.status == .combined {
+            combinedIndicator.padding(8)
+        }
     }
 
     static func accessibilityLabel(

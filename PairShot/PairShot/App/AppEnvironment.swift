@@ -179,6 +179,7 @@ final class AppEnvironment {
             toggleAlbumMembership: toggleAlbumMembership,
             storage: photoStorageService,
             immediateExport: immediateExport,
+            appSettings: appSettings,
             interstitialAdManager: interstitialAdManager,
             adFreeStore: adFreeStore,
             fullscreenAdCoordinator: fullscreenAdCoordinator
@@ -202,6 +203,7 @@ final class AppEnvironment {
             storage: photoStorageService,
             location: location,
             immediateExport: immediateExport,
+            appSettings: appSettings,
             interstitialAdManager: interstitialAdManager,
             adFreeStore: adFreeStore,
             fullscreenAdCoordinator: fullscreenAdCoordinator

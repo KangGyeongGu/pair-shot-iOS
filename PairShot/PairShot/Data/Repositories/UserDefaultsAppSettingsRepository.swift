@@ -1,6 +1,6 @@
 import Foundation
 
-final nonisolated class UserDefaultsAppSettingsRepository: AppSettingsRepository, @unchecked Sendable {
+nonisolated final class UserDefaultsAppSettingsRepository: AppSettingsRepository, @unchecked Sendable {
     static let jpegQualityKey = "pairshot.jpegQuality"
     static let fileNamePrefixKey = "pairshot.fileNamePrefix"
     static let defaultOverlayAlphaKey = "pairshot.defaultOverlayAlpha"
@@ -10,6 +10,14 @@ final nonisolated class UserDefaultsAppSettingsRepository: AppSettingsRepository
     static let combineSettingsKey = "pairshot.combineSettings"
     static let languageKey = "pairshot.language"
     static let themeKey = "pairshot.theme"
+    static let cameraGridEnabledKey = "pairshot.cameraGridEnabled"
+    static let cameraLevelEnabledKey = "pairshot.cameraLevelEnabled"
+    static let cameraFlashModeKey = "pairshot.cameraFlashMode"
+    static let cameraNightModeKey = "pairshot.cameraNightMode"
+    static let cameraHDRKey = "pairshot.cameraHDR"
+    static let overlayEnabledKey = "pairshot.overlayEnabled"
+    static let homeSortOrderKey = "pairshot.homeSortOrder"
+    static let albumSortOrderKey = "pairshot.albumSortOrder"
 
     private let defaults: UserDefaults
 
@@ -28,6 +36,14 @@ final nonisolated class UserDefaultsAppSettingsRepository: AppSettingsRepository
             watermarkEnabledKey: AppSettingsSnapshot.defaultWatermarkEnabled,
             languageKey: AppSettingsSnapshot.defaultLanguage.rawValue,
             themeKey: AppSettingsSnapshot.defaultTheme.rawValue,
+            cameraGridEnabledKey: AppSettingsHandoffDefaults.cameraGridEnabled,
+            cameraLevelEnabledKey: AppSettingsHandoffDefaults.cameraLevelEnabled,
+            cameraFlashModeKey: AppSettingsHandoffDefaults.cameraFlashMode,
+            cameraNightModeKey: AppSettingsHandoffDefaults.cameraNightMode,
+            cameraHDRKey: AppSettingsHandoffDefaults.cameraHDR,
+            overlayEnabledKey: AppSettingsHandoffDefaults.overlayEnabled,
+            homeSortOrderKey: AppSettingsHandoffDefaults.homeSortOrder,
+            albumSortOrderKey: AppSettingsHandoffDefaults.albumSortOrder,
         ]
         // swiftlint:enable trailing_comma
     }
@@ -139,8 +155,19 @@ final nonisolated class UserDefaultsAppSettingsRepository: AppSettingsRepository
     deinit {}
 }
 
-private final nonisolated class NotificationObserverTokenBox: @unchecked Sendable {
+nonisolated private final class NotificationObserverTokenBox: @unchecked Sendable {
     var token: (any NSObjectProtocol)?
     init() {}
     deinit {}
+}
+
+nonisolated enum AppSettingsHandoffDefaults {
+    static let cameraGridEnabled: Bool = false
+    static let cameraLevelEnabled: Bool = false
+    static let cameraFlashMode: String = "OFF"
+    static let cameraNightMode: Bool = false
+    static let cameraHDR: Bool = false
+    static let overlayEnabled: Bool = true
+    static let homeSortOrder: String = "DESC"
+    static let albumSortOrder: String = "DESC"
 }

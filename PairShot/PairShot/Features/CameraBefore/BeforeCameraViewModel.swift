@@ -17,7 +17,11 @@ final class BeforeCameraViewModel {
     let session: CameraSession
 
     var lensPosition: CameraLensPosition = .back
-    var flashMode: CameraFlashMode = .off
+    var flashMode: CameraFlashMode {
+        get { CameraFlashModeMapping.flashMode(from: appSettings.cameraFlashMode) }
+        set { appSettings.cameraFlashMode = CameraFlashModeMapping.persisted(from: newValue) }
+    }
+
     var activePreset: ZoomPresetSpec?
     var availablePresets: [ZoomPresetSpec] = []
     var firstSwitchOver: Double = 1.0
@@ -27,9 +31,21 @@ final class BeforeCameraViewModel {
     var pinchBaseFactor: Double = 1.0
     var currentZoomRatio: Double = 1.0
     var isDraggingZoom: Bool = false
-    var isGridOn: Bool = false
-    var isLevelOn: Bool = false
-    var isNightModeOn: Bool = false
+    var isGridOn: Bool {
+        get { appSettings.cameraGridEnabled }
+        set { appSettings.cameraGridEnabled = newValue }
+    }
+
+    var isLevelOn: Bool {
+        get { appSettings.cameraLevelEnabled }
+        set { appSettings.cameraLevelEnabled = newValue }
+    }
+
+    var isNightModeOn: Bool {
+        get { appSettings.cameraNightMode }
+        set { appSettings.cameraNightMode = newValue }
+    }
+
     var isCapturing: Bool = false
     var cameraPermissionGranted: Bool?
     var captureErrorMessage: String?
@@ -160,7 +176,8 @@ final class BeforeCameraViewModel {
     }
 
     func setFlashMode(_ mode: CameraFlashMode) {
-        guard mode != flashMode else { return }
+        let current = flashMode
+        guard mode != current else { return }
         flashMode = mode
         Task { await session.setFlashMode(mode) }
     }
@@ -348,6 +365,40 @@ enum BeforeCameraFlashModeMapper {
 
             case .torch:
                 .torch
+        }
+    }
+}
+
+nonisolated enum CameraFlashModeMapping {
+    static func flashMode(from raw: String) -> CameraFlashMode {
+        switch raw.uppercased() {
+            case CameraFlashModePersistence.on:
+                .on
+
+            case CameraFlashModePersistence.auto:
+                .auto
+
+            case CameraFlashModePersistence.torch:
+                .torch
+
+            default:
+                .off
+        }
+    }
+
+    static func persisted(from mode: CameraFlashMode) -> String {
+        switch mode {
+            case .off:
+                CameraFlashModePersistence.off
+
+            case .on:
+                CameraFlashModePersistence.on
+
+            case .auto:
+                CameraFlashModePersistence.auto
+
+            case .torch:
+                CameraFlashModePersistence.torch
         }
     }
 }

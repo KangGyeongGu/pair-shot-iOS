@@ -202,6 +202,21 @@ struct HomeSheets: ViewModifier {
                     viewModel.clearShareItems()
                 }
             }
+            .background(
+                Color.clear
+                    .sheet(item: Binding(
+                        get: { viewModel.pendingZipExport },
+                        set: { newValue in
+                            if newValue == nil, viewModel.pendingZipExport != nil {
+                                viewModel.handleZipExportCompleted(false)
+                            }
+                        }
+                    )) { item in
+                        DocumentExporter(url: item.url) { saved in
+                            viewModel.handleZipExportCompleted(saved)
+                        }
+                    }
+            )
     }
 }
 

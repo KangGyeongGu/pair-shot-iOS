@@ -149,26 +149,25 @@ nonisolated enum ExportSelection {
     static func relativePaths(for pair: PhotoPair, mode: ExportMode) -> [Entry] {
         let albumName = pair.albums.first?.name
         let folder = sanitizeFolderName(albumName ?? "PairShot")
-        let stem = pair.id.uuidString
         var out: [Entry] = []
 
         switch mode {
             case .all:
                 out.append(Entry(
-                    relativeName: "\(folder)/\(stem)_before.jpg",
+                    relativeName: "\(folder)/BEFORE/\(pair.beforeFileName)",
                     sourceKind: .before,
                     sourceFileName: pair.beforeFileName
                 ))
                 if let after = pair.afterFileName, !after.isEmpty {
                     out.append(Entry(
-                        relativeName: "\(folder)/\(stem)_after.jpg",
+                        relativeName: "\(folder)/AFTER/\(after)",
                         sourceKind: .after,
                         sourceFileName: after
                     ))
                 }
                 if let combined = pair.combinedFileName, !combined.isEmpty {
                     out.append(Entry(
-                        relativeName: "\(folder)/\(stem)_combined.jpg",
+                        relativeName: "\(folder)/COMBINED/\(combined)",
                         sourceKind: .combined,
                         sourceFileName: combined
                     ))
@@ -176,7 +175,7 @@ nonisolated enum ExportSelection {
 
             case .beforeOnly:
                 out.append(Entry(
-                    relativeName: "\(folder)/\(stem)_before.jpg",
+                    relativeName: "\(folder)/BEFORE/\(pair.beforeFileName)",
                     sourceKind: .before,
                     sourceFileName: pair.beforeFileName
                 ))
@@ -184,7 +183,7 @@ nonisolated enum ExportSelection {
             case .afterOnly:
                 if let after = pair.afterFileName, !after.isEmpty {
                     out.append(Entry(
-                        relativeName: "\(folder)/\(stem)_after.jpg",
+                        relativeName: "\(folder)/AFTER/\(after)",
                         sourceKind: .after,
                         sourceFileName: after
                     ))
@@ -193,7 +192,7 @@ nonisolated enum ExportSelection {
             case .combinedOnly:
                 if let combined = pair.combinedFileName, !combined.isEmpty {
                     out.append(Entry(
-                        relativeName: "\(folder)/\(stem)_combined.jpg",
+                        relativeName: "\(folder)/COMBINED/\(combined)",
                         sourceKind: .combined,
                         sourceFileName: combined
                     ))

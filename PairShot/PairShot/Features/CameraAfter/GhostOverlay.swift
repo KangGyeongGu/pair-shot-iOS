@@ -4,7 +4,7 @@ import UIKit
 
 enum GhostOverlayMath {
     static let alphaRange: ClosedRange<Double> = 0.0 ... 1.0
-    static let defaultAlpha: Double = 0.5
+    static let defaultAlpha: Double = 0.35
 
     static func clamp(_ value: Double) -> Double {
         max(alphaRange.lowerBound, min(value, alphaRange.upperBound))

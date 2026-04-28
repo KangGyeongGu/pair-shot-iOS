@@ -1,6 +1,11 @@
 import Foundation
 import Photos
 
+enum SaveToDeviceOutcome {
+    case completed
+    case zipPendingExport(url: URL, progress: SnackbarProgressHandle)
+}
+
 @MainActor
 final class ImmediateExportService {
     private let storage: PhotoStorageService
@@ -76,14 +81,14 @@ final class ImmediateExportService {
         }
     }
 
-    func saveToDevice(pairs: [PhotoPair]) async {
+    func saveToDevice(pairs: [PhotoPair]) async -> SaveToDeviceOutcome {
         guard hasAnyInclude else {
             snackbarQueue.enqueue(
                 "snackbar_warning_nothing_to_save",
                 variant: .warning,
                 debounceKey: "save-nothing"
             )
-            return
+            return .completed
         }
         let token = "save-\(UUID().uuidString)"
         let handle = snackbarQueue.enqueueProgress(
@@ -95,10 +100,24 @@ final class ImmediateExportService {
         switch preferences.format {
             case .individualImages:
                 await saveImagesToPhotoLibrary(pairs: pairs, progress: handle)
+                return .completed
 
             case .zip:
-                await saveZipAndNotify(pairs: pairs, progress: handle)
+                return await prepareZipForExport(pairs: pairs, progress: handle)
         }
+    }
+
+    func finishZipExport(url: URL, progress: SnackbarProgressHandle, saved: Bool) {
+        if saved {
+            snackbarQueue.completeProgress(
+                progress,
+                finalMessage: "snackbar_success_saved_zip",
+                finalVariant: .success
+            )
+        } else {
+            snackbarQueue.cancelProgress(progress)
+        }
+        try? FileManager.default.removeItem(at: url)
     }
 
     // swiftlint:enable switch_case_alignment
@@ -250,19 +269,19 @@ final class ImmediateExportService {
         }
     }
 
-    private func saveZipAndNotify(pairs: [PhotoPair], progress: SnackbarProgressHandle) async {
+    private func prepareZipForExport(
+        pairs: [PhotoPair],
+        progress: SnackbarProgressHandle
+    ) async -> SaveToDeviceOutcome {
         do {
-            _ = try await exportPairs(
+            let url = try await exportPairs(
                 ids: pairs.map(\.id),
                 selection: currentSelection(),
                 format: .zip,
                 tempDirectory: tempDirectoryProvider()
             )
-            snackbarQueue.completeProgress(
-                progress,
-                finalMessage: "snackbar_success_saved_zip",
-                finalVariant: .success
-            )
+            snackbarQueue.updateProgress(progress, value: 1.0)
+            return .zipPendingExport(url: url, progress: progress)
         } catch {
             snackbarQueue.cancelProgress(progress)
             snackbarQueue.enqueue(
@@ -270,6 +289,7 @@ final class ImmediateExportService {
                 variant: .error,
                 debounceKey: "save-failure"
             )
+            return .completed
         }
     }
 

@@ -26,7 +26,11 @@ final class AfterCameraViewModel {
     var currentPair: PhotoPair?
     var ghostImageData: Data?
     var alpha: Double = GhostOverlayMath.defaultAlpha
-    var overlayEnabled: Bool = true
+    var overlayEnabled: Bool {
+        get { appSettings.overlayEnabled }
+        set { appSettings.overlayEnabled = newValue }
+    }
+
     var activePreset: ZoomPresetSpec?
     var availablePresets: [ZoomPresetSpec] = []
     var firstSwitchOver: Double = 1.0
@@ -42,10 +46,26 @@ final class AfterCameraViewModel {
     var captureErrorMessage: String?
     var ghostWarningToast: String?
 
-    var isGridOn: Bool = false
-    var isLevelOn: Bool = false
-    var isNightModeOn: Bool = false
-    var flashMode: CameraFlashMode = .off
+    var isGridOn: Bool {
+        get { appSettings.cameraGridEnabled }
+        set { appSettings.cameraGridEnabled = newValue }
+    }
+
+    var isLevelOn: Bool {
+        get { appSettings.cameraLevelEnabled }
+        set { appSettings.cameraLevelEnabled = newValue }
+    }
+
+    var isNightModeOn: Bool {
+        get { appSettings.cameraNightMode }
+        set { appSettings.cameraNightMode = newValue }
+    }
+
+    var flashMode: CameraFlashMode {
+        get { CameraFlashModeMapping.flashMode(from: appSettings.cameraFlashMode) }
+        set { appSettings.cameraFlashMode = CameraFlashModeMapping.persisted(from: newValue) }
+    }
+
     var lensPosition: CameraLensPosition = .back
 
     var rotationDirection: RotationGuideDirection = .upright

@@ -85,6 +85,64 @@ final class AppSettings {
         set { defaults.set(newValue.rawValue, forKey: Self.themeKey) }
     }
 
+    var cameraGridEnabled: Bool {
+        get { defaults.bool(forKey: Self.cameraGridEnabledKey) }
+        set { defaults.set(newValue, forKey: Self.cameraGridEnabledKey) }
+    }
+
+    var cameraLevelEnabled: Bool {
+        get { defaults.bool(forKey: Self.cameraLevelEnabledKey) }
+        set { defaults.set(newValue, forKey: Self.cameraLevelEnabledKey) }
+    }
+
+    var cameraFlashMode: String {
+        get {
+            let raw = defaults.string(forKey: Self.cameraFlashModeKey)
+                ?? CameraFlashModePersistence.defaultRawValue
+            return CameraFlashModePersistence.normalize(raw)
+        }
+        set {
+            defaults.set(CameraFlashModePersistence.normalize(newValue), forKey: Self.cameraFlashModeKey)
+        }
+    }
+
+    var cameraNightMode: Bool {
+        get { defaults.bool(forKey: Self.cameraNightModeKey) }
+        set { defaults.set(newValue, forKey: Self.cameraNightModeKey) }
+    }
+
+    var cameraHDR: Bool {
+        get { defaults.bool(forKey: Self.cameraHDRKey) }
+        set { defaults.set(newValue, forKey: Self.cameraHDRKey) }
+    }
+
+    var overlayEnabled: Bool {
+        get { defaults.bool(forKey: Self.overlayEnabledKey) }
+        set { defaults.set(newValue, forKey: Self.overlayEnabledKey) }
+    }
+
+    var homeSortOrder: String {
+        get {
+            let raw = defaults.string(forKey: Self.homeSortOrderKey)
+                ?? SortOrderPersistence.defaultRawValue
+            return SortOrderPersistence.normalize(raw)
+        }
+        set {
+            defaults.set(SortOrderPersistence.normalize(newValue), forKey: Self.homeSortOrderKey)
+        }
+    }
+
+    var albumSortOrder: String {
+        get {
+            let raw = defaults.string(forKey: Self.albumSortOrderKey)
+                ?? SortOrderPersistence.defaultRawValue
+            return SortOrderPersistence.normalize(raw)
+        }
+        set {
+            defaults.set(SortOrderPersistence.normalize(newValue), forKey: Self.albumSortOrderKey)
+        }
+    }
+
     var resolvedLocale: Locale {
         language.locale ?? Locale.autoupdatingCurrent
     }
@@ -101,6 +159,14 @@ final class AppSettings {
     static let combineSettingsKey = "pairshot.combineSettings"
     static let languageKey = "pairshot.language"
     static let themeKey = "pairshot.theme"
+    static let cameraGridEnabledKey = "pairshot.cameraGridEnabled"
+    static let cameraLevelEnabledKey = "pairshot.cameraLevelEnabled"
+    static let cameraFlashModeKey = "pairshot.cameraFlashMode"
+    static let cameraNightModeKey = "pairshot.cameraNightMode"
+    static let cameraHDRKey = "pairshot.cameraHDR"
+    static let overlayEnabledKey = "pairshot.overlayEnabled"
+    static let homeSortOrderKey = "pairshot.homeSortOrder"
+    static let albumSortOrderKey = "pairshot.albumSortOrder"
     static let shared = AppSettings()
 
     private let defaults: UserDefaults
@@ -112,11 +178,44 @@ final class AppSettings {
             Self.fileNamePrefixKey: AndroidParityDefaults.fileNamePrefix,
             Self.defaultOverlayAlphaKey: CompositionDefaults.fallbackAlpha,
             Self.defaultCompositeLayoutKey: CompositionDefaults.fallbackLayout.rawValue,
-            WatermarkOverlay.userDefaultsKey: WatermarkOverlay.defaultEnabled,
             Self.languageKey: AppLanguage.system.rawValue,
             Self.themeKey: AppTheme.system.rawValue,
+            Self.cameraGridEnabledKey: false,
+            Self.cameraLevelEnabledKey: false,
+            Self.cameraFlashModeKey: CameraFlashModePersistence.defaultRawValue,
+            Self.cameraNightModeKey: false,
+            Self.cameraHDRKey: false,
+            Self.overlayEnabledKey: true,
+            Self.homeSortOrderKey: SortOrderPersistence.defaultRawValue,
+            Self.albumSortOrderKey: SortOrderPersistence.defaultRawValue
         ])
         watermarkEnabled = defaults.bool(forKey: WatermarkOverlay.userDefaultsKey)
+    }
+}
+
+nonisolated enum CameraFlashModePersistence {
+    static let off = "OFF"
+    static let auto = "AUTO"
+    static let on = "ON"
+    static let torch = "TORCH"
+    static let defaultRawValue = off
+    static let allowedValues: Set<String> = [off, auto, on, torch]
+
+    static func normalize(_ raw: String) -> String {
+        let upper = raw.uppercased()
+        return allowedValues.contains(upper) ? upper : defaultRawValue
+    }
+}
+
+nonisolated enum SortOrderPersistence {
+    static let descending = "DESC"
+    static let ascending = "ASC"
+    static let defaultRawValue = descending
+    static let allowedValues: Set<String> = [descending, ascending]
+
+    static func normalize(_ raw: String) -> String {
+        let upper = raw.uppercased()
+        return allowedValues.contains(upper) ? upper : defaultRawValue
     }
 }
 

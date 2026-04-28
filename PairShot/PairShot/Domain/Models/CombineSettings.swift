@@ -66,7 +66,7 @@ extension Color {
 }
 
 extension UIColor {
-    convenience nonisolated init(rgba: ColorRGBA) {
+    nonisolated convenience init(rgba: ColorRGBA) {
         self.init(
             red: CGFloat(rgba.red),
             green: CGFloat(rgba.green),
@@ -83,8 +83,8 @@ nonisolated struct CombineSettings: Codable, Equatable {
     }
 
     nonisolated enum LabelMode: String, Codable, CaseIterable {
-        case fullWidth = "full_width"
-        case free
+        case fullWidth = "FULL_WIDTH"
+        case free = "FREE"
     }
 
     nonisolated struct Border: Codable, Equatable {

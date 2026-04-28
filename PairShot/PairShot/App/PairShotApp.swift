@@ -67,9 +67,8 @@ struct PairShotApp: App {
         let appOpenManager = env.appOpenAdManager
         let rewardedManager = env.rewardedAdManager
         let nativeAdLoader = env.nativeAdLoader
-        await BootstrapAdsCoordinator.bootstrap(
+        BootstrapAdsCoordinator.bootstrap(
             adFreeStore: env.adFreeStore,
-            tracking: env.trackingService,
             ifNotAdFree: { store in
                 interstitialManager.loadIfNeeded(adFreeStore: store)
                 appOpenManager.loadIfNeeded(adFreeStore: store)
@@ -142,12 +141,10 @@ struct ModelContainerBootstrap {
 enum BootstrapAdsCoordinator {
     static func bootstrap(
         adFreeStore: AdFreeStore,
-        tracking: TrackingAuthorizationService,
         ifNotAdFree: (AdFreeStore) -> Void
-    ) async {
+    ) {
         adFreeStore.refresh()
         guard !adFreeStore.isAdFree else { return }
-        _ = await tracking.requestIfUndetermined()
         ifNotAdFree(adFreeStore)
     }
 }

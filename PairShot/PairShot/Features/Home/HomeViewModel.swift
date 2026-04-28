@@ -56,7 +56,10 @@ final class HomeViewModel {
     let storage: PhotoStorageService
 
     var contentMode: HomeContentMode = .pairs
-    var sortOrder: HomeSortOrder = .newest
+    var sortOrder: HomeSortOrder {
+        get { HomeSortOrderMapping.sortOrder(from: appSettings.homeSortOrder) }
+        set { appSettings.homeSortOrder = HomeSortOrderMapping.persisted(from: newValue) }
+    }
 
     var isSelectionMode: Bool = false
     var selectedPairIds: Set<UUID> = []
@@ -72,7 +75,10 @@ final class HomeViewModel {
     var pendingSingleAlbumDelete: HomeSingleAlbumDeleteRequest?
     var pendingAlbumRename: HomeAlbumRenameRequest?
     var pendingShareItems: ExportShareItems?
+    var pendingZipExport: DocumentExporterItem?
     var isExporting: Bool = false
+
+    private var pendingZipProgress: SnackbarProgressHandle?
     var showCreateAlbum: Bool = false
     var showSettings: Bool = false
 
@@ -83,6 +89,7 @@ final class HomeViewModel {
     private let location: LocationFetching
     private let thumbnailCache: ThumbnailCache
     private let immediateExport: ImmediateExportService
+    private let appSettings: AppSettings
     private let interstitialAdManager: InterstitialAdManager?
     private let adFreeStore: AdFreeStore?
     private let fullscreenAdCoordinator: FullscreenAdCoordinator?
@@ -95,6 +102,7 @@ final class HomeViewModel {
         storage: PhotoStorageService,
         location: LocationFetching,
         immediateExport: ImmediateExportService,
+        appSettings: AppSettings,
         thumbnailCache: ThumbnailCache = .shared,
         interstitialAdManager: InterstitialAdManager? = nil,
         adFreeStore: AdFreeStore? = nil,
@@ -107,6 +115,7 @@ final class HomeViewModel {
         self.storage = storage
         self.location = location
         self.immediateExport = immediateExport
+        self.appSettings = appSettings
         self.thumbnailCache = thumbnailCache
         self.interstitialAdManager = interstitialAdManager
         self.adFreeStore = adFreeStore
@@ -268,8 +277,26 @@ final class HomeViewModel {
     private func performSaveToDevice(pairs: [PhotoPair]) async {
         isExporting = true
         defer { isExporting = false }
-        await immediateExport.saveToDevice(pairs: pairs)
-        cancelSelection()
+        let outcome = await immediateExport.saveToDevice(pairs: pairs)
+        switch outcome {
+            case .completed:
+                cancelSelection()
+
+            case let .zipPendingExport(url, progress):
+                pendingZipProgress = progress
+                pendingZipExport = DocumentExporterItem(url: url)
+        }
+    }
+
+    func handleZipExportCompleted(_ saved: Bool) {
+        let url = pendingZipExport?.url
+        let progress = pendingZipProgress
+        pendingZipExport = nil
+        pendingZipProgress = nil
+        if let url, let progress {
+            immediateExport.finishZipExport(url: url, progress: progress, saved: saved)
+            cancelSelection()
+        }
     }
 
     private func runWithInterstitial(_ work: @escaping @MainActor () async -> Void) async {
@@ -431,4 +458,26 @@ private struct EvictionSnapshot {
     let beforeFileName: String
     let afterFileName: String?
     let combinedFileName: String?
+}
+
+nonisolated enum HomeSortOrderMapping {
+    static func sortOrder(from raw: String) -> HomeSortOrder {
+        switch raw.uppercased() {
+            case SortOrderPersistence.ascending:
+                .oldest
+
+            default:
+                .newest
+        }
+    }
+
+    static func persisted(from order: HomeSortOrder) -> String {
+        switch order {
+            case .newest:
+                SortOrderPersistence.descending
+
+            case .oldest:
+                SortOrderPersistence.ascending
+        }
+    }
 }

@@ -14,8 +14,10 @@ enum BannerAdGate {
 
 struct BannerAdSlot: View {
     @Environment(AdFreeStore.self) private var adFreeStore
+    @Environment(TrackingAuthorizationService.self) private var tracking
 
     let adUnitID: String
+    @State private var hasRequestedATT = false
 
     init(adUnitID: String = AdsConfig.banner) {
         self.adUnitID = adUnitID
@@ -27,6 +29,11 @@ struct BannerAdSlot: View {
                 .frame(height: 50)
                 .frame(maxWidth: .infinity)
                 .background(Color.black.opacity(0.001))
+                .task {
+                    guard !hasRequestedATT else { return }
+                    hasRequestedATT = true
+                    _ = await tracking.requestIfUndetermined()
+                }
         }
     }
 }

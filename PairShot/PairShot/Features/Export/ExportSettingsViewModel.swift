@@ -50,7 +50,10 @@ final class ExportSettingsViewModel {
     var isExporting: Bool = false
     var errorMessage: LocalizedStringResource?
     var shareItems: ExportShareItems?
+    var zipExportItem: DocumentExporterItem?
     var pendingRedirect: ExportSettingsRedirectTarget?
+
+    private var zipSaveProgress: SnackbarProgressHandle?
 
     var hasAnyInclude: Bool {
         includeCombined || includeBefore || includeAfter
@@ -300,15 +303,32 @@ final class ExportSettingsViewModel {
                 tempDirectory: tempDirectoryProvider()
             )
             pendingZipURL = url
-            snackbarQueue.completeProgress(
-                progress,
-                finalMessage: "snackbar_success_saved_zip",
-                finalVariant: .success
-            )
-            eventsContinuation.yield(.dismiss)
+            snackbarQueue.updateProgress(progress, value: 1.0)
+            zipSaveProgress = progress
+            zipExportItem = DocumentExporterItem(url: url)
         } catch {
             snackbarQueue.cancelProgress(progress)
             errorMessage = "snackbar_error_save_failed"
+        }
+    }
+
+    func handleZipExportCompleted(_ saved: Bool) {
+        zipExportItem = nil
+        if let progress = zipSaveProgress {
+            zipSaveProgress = nil
+            if saved {
+                snackbarQueue.completeProgress(
+                    progress,
+                    finalMessage: "snackbar_success_saved_zip",
+                    finalVariant: .success
+                )
+            } else {
+                snackbarQueue.cancelProgress(progress)
+            }
+        }
+        cleanupPendingZip()
+        if saved {
+            eventsContinuation.yield(.dismiss)
         }
     }
 
@@ -369,7 +389,7 @@ extension ExportContentsMapping {
     }
 }
 
-final nonisolated class ExportPreferences: @unchecked Sendable {
+nonisolated final class ExportPreferences: @unchecked Sendable {
     static let includeCombinedKey = "pairshot.exportIncludeCombined"
     static let includeBeforeKey = "pairshot.exportIncludeBefore"
     static let includeAfterKey = "pairshot.exportIncludeAfter"

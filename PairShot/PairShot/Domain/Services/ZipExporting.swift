@@ -8,8 +8,8 @@ nonisolated enum ExportContents: String, Equatable, CaseIterable {
 }
 
 nonisolated enum ExportFormat: String, Equatable, CaseIterable {
-    case zip
-    case individualImages
+    case zip = "ZIP"
+    case individualImages = "INDIVIDUAL"
 }
 
 protocol ZipExporting: Sendable {

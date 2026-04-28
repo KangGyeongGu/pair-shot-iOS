@@ -23,7 +23,10 @@ final class AlbumDetailViewModel {
     let albumId: UUID
     let storage: PhotoStorageService
 
-    var sortOrder: HomeSortOrder = .newest
+    var sortOrder: HomeSortOrder {
+        get { HomeSortOrderMapping.sortOrder(from: appSettings.albumSortOrder) }
+        set { appSettings.albumSortOrder = HomeSortOrderMapping.persisted(from: newValue) }
+    }
 
     var isSelectionMode: Bool = false
     var selectedPairIds: Set<UUID> = []
@@ -37,7 +40,10 @@ final class AlbumDetailViewModel {
     var pendingSinglePairDelete: AlbumDetailSinglePairDeleteRequest?
     var pendingPreviewPair: AlbumDetailPairPreviewRequest?
     var pendingShareItems: ExportShareItems?
+    var pendingZipExport: DocumentExporterItem?
     var isExporting: Bool = false
+
+    private var pendingZipProgress: SnackbarProgressHandle?
 
     var showBeforeCamera: Bool = false
     var showAfterCamera: Bool = false
@@ -50,6 +56,7 @@ final class AlbumDetailViewModel {
     private let toggleAlbumMembership: ToggleAlbumMembershipUseCase
     private let thumbnailCache: ThumbnailCache
     private let immediateExport: ImmediateExportService
+    private let appSettings: AppSettings
     private let interstitialAdManager: InterstitialAdManager?
     private let adFreeStore: AdFreeStore?
     private let fullscreenAdCoordinator: FullscreenAdCoordinator?
@@ -62,6 +69,7 @@ final class AlbumDetailViewModel {
         toggleAlbumMembership: ToggleAlbumMembershipUseCase,
         storage: PhotoStorageService,
         immediateExport: ImmediateExportService,
+        appSettings: AppSettings,
         thumbnailCache: ThumbnailCache = .shared,
         interstitialAdManager: InterstitialAdManager? = nil,
         adFreeStore: AdFreeStore? = nil,
@@ -74,6 +82,7 @@ final class AlbumDetailViewModel {
         self.toggleAlbumMembership = toggleAlbumMembership
         self.storage = storage
         self.immediateExport = immediateExport
+        self.appSettings = appSettings
         self.thumbnailCache = thumbnailCache
         self.interstitialAdManager = interstitialAdManager
         self.adFreeStore = adFreeStore
@@ -186,8 +195,26 @@ final class AlbumDetailViewModel {
     private func performSaveToDevice(pairs: [PhotoPair]) async {
         isExporting = true
         defer { isExporting = false }
-        await immediateExport.saveToDevice(pairs: pairs)
-        cancelSelection()
+        let outcome = await immediateExport.saveToDevice(pairs: pairs)
+        switch outcome {
+            case .completed:
+                cancelSelection()
+
+            case let .zipPendingExport(url, progress):
+                pendingZipProgress = progress
+                pendingZipExport = DocumentExporterItem(url: url)
+        }
+    }
+
+    func handleZipExportCompleted(_ saved: Bool) {
+        let url = pendingZipExport?.url
+        let progress = pendingZipProgress
+        pendingZipExport = nil
+        pendingZipProgress = nil
+        if let url, let progress {
+            immediateExport.finishZipExport(url: url, progress: progress, saved: saved)
+            cancelSelection()
+        }
     }
 
     private func runWithInterstitial(_ work: @escaping @MainActor () async -> Void) async {

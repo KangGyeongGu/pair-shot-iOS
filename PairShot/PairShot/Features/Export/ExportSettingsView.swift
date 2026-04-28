@@ -61,6 +61,14 @@ struct ExportSettingsView: View {
                 viewModel.clearShareItems()
             }
         }
+        .background(
+            Color.clear
+                .sheet(item: zipExportBinding) { item in
+                    DocumentExporter(url: item.url) { saved in
+                        viewModel.handleZipExportCompleted(saved)
+                    }
+                }
+        )
         .onDisappear { viewModel.cleanupPendingZip() }
         .task { await observeEvents() }
         .onChange(of: viewModel.pendingRedirect) { _, _ in
@@ -195,6 +203,17 @@ struct ExportSettingsView: View {
         Binding(
             get: { viewModel.shareItems },
             set: { viewModel.shareItems = $0 }
+        )
+    }
+
+    private var zipExportBinding: Binding<DocumentExporterItem?> {
+        Binding(
+            get: { viewModel.zipExportItem },
+            set: { newValue in
+                if newValue == nil, viewModel.zipExportItem != nil {
+                    viewModel.handleZipExportCompleted(false)
+                }
+            }
         )
     }
 
