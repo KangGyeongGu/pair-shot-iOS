@@ -2,14 +2,16 @@ import Foundation
 
 enum PairStatus: Equatable, CaseIterable {
     case scheduled
+    case afterOnly
     case captured
-    case combined
 }
 
 extension PhotoPair {
     var status: PairStatus {
-        if combinedFileName != nil { return .combined }
-        if afterFileName != nil { return .captured }
+        let hasBefore = beforePhotoLocalIdentifier?.isEmpty == false
+        let hasAfter = afterPhotoLocalIdentifier?.isEmpty == false
+        if hasBefore, hasAfter { return .captured }
+        if hasAfter { return .afterOnly }
         return .scheduled
     }
 }

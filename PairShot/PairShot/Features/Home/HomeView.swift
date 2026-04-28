@@ -120,15 +120,16 @@ struct HomeView: View {
         let groups = viewModel.groupedPairs(from: pairs)
         let isAdFree = adFreeStore.isAdFree
         var slotIndex = 0
-        let groupChunks: [(date: Date, pairs: [PhotoPair], chunks: [PairListWithAdsBuilder.PairChunk])] = groups.map { group in
-            let result = PairListWithAdsBuilder.buildChunks(
-                pairs: group.pairs,
-                adFree: isAdFree,
-                startingAdSlotIndex: slotIndex
-            )
-            slotIndex = result.nextSlotIndex
-            return (group.date, group.pairs, result.chunks)
-        }
+        let groupChunks: [(date: Date, pairs: [PhotoPair], chunks: [PairListWithAdsBuilder.PairChunk])] = groups
+            .map { group in
+                let result = PairListWithAdsBuilder.buildChunks(
+                    pairs: group.pairs,
+                    adFree: isAdFree,
+                    startingAdSlotIndex: slotIndex
+                )
+                slotIndex = result.nextSlotIndex
+                return (group.date, group.pairs, result.chunks)
+            }
         return ScrollView {
             LazyVStack(alignment: .leading, spacing: 16) {
                 ForEach(groupChunks, id: \.date) { group in
@@ -180,7 +181,6 @@ struct HomeView: View {
     ) -> some View {
         HomePairCardView(
             pair: pair,
-            storage: viewModel.storage,
             isSelectionMode: viewModel.isSelectionMode,
             isSelected: viewModel.selectedPairIds.contains(pair.id)
         )
@@ -289,7 +289,7 @@ enum HomeDateFormatter {
 private struct RootViewPreviewWrapper: View {
     // swiftlint:disable:next force_try
     let container = try! ModelContainer(
-        for: Schema(versionedSchema: SchemaV2.self),
+        for: Schema([Album.self, PhotoPair.self, Coupon.self]),
         configurations: ModelConfiguration(isStoredInMemoryOnly: true)
     )
 

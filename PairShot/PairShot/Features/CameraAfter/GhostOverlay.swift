@@ -11,16 +11,17 @@ enum GhostOverlayMath {
     }
 }
 
+@MainActor
 enum GhostOverlayLoader {
     static func loadImage(
-        beforeFileName: String,
-        storage: PhotoStorageService
-    ) -> UIImage? {
-        assert(!Thread.isMainThread, "GhostOverlayLoader.loadImage must be called off the main thread")
-        guard !beforeFileName.isEmpty else { return nil }
-        guard let url = storage.resolveBefore(fileName: beforeFileName) else { return nil }
-        guard FileManager.default.fileExists(atPath: url.path) else { return nil }
-        return UIImage(contentsOfFile: url.path)
+        localIdentifier: String,
+        photoLibrary: PhotoLibraryService
+    ) async -> UIImage? {
+        guard !localIdentifier.isEmpty else { return nil }
+        guard let data = await photoLibrary.requestImageData(localIdentifier: localIdentifier) else {
+            return nil
+        }
+        return UIImage(data: data)
     }
 }
 

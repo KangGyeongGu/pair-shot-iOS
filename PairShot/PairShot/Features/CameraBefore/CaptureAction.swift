@@ -9,24 +9,22 @@ enum CaptureActionError: Error {
     case persistence(Error)
 }
 
+@MainActor
 struct BeforeCaptureCoordinator {
     let session: CameraSession
-    let storage: PhotoStorageService
+    let photoLibrary: PhotoLibraryService
     let pairRepo: PhotoPairRepository?
-    let fileNamePrefix: String
     let jpegQuality: CGFloat
 
     init(
         session: CameraSession,
-        storage: PhotoStorageService,
+        photoLibrary: PhotoLibraryService,
         pairRepo: PhotoPairRepository? = nil,
-        fileNamePrefix: String = "",
         jpegQuality: CGFloat = ExifNormalizer.defaultJPEGQuality
     ) {
         self.session = session
-        self.storage = storage
+        self.photoLibrary = photoLibrary
         self.pairRepo = pairRepo
-        self.fileNamePrefix = fileNamePrefix
         self.jpegQuality = jpegQuality
     }
 
@@ -55,30 +53,23 @@ struct BeforeCaptureCoordinator {
         let pairId = UUID()
         let cameraSettings = CameraSettings(
             zoomFactor: captured.zoomFactor,
-            lensPosition: V1ToV2Migrator.lensPosition(for: captured.lensIdentifier),
+            lensPosition: LensPosition.resolve(identifier: captured.lensIdentifier),
             flashMode: .off,
             useGrid: false,
             useNightMode: false
         )
-        let sequenceNumber: Int = if let pairRepo {
-            await (try? pairRepo.nextSequenceNumber()) ?? PairSequenceResolver.fallback(in: context)
-        } else {
-            PairSequenceResolver.fallback(in: context)
-        }
-        let fileName = FileNameBuilder.before(
-            prefix: fileNamePrefix,
-            timestamp: captured.capturedAt,
-            sequenceNumber: sequenceNumber
-        )
 
+        let localIdentifier: String
         do {
-            _ = try storage.saveBeforeJPEG(normalizedJPEG, fileName: fileName)
+            localIdentifier = try await photoLibrary.saveImage(normalizedJPEG)
         } catch {
             throw CaptureActionError.storage(error)
         }
 
         let pair = PhotoPair(
-            beforeFileName: fileName,
+            beforePhotoLocalIdentifier: localIdentifier,
+            beforeZoomFactor: captured.zoomFactor,
+            beforeLensIdentifier: captured.lensIdentifier,
             cameraSettings: cameraSettings,
             latitude: latitude,
             longitude: longitude,
@@ -105,17 +96,6 @@ struct BeforeCaptureCoordinator {
         }
 
         return pair
-    }
-}
-
-enum PairSequenceResolver {
-    static func fallback(in context: ModelContext) -> Int {
-        let descriptor = FetchDescriptor<PhotoPair>()
-        let all = (try? context.fetch(descriptor)) ?? []
-        let maxSeq = all
-            .compactMap { FileNameBuilder.extractSequenceNumber(from: $0.beforeFileName) }
-            .max() ?? 0
-        return maxSeq + 1
     }
 }
 

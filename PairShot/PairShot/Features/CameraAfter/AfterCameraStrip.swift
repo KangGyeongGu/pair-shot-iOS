@@ -3,7 +3,6 @@ import SwiftUI
 struct AfterCameraStrip: View {
     let pairs: [PhotoPair]
     @Binding var selectedPairId: UUID?
-    let storage: PhotoStorageService
 
     @State private var scrolledId: UUID?
 
@@ -18,7 +17,6 @@ struct AfterCameraStrip: View {
                     ForEach(pairs) { pair in
                         StripCard(
                             pair: pair,
-                            storage: storage,
                             isActive: pair.id == scrolledId
                         )
                         .id(pair.id)

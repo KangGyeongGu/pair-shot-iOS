@@ -90,7 +90,6 @@ struct PairPickerView: View {
 
                         PairPickerCardView(
                             pair: pair,
-                            storage: viewModel.storage,
                             isAlreadyInAlbum: alreadyIn,
                             isSelected: isSelected
                         )

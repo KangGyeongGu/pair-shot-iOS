@@ -1,5 +1,6 @@
 import Foundation
 import Photos
+import UIKit
 
 enum SaveToDeviceOutcome {
     case completed
@@ -8,37 +9,37 @@ enum SaveToDeviceOutcome {
 
 @MainActor
 final class ImmediateExportService {
-    private let storage: PhotoStorageService
+    private let photoLibrary: PhotoLibraryService
     private let exportPairs: ExportPairsUseCase
-    private let photoLibrary: any PhotoLibraryExporting
+    private let photoLibraryExporter: any PhotoLibraryExporting
     private let snackbarQueue: SnackbarQueue
     private let preferences: ExportPreferences
     private let tempDirectoryProvider: @Sendable () -> URL
-    private let compositor: (any CompositorService)?
-    private let appSettings: AppSettings?
+    private let compositor: any CompositorService
+    private let appSettings: AppSettings
 
     private var hasAnyInclude: Bool {
         preferences.includeCombined || preferences.includeBefore || preferences.includeAfter
     }
 
     init(
-        storage: PhotoStorageService,
+        photoLibrary: PhotoLibraryService,
         exportPairs: ExportPairsUseCase,
-        photoLibrary: any PhotoLibraryExporting,
+        photoLibraryExporter: any PhotoLibraryExporting,
         snackbarQueue: SnackbarQueue,
+        compositor: any CompositorService,
+        appSettings: AppSettings,
         preferences: ExportPreferences = ExportPreferences(),
-        tempDirectoryProvider: @escaping @Sendable () -> URL = { FileManager.default.temporaryDirectory },
-        compositor: (any CompositorService)? = nil,
-        appSettings: AppSettings? = nil
+        tempDirectoryProvider: @escaping @Sendable () -> URL = { FileManager.default.temporaryDirectory }
     ) {
-        self.storage = storage
-        self.exportPairs = exportPairs
         self.photoLibrary = photoLibrary
+        self.exportPairs = exportPairs
+        self.photoLibraryExporter = photoLibraryExporter
         self.snackbarQueue = snackbarQueue
-        self.preferences = preferences
-        self.tempDirectoryProvider = tempDirectoryProvider
         self.compositor = compositor
         self.appSettings = appSettings
+        self.preferences = preferences
+        self.tempDirectoryProvider = tempDirectoryProvider
     }
 
     // swiftlint:disable switch_case_alignment
@@ -54,13 +55,13 @@ final class ImmediateExportService {
             initialValue: 0
         )
         do {
-            await prepareCompositesIfNeeded(for: pairs, progress: handle)
             snackbarQueue.updateProgress(handle, value: 0.5)
             switch preferences.format {
                 case .zip:
                     let url = try await exportPairs(
                         ids: pairs.map(\.id),
                         selection: selection,
+                        renderOptions: currentRenderOptions(),
                         format: .zip,
                         tempDirectory: tempDirectoryProvider()
                     )
@@ -68,10 +69,7 @@ final class ImmediateExportService {
                     return ExportShareItems(values: [url])
 
                 case .individualImages:
-                    let urls = collectIndividualSourceURLs(
-                        for: pairs,
-                        mode: ExportContentsMapping.toMode(selection)
-                    )
+                    let urls = await collectIndividualSourceURLs(for: pairs, selection: selection)
                     snackbarQueue.completeProgress(handle, finalMessage: nil)
                     return ExportShareItems(values: urls)
             }
@@ -96,7 +94,6 @@ final class ImmediateExportService {
             token: token,
             initialValue: 0
         )
-        await prepareCompositesIfNeeded(for: pairs, progress: handle)
         switch preferences.format {
             case .individualImages:
                 await saveImagesToPhotoLibrary(pairs: pairs, progress: handle)
@@ -139,79 +136,56 @@ final class ImmediateExportService {
         )
     }
 
-    private func prepareCompositesIfNeeded(for pairs: [PhotoPair], progress: SnackbarProgressHandle? = nil) async {
-        guard preferences.includeCombined,
-              preferences.applyCombineSettings,
-              let compositor,
-              let appSettings
-        else { return }
-        let layout = appSettings.combineSettings.direction == .vertical ? CompositeLayout.vertical : CompositeLayout
-            .horizontal
-        let options = CompositeOptions(
-            layout: layout,
-            jpegQuality: CGFloat(appSettings.jpegQuality),
-            watermarkEnabled: appSettings.watermarkEnabled && preferences.applyWatermark,
-            watermark: appSettings.watermarkEnabled && preferences.applyWatermark ? appSettings.watermarkSettings : nil,
-            combineSettings: appSettings.combineSettings
+    private func currentSelection() -> ExportContents {
+        ExportContents(
+            includeCombined: preferences.includeCombined,
+            includeBefore: preferences.includeBefore,
+            includeAfter: preferences.includeAfter
         )
-        let prefix = FileNamePrefixValidator.sanitize(appSettings.fileNamePrefix)
-        let total = max(1, pairs.count(where: { $0.afterFileName != nil }))
-        var done = 0
-        for pair in pairs where pair.afterFileName != nil {
-            do {
-                _ = try await compositor.makeComposite(
-                    for: pair,
-                    options: options,
-                    fileNamePrefix: prefix,
-                    now: .now
-                )
-                done += 1
-                if let progress {
-                    snackbarQueue.updateProgress(progress, value: 0.5 * Double(done) / Double(total))
+    }
+
+    private func currentRenderOptions() -> ExportRenderOptions {
+        ExportRenderOptions(
+            applyCombineSettings: preferences.applyCombineSettings,
+            applyWatermark: preferences.applyWatermark
+        )
+    }
+
+    private func collectIndividualSourceURLs(
+        for pairs: [PhotoPair],
+        selection: ExportContents
+    ) async -> [URL] {
+        let renderOptions = currentRenderOptions()
+        let tempDir = tempDirectoryProvider()
+        var urls: [URL] = []
+        let now = Date()
+        for pair in pairs {
+            let entries = ExportSelection.relativePaths(for: pair, selection: selection, now: now)
+            for entry in entries {
+                guard let data = await ExportEntryRenderer.render(
+                    entry: entry,
+                    pair: pair,
+                    photoLibrary: photoLibrary,
+                    compositor: compositor,
+                    appSettings: appSettings,
+                    renderOptions: renderOptions,
+                    now: now
+                ) else { continue }
+                let fileName = ExportTempFileWriter.sanitizedName(from: entry.relativeName)
+                if let url = ExportTempFileWriter.write(
+                    data: data,
+                    fileName: fileName,
+                    tempDirectory: tempDir
+                ) {
+                    urls.append(url)
                 }
-            } catch {
-                if let progress {
-                    snackbarQueue.cancelProgress(progress)
-                }
-                snackbarQueue.enqueue(
-                    "snackbar_error_composite_failed",
-                    variant: .error,
-                    debounceKey: "composite-error"
-                )
-                return
             }
         }
-    }
-
-    private func currentSelection() -> ExportContents {
-        ExportContentsMapping.fromIncludes(
-            combined: preferences.includeCombined,
-            before: preferences.includeBefore,
-            after: preferences.includeAfter
-        )
-    }
-
-    private func collectIndividualSourceURLs(for pairs: [PhotoPair], mode: ExportMode) -> [URL] {
-        let entries = pairs.flatMap { ExportSelection.relativePaths(for: $0, mode: mode) }
-        return WatermarkedSourceProvider.resolveURLs(
-            entries: entries,
-            storage: storage,
-            watermark: activeWatermarkForIndividuals(),
-            tempDirectory: tempDirectoryProvider()
-        )
-    }
-
-    private func activeWatermarkForIndividuals() -> WatermarkSettings? {
-        guard
-            let appSettings,
-            appSettings.watermarkEnabled,
-            preferences.applyWatermark
-        else { return nil }
-        return appSettings.watermarkSettings
+        return urls
     }
 
     private func saveImagesToPhotoLibrary(pairs: [PhotoPair], progress: SnackbarProgressHandle) async {
-        let status = await photoLibrary.authorize()
+        let status = await photoLibraryExporter.authorize()
         guard status == .authorized || status == .limited else {
             snackbarQueue.cancelProgress(progress)
             snackbarQueue.enqueue(
@@ -221,29 +195,35 @@ final class ImmediateExportService {
             )
             return
         }
-        let mode = ExportContentsMapping.toMode(currentSelection())
-        let entries = pairs.flatMap { ExportSelection.relativePaths(for: $0, mode: mode) }
-        let total = max(1, entries.count)
-        let watermark = activeWatermarkForIndividuals()
+        let selection = currentSelection()
+        let renderOptions = currentRenderOptions()
+        let now = Date()
+        let allEntries: [(pair: PhotoPair, entry: ExportSelection.Entry)] = pairs.flatMap { pair in
+            ExportSelection.relativePaths(for: pair, selection: selection, now: now)
+                .map { (pair: pair, entry: $0) }
+        }
+        let total = max(1, allEntries.count)
         var saved = 0
         var processed = 0
-        for entry in entries {
-            guard
-                let payload = WatermarkedSourceProvider.resolveDataAndExtension(
-                    for: entry,
-                    storage: storage,
-                    watermark: watermark
-                )
-            else {
+        for item in allEntries {
+            guard let data = await ExportEntryRenderer.render(
+                entry: item.entry,
+                pair: item.pair,
+                photoLibrary: photoLibrary,
+                compositor: compositor,
+                appSettings: appSettings,
+                renderOptions: renderOptions,
+                now: now
+            ) else {
                 processed += 1
-                snackbarQueue.updateProgress(progress, value: 0.5 + 0.5 * Double(processed) / Double(total))
+                snackbarQueue.updateProgress(progress, value: Double(processed) / Double(total))
                 continue
             }
             do {
-                try await photoLibrary.saveImageData(payload.data, type: .photo)
+                try await photoLibraryExporter.saveImageData(data, type: .photo)
                 saved += 1
                 processed += 1
-                snackbarQueue.updateProgress(progress, value: 0.5 + 0.5 * Double(processed) / Double(total))
+                snackbarQueue.updateProgress(progress, value: Double(processed) / Double(total))
             } catch {
                 snackbarQueue.cancelProgress(progress)
                 snackbarQueue.enqueue(
@@ -277,6 +257,7 @@ final class ImmediateExportService {
             let url = try await exportPairs(
                 ids: pairs.map(\.id),
                 selection: currentSelection(),
+                renderOptions: currentRenderOptions(),
                 format: .zip,
                 tempDirectory: tempDirectoryProvider()
             )

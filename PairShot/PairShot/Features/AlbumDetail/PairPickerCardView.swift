@@ -2,7 +2,6 @@ import SwiftUI
 
 struct PairPickerCardView: View {
     let pair: PhotoPair
-    let storage: PhotoStorageService
     let isAlreadyInAlbum: Bool
     let isSelected: Bool
 
@@ -10,7 +9,6 @@ struct PairPickerCardView: View {
         ZStack(alignment: .topTrailing) {
             HomePairCardView(
                 pair: pair,
-                storage: storage,
                 isSelectionMode: false,
                 isSelected: false
             )

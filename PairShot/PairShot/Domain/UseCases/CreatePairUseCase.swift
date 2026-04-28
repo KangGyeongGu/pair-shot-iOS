@@ -1,48 +1,45 @@
 import Foundation
 
-struct CreatePairUseCase {
+@MainActor
+final class CreatePairUseCase {
+    enum RefillError: Error, Equatable {
+        case pairNotFound
+    }
+
     let pairRepo: PhotoPairRepository
-    let storage: PhotoStoring
+    let photoLibrary: PhotoLibraryService
     let location: LocationFetching
-    let fileNameBuilder: FileNameBuilding
     let exifNormalizer: ExifNormalizing
     let now: @Sendable () -> Date
 
     init(
         pairRepo: PhotoPairRepository,
-        storage: PhotoStoring,
+        photoLibrary: PhotoLibraryService,
         location: LocationFetching,
-        fileNameBuilder: FileNameBuilding,
         exifNormalizer: ExifNormalizing,
         now: @escaping @Sendable () -> Date = { .now }
     ) {
         self.pairRepo = pairRepo
-        self.storage = storage
+        self.photoLibrary = photoLibrary
         self.location = location
-        self.fileNameBuilder = fileNameBuilder
         self.exifNormalizer = exifNormalizer
         self.now = now
     }
 
     func callAsFunction(
         beforeJPEG: Data,
-        prefix: String,
         cameraSettings: CameraSettings,
         jpegQuality: Double = AppSettingsSnapshot.defaultJpegQuality
     ) async throws -> PhotoPair {
         let timestamp = now()
         let pairId = UUID()
-        let sequenceNumber = try await pairRepo.nextSequenceNumber()
-        let fileName = fileNameBuilder.before(
-            prefix: prefix,
-            timestamp: timestamp,
-            sequenceNumber: sequenceNumber
-        )
         let normalized = await exifNormalizer.normalize(beforeJPEG, jpegQuality: jpegQuality)
-        let savedName = try storage.saveBeforeJPEG(normalized, fileName: fileName)
+        let localIdentifier = try await photoLibrary.saveImage(normalized)
         let resolvedLocation = await location.fetchOnce()
         let pair = PhotoPair(
-            beforeFileName: savedName,
+            beforePhotoLocalIdentifier: localIdentifier,
+            beforeZoomFactor: cameraSettings.zoomFactor,
+            beforeLensIdentifier: cameraSettings.lensPosition.rawValue,
             cameraSettings: cameraSettings,
             latitude: resolvedLocation?.latitude,
             longitude: resolvedLocation?.longitude,
@@ -53,4 +50,27 @@ struct CreatePairUseCase {
         try await pairRepo.add(pair)
         return pair
     }
+
+    func refillBefore(
+        pairId: UUID,
+        beforeJPEG: Data,
+        cameraSettings: CameraSettings,
+        jpegQuality: Double = AppSettingsSnapshot.defaultJpegQuality
+    ) async throws -> PhotoPair {
+        guard let pair = try await pairRepo.fetch(id: pairId) else {
+            throw RefillError.pairNotFound
+        }
+        let timestamp = now()
+        let normalized = await exifNormalizer.normalize(beforeJPEG, jpegQuality: jpegQuality)
+        let localIdentifier = try await photoLibrary.saveImage(normalized)
+        pair.beforePhotoLocalIdentifier = localIdentifier
+        pair.beforeZoomFactor = cameraSettings.zoomFactor
+        pair.beforeLensIdentifier = cameraSettings.lensPosition.rawValue
+        pair.cameraSettings = cameraSettings
+        pair.updatedAt = timestamp
+        try await pairRepo.update(pair)
+        return pair
+    }
+
+    deinit {}
 }

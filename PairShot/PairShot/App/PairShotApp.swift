@@ -45,7 +45,13 @@ struct PairShotApp: App {
                 .environment(\.locale, env.appSettings.resolvedLocale)
                 .preferredColorScheme(env.appSettings.resolvedColorScheme)
                 .task {
+                    env.photoLibrarySyncService.register()
                     await bootstrapAds()
+                    await env.permissionStatusService.refreshAll()
+                    if !env.permissionStatusService.hasRequestedInitialPermissions {
+                        await env.permissionStatusService.requestAllInOrder()
+                    }
+                    await env.photoLibrarySyncService.revalidate()
                     if !hasPresentedColdStartAppOpen {
                         hasPresentedColdStartAppOpen = true
                         await env.appOpenAdManager.presentIfReady(
@@ -86,6 +92,8 @@ struct PairShotApp: App {
         guard phase == .active else { return }
 
         Task { @MainActor in
+            await env.permissionStatusService.refreshAll()
+            await env.photoLibrarySyncService.revalidate()
             env.adFreeStore.refresh()
             env.interstitialAdManager.loadIfNeeded(adFreeStore: env.adFreeStore)
             env.appOpenAdManager.loadIfNeeded(adFreeStore: env.adFreeStore)
@@ -116,12 +124,11 @@ struct ModelContainerBootstrap {
     let fallbackActive: Bool
 
     static func bootstrap() -> Self {
-        let schema = Schema(versionedSchema: SchemaV2.self)
+        let schema = Schema([Album.self, PhotoPair.self, Coupon.self])
         do {
             let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
             let container = try ModelContainer(
                 for: schema,
-                migrationPlan: PairShotMigrationPlan.self,
                 configurations: [configuration]
             )
             return Self(container: container, fallbackActive: false)

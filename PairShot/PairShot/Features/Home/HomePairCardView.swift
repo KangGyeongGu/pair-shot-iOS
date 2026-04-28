@@ -3,7 +3,6 @@ import UIKit
 
 struct HomePairCardView: View {
     let pair: PhotoPair
-    let storage: PhotoStorageService
     let isSelectionMode: Bool
     let isSelected: Bool
 
@@ -27,8 +26,8 @@ struct HomePairCardView: View {
     private var topTrailingBadge: some View {
         if isSelectionMode {
             selectionMarker.padding(8)
-        } else if pair.status == .combined {
-            combinedIndicator.padding(8)
+        } else if pair.status == .captured {
+            capturedIndicator.padding(8)
         }
     }
 
@@ -48,12 +47,8 @@ struct HomePairCardView: View {
 
     private var splitContainer: some View {
         HStack(spacing: 0) {
-            HomePairCardSide(
-                source: .init(kind: .before, fileName: pair.beforeFileName),
-                storage: storage,
-                placeholder: .image
-            )
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            beforeSide
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             Rectangle()
                 .fill(Color(uiColor: .separator).opacity(0.5))
@@ -65,25 +60,31 @@ struct HomePairCardView: View {
     }
 
     @ViewBuilder
-    private var afterSide: some View {
-        if let afterName = pair.afterFileName {
+    private var beforeSide: some View {
+        if let identifier = pair.beforePhotoLocalIdentifier, !identifier.isEmpty {
             HomePairCardSide(
-                source: .init(kind: .after, fileName: afterName),
-                storage: storage,
+                localIdentifier: identifier,
                 placeholder: .image
             )
         } else {
-            ZStack {
-                Color(uiColor: .secondarySystemBackground)
-                Image(systemName: "camera.fill")
-                    .font(.title.weight(.light))
-                    .foregroundStyle(.secondary.opacity(0.4))
-            }
+            HomePairCardEmptySlot()
         }
     }
 
-    private var combinedIndicator: some View {
-        Image(systemName: "square.on.square")
+    @ViewBuilder
+    private var afterSide: some View {
+        if let identifier = pair.afterPhotoLocalIdentifier, !identifier.isEmpty {
+            HomePairCardSide(
+                localIdentifier: identifier,
+                placeholder: .image
+            )
+        } else {
+            HomePairCardEmptySlot()
+        }
+    }
+
+    private var capturedIndicator: some View {
+        Image(systemName: "checkmark")
             .font(.appCaptionBold)
             .foregroundStyle(Color.white)
             .frame(width: 28, height: 28)
@@ -117,8 +118,19 @@ struct HomePairCardView: View {
     private static func statusLabel(for pair: PhotoPair) -> String {
         switch pair.status {
             case .scheduled: String(localized: "pair_card_desc_scheduled")
+            case .afterOnly: String(localized: "pair_card_desc_captured")
             case .captured: String(localized: "pair_card_desc_captured")
-            case .combined: String(localized: "pair_card_desc_combined")
+        }
+    }
+}
+
+private struct HomePairCardEmptySlot: View {
+    var body: some View {
+        ZStack {
+            Color(uiColor: .secondarySystemBackground)
+            Image(systemName: "camera.fill")
+                .font(.title.weight(.light))
+                .foregroundStyle(.secondary.opacity(0.4))
         }
     }
 }
@@ -129,8 +141,7 @@ private struct HomePairCardSide: View {
         case empty
     }
 
-    let source: AlbumCoverSource
-    let storage: PhotoStorageService
+    let localIdentifier: String?
     let placeholder: Placeholder
 
     @State private var thumbnail: UIImage?
@@ -149,24 +160,18 @@ private struct HomePairCardSide: View {
             }
         }
         .clipped()
-        .task(id: cacheToken) { await load() }
-    }
-
-    private var cacheToken: String {
-        "\(source.kind.rawValue)/\(source.fileName)"
+        .task(id: localIdentifier ?? "") { await load() }
     }
 
     private func load() async {
-        let kind = source.kind
-        let fileName = source.fileName
-        if let cached = ThumbnailCache.shared.cached(kind: kind, fileName: fileName) {
+        guard let identifier = localIdentifier, !identifier.isEmpty else {
+            thumbnail = nil
+            return
+        }
+        if let cached = ThumbnailCache.shared.cached(localIdentifier: identifier) {
             thumbnail = cached
             return
         }
-        let storage = storage
-        let decoded = await Task.detached(priority: .userInitiated) {
-            ThumbnailCache.shared.loadThumbnail(kind: kind, fileName: fileName, storage: storage)
-        }.value
-        thumbnail = decoded
+        thumbnail = await ThumbnailCache.shared.image(for: identifier)
     }
 }

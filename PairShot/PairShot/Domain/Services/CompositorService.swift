@@ -6,33 +6,27 @@ protocol CompositorService: AnyObject {
     func makeComposite(
         for pair: PhotoPair,
         options: CompositeOptions,
-        fileNamePrefix: String,
         now: Date
-    ) async throws -> String
+    ) async throws -> Data
 }
 
 @MainActor
 final class DefaultCompositorService: CompositorService {
-    private let storage: PhotoStorageService
-    private let modelContainer: ModelContainer
+    private let photoLibrary: PhotoLibraryService
 
-    init(storage: PhotoStorageService, modelContainer: ModelContainer) {
-        self.storage = storage
-        self.modelContainer = modelContainer
+    init(photoLibrary: PhotoLibraryService) {
+        self.photoLibrary = photoLibrary
     }
 
     func makeComposite(
         for pair: PhotoPair,
         options: CompositeOptions,
-        fileNamePrefix: String,
         now: Date
-    ) async throws -> String {
+    ) async throws -> Data {
         try await CompositeRenderer.makeComposite(
             for: pair,
             options: options,
-            storage: storage,
-            fileNamePrefix: fileNamePrefix,
-            in: modelContainer.mainContext,
+            photoLibrary: photoLibrary,
             now: now
         )
     }

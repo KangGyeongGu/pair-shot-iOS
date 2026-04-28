@@ -80,7 +80,7 @@ final class AfterCameraViewModel {
 
     private let captureAfter: CaptureAfterUseCase
     private let pairRepo: PhotoPairRepository
-    private let storage: PhotoStoring
+    private let photoLibrary: PhotoLibraryService
     private let appSettings: AppSettings
     private let captureSource: AfterCameraCaptureSource
     private let permissionProbe: @Sendable () async -> Bool
@@ -94,7 +94,7 @@ final class AfterCameraViewModel {
         sortOrder: HomeSortOrder = .newest,
         captureAfter: CaptureAfterUseCase,
         pairRepo: PhotoPairRepository,
-        storage: PhotoStoring,
+        photoLibrary: PhotoLibraryService,
         appSettings: AppSettings,
         session: CameraSession? = nil,
         captureSource: AfterCameraCaptureSource? = nil,
@@ -106,7 +106,7 @@ final class AfterCameraViewModel {
         self.sortOrder = sortOrder
         self.captureAfter = captureAfter
         self.pairRepo = pairRepo
-        self.storage = storage
+        self.photoLibrary = photoLibrary
         self.appSettings = appSettings
         let resolvedSession = session ?? CameraSession()
         self.session = resolvedSession
@@ -184,11 +184,9 @@ final class AfterCameraViewModel {
         defer { isCapturing = false }
         do {
             let captured = try await captureSource.capturePhoto()
-            let prefix = FileNamePrefixValidator.sanitize(appSettings.fileNamePrefix)
             let updated = try await captureAfter(
                 pairId: pair.id,
                 afterJPEG: captured.jpegData,
-                prefix: prefix,
                 jpegQuality: appSettings.jpegQuality
             )
             currentPair = updated
@@ -265,13 +263,12 @@ final class AfterCameraViewModel {
     }
 
     private func loadGhost(for pair: PhotoPair) async {
-        let fileName = pair.beforeFileName
-        guard !fileName.isEmpty else { return }
-        guard let url = storage.resolveBefore(fileName: fileName) else { return }
-        let loaded = await Task.detached(priority: .userInitiated) {
-            guard FileManager.default.fileExists(atPath: url.path) else { return nil as Data? }
-            return try? Data(contentsOf: url)
-        }.value
+        guard let identifier = pair.beforePhotoLocalIdentifier, !identifier.isEmpty else {
+            ghostWarningToast = String(localized: "after_ghost_missing_warning")
+            return
+        }
+        let library = photoLibrary
+        let loaded = await library.requestImageData(localIdentifier: identifier)
         guard currentPair?.id == pair.id else { return }
         ghostImageData = loaded
         if loaded == nil {
@@ -378,12 +375,11 @@ enum AfterCameraZoomHaptics {
     }
 }
 
+@MainActor
 enum AfterCameraGhostLoader {
-    static func loadData(beforeFileName: String, storage: PhotoStoring) -> Data? {
-        guard !beforeFileName.isEmpty else { return nil }
-        guard let url = storage.resolveBefore(fileName: beforeFileName) else { return nil }
-        guard FileManager.default.fileExists(atPath: url.path) else { return nil }
-        return try? Data(contentsOf: url)
+    static func loadData(localIdentifier: String, photoLibrary: PhotoLibraryService) async -> Data? {
+        guard !localIdentifier.isEmpty else { return nil }
+        return await photoLibrary.requestImageData(localIdentifier: localIdentifier)
     }
 }
 

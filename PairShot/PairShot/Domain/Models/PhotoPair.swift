@@ -4,9 +4,10 @@ import SwiftData
 @Model
 final class PhotoPair {
     @Attribute(.unique) var id: UUID
-    var beforeFileName: String
-    var afterFileName: String?
-    var combinedFileName: String?
+    var beforePhotoLocalIdentifier: String?
+    var afterPhotoLocalIdentifier: String?
+    var beforeZoomFactor: Double
+    var beforeLensIdentifier: String
     var createdAt: Date
     var updatedAt: Date
     var afterCapturedAt: Date?
@@ -33,7 +34,9 @@ final class PhotoPair {
     }
 
     init(
-        beforeFileName: String,
+        beforePhotoLocalIdentifier: String? = nil,
+        beforeZoomFactor: Double = 1.0,
+        beforeLensIdentifier: String = "",
         cameraSettings: CameraSettings? = nil,
         latitude: Double? = nil,
         longitude: Double? = nil,
@@ -41,7 +44,9 @@ final class PhotoPair {
         capturedAt: Date = .now
     ) {
         id = UUID()
-        self.beforeFileName = beforeFileName
+        self.beforePhotoLocalIdentifier = beforePhotoLocalIdentifier
+        self.beforeZoomFactor = beforeZoomFactor
+        self.beforeLensIdentifier = beforeLensIdentifier
         createdAt = capturedAt
         updatedAt = capturedAt
         self.latitude = latitude

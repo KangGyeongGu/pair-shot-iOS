@@ -7,21 +7,18 @@ final class CaptureAfterUseCase {
     }
 
     let pairRepo: PhotoPairRepository
-    let storage: PhotoStoring
-    let fileNameBuilder: FileNameBuilding
+    let photoLibrary: PhotoLibraryService
     let exifNormalizer: ExifNormalizing
     let now: @Sendable () -> Date
 
     init(
         pairRepo: PhotoPairRepository,
-        storage: PhotoStoring,
-        fileNameBuilder: FileNameBuilding,
+        photoLibrary: PhotoLibraryService,
         exifNormalizer: ExifNormalizing,
         now: @escaping @Sendable () -> Date = { .now }
     ) {
         self.pairRepo = pairRepo
-        self.storage = storage
-        self.fileNameBuilder = fileNameBuilder
+        self.photoLibrary = photoLibrary
         self.exifNormalizer = exifNormalizer
         self.now = now
     }
@@ -29,26 +26,15 @@ final class CaptureAfterUseCase {
     func callAsFunction(
         pairId: UUID,
         afterJPEG: Data,
-        prefix: String,
         jpegQuality: Double = AppSettingsSnapshot.defaultJpegQuality
     ) async throws -> PhotoPair {
         guard let pair = try await pairRepo.fetch(id: pairId) else {
             throw CaptureAfterError.pairNotFound
         }
         let timestamp = now()
-        let sequenceNumber: Int = if let extracted = FileNameBuilder.extractSequenceNumber(from: pair.beforeFileName) {
-            extracted
-        } else {
-            try await pairRepo.nextSequenceNumber()
-        }
-        let fileName = fileNameBuilder.after(
-            prefix: prefix,
-            timestamp: timestamp,
-            sequenceNumber: sequenceNumber
-        )
         let normalized = await exifNormalizer.normalize(afterJPEG, jpegQuality: jpegQuality)
-        let savedName = try storage.saveAfterJPEG(normalized, fileName: fileName)
-        pair.afterFileName = savedName
+        let localIdentifier = try await photoLibrary.saveImage(normalized)
+        pair.afterPhotoLocalIdentifier = localIdentifier
         pair.afterCapturedAt = timestamp
         pair.updatedAt = timestamp
         try await pairRepo.update(pair)

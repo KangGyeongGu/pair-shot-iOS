@@ -110,7 +110,6 @@ struct AfterCameraView: View {
                 overlayEnabled: viewModel.overlayEnabled,
                 pairs: viewModel.pairs,
                 selectedPairId: selectedPairIdBinding(for: viewModel),
-                storage: env.photoStorageService,
                 rotationDirection: viewModel.rotationDirection,
                 isGridOn: viewModel.isGridOn,
                 isLevelOn: viewModel.isLevelOn,

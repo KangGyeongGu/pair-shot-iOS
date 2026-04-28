@@ -1,10 +1,13 @@
 import Foundation
 
-nonisolated enum ExportContents: String, Equatable, CaseIterable {
-    case all
-    case beforeOnly
-    case afterOnly
-    case combinedOnly
+nonisolated struct ExportContents: Equatable {
+    let includeCombined: Bool
+    let includeBefore: Bool
+    let includeAfter: Bool
+
+    var isEmpty: Bool {
+        !includeCombined && !includeBefore && !includeAfter
+    }
 }
 
 nonisolated enum ExportFormat: String, Equatable, CaseIterable {
@@ -12,10 +15,18 @@ nonisolated enum ExportFormat: String, Equatable, CaseIterable {
     case individualImages = "INDIVIDUAL"
 }
 
+nonisolated struct ExportRenderOptions: Equatable {
+    let applyCombineSettings: Bool
+    let applyWatermark: Bool
+
+    static let none = Self(applyCombineSettings: false, applyWatermark: false)
+}
+
 protocol ZipExporting: Sendable {
     func exportPairsToZip(
         pairIds: [UUID],
         selection: ExportContents,
+        renderOptions: ExportRenderOptions,
         in tempDirectory: URL,
         now: Date
     ) async throws -> URL

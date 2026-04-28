@@ -14,7 +14,7 @@ struct AlbumDetailView: View {
 
     private let columns: [GridItem] = [
         GridItem(.flexible(), spacing: 8),
-        GridItem(.flexible(), spacing: 8),
+        GridItem(.flexible(), spacing: 8)
     ]
 
     init(
@@ -114,7 +114,6 @@ struct AlbumDetailView: View {
     ) -> some View {
         HomePairCardView(
             pair: pair,
-            storage: viewModel.storage,
             isSelectionMode: viewModel.isSelectionMode,
             isSelected: viewModel.selectedPairIds.contains(pair.id)
         )
@@ -170,13 +169,19 @@ struct AlbumDetailCameraCovers: ViewModifier {
     func body(content: Content) -> some View {
         content
             .fullScreenCover(isPresented: $viewModel.showBeforeCamera) {
-                NavigationStack { BeforeCameraView(albumId: viewModel.albumId) }
+                NavigationStack {
+                    BeforeCameraView(
+                        albumId: viewModel.albumId,
+                        refillPairId: viewModel.beforeCameraTargetPairId
+                    )
+                }
             }
             .fullScreenCover(isPresented: $viewModel.showAfterCamera) {
                 NavigationStack {
                     AfterCameraView(
                         albumId: viewModel.albumId,
                         initialPairId: viewModel.afterCameraTargetPairId,
+                        retakeMode: viewModel.afterCameraTargetPairId != nil,
                         sortOrder: viewModel.sortOrder
                     )
                 }

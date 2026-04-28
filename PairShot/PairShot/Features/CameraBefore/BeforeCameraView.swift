@@ -3,6 +3,7 @@ import SwiftUI
 
 struct BeforeCameraView: View {
     let albumId: UUID?
+    let refillPairId: UUID?
     let onHome: (() -> Void)?
 
     @Environment(\.dismiss) private var dismiss
@@ -17,8 +18,13 @@ struct BeforeCameraView: View {
     @State private var afterCameraTarget: AfterCameraTarget?
     @State private var showSettingsSheet = false
 
-    init(albumId: UUID? = nil, onHome: (() -> Void)? = nil) {
+    init(
+        albumId: UUID? = nil,
+        refillPairId: UUID? = nil,
+        onHome: (() -> Void)? = nil
+    ) {
         self.albumId = albumId
+        self.refillPairId = refillPairId
         self.onHome = onHome
     }
 
@@ -117,7 +123,6 @@ struct BeforeCameraView: View {
                 isCapturing: viewModel.isCapturing,
                 lastThumbnail: viewModel.lastThumbnail,
                 pendingPairs: viewModel.pendingPairs,
-                storage: env.photoStorageService,
                 onTapFocus: viewModel.onTapFocus(devicePoint:),
                 onExposureBias: viewModel.onExposureBias(_:),
                 pinchGesture: AnyGesture(pinchGesture(for: viewModel).map { _ in () }),
@@ -157,7 +162,10 @@ struct BeforeCameraView: View {
 
     private func ensureViewModelSync() {
         guard viewModel == nil else { return }
-        viewModel = env.makeBeforeCameraViewModel(albumId: albumId)
+        viewModel = env.makeBeforeCameraViewModel(
+            albumId: albumId,
+            refillPairId: refillPairId
+        )
     }
 
     private func observeEvents(viewModel: BeforeCameraViewModel) async {

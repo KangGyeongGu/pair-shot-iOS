@@ -84,6 +84,5 @@ struct HomeAlbumCardView: View {
 
 struct AlbumCoverSource: Identifiable, Hashable {
     let id = UUID()
-    let kind: PhotoStorageService.PhotoKind
-    let fileName: String
+    let localIdentifier: String?
 }

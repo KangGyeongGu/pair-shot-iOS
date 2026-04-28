@@ -1,6 +1,6 @@
 import Foundation
 
-nonisolated final class UserDefaultsAppSettingsRepository: AppSettingsRepository, @unchecked Sendable {
+final nonisolated class UserDefaultsAppSettingsRepository: AppSettingsRepository, @unchecked Sendable {
     static let jpegQualityKey = "pairshot.jpegQuality"
     static let fileNamePrefixKey = "pairshot.fileNamePrefix"
     static let defaultOverlayAlphaKey = "pairshot.defaultOverlayAlpha"
@@ -155,7 +155,7 @@ nonisolated final class UserDefaultsAppSettingsRepository: AppSettingsRepository
     deinit {}
 }
 
-nonisolated private final class NotificationObserverTokenBox: @unchecked Sendable {
+private final nonisolated class NotificationObserverTokenBox: @unchecked Sendable {
     var token: (any NSObjectProtocol)?
     init() {}
     deinit {}

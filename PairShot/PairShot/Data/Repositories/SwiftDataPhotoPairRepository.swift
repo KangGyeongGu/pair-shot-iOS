@@ -76,10 +76,7 @@ final class SwiftDataPhotoPairRepository: PhotoPairRepository {
 
     func nextSequenceNumber() async throws -> Int {
         let all = try fetchAllSync()
-        let maxSeq = all
-            .compactMap { FileNameBuilder.extractSequenceNumber(from: $0.beforeFileName) }
-            .max() ?? 0
-        return maxSeq + 1
+        return all.count + 1
     }
 
     private func fetchAllSync() throws -> [PhotoPair] {

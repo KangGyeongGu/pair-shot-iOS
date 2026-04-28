@@ -15,15 +15,12 @@ final class PairPreviewViewModel {
     var isRendering: Bool = false
     var zoomScale: CGFloat = 1.0
     var pinchBaseScale: CGFloat = 1.0
-    var showDeleteConfirm: Bool = false
-    var showShareSheet: Bool = false
-    var showRetake: Bool = false
     var errorMessage: String?
 
     let events: AsyncStream<Event>
 
-    private let storage: PhotoStorageService
-    private let deletePairs: DeletePairsUseCase
+    private let compositor: any CompositorService
+    private let appSettings: AppSettings
     private let eventsContinuation: AsyncStream<Event>.Continuation
 
     static let minZoom: CGFloat = 1.0
@@ -31,59 +28,44 @@ final class PairPreviewViewModel {
 
     init(
         pair: PhotoPair,
-        storage: PhotoStorageService,
-        deletePairs: DeletePairsUseCase
+        compositor: any CompositorService,
+        appSettings: AppSettings
     ) {
         self.pair = pair
-        self.storage = storage
-        self.deletePairs = deletePairs
+        self.compositor = compositor
+        self.appSettings = appSettings
         var continuation: AsyncStream<Event>.Continuation!
         events = AsyncStream { continuation = $0 }
         eventsContinuation = continuation
     }
 
-    var hasCombined: Bool {
-        guard let name = pair.combinedFileName, !name.isEmpty else { return false }
-        return true
-    }
-
-    var shareItems: [Any] {
-        if let combinedURL = combinedURL() {
-            return [combinedURL]
-        }
-        return resolvePairURLs()
-    }
-
     func loadPreview() async {
         guard livePreviewImage == nil else { return }
+        guard pair.beforePhotoLocalIdentifier?.isEmpty == false else { return }
+        guard pair.afterPhotoLocalIdentifier?.isEmpty == false else { return }
         isRendering = true
         defer { isRendering = false }
-        let resolved = await Self.loadCombinedImage(for: pair, storage: storage)
-        livePreviewImage = resolved
-    }
-
-    func onShareTapped() {
-        guard !shareItems.isEmpty else {
-            errorMessage = String(localized: "pair_preview_share_no_photo")
-            return
-        }
-        showShareSheet = true
-    }
-
-    func onRetakeTapped() {
-        showRetake = true
-    }
-
-    func onDeleteTapped() {
-        showDeleteConfirm = true
-    }
-
-    func confirmDelete() async {
         do {
-            try await deletePairs(ids: [pair.id], mode: .wholePair)
-            eventsContinuation.yield(.dismiss)
+            let watermark: WatermarkSettings? = appSettings.watermarkEnabled
+                ? appSettings.watermarkSettings
+                : nil
+            let combineSettings = appSettings.combineSettings
+            let layout = CompositeLayoutResolver.layout(from: combineSettings)
+            let options = CompositeOptions(
+                layout: layout,
+                jpegQuality: 0.95,
+                watermarkEnabled: watermark != nil,
+                watermark: watermark,
+                combineSettings: combineSettings
+            )
+            let data = try await compositor.makeComposite(
+                for: pair,
+                options: options,
+                now: .now
+            )
+            livePreviewImage = UIImage(data: data)
         } catch {
-            errorMessage = String(localized: "pair_preview_delete_failed")
+            errorMessage = String(localized: "pair_preview_share_no_photo")
         }
     }
 
@@ -112,41 +94,6 @@ final class PairPreviewViewModel {
 
     private func clamp(_ value: CGFloat) -> CGFloat {
         max(Self.minZoom, min(Self.maxZoom, value))
-    }
-
-    private func combinedURL() -> URL? {
-        guard let name = pair.combinedFileName, !name.isEmpty else { return nil }
-        guard let url = storage.resolveCombined(fileName: name) else { return nil }
-        return FileManager.default.fileExists(atPath: url.path) ? url : nil
-    }
-
-    private func resolvePairURLs() -> [URL] {
-        var urls: [URL] = []
-        if let url = storage.resolveBefore(fileName: pair.beforeFileName),
-           FileManager.default.fileExists(atPath: url.path)
-        {
-            urls.append(url)
-        }
-        if let after = pair.afterFileName,
-           let url = storage.resolveAfter(fileName: after),
-           FileManager.default.fileExists(atPath: url.path)
-        {
-            urls.append(url)
-        }
-        return urls
-    }
-
-    static func loadCombinedImage(
-        for pair: PhotoPair,
-        storage: PhotoStorageService
-    ) async -> UIImage? {
-        guard let name = pair.combinedFileName, !name.isEmpty else { return nil }
-        guard let url = storage.resolveCombined(fileName: name) else { return nil }
-        return await Task.detached(priority: .userInitiated) {
-            guard FileManager.default.fileExists(atPath: url.path) else { return nil }
-            guard let data = try? Data(contentsOf: url) else { return nil }
-            return UIImage(data: data)
-        }.value
     }
 
     deinit {}

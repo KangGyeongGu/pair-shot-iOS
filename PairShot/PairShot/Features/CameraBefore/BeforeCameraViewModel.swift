@@ -13,6 +13,7 @@ final class BeforeCameraViewModel {
     }
 
     let albumId: UUID?
+    let refillPairId: UUID?
 
     let session: CameraSession
 
@@ -58,7 +59,6 @@ final class BeforeCameraViewModel {
 
     private let createPair: CreatePairUseCase
     private let pairRepo: PhotoPairRepository
-    private let storage: PhotoStoring
     private let albumRepo: AlbumRepository
     private let appSettings: AppSettings
     private let captureSource: BeforeCameraCaptureSource
@@ -74,9 +74,9 @@ final class BeforeCameraViewModel {
 
     init(
         albumId: UUID?,
+        refillPairId: UUID? = nil,
         createPair: CreatePairUseCase,
         pairRepo: PhotoPairRepository,
-        storage: PhotoStoring,
         albumRepo: AlbumRepository,
         appSettings: AppSettings,
         session: CameraSession? = nil,
@@ -84,9 +84,9 @@ final class BeforeCameraViewModel {
         permissionProbe: @escaping @Sendable () async -> Bool = BeforeCameraPermissionProbe.resolve
     ) {
         self.albumId = albumId
+        self.refillPairId = refillPairId
         self.createPair = createPair
         self.pairRepo = pairRepo
-        self.storage = storage
         self.albumRepo = albumRepo
         self.appSettings = appSettings
         let resolvedSession = session ?? CameraSession()
@@ -267,15 +267,25 @@ final class BeforeCameraViewModel {
             let captured = try await captureSource.capturePhoto()
             let cameraSettings = CameraSettings(
                 zoomFactor: captured.zoomFactor,
-                lensPosition: V1ToV2Migrator.lensPosition(for: captured.lensIdentifier),
+                lensPosition: LensPosition.resolve(identifier: captured.lensIdentifier),
                 flashMode: BeforeCameraFlashModeMapper.persisted(from: flashMode),
                 useGrid: isGridOn,
                 useNightMode: isNightModeOn
             )
-            let prefix = FileNamePrefixValidator.sanitize(appSettings.fileNamePrefix)
+            if let refillPairId {
+                _ = try await createPair.refillBefore(
+                    pairId: refillPairId,
+                    beforeJPEG: captured.jpegData,
+                    cameraSettings: cameraSettings,
+                    jpegQuality: appSettings.jpegQuality
+                )
+                updateLastThumbnail(from: captured.jpegData)
+                eventsContinuation.yield(.snackbarSuccess)
+                eventsContinuation.yield(.dismiss)
+                return
+            }
             let pair = try await createPair(
                 beforeJPEG: captured.jpegData,
-                prefix: prefix,
                 cameraSettings: cameraSettings,
                 jpegQuality: appSettings.jpegQuality
             )
@@ -303,7 +313,7 @@ final class BeforeCameraViewModel {
             all
         }
         pendingPairs = scoped
-            .filter { $0.afterFileName == nil }
+            .filter { $0.afterPhotoLocalIdentifier == nil }
             .filter { $0.createdAt >= sessionStartedAt }
             .sorted { $0.createdAt > $1.createdAt }
     }

@@ -1,13 +1,22 @@
 import Foundation
 
-struct DeletePairsUseCase {
+@MainActor
+final class DeletePairsUseCase {
     enum Mode: Equatable {
         case wholePair
         case combinedOnly
     }
 
     let pairRepo: PhotoPairRepository
-    let storage: PhotoStoring
+    let photoLibrary: PhotoLibraryService
+
+    init(
+        pairRepo: PhotoPairRepository,
+        photoLibrary: PhotoLibraryService
+    ) {
+        self.pairRepo = pairRepo
+        self.photoLibrary = photoLibrary
+    }
 
     func callAsFunction(ids: Set<UUID>, mode: Mode) async throws {
         guard !ids.isEmpty else { return }
@@ -16,33 +25,24 @@ struct DeletePairsUseCase {
                 try await deleteWholePairs(ids: ids)
 
             case .combinedOnly:
-                try await deleteCombinedOnly(ids: ids)
+                break
         }
     }
 
     private func deleteWholePairs(ids: Set<UUID>) async throws {
+        var assetIdsToDelete: [String] = []
         for id in ids {
             guard let pair = try await pairRepo.fetch(id: id) else { continue }
-            storage.deletePhotosForPair(
-                beforeFileName: pair.beforeFileName,
-                afterFileName: pair.afterFileName,
-                combinedFileName: pair.combinedFileName
-            )
+            if let beforeId = pair.beforePhotoLocalIdentifier, !beforeId.isEmpty {
+                assetIdsToDelete.append(beforeId)
+            }
+            if let afterId = pair.afterPhotoLocalIdentifier, !afterId.isEmpty {
+                assetIdsToDelete.append(afterId)
+            }
         }
+        try? await photoLibrary.deleteAssets(localIdentifiers: assetIdsToDelete)
         try await pairRepo.delete(ids: ids)
     }
 
-    private func deleteCombinedOnly(ids: Set<UUID>) async throws {
-        for id in ids {
-            guard let pair = try await pairRepo.fetch(id: id) else { continue }
-            storage.deletePhotosForPair(
-                beforeFileName: nil,
-                afterFileName: nil,
-                combinedFileName: pair.combinedFileName
-            )
-            pair.combinedFileName = nil
-            pair.updatedAt = .now
-            try await pairRepo.update(pair)
-        }
-    }
+    deinit {}
 }

@@ -152,12 +152,15 @@ struct HomeCameraCovers: ViewModifier {
     func body(content: Content) -> some View {
         content
             .fullScreenCover(isPresented: $viewModel.showBeforeCamera) {
-                NavigationStack { BeforeCameraView() }
+                NavigationStack {
+                    BeforeCameraView(refillPairId: viewModel.beforeCameraTargetPairId)
+                }
             }
             .fullScreenCover(isPresented: $viewModel.showAfterCamera) {
                 NavigationStack {
                     AfterCameraView(
                         initialPairId: viewModel.afterCameraTargetPairId,
+                        retakeMode: viewModel.afterCameraTargetPairId != nil,
                         sortOrder: viewModel.sortOrder
                     )
                 }

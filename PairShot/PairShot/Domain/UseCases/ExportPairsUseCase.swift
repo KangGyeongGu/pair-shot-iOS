@@ -7,18 +7,15 @@ struct ExportPairsUseCase {
     }
 
     let pairRepo: PhotoPairRepository
-    let storage: PhotoStoring
     let zipExporter: ZipExporting
     let now: @Sendable () -> Date
 
     init(
         pairRepo: PhotoPairRepository,
-        storage: PhotoStoring,
         zipExporter: ZipExporting,
         now: @escaping @Sendable () -> Date = { .now }
     ) {
         self.pairRepo = pairRepo
-        self.storage = storage
         self.zipExporter = zipExporter
         self.now = now
     }
@@ -26,6 +23,7 @@ struct ExportPairsUseCase {
     func callAsFunction(
         ids: [UUID],
         selection: ExportContents,
+        renderOptions: ExportRenderOptions,
         format: ExportFormat,
         tempDirectory: URL = FileManager.default.temporaryDirectory
     ) async throws -> URL {
@@ -35,6 +33,7 @@ struct ExportPairsUseCase {
                 return try await zipExporter.exportPairsToZip(
                     pairIds: ids,
                     selection: selection,
+                    renderOptions: renderOptions,
                     in: tempDirectory,
                     now: now()
                 )

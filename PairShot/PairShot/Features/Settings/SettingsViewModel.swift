@@ -18,7 +18,6 @@ final class SettingsViewModel {
 
     let appSettings: AppSettings
     let appSettingsRepo: AppSettingsRepository
-    let storage: PhotoStorageService
     let events: AsyncStream<Event>
 
     var showCacheClearConfirm: Bool = false
@@ -150,12 +149,10 @@ final class SettingsViewModel {
 
     init(
         appSettings: AppSettings,
-        appSettingsRepo: AppSettingsRepository,
-        storage: PhotoStorageService
+        appSettingsRepo: AppSettingsRepository
     ) {
         self.appSettings = appSettings
         self.appSettingsRepo = appSettingsRepo
-        self.storage = storage
         var continuation: AsyncStream<Event>.Continuation!
         events = AsyncStream { continuation = $0 }
         eventsContinuation = continuation
@@ -328,39 +325,19 @@ extension SettingsViewModel {
     }
 
     func refreshStorageInfo() async {
-        guard !isCalculatingStorage else { return }
-        isCalculatingStorage = true
-        lastStorageError = nil
-        defer { isCalculatingStorage = false }
-        let storageRef = storage
-        do {
-            let photos = try await Task.detached(priority: .userInitiated) {
-                try storageRef.photosDirectorySize()
-            }.value
-            let cache = try await Task.detached(priority: .userInitiated) {
-                try storageRef.thumbnailsDirectorySize()
-            }.value
-            photoStorageBytes = photos
-            cacheBytes = cache
-        } catch {
-            lastStorageError = error.localizedDescription
-        }
+        photoStorageBytes = 0
+        cacheBytes = 0
     }
 
     func clearCache() async {
         guard !isClearingCache else { return }
         isClearingCache = true
         defer { isClearingCache = false }
-        let storageRef = storage
-        do {
-            try await Task.detached(priority: .userInitiated) {
-                try storageRef.clearAllThumbnails()
-            }.value
-            HapticService.shared.notify(.success)
-            await refreshStorageInfo()
-        } catch {
-            lastStorageError = error.localizedDescription
-        }
+        await Task { @MainActor in
+            ThumbnailCache.shared.removeAll()
+        }.value
+        HapticService.shared.notify(.success)
+        await refreshStorageInfo()
     }
 }
 

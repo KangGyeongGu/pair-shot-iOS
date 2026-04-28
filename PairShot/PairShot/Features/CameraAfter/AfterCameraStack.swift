@@ -14,7 +14,6 @@ struct AfterCameraStack: View {
 
     let pairs: [PhotoPair]
     let selectedPairId: Binding<UUID?>
-    let storage: PhotoStorageService
 
     let rotationDirection: RotationGuideDirection
 
@@ -66,8 +65,7 @@ struct AfterCameraStack: View {
 
                     AfterCameraStrip(
                         pairs: pairs,
-                        selectedPairId: selectedPairId,
-                        storage: storage
+                        selectedPairId: selectedPairId
                     )
                     .frame(height: layout.stripHeight)
                     .clipped()

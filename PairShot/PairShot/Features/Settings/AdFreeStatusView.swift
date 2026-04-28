@@ -54,7 +54,8 @@ struct AdFreeStatusView: View {
                         token,
                         statusViewModel: statusViewModel,
                         registrationViewModel: registrationViewModel
-                    ) }
+                    )
+                    }
                 },
                 onCancel: { isShowingScanner = false }
             )
@@ -76,7 +77,8 @@ struct AdFreeStatusView: View {
                 Task { await handleManualSubmit(
                     statusViewModel: statusViewModel,
                     registrationViewModel: registrationViewModel
-                ) }
+                )
+                }
             }
             Button(String(localized: "common_button_cancel"), role: .cancel) {}
         } message: {
@@ -121,7 +123,7 @@ struct AdFreeStatusView: View {
     }
 
     private func registrationSection(
-        statusViewModel: AdFreeStatusViewModel,
+        statusViewModel _: AdFreeStatusViewModel,
         registrationViewModel: CouponRegistrationViewModel
     ) -> some View {
         Section {

@@ -187,7 +187,7 @@ final class AppSettings {
             Self.cameraHDRKey: false,
             Self.overlayEnabledKey: true,
             Self.homeSortOrderKey: SortOrderPersistence.defaultRawValue,
-            Self.albumSortOrderKey: SortOrderPersistence.defaultRawValue
+            Self.albumSortOrderKey: SortOrderPersistence.defaultRawValue,
         ])
         watermarkEnabled = defaults.bool(forKey: WatermarkOverlay.userDefaultsKey)
     }

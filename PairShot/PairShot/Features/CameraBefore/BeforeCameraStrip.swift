@@ -2,7 +2,6 @@ import SwiftUI
 
 struct BeforeCameraStrip: View {
     let pendingPairs: [PhotoPair]
-    let storage: PhotoStorageService
 
     var body: some View {
         Group {
@@ -12,7 +11,7 @@ struct BeforeCameraStrip: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(alignment: .center, spacing: StripDesign.cardSpacing) {
                         ForEach(pendingPairs) { pair in
-                            StripCard(pair: pair, storage: storage, isActive: false)
+                            StripCard(pair: pair, isActive: false)
                         }
                     }
                     .padding(.horizontal, StripDesign.stripPaddingHorizontal)

@@ -29,7 +29,6 @@ struct BeforeCameraStack: View {
     let lastThumbnail: UIImage?
 
     let pendingPairs: [PhotoPair]
-    let storage: PhotoStorageService
 
     let onTapFocus: (CGPoint) -> Void
     let onExposureBias: (Float) -> Void
@@ -63,8 +62,7 @@ struct BeforeCameraStack: View {
                         .background(Color.appCameraBackground)
 
                     BeforeCameraStrip(
-                        pendingPairs: pendingPairs,
-                        storage: storage
+                        pendingPairs: pendingPairs
                     )
                     .frame(height: layout.stripHeight)
                     .clipped()

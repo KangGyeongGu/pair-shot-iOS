@@ -64,13 +64,14 @@ final class ExportSettingsViewModel {
     }
 
     private let pairRepo: PhotoPairRepository
-    private let storage: PhotoStorageService
+    private let photoLibrary: PhotoLibraryService
     private let exportPairs: ExportPairsUseCase
-    private let photoLibrary: any PhotoLibraryExporting
+    private let photoLibraryExporter: any PhotoLibraryExporting
     private let snackbarQueue: SnackbarQueue
     private let tempDirectoryProvider: @Sendable () -> URL
     private let eventsContinuation: AsyncStream<Event>.Continuation
     private let appSettings: AppSettings?
+    private let compositor: any CompositorService
     private var preferences: ExportPreferences
     private let interstitialAdManager: InterstitialAdManager?
     private let adFreeStore: AdFreeStore?
@@ -78,14 +79,16 @@ final class ExportSettingsViewModel {
 
     private var pendingZipURL: URL?
 
+    // swiftlint:disable:next function_body_length
     init(
         pairIds: [UUID],
         albumId: UUID?,
         pairRepo: PhotoPairRepository,
-        storage: PhotoStorageService,
+        photoLibrary: PhotoLibraryService,
         exportPairs: ExportPairsUseCase,
-        photoLibrary: any PhotoLibraryExporting,
+        photoLibraryExporter: any PhotoLibraryExporting,
         snackbarQueue: SnackbarQueue,
+        compositor: any CompositorService,
         tempDirectoryProvider: @escaping @Sendable () -> URL = { FileManager.default.temporaryDirectory },
         preferences: ExportPreferences = ExportPreferences(),
         appSettings: AppSettings? = nil,
@@ -96,10 +99,11 @@ final class ExportSettingsViewModel {
         self.pairIds = pairIds
         self.albumId = albumId
         self.pairRepo = pairRepo
-        self.storage = storage
-        self.exportPairs = exportPairs
         self.photoLibrary = photoLibrary
+        self.exportPairs = exportPairs
+        self.photoLibraryExporter = photoLibraryExporter
         self.snackbarQueue = snackbarQueue
+        self.compositor = compositor
         self.tempDirectoryProvider = tempDirectoryProvider
         self.preferences = preferences
         self.appSettings = appSettings
@@ -173,6 +177,7 @@ final class ExportSettingsViewModel {
                     let url = try await exportPairs(
                         ids: pairIds,
                         selection: makeSelection(),
+                        renderOptions: makeRenderOptions(),
                         format: .zip,
                         tempDirectory: tempDirectoryProvider()
                     )
@@ -241,7 +246,7 @@ final class ExportSettingsViewModel {
     }
 
     private func saveImagesToPhotoLibrary(progress: SnackbarProgressHandle) async {
-        let status = await photoLibrary.authorize()
+        let status = await photoLibraryExporter.authorize()
         guard status == .authorized || status == .limited else {
             snackbarQueue.cancelProgress(progress)
             errorMessage = "snackbar_error_save_failed"
@@ -249,25 +254,31 @@ final class ExportSettingsViewModel {
         }
         var saved = 0
         var processed = 0
+        let now = Date()
+        let renderOptions = makeRenderOptions()
+        let selection = makeSelection()
         do {
             let pairs = try await loadPairs()
-            let mode = makeMode()
-            let entries = pairs.flatMap { ExportSelection.relativePaths(for: $0, mode: mode) }
-            let total = max(1, entries.count)
-            let watermark = activeWatermarkForIndividuals()
-            for entry in entries {
-                guard
-                    let payload = WatermarkedSourceProvider.resolveDataAndExtension(
-                        for: entry,
-                        storage: storage,
-                        watermark: watermark
-                    )
-                else {
+            let allEntries: [(pair: PhotoPair, entry: ExportSelection.Entry)] = pairs.flatMap { pair in
+                ExportSelection.relativePaths(for: pair, selection: selection, now: now)
+                    .map { (pair: pair, entry: $0) }
+            }
+            let total = max(1, allEntries.count)
+            for item in allEntries {
+                guard let data = await ExportEntryRenderer.render(
+                    entry: item.entry,
+                    pair: item.pair,
+                    photoLibrary: photoLibrary,
+                    compositor: compositor,
+                    appSettings: appSettings,
+                    renderOptions: renderOptions,
+                    now: now
+                ) else {
                     processed += 1
                     snackbarQueue.updateProgress(progress, value: Double(processed) / Double(total))
                     continue
                 }
-                try await photoLibrary.saveImageData(payload.data, type: .photo)
+                try await photoLibraryExporter.saveImageData(data, type: .photo)
                 saved += 1
                 processed += 1
                 snackbarQueue.updateProgress(progress, value: Double(processed) / Double(total))
@@ -299,6 +310,7 @@ final class ExportSettingsViewModel {
             let url = try await exportPairs(
                 ids: pairIds,
                 selection: makeSelection(),
+                renderOptions: makeRenderOptions(),
                 format: .zip,
                 tempDirectory: tempDirectoryProvider()
             )
@@ -334,23 +346,34 @@ final class ExportSettingsViewModel {
 
     private func collectIndividualSourceURLs() async throws -> [URL] {
         let pairs = try await loadPairs()
-        let mode = makeMode()
-        let entries = pairs.flatMap { ExportSelection.relativePaths(for: $0, mode: mode) }
-        return WatermarkedSourceProvider.resolveURLs(
-            entries: entries,
-            storage: storage,
-            watermark: activeWatermarkForIndividuals(),
-            tempDirectory: tempDirectoryProvider()
-        )
-    }
-
-    private func activeWatermarkForIndividuals() -> WatermarkSettings? {
-        guard
-            let appSettings,
-            appSettings.watermarkEnabled,
-            applyWatermark
-        else { return nil }
-        return appSettings.watermarkSettings
+        let selection = makeSelection()
+        let renderOptions = makeRenderOptions()
+        let tempDir = tempDirectoryProvider()
+        var urls: [URL] = []
+        let now = Date()
+        for pair in pairs {
+            let entries = ExportSelection.relativePaths(for: pair, selection: selection, now: now)
+            for entry in entries {
+                guard let data = await ExportEntryRenderer.render(
+                    entry: entry,
+                    pair: pair,
+                    photoLibrary: photoLibrary,
+                    compositor: compositor,
+                    appSettings: appSettings,
+                    renderOptions: renderOptions,
+                    now: now
+                ) else { continue }
+                let fileName = ExportTempFileWriter.sanitizedName(from: entry.relativeName)
+                if let url = ExportTempFileWriter.write(
+                    data: data,
+                    fileName: fileName,
+                    tempDirectory: tempDir
+                ) {
+                    urls.append(url)
+                }
+            }
+        }
+        return urls
     }
 
     private func loadPairs() async throws -> [PhotoPair] {
@@ -364,32 +387,24 @@ final class ExportSettingsViewModel {
     }
 
     private func makeSelection() -> ExportContents {
-        ExportContentsMapping.fromIncludes(
-            combined: includeCombined,
-            before: includeBefore,
-            after: includeAfter
+        ExportContents(
+            includeCombined: includeCombined,
+            includeBefore: includeBefore,
+            includeAfter: includeAfter
         )
     }
 
-    private func makeMode() -> ExportMode {
-        ExportContentsMapping.toMode(makeSelection())
+    private func makeRenderOptions() -> ExportRenderOptions {
+        ExportRenderOptions(
+            applyCombineSettings: applyCombineSettings,
+            applyWatermark: applyWatermark
+        )
     }
 
     deinit {}
 }
 
-extension ExportContentsMapping {
-    static func fromIncludes(combined: Bool, before: Bool, after: Bool) -> ExportContents {
-        let count = [combined, before, after].count(where: { $0 })
-        if count >= 2 { return .all }
-        if combined { return .combinedOnly }
-        if before { return .beforeOnly }
-        if after { return .afterOnly }
-        return .all
-    }
-}
-
-nonisolated final class ExportPreferences: @unchecked Sendable {
+final nonisolated class ExportPreferences: @unchecked Sendable {
     static let includeCombinedKey = "pairshot.exportIncludeCombined"
     static let includeBeforeKey = "pairshot.exportIncludeBefore"
     static let includeAfterKey = "pairshot.exportIncludeAfter"

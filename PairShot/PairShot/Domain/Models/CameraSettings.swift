@@ -7,6 +7,17 @@ nonisolated enum LensPosition: String, Codable, CaseIterable {
     case backTele
     case backTriple
     case backDualWide
+
+    static func resolve(identifier: String?) -> Self {
+        guard let identifier else { return .backWide }
+        let lower = identifier.lowercased()
+        if lower.contains("ultra") { return .backUltraWide }
+        if lower.contains("tele") { return .backTele }
+        if lower.contains("front") { return .front }
+        if lower.contains("triple") { return .backTriple }
+        if lower.contains("dual") { return .backDualWide }
+        return .backWide
+    }
 }
 
 nonisolated enum FlashMode: String, Codable, CaseIterable {

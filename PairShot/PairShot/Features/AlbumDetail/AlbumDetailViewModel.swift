@@ -21,7 +21,7 @@ struct AlbumDetailPairPreviewRequest: Identifiable {
 @Observable
 final class AlbumDetailViewModel {
     let albumId: UUID
-    let storage: PhotoStorageService
+    let photoLibrary: PhotoLibraryService
 
     var sortOrder: HomeSortOrder {
         get { HomeSortOrderMapping.sortOrder(from: appSettings.albumSortOrder) }
@@ -48,6 +48,7 @@ final class AlbumDetailViewModel {
     var showBeforeCamera: Bool = false
     var showAfterCamera: Bool = false
     var afterCameraTargetPairId: UUID?
+    var beforeCameraTargetPairId: UUID?
     var navigateToPairPicker: Bool = false
 
     private let pairRepo: PhotoPairRepository
@@ -67,10 +68,10 @@ final class AlbumDetailViewModel {
         albumRepo: AlbumRepository,
         deletePairs: DeletePairsUseCase,
         toggleAlbumMembership: ToggleAlbumMembershipUseCase,
-        storage: PhotoStorageService,
+        photoLibrary: PhotoLibraryService,
         immediateExport: ImmediateExportService,
         appSettings: AppSettings,
-        thumbnailCache: ThumbnailCache = .shared,
+        thumbnailCache: ThumbnailCache? = nil,
         interstitialAdManager: InterstitialAdManager? = nil,
         adFreeStore: AdFreeStore? = nil,
         fullscreenAdCoordinator: FullscreenAdCoordinator? = nil
@@ -80,10 +81,10 @@ final class AlbumDetailViewModel {
         self.albumRepo = albumRepo
         self.deletePairs = deletePairs
         self.toggleAlbumMembership = toggleAlbumMembership
-        self.storage = storage
+        self.photoLibrary = photoLibrary
         self.immediateExport = immediateExport
         self.appSettings = appSettings
-        self.thumbnailCache = thumbnailCache
+        self.thumbnailCache = thumbnailCache ?? ThumbnailCache.shared
         self.interstitialAdManager = interstitialAdManager
         self.adFreeStore = adFreeStore
         self.fullscreenAdCoordinator = fullscreenAdCoordinator
@@ -137,12 +138,18 @@ final class AlbumDetailViewModel {
             togglePairSelection(pair.id)
             return
         }
-        if pair.afterFileName == nil {
-            afterCameraTargetPairId = pair.id
-            showAfterCamera = true
-            return
+        switch pair.status {
+            case .afterOnly:
+                beforeCameraTargetPairId = pair.id
+                showBeforeCamera = true
+
+            case .scheduled:
+                afterCameraTargetPairId = pair.id
+                showAfterCamera = true
+
+            case .captured:
+                pendingPreviewPair = AlbumDetailPairPreviewRequest(pair: pair)
         }
-        pendingPreviewPair = AlbumDetailPairPreviewRequest(pair: pair)
     }
 
     func selectAllPairs(from all: [PhotoPair]) {
@@ -155,6 +162,7 @@ final class AlbumDetailViewModel {
     }
 
     func startCapture() {
+        beforeCameraTargetPairId = nil
         showBeforeCamera = true
     }
 
@@ -261,8 +269,8 @@ final class AlbumDetailViewModel {
         pendingSinglePairDelete = AlbumDetailSinglePairDeleteRequest(pair: pair)
     }
 
-    func hasCombined(in pairs: [PhotoPair]) -> Bool {
-        pairs.contains { $0.combinedFileName != nil }
+    func hasCombined(in _: [PhotoPair]) -> Bool {
+        false
     }
 
     func removeFromAlbum(pairs: [PhotoPair]) async {
@@ -279,27 +287,25 @@ final class AlbumDetailViewModel {
     func confirmPairDeletion(mode: DeletePairsUseCase.Mode, pairs: [PhotoPair]) async {
         let snapshots = pairs.map { pair in
             EvictionSnapshot(
-                beforeFileName: pair.beforeFileName,
-                afterFileName: pair.afterFileName,
-                combinedFileName: pair.combinedFileName
+                beforeIdentifier: pair.beforePhotoLocalIdentifier,
+                afterIdentifier: pair.afterPhotoLocalIdentifier
             )
         }
         let ids = Set(pairs.map(\.id))
         try? await deletePairs(ids: ids, mode: mode)
         for snapshot in snapshots {
-            evictThumbnails(for: snapshot, mode: mode)
+            evictThumbnails(for: snapshot)
         }
         cancelSelection()
     }
 
     func confirmSinglePairDeletion(_ pair: PhotoPair) async {
         let snapshot = EvictionSnapshot(
-            beforeFileName: pair.beforeFileName,
-            afterFileName: pair.afterFileName,
-            combinedFileName: pair.combinedFileName
+            beforeIdentifier: pair.beforePhotoLocalIdentifier,
+            afterIdentifier: pair.afterPhotoLocalIdentifier
         )
         try? await deletePairs(ids: [pair.id], mode: .wholePair)
-        evictThumbnails(for: snapshot, mode: .wholePair)
+        evictThumbnails(for: snapshot)
     }
 
     func beginRename(currentName: String) {
@@ -324,21 +330,12 @@ final class AlbumDetailViewModel {
         albumDeleted = true
     }
 
-    private func evictThumbnails(for snapshot: EvictionSnapshot, mode: DeletePairsUseCase.Mode) {
-        switch mode {
-            case .wholePair:
-                thumbnailCache.evict(beforeFileName: snapshot.beforeFileName)
-                if let after = snapshot.afterFileName {
-                    thumbnailCache.evict(afterFileName: after)
-                }
-                if let combined = snapshot.combinedFileName {
-                    thumbnailCache.evict(combinedFileName: combined)
-                }
-
-            case .combinedOnly:
-                if let combined = snapshot.combinedFileName {
-                    thumbnailCache.evict(combinedFileName: combined)
-                }
+    private func evictThumbnails(for snapshot: EvictionSnapshot) {
+        if let beforeId = snapshot.beforeIdentifier {
+            thumbnailCache.evict(localIdentifier: beforeId)
+        }
+        if let afterId = snapshot.afterIdentifier {
+            thumbnailCache.evict(localIdentifier: afterId)
         }
     }
 
@@ -346,7 +343,6 @@ final class AlbumDetailViewModel {
 }
 
 private struct EvictionSnapshot {
-    let beforeFileName: String
-    let afterFileName: String?
-    let combinedFileName: String?
+    let beforeIdentifier: String?
+    let afterIdentifier: String?
 }

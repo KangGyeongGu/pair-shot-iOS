@@ -12,13 +12,11 @@ actor ZipExporter {
     init() {}
 
     func makeZip(
-        for pairs: [PhotoPair],
-        mode: ExportMode,
-        storage: PhotoStorageService,
+        for entries: [ZipEntryPayload],
         in tempDirectory: URL,
         now: Date = .now
     ) async throws -> URL {
-        guard !pairs.isEmpty else { throw ExportError.noPairs }
+        guard !entries.isEmpty else { throw ExportError.noPairs }
 
         try FileManager.default.createDirectory(
             at: tempDirectory,
@@ -30,6 +28,13 @@ actor ZipExporter {
             try? FileManager.default.removeItem(at: zipURL)
         }
 
+        let stagingDir = tempDirectory.appendingPathComponent(
+            "pairshot-zip-\(UUID().uuidString)",
+            isDirectory: true
+        )
+        try FileManager.default.createDirectory(at: stagingDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: stagingDir) }
+
         let archive: Archive
         do {
             archive = try Archive(url: zipURL, accessMode: .create)
@@ -37,24 +42,21 @@ actor ZipExporter {
             throw ExportError.archiveFailed
         }
 
-        for pair in pairs {
-            let entries = ExportSelection.relativePaths(for: pair, mode: mode)
-            for entry in entries {
-                guard let absolute = storage.resolve(kind: entry.sourceKind, fileName: entry.sourceFileName) else {
-                    throw ExportError.sourceMissing(entry.sourceFileName)
-                }
-                guard FileManager.default.fileExists(atPath: absolute.path) else {
-                    throw ExportError.sourceMissing(entry.sourceFileName)
-                }
-                do {
-                    try archive.addEntry(
-                        with: entry.relativeName,
-                        fileURL: absolute,
-                        compressionMethod: .none
-                    )
-                } catch {
-                    throw ExportError.archiveFailed
-                }
+        for (index, entry) in entries.enumerated() {
+            let stagedURL = stagingDir.appendingPathComponent("payload-\(index).bin")
+            do {
+                try entry.data.write(to: stagedURL, options: .atomic)
+            } catch {
+                throw ExportError.archiveFailed
+            }
+            do {
+                try archive.addEntry(
+                    with: entry.relativeName,
+                    fileURL: stagedURL,
+                    compressionMethod: .none
+                )
+            } catch {
+                throw ExportError.archiveFailed
             }
         }
 
@@ -71,24 +73,37 @@ actor ZipExporter {
     }
 }
 
+struct ZipEntryPayload {
+    let relativeName: String
+    let data: Data
+}
+
+@MainActor
 struct ZipExporterAdapter: ZipExporting {
     let exporter: ZipExporter
-    let storage: PhotoStorageService
+    let photoLibrary: PhotoLibraryService
     let pairRepo: PhotoPairRepository
+    let compositor: any CompositorService
+    let appSettings: AppSettings
 
     init(
         exporter: ZipExporter = ZipExporter(),
-        storage: PhotoStorageService,
-        pairRepo: PhotoPairRepository
+        photoLibrary: PhotoLibraryService,
+        pairRepo: PhotoPairRepository,
+        compositor: any CompositorService,
+        appSettings: AppSettings
     ) {
         self.exporter = exporter
-        self.storage = storage
+        self.photoLibrary = photoLibrary
         self.pairRepo = pairRepo
+        self.compositor = compositor
+        self.appSettings = appSettings
     }
 
     func exportPairsToZip(
         pairIds: [UUID],
         selection: ExportContents,
+        renderOptions: ExportRenderOptions,
         in tempDirectory: URL,
         now: Date
     ) async throws -> URL {
@@ -98,105 +113,82 @@ struct ZipExporterAdapter: ZipExporting {
                 resolved.append(pair)
             }
         }
-        return try await exporter.makeZip(
-            for: resolved,
-            mode: ExportContentsMapping.toMode(selection),
-            storage: storage,
-            in: tempDirectory,
-            now: now
-        )
+        var payloads: [ZipEntryPayload] = []
+        for pair in resolved {
+            let entries = ExportSelection.relativePaths(
+                for: pair,
+                selection: selection,
+                now: now
+            )
+            for entry in entries {
+                guard let data = await ExportEntryRenderer.render(
+                    entry: entry,
+                    pair: pair,
+                    photoLibrary: photoLibrary,
+                    compositor: compositor,
+                    appSettings: appSettings,
+                    renderOptions: renderOptions,
+                    now: now
+                ) else { continue }
+                payloads.append(ZipEntryPayload(relativeName: entry.relativeName, data: data))
+            }
+        }
+        return try await exporter.makeZip(for: payloads, in: tempDirectory, now: now)
     }
 }
 
-nonisolated enum ExportContentsMapping {
-    static func toMode(_ contents: ExportContents) -> ExportMode {
-        switch contents {
-            case .all: .all
-            case .beforeOnly: .beforeOnly
-            case .afterOnly: .afterOnly
-            case .combinedOnly: .combinedOnly
-        }
-    }
-}
-
-nonisolated enum ExportMode: String, CaseIterable, Identifiable {
-    case all
-    case beforeOnly
-    case afterOnly
-    case combinedOnly
-
-    var id: String {
-        rawValue
-    }
-
-    var label: String {
-        switch self {
-            case .all: String(localized: "home_filter_all")
-            case .beforeOnly: String(localized: "Before")
-            case .afterOnly: String(localized: "After")
-            case .combinedOnly: String(localized: "settings_section_combine")
-        }
-    }
+nonisolated enum ExportPhotoKind: String, Equatable {
+    case before
+    case after
+    case combined
 }
 
 nonisolated enum ExportSelection {
     nonisolated struct Entry: Equatable {
         let relativeName: String
-        let sourceKind: PhotoStorageService.PhotoKind
-        let sourceFileName: String
+        let kind: ExportPhotoKind
+        let pairId: UUID
+        let localIdentifier: String?
     }
 
-    static func relativePaths(for pair: PhotoPair, mode: ExportMode) -> [Entry] {
+    static func relativePaths(
+        for pair: PhotoPair,
+        selection: ExportContents,
+        now: Date = .now
+    ) -> [Entry] {
         let albumName = pair.albums.first?.name
         let folder = sanitizeFolderName(albumName ?? "PairShot")
+        let timestamp = makeTimestamp(now: now, pair: pair)
         var out: [Entry] = []
 
-        switch mode {
-            case .all:
-                out.append(Entry(
-                    relativeName: "\(folder)/BEFORE/\(pair.beforeFileName)",
-                    sourceKind: .before,
-                    sourceFileName: pair.beforeFileName
-                ))
-                if let after = pair.afterFileName, !after.isEmpty {
-                    out.append(Entry(
-                        relativeName: "\(folder)/AFTER/\(after)",
-                        sourceKind: .after,
-                        sourceFileName: after
-                    ))
-                }
-                if let combined = pair.combinedFileName, !combined.isEmpty {
-                    out.append(Entry(
-                        relativeName: "\(folder)/COMBINED/\(combined)",
-                        sourceKind: .combined,
-                        sourceFileName: combined
-                    ))
-                }
+        let beforeId = pair.beforePhotoLocalIdentifier
+        let afterId = pair.afterPhotoLocalIdentifier
+        let hasBefore = (beforeId?.isEmpty == false)
+        let hasAfter = (afterId?.isEmpty == false)
 
-            case .beforeOnly:
-                out.append(Entry(
-                    relativeName: "\(folder)/BEFORE/\(pair.beforeFileName)",
-                    sourceKind: .before,
-                    sourceFileName: pair.beforeFileName
-                ))
-
-            case .afterOnly:
-                if let after = pair.afterFileName, !after.isEmpty {
-                    out.append(Entry(
-                        relativeName: "\(folder)/AFTER/\(after)",
-                        sourceKind: .after,
-                        sourceFileName: after
-                    ))
-                }
-
-            case .combinedOnly:
-                if let combined = pair.combinedFileName, !combined.isEmpty {
-                    out.append(Entry(
-                        relativeName: "\(folder)/COMBINED/\(combined)",
-                        sourceKind: .combined,
-                        sourceFileName: combined
-                    ))
-                }
+        if selection.includeCombined, hasBefore, hasAfter {
+            out.append(Entry(
+                relativeName: "\(folder)/COMBINED/\(timestamp)_PAIR.jpg",
+                kind: .combined,
+                pairId: pair.id,
+                localIdentifier: nil
+            ))
+        }
+        if selection.includeBefore, let beforeId, !beforeId.isEmpty {
+            out.append(Entry(
+                relativeName: "\(folder)/BEFORE/\(timestamp)_BEFORE.jpg",
+                kind: .before,
+                pairId: pair.id,
+                localIdentifier: beforeId
+            ))
+        }
+        if selection.includeAfter, let afterId, !afterId.isEmpty {
+            out.append(Entry(
+                relativeName: "\(folder)/AFTER/\(timestamp)_AFTER.jpg",
+                kind: .after,
+                pairId: pair.id,
+                localIdentifier: afterId
+            ))
         }
         return out
     }
@@ -217,5 +209,17 @@ nonisolated enum ExportSelection {
             }
         }
         return out.isEmpty ? "PairShot" : out
+    }
+
+    private static func makeTimestamp(now _: Date, pair: PhotoPair) -> String {
+        let date = pair.createdAt
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = .current
+        formatter.dateFormat = "yyyyMMdd_HHmmss"
+        let stamp = formatter.string(from: date)
+        let suffix = String(pair.id.uuidString.prefix(8))
+        return "\(stamp)_\(suffix)"
     }
 }

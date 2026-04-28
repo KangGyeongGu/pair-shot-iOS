@@ -13,11 +13,21 @@ struct RootView: View {
     }
 
     var body: some View {
-        NavigationStack(path: $path) {
-            BeforeCameraView(albumId: nil, onHome: { path.append(.home) })
-                .navigationDestination(for: Route.self) { route in
-                    destination(for: route)
+        ZStack {
+            if env.permissionStatusService.isBlocked {
+                PermissionGateView(
+                    viewModel: PermissionGateViewModel(
+                        permissionStatusService: env.permissionStatusService
+                    )
+                )
+            } else {
+                NavigationStack(path: $path) {
+                    BeforeCameraView(albumId: nil, onHome: { path.append(.home) })
+                        .navigationDestination(for: Route.self) { route in
+                            destination(for: route)
+                        }
                 }
+            }
         }
         .alert(
             String(localized: "root_storage_init_failed_title"),
@@ -107,7 +117,7 @@ struct RootView: View {
 private struct RootViewPreviewWrapper: View {
     // swiftlint:disable:next force_try
     let container = try! ModelContainer(
-        for: Schema(versionedSchema: SchemaV2.self),
+        for: Schema([Album.self, PhotoPair.self, Coupon.self]),
         configurations: ModelConfiguration(isStoredInMemoryOnly: true)
     )
 

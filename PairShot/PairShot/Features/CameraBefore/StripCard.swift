@@ -3,7 +3,6 @@ import UIKit
 
 struct StripCard: View {
     let pair: PhotoPair
-    let storage: PhotoStorageService
     let isActive: Bool
 
     @State private var thumbnail: UIImage?
@@ -40,15 +39,10 @@ struct StripCard: View {
     }
 
     private func loadThumbnail() async {
-        let fileName = pair.beforeFileName
-        let storageRef = storage
-        let image = await Task.detached(priority: .userInitiated) {
-            ThumbnailCache.shared.loadThumbnail(
-                kind: .before,
-                fileName: fileName,
-                storage: storageRef
-            )
-        }.value
-        thumbnail = image
+        guard let identifier = pair.beforePhotoLocalIdentifier, !identifier.isEmpty else { return }
+        thumbnail = await ThumbnailCache.shared.image(
+            for: identifier,
+            pixelSize: StripDesign.cardWidth * UIScreen.main.scale
+        )
     }
 }

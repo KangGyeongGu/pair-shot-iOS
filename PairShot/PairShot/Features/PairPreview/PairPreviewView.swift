@@ -57,7 +57,7 @@ struct PairPreviewView: View {
 
             BannerAdSlot()
         }
-        .modifier(PairPreviewSheetModifiers(viewModel: viewModel, pair: pair))
+        .modifier(PairPreviewSheetModifiers(viewModel: viewModel))
     }
 
     @ViewBuilder
@@ -80,29 +80,6 @@ struct PairPreviewView: View {
                 Image(systemName: "xmark")
             }
             .accessibilityLabel(String(localized: "common_button_close"))
-        }
-        ToolbarItem(placement: .topBarTrailing) {
-            Menu {
-                Button {
-                    viewModel?.onShareTapped()
-                } label: {
-                    Label(String(localized: "common_button_share"), systemImage: "square.and.arrow.up")
-                }
-                Button {
-                    viewModel?.onRetakeTapped()
-                } label: {
-                    Label(String(localized: "pair_preview_menu_recapture"), systemImage: "camera.rotate")
-                }
-                Button(role: .destructive) {
-                    viewModel?.onDeleteTapped()
-                } label: {
-                    Label(String(localized: "common_button_delete"), systemImage: "trash")
-                }
-            } label: {
-                Image(systemName: "ellipsis.circle")
-            }
-            .accessibilityLabel(String(localized: "common_desc_more"))
-            .disabled(viewModel == nil)
         }
     }
 }
@@ -149,21 +126,9 @@ private struct PairPreviewEmptyState: View {
 
 private struct PairPreviewSheetModifiers: ViewModifier {
     @Bindable var viewModel: PairPreviewViewModel
-    let pair: PhotoPair
 
     func body(content: Content) -> some View {
         content
-            .alert(
-                String(localized: "dialog_delete_pair_title"),
-                isPresented: $viewModel.showDeleteConfirm
-            ) {
-                Button(String(localized: "common_button_delete"), role: .destructive) {
-                    Task { await viewModel.confirmDelete() }
-                }
-                Button(String(localized: "common_button_cancel"), role: .cancel) {}
-            } message: {
-                Text(String(localized: "dialog_delete_pair_message"))
-            }
             .alert(
                 String(localized: "common_dialog_error_title"),
                 isPresented: errorBinding,
@@ -174,14 +139,6 @@ private struct PairPreviewSheetModifiers: ViewModifier {
                 }
             } message: { message in
                 Text(message)
-            }
-            .sheet(isPresented: $viewModel.showShareSheet) {
-                ShareSheet(activityItems: viewModel.shareItems)
-            }
-            .fullScreenCover(isPresented: $viewModel.showRetake) {
-                NavigationStack {
-                    AfterCameraView(initialPairId: pair.id, retakeMode: true)
-                }
             }
     }
 
