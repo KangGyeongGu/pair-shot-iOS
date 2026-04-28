@@ -25,10 +25,9 @@ struct BannerAdSlot: View {
 
     var body: some View {
         if BannerAdGate.shouldShow(isAdFree: adFreeStore.isAdFree) {
-            BannerAdView(adUnitID: adUnitID)
+            BannerAdView(adUnitID: adUnitID, width: UIScreen.main.bounds.width)
                 .frame(height: 50)
                 .frame(maxWidth: .infinity)
-                .background(Color.black.opacity(0.001))
                 .task {
                     guard !hasRequestedATT else { return }
                     hasRequestedATT = true
@@ -40,23 +39,24 @@ struct BannerAdSlot: View {
 
 struct BannerAdView: UIViewRepresentable {
     let adUnitID: String
+    let width: CGFloat
 
-    init(adUnitID: String = AdsConfig.banner) {
+    init(adUnitID: String = AdsConfig.banner, width: CGFloat) {
         self.adUnitID = adUnitID
+        self.width = width
     }
 
     #if canImport(GoogleMobileAds)
         func makeUIView(context: Context) -> GADBannerView {
-            let initialWidth = context.coordinator.resolveBannerWidth()
-            let view = GADBannerView(adSize: BannerAdSize.adaptive(width: initialWidth))
+            let view = GADBannerView(adSize: BannerAdSize.adaptive(width: width))
             view.adUnitID = adUnitID
             view.rootViewController = Self.resolveRootViewController()
-            context.coordinator.lastWidth = initialWidth
+            context.coordinator.lastWidth = width
             let request = AdRequestBuilder.build(
                 isAdFree: false,
                 attStatus: ATTrackingManager.trackingAuthorizationStatus
             ) ?? GADRequest()
-            AppLogger.ads.debug("Banner load requested")
+            AppLogger.ads.debug("Banner load requested width=\(width, privacy: .public)")
             view.load(request)
             return view
         }
@@ -65,10 +65,15 @@ struct BannerAdView: UIViewRepresentable {
             if uiView.rootViewController == nil {
                 uiView.rootViewController = Self.resolveRootViewController()
             }
-            let width = context.coordinator.resolveBannerWidth()
             if BannerAdSize.shouldReload(previous: context.coordinator.lastWidth, current: width) {
                 context.coordinator.lastWidth = width
                 uiView.adSize = BannerAdSize.adaptive(width: width)
+                let request = AdRequestBuilder.build(
+                    isAdFree: false,
+                    attStatus: ATTrackingManager.trackingAuthorizationStatus
+                ) ?? GADRequest()
+                AppLogger.ads.debug("Banner reload width=\(width, privacy: .public)")
+                uiView.load(request)
             }
         }
 
@@ -79,25 +84,6 @@ struct BannerAdView: UIViewRepresentable {
         @MainActor
         final class Coordinator {
             var lastWidth: CGFloat = 0
-            private var cachedWidth: CGFloat?
-            private var cachedScreenBoundsHash: Int?
-
-            func resolveBannerWidth() -> CGFloat {
-                let bounds = UIScreen.main.bounds
-                let hash = bounds.size.width.hashValue ^ bounds.size.height.hashValue
-                if hash == cachedScreenBoundsHash, let cached = cachedWidth {
-                    return cached
-                }
-                let width = BannerAdView.currentBannerWidth()
-                cachedWidth = width
-                cachedScreenBoundsHash = hash
-                return width
-            }
-
-            func invalidateCache() {
-                cachedWidth = nil
-                cachedScreenBoundsHash = nil
-            }
         }
 
         @MainActor
@@ -124,7 +110,12 @@ struct BannerAdView: UIViewRepresentable {
                 .compactMap { $0 as? UIWindowScene }
                 .flatMap(\.windows)
                 .first(where: \.isKeyWindow)
-            return window?.bounds.width ?? BannerAdSize.fallbackWidth
+            if let width = window?.bounds.width, width > 0 {
+                return width
+            }
+            let screenWidth = UIScreen.main.bounds.width
+            if screenWidth > 0 { return screenWidth }
+            return BannerAdSize.fallbackWidth
         }
     #else
         func makeUIView(context _: Context) -> UIView {

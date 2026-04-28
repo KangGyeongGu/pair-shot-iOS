@@ -81,7 +81,6 @@ final class HomeViewModel {
 
     private var pendingZipProgress: SnackbarProgressHandle?
     var showCreateAlbum: Bool = false
-    var showSettings: Bool = false
 
     private let pairRepo: PhotoPairRepository
     private let albumRepo: AlbumRepository
@@ -342,10 +341,6 @@ final class HomeViewModel {
 
     func openCreateAlbum() {
         showCreateAlbum = true
-    }
-
-    func openSettings() {
-        showSettings = true
     }
 
     func requestPairDeletion(from all: [PhotoPair]) {

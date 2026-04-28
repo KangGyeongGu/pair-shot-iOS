@@ -39,10 +39,9 @@ final class AppSettings {
 
     var watermarkSettings: WatermarkSettings {
         get {
-            guard let raw = defaults.string(forKey: Self.watermarkSettingsKey),
-                  let data = raw.data(using: .utf8),
-                  let decoded = try? JSONDecoder().decode(WatermarkSettings.self, from: data)
-            else { return .default }
+            if let cached = cachedWatermarkSettings { return cached }
+            let decoded = Self.decodeWatermarkSettings(defaults: defaults)
+            cachedWatermarkSettings = decoded
             return decoded
         }
         set {
@@ -50,15 +49,15 @@ final class AppSettings {
                   let raw = String(data: data, encoding: .utf8)
             else { return }
             defaults.set(raw, forKey: Self.watermarkSettingsKey)
+            cachedWatermarkSettings = newValue
         }
     }
 
     var combineSettings: CombineSettings {
         get {
-            guard let raw = defaults.string(forKey: Self.combineSettingsKey),
-                  let data = raw.data(using: .utf8),
-                  let decoded = try? JSONDecoder().decode(CombineSettings.self, from: data)
-            else { return .default }
+            if let cached = cachedCombineSettings { return cached }
+            let decoded = Self.decodeCombineSettings(defaults: defaults)
+            cachedCombineSettings = decoded
             return decoded
         }
         set {
@@ -66,7 +65,24 @@ final class AppSettings {
                   let raw = String(data: data, encoding: .utf8)
             else { return }
             defaults.set(raw, forKey: Self.combineSettingsKey)
+            cachedCombineSettings = newValue
         }
+    }
+
+    private static func decodeWatermarkSettings(defaults: UserDefaults) -> WatermarkSettings {
+        guard let raw = defaults.string(forKey: watermarkSettingsKey),
+              let data = raw.data(using: .utf8),
+              let decoded = try? JSONDecoder().decode(WatermarkSettings.self, from: data)
+        else { return .default }
+        return decoded
+    }
+
+    private static func decodeCombineSettings(defaults: UserDefaults) -> CombineSettings {
+        guard let raw = defaults.string(forKey: combineSettingsKey),
+              let data = raw.data(using: .utf8),
+              let decoded = try? JSONDecoder().decode(CombineSettings.self, from: data)
+        else { return .default }
+        return decoded
     }
 
     var language: AppLanguage {
@@ -170,6 +186,8 @@ final class AppSettings {
     static let shared = AppSettings()
 
     private let defaults: UserDefaults
+    @ObservationIgnored private var cachedWatermarkSettings: WatermarkSettings?
+    @ObservationIgnored private var cachedCombineSettings: CombineSettings?
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
@@ -187,7 +205,7 @@ final class AppSettings {
             Self.cameraHDRKey: false,
             Self.overlayEnabledKey: true,
             Self.homeSortOrderKey: SortOrderPersistence.defaultRawValue,
-            Self.albumSortOrderKey: SortOrderPersistence.defaultRawValue,
+            Self.albumSortOrderKey: SortOrderPersistence.defaultRawValue
         ])
         watermarkEnabled = defaults.bool(forKey: WatermarkOverlay.userDefaultsKey)
     }

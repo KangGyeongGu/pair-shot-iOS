@@ -37,14 +37,17 @@ struct AdFreeStatusView: View {
         statusViewModel: AdFreeStatusViewModel,
         registrationViewModel: CouponRegistrationViewModel
     ) -> some View {
-        Form {
-            bannerSection
-            statusSection(viewModel: statusViewModel)
-            registrationSection(
-                statusViewModel: statusViewModel,
-                registrationViewModel: registrationViewModel
-            )
-            myCouponsSection(viewModel: statusViewModel)
+        VStack(spacing: 0) {
+            BannerAdSlot()
+
+            Form {
+                statusSection(viewModel: statusViewModel)
+                registrationSection(
+                    statusViewModel: statusViewModel,
+                    registrationViewModel: registrationViewModel
+                )
+                myCouponsSection(viewModel: statusViewModel)
+            }
         }
         .fullScreenCover(isPresented: $isShowingScanner) {
             QRScannerView(
@@ -94,15 +97,6 @@ struct AdFreeStatusView: View {
             }
         } message: { error in
             Text(message(for: error))
-        }
-    }
-
-    private var bannerSection: some View {
-        Section {
-            BannerAdSlot()
-                .listRowInsets(EdgeInsets())
-                .listRowBackground(Color.clear)
-                .listRowSeparator(.hidden)
         }
     }
 

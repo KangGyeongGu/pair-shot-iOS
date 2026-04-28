@@ -7,22 +7,20 @@ struct WatermarkSettingsView: View {
 
     var body: some View {
         @Bindable var bindableAppSettings = appSettings
-        Form {
-            Section {
-                BannerAdSlot()
-                    .listRowInsets(EdgeInsets())
-                    .listRowBackground(Color.clear)
-                    .listRowSeparator(.hidden)
+        VStack(spacing: 0) {
+            BannerAdSlot()
+
+            Form {
+                basicSection(bindable: $bindableAppSettings.watermarkEnabled)
+                if viewModel.settings.type == .text {
+                    textSection
+                } else {
+                    logoSection
+                }
+                previewSection
             }
-            basicSection(bindable: $bindableAppSettings.watermarkEnabled)
-            if viewModel.settings.type == .text {
-                textSection
-            } else {
-                logoSection
-            }
-            previewSection
+            .listStyle(.insetGrouped)
         }
-        .listStyle(.insetGrouped)
         .navigationTitle(String(localized: "watermark_settings_title"))
         .navigationBarTitleDisplayMode(.inline)
         .onChange(of: viewModel.settings) { _, _ in

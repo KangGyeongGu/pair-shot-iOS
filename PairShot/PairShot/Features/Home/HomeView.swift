@@ -4,6 +4,7 @@ import SwiftUI
 struct HomeView: View {
     let onOpenAlbum: ((UUID) -> Void)?
     let onPushExportSettings: (([UUID]) -> Void)?
+    let onPushSettings: (() -> Void)?
 
     @Environment(AppEnvironment.self) private var env
     @Environment(AdFreeStore.self) private var adFreeStore
@@ -18,10 +19,12 @@ struct HomeView: View {
 
     init(
         onOpenAlbum: ((UUID) -> Void)? = nil,
-        onPushExportSettings: (([UUID]) -> Void)? = nil
+        onPushExportSettings: (([UUID]) -> Void)? = nil,
+        onPushSettings: (() -> Void)? = nil
     ) {
         self.onOpenAlbum = onOpenAlbum
         self.onPushExportSettings = onPushExportSettings
+        self.onPushSettings = onPushSettings
     }
 
     var body: some View {
@@ -50,11 +53,11 @@ struct HomeView: View {
 
     private func consumePendingSettingsRedirectIfNeeded() {
         guard env.settingsRedirectCoordinator.pendingPulse != nil else { return }
-        guard let viewModel else {
+        guard viewModel != nil else {
             DispatchQueue.main.async { consumePendingSettingsRedirectIfNeeded() }
             return
         }
-        viewModel.showSettings = true
+        onPushSettings?()
     }
 
     @ViewBuilder
@@ -269,7 +272,7 @@ struct HomeView: View {
                 sortedAlbums: viewModel.sortedAlbums(from: allAlbums)
             )
         } else {
-            HomeDefaultToolbar(viewModel: viewModel)
+            HomeDefaultToolbar(viewModel: viewModel, onPushSettings: onPushSettings)
         }
     }
 }

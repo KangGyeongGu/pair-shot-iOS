@@ -26,8 +26,6 @@ struct HomePairCardView: View {
     private var topTrailingBadge: some View {
         if isSelectionMode {
             selectionMarker.padding(8)
-        } else if pair.status == .captured {
-            capturedIndicator.padding(8)
         }
     }
 
@@ -83,14 +81,6 @@ struct HomePairCardView: View {
         }
     }
 
-    private var capturedIndicator: some View {
-        Image(systemName: "checkmark")
-            .font(.appCaptionBold)
-            .foregroundStyle(Color.white)
-            .frame(width: 28, height: 28)
-            .background(Color.accentColor, in: RoundedRectangle(cornerRadius: 8))
-    }
-
     private var selectionMarker: some View {
         Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
             .font(.title3)
@@ -141,10 +131,13 @@ private struct HomePairCardSide: View {
         case empty
     }
 
+    static let longLoadThresholdNanoseconds: UInt64 = 350_000_000
+
     let localIdentifier: String?
     let placeholder: Placeholder
 
     @State private var thumbnail: UIImage?
+    @State private var isLongLoading: Bool = false
 
     var body: some View {
         ZStack {
@@ -153,6 +146,10 @@ private struct HomePairCardSide: View {
                 Image(uiImage: thumbnail)
                     .resizable()
                     .scaledToFill()
+            } else if isLongLoading {
+                ProgressView()
+                    .progressViewStyle(.circular)
+                    .tint(.secondary)
             } else if case .image = placeholder {
                 Image(systemName: "photo")
                     .font(.title2.weight(.light))
@@ -166,12 +163,23 @@ private struct HomePairCardSide: View {
     private func load() async {
         guard let identifier = localIdentifier, !identifier.isEmpty else {
             thumbnail = nil
+            isLongLoading = false
             return
         }
         if let cached = ThumbnailCache.shared.cached(localIdentifier: identifier) {
             thumbnail = cached
+            isLongLoading = false
             return
         }
-        thumbnail = await ThumbnailCache.shared.image(for: identifier)
+        let longLoadTask = Task { [thresholdNs = Self.longLoadThresholdNanoseconds] in
+            try? await Task.sleep(nanoseconds: thresholdNs)
+            if !Task.isCancelled {
+                await MainActor.run { isLongLoading = true }
+            }
+        }
+        let loaded = await ThumbnailCache.shared.image(for: identifier)
+        longLoadTask.cancel()
+        thumbnail = loaded
+        isLongLoading = false
     }
 }

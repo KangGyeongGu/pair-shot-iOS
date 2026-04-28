@@ -27,11 +27,13 @@ final class ThumbnailCache {
 
     func image(
         for localIdentifier: String,
-        pixelSize: CGFloat = ThumbnailCache.defaultThumbnailPixelSize
+        pixelSize: CGFloat = ThumbnailCache.defaultThumbnailPixelSize,
+        progressHandler: (@Sendable (Double) -> Void)? = nil
     ) async -> UIImage? {
         await underlying.image(
             for: localIdentifier,
-            targetSize: CGSize(width: pixelSize, height: pixelSize)
+            targetSize: CGSize(width: pixelSize, height: pixelSize),
+            progressHandler: progressHandler
         )
     }
 

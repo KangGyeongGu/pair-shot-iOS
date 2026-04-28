@@ -43,7 +43,7 @@ struct RootView: View {
     }
 
     @ViewBuilder
-    // swiftlint:disable switch_case_alignment
+    // swiftlint:disable switch_case_alignment cyclomatic_complexity
     private func destination(for route: Route) -> some View {
         switch route {
             case .home:
@@ -53,6 +53,9 @@ struct RootView: View {
                     },
                     onPushExportSettings: { pairIds in
                         path.append(.exportSettings(pairIds: pairIds, albumId: nil))
+                    },
+                    onPushSettings: {
+                        path.append(.settings)
                     }
                 )
 
@@ -67,6 +70,9 @@ struct RootView: View {
             case let .pairPicker(albumId):
                 PairPickerView(albumId: albumId)
 
+            case .settings:
+                SettingsView(path: $path)
+
             case .watermarkSettings:
                 WatermarkSettingsView(viewModel: env.makeWatermarkSettingsViewModel())
 
@@ -76,42 +82,38 @@ struct RootView: View {
             case .license:
                 LicenseView()
 
+            case .languagePicker:
+                LanguagePickerView(viewModel: env.makeSettingsViewModel())
+
+            case .themePicker:
+                ThemePickerView(viewModel: env.makeSettingsViewModel())
+
+            case .imageQualityPicker:
+                ImageQualityPickerView(viewModel: env.makeSettingsViewModel())
+
+            case .filenamePrefixEditor:
+                FilenamePrefixView(viewModel: env.makeSettingsViewModel())
+
             case let .exportSettings(pairIds, albumId):
                 ExportSettingsView(
                     viewModel: env.makeExportSettingsViewModel(
                         pairIds: pairIds,
                         albumId: albumId
                     ),
-                    onRequestSettingsRedirect: { target in
-                        handleExportSettingsRedirect(target)
+                    onPushWatermarkSettings: {
+                        path.append(.watermarkSettings)
+                    },
+                    onPushCombineSettings: {
+                        path.append(.combineSettings)
                     }
                 )
 
-            case .pairPreview,
-                 .settings,
-                 .languagePicker,
-                 .themePicker,
-                 .imageQualityPicker,
-                 .filenamePrefixEditor:
+            case .pairPreview:
                 EmptyView()
         }
     }
 
-    // swiftlint:enable switch_case_alignment
-
-    private func handleExportSettingsRedirect(_ target: ExportSettingsRedirectTarget) {
-        env.settingsRedirectCoordinator.request(pulseTarget(for: target))
-        path = [.home]
-    }
-
-    // swiftlint:disable switch_case_alignment switch_case_on_newline
-    private func pulseTarget(for target: ExportSettingsRedirectTarget) -> SettingsPulseTarget {
-        switch target {
-            case .watermarkSettings: .watermark
-            case .combineSettings: .combine
-        }
-    }
-    // swiftlint:enable switch_case_alignment switch_case_on_newline
+    // swiftlint:enable switch_case_alignment cyclomatic_complexity
 }
 
 private struct RootViewPreviewWrapper: View {

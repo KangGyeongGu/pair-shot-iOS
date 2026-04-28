@@ -16,7 +16,6 @@ final class AfterCameraViewModel {
 
     let albumId: UUID?
     let initialPairId: UUID?
-    let retakeMode: Bool
     let sortOrder: HomeSortOrder
 
     let session: CameraSession
@@ -90,7 +89,6 @@ final class AfterCameraViewModel {
     init(
         albumId: UUID?,
         initialPairId: UUID? = nil,
-        retakeMode: Bool = false,
         sortOrder: HomeSortOrder = .newest,
         captureAfter: CaptureAfterUseCase,
         pairRepo: PhotoPairRepository,
@@ -102,7 +100,6 @@ final class AfterCameraViewModel {
     ) {
         self.albumId = albumId
         self.initialPairId = initialPairId
-        self.retakeMode = retakeMode
         self.sortOrder = sortOrder
         self.captureAfter = captureAfter
         self.pairRepo = pairRepo
@@ -163,7 +160,6 @@ final class AfterCameraViewModel {
     }
 
     func onSelectionChanged(_ newId: UUID?) {
-        guard !retakeMode else { return }
         guard let newId else { return }
         guard newId != currentPair?.id else { return }
         guard let pair = pairs.first(where: { $0.id == newId }) else { return }
@@ -198,10 +194,6 @@ final class AfterCameraViewModel {
     }
 
     private func loadPendingScopeAndStart() async {
-        if retakeMode, let id = initialPairId {
-            await loadRetakeTarget(id: id)
-            return
-        }
         await refreshPairs()
         guard let initialPair = AfterCameraInitialPairResolver.resolve(
             initialPairId: initialPairId,
@@ -213,24 +205,7 @@ final class AfterCameraViewModel {
         adopt(pair: initialPair)
     }
 
-    private func loadRetakeTarget(id: UUID) async {
-        guard let pair = try? await pairRepo.fetch(id: id) else {
-            eventsContinuation.yield(.dismiss)
-            return
-        }
-        pairs = [pair]
-        pendingPairCount = 1
-        completedPairCount = 0
-        adopt(pair: pair)
-    }
-
     private func advanceToNextOrFinish(after _: PhotoPair) async {
-        if retakeMode {
-            currentPair = nil
-            ghostImageData = nil
-            eventsContinuation.yield(.dismiss)
-            return
-        }
         await refreshPairs()
         if let next = pairs.first {
             adopt(pair: next)

@@ -36,9 +36,5 @@ final class PermissionGateViewModel {
         UIApplication.shared.open(url)
     }
 
-    func refresh() async {
-        await permissionStatusService.refreshAll()
-    }
-
     deinit {}
 }

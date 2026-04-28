@@ -1,6 +1,7 @@
 import Foundation
 import Observation
 import Photos
+import UIKit
 
 struct ExportShareItems: Identifiable {
     let id = UUID()
@@ -17,6 +18,13 @@ enum ExportSettingsRedirectTarget: Equatable {
 final class ExportSettingsViewModel {
     enum Event {
         case dismiss
+    }
+
+    enum GateResult: Equatable {
+        case proceed
+        case adNotReady
+        case userClosed
+        case failed(reason: String)
     }
 
     let pairIds: [UUID]
@@ -51,7 +59,9 @@ final class ExportSettingsViewModel {
     var errorMessage: LocalizedStringResource?
     var shareItems: ExportShareItems?
     var zipExportItem: DocumentExporterItem?
-    var pendingRedirect: ExportSettingsRedirectTarget?
+    var showWatermarkGateDialog: Bool = false
+    var showCombineGateDialog: Bool = false
+    var lastGateFailureReason: String?
 
     private var zipSaveProgress: SnackbarProgressHandle?
 
@@ -133,19 +143,128 @@ final class ExportSettingsViewModel {
         eventsContinuation.yield(.dismiss)
     }
 
-    func requestWatermarkRedirect() {
-        pendingRedirect = .watermarkSettings
+    func requestWatermarkGate(
+        rewardedManager: RewardedAdManager,
+        adFreeStore: AdFreeStore
+    ) -> Bool {
+        requestGate(
+            unlockID: .watermarkSettings,
+            rewardedManager: rewardedManager,
+            adFreeStore: adFreeStore,
+            dialogFlag: \.showWatermarkGateDialog
+        )
     }
 
-    func requestCombineRedirect() {
-        pendingRedirect = .combineSettings
+    func requestCombineGate(
+        rewardedManager: RewardedAdManager,
+        adFreeStore: AdFreeStore
+    ) -> Bool {
+        requestGate(
+            unlockID: .compositionSettings,
+            rewardedManager: rewardedManager,
+            adFreeStore: adFreeStore,
+            dialogFlag: \.showCombineGateDialog
+        )
     }
 
-    func consumeRedirect() -> ExportSettingsRedirectTarget? {
-        let target = pendingRedirect
-        pendingRedirect = nil
-        return target
+    func confirmWatermarkGateAd(
+        rewardedManager: RewardedAdManager,
+        adFreeStore: AdFreeStore,
+        coordinator: FullscreenAdCoordinator,
+        rootViewController: UIViewController?
+    ) async -> GateResult {
+        await presentGateAd(
+            unlockID: .watermarkSettings,
+            rewardedManager: rewardedManager,
+            adFreeStore: adFreeStore,
+            coordinator: coordinator,
+            rootViewController: rootViewController
+        )
     }
+
+    func confirmCombineGateAd(
+        rewardedManager: RewardedAdManager,
+        adFreeStore: AdFreeStore,
+        coordinator: FullscreenAdCoordinator,
+        rootViewController: UIViewController?
+    ) async -> GateResult {
+        await presentGateAd(
+            unlockID: .compositionSettings,
+            rewardedManager: rewardedManager,
+            adFreeStore: adFreeStore,
+            coordinator: coordinator,
+            rootViewController: rootViewController
+        )
+    }
+
+    private func requestGate(
+        unlockID: RewardedAdManager.UnlockID,
+        rewardedManager: RewardedAdManager,
+        adFreeStore: AdFreeStore,
+        dialogFlag: ReferenceWritableKeyPath<ExportSettingsViewModel, Bool>
+    ) -> Bool {
+        lastGateFailureReason = nil
+        if !RewardedSessionGate.shouldShowGate(
+            unlockID: unlockID,
+            sessionUnlocks: rewardedManager.sessionUnlocks,
+            isAdFree: adFreeStore.isAdFree
+        ) {
+            return true
+        }
+        rewardedManager.loadIfNeeded(adFreeStore: adFreeStore)
+        self[keyPath: dialogFlag] = true
+        return false
+    }
+
+    private func presentGateAd(
+        unlockID: RewardedAdManager.UnlockID,
+        rewardedManager: RewardedAdManager,
+        adFreeStore: AdFreeStore,
+        coordinator: FullscreenAdCoordinator,
+        rootViewController: UIViewController?
+    ) async -> GateResult {
+        lastGateFailureReason = nil
+        if !RewardedSessionGate.shouldShowGate(
+            unlockID: unlockID,
+            sessionUnlocks: rewardedManager.sessionUnlocks,
+            isAdFree: adFreeStore.isAdFree
+        ) {
+            return .proceed
+        }
+        if !rewardedManager.isLoaded {
+            rewardedManager.loadIfNeeded(adFreeStore: adFreeStore)
+            lastGateFailureReason = String(localized: "rewarded_gate_load_failed")
+            return .adNotReady
+        }
+        let outcome = await rewardedManager.presentForReward(
+            unlockID,
+            from: rootViewController,
+            coordinator: coordinator,
+            adFreeStore: adFreeStore
+        )
+        return mapOutcome(outcome)
+    }
+
+    // swiftlint:disable switch_case_alignment
+    private func mapOutcome(_ outcome: RewardedAdManager.RewardOutcome) -> GateResult {
+        switch outcome {
+            case .granted, .skipped:
+                return .proceed
+
+            case .userClosed:
+                lastGateFailureReason = String(localized: "rewarded_gate_failure_not_completed")
+                return .userClosed
+
+            case let .failed(reason):
+                lastGateFailureReason = String(
+                    format: String(localized: "rewarded_gate_failure_show_failed_template"),
+                    reason
+                )
+                return .failed(reason: reason)
+        }
+    }
+
+    // swiftlint:enable switch_case_alignment
 
     func share() async {
         guard canExecute else { return }
@@ -404,7 +523,7 @@ final class ExportSettingsViewModel {
     deinit {}
 }
 
-final nonisolated class ExportPreferences: @unchecked Sendable {
+nonisolated final class ExportPreferences: @unchecked Sendable {
     static let includeCombinedKey = "pairshot.exportIncludeCombined"
     static let includeBeforeKey = "pairshot.exportIncludeBefore"
     static let includeAfterKey = "pairshot.exportIncludeAfter"

@@ -53,7 +53,7 @@ final class PhotoLibrarySyncService: NSObject, PHPhotoLibraryChangeObserver {
 
     private func performRevalidation() async {
         let status = PHPhotoLibrary.authorizationStatus(for: .readWrite)
-        guard status == .authorized || status == .limited else { return }
+        guard status == .authorized else { return }
 
         let context = modelContainer.mainContext
         let descriptor = FetchDescriptor<PhotoPair>()
@@ -70,12 +70,6 @@ final class PhotoLibrarySyncService: NSObject, PHPhotoLibraryChangeObserver {
         guard !identifiers.isEmpty else { return }
 
         let alive = aliveIdentifiers(from: identifiers)
-        if alive.isEmpty, status == .limited {
-            return
-        }
-        if alive.isEmpty, identifiers.count > 1 {
-            return
-        }
 
         var didMutate = false
         var pairsToDelete: [PhotoPair] = []

@@ -84,12 +84,20 @@ final class PhotoLibraryService {
         }
     }
 
-    nonisolated func requestImageData(for asset: PHAsset) async -> Data? {
+    nonisolated func requestImageData(
+        for asset: PHAsset,
+        progressHandler: (@Sendable (Double) -> Void)? = nil
+    ) async -> Data? {
         await withCheckedContinuation { (continuation: CheckedContinuation<Data?, Never>) in
             let options = PHImageRequestOptions()
             options.deliveryMode = .highQualityFormat
             options.isNetworkAccessAllowed = true
             options.isSynchronous = false
+            if let progressHandler {
+                options.progressHandler = { progress, _, _, _ in
+                    progressHandler(progress)
+                }
+            }
             PHImageManager.default().requestImageDataAndOrientation(
                 for: asset,
                 options: options
@@ -99,9 +107,12 @@ final class PhotoLibraryService {
         }
     }
 
-    nonisolated func requestImageData(localIdentifier: String) async -> Data? {
+    nonisolated func requestImageData(
+        localIdentifier: String,
+        progressHandler: (@Sendable (Double) -> Void)? = nil
+    ) async -> Data? {
         guard let asset = fetchAsset(localIdentifier: localIdentifier) else { return nil }
-        return await requestImageData(for: asset)
+        return await requestImageData(for: asset, progressHandler: progressHandler)
     }
 }
 
@@ -128,7 +139,11 @@ final class PhotoLibraryThumbnailCache {
         return cache.object(forKey: cacheKey(localIdentifier, targetSize))
     }
 
-    func image(for localIdentifier: String, targetSize: CGSize) async -> UIImage? {
+    func image(
+        for localIdentifier: String,
+        targetSize: CGSize,
+        progressHandler: (@Sendable (Double) -> Void)? = nil
+    ) async -> UIImage? {
         guard !localIdentifier.isEmpty else { return nil }
         let key = cacheKey(localIdentifier, targetSize)
         if let hit = cache.object(forKey: key) { return hit }
@@ -144,6 +159,11 @@ final class PhotoLibraryThumbnailCache {
             options.resizeMode = .fast
             options.isNetworkAccessAllowed = true
             options.isSynchronous = false
+            if let progressHandler {
+                options.progressHandler = { progress, _, _, _ in
+                    progressHandler(progress)
+                }
+            }
             var didResume = false
             manager.requestImage(
                 for: asset,

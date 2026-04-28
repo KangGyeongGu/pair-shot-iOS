@@ -10,7 +10,7 @@ struct GhostWarningToast: ViewModifier {
                     .font(.callout)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
-                    .background(.ultraThinMaterial, in: Capsule())
+                    .adaptiveGlass(in: Capsule(), kind: .thin)
                     .padding(.bottom, 110)
                     .task(id: message) {
                         try? await Task.sleep(nanoseconds: 2_000_000_000)

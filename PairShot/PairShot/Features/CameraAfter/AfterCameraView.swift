@@ -5,7 +5,6 @@ import UIKit
 struct AfterCameraView: View {
     let albumId: UUID?
     let initialPairId: UUID?
-    let retakeMode: Bool
     let sortOrder: HomeSortOrder
 
     @Environment(\.dismiss) private var dismiss
@@ -20,12 +19,10 @@ struct AfterCameraView: View {
     init(
         albumId: UUID? = nil,
         initialPairId: UUID? = nil,
-        retakeMode: Bool = false,
         sortOrder: HomeSortOrder = .newest
     ) {
         self.albumId = albumId
         self.initialPairId = initialPairId
-        self.retakeMode = retakeMode
         self.sortOrder = sortOrder
     }
 
@@ -181,7 +178,6 @@ struct AfterCameraView: View {
         viewModel = env.makeAfterCameraViewModel(
             albumId: albumId,
             initialPairId: initialPairId,
-            retakeMode: retakeMode,
             sortOrder: sortOrder
         )
     }

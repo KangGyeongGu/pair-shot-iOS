@@ -32,10 +32,7 @@ struct RotationGuideOverlay: View {
             }
             .padding(.horizontal, AppSpacing.lg)
             .padding(.vertical, AppSpacing.md)
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color.black.opacity(0.6))
-            )
+            .modifier(RotationGuideBackground())
             .accessibilityElement(children: .combine)
             .accessibilityLabel(label)
             .onAppear {
@@ -70,6 +67,17 @@ struct RotationGuideOverlay: View {
 
             case .upright:
                 ""
+        }
+    }
+}
+
+private struct RotationGuideBackground: ViewModifier {
+    func body(content: Content) -> some View {
+        let shape = RoundedRectangle(cornerRadius: 12, style: .continuous)
+        if #available(iOS 26.0, *) {
+            content.glassEffect(.regular, in: shape)
+        } else {
+            content.background(shape.fill(Color.black.opacity(0.6)))
         }
     }
 }

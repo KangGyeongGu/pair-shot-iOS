@@ -181,7 +181,6 @@ struct AlbumDetailCameraCovers: ViewModifier {
                     AfterCameraView(
                         albumId: viewModel.albumId,
                         initialPairId: viewModel.afterCameraTargetPairId,
-                        retakeMode: viewModel.afterCameraTargetPairId != nil,
                         sortOrder: viewModel.sortOrder
                     )
                 }

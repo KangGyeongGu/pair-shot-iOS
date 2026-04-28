@@ -106,6 +106,7 @@ struct HomeSelectionToolbar: ToolbarContent {
 
 struct HomeDefaultToolbar: ToolbarContent {
     let viewModel: HomeViewModel?
+    let onPushSettings: (() -> Void)?
 
     var body: some ToolbarContent {
         ToolbarItem(placement: .principal) {
@@ -123,12 +124,12 @@ struct HomeDefaultToolbar: ToolbarContent {
         }
         ToolbarItem(placement: .topBarTrailing) {
             Button {
-                viewModel?.openSettings()
+                onPushSettings?()
             } label: {
                 Image(systemName: "gearshape")
             }
             .accessibilityLabel(String(localized: "common_label_settings"))
-            .disabled(viewModel == nil)
+            .disabled(onPushSettings == nil)
         }
     }
 }
@@ -160,7 +161,6 @@ struct HomeCameraCovers: ViewModifier {
                 NavigationStack {
                     AfterCameraView(
                         initialPairId: viewModel.afterCameraTargetPairId,
-                        retakeMode: viewModel.afterCameraTargetPairId != nil,
                         sortOrder: viewModel.sortOrder
                     )
                 }
@@ -178,7 +178,6 @@ struct HomeSheets: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .sheet(isPresented: $viewModel.showSettings) { SettingsView() }
             .sheet(isPresented: $viewModel.showCreateAlbum) {
                 CreateAlbumDialog(isPresented: $viewModel.showCreateAlbum) { name, latitude, longitude, label in
                     await viewModel.createAlbum(

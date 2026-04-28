@@ -2,34 +2,29 @@ import SwiftData
 import SwiftUI
 
 struct SettingsView: View {
+    @Binding var path: [Route]
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
     @Environment(AppEnvironment.self) private var env
     @Environment(AdFreeStore.self) private var adFreeStore
     @Environment(RewardedAdManager.self) private var rewardedManager
     @State private var viewModel: SettingsViewModel?
-    @State private var path: [Route] = []
 
     var body: some View {
-        NavigationStack(path: $path) {
+        VStack(spacing: 0) {
+            BannerAdSlot()
+
             Group {
                 if let viewModel {
                     form(for: viewModel)
                 } else {
                     ProgressView()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
-            }
-            .navigationTitle(String(localized: "settings_title"))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button(String(localized: "common_button_done")) { dismiss() }
-                }
-            }
-            .navigationDestination(for: Route.self) { route in
-                destination(for: route)
             }
         }
+        .navigationTitle(String(localized: "settings_title"))
+        .navigationBarTitleDisplayMode(.inline)
         .task { ensureViewModel() }
         .task { await observeEvents() }
         .task { await initialStorageRefresh() }
@@ -73,38 +68,6 @@ struct SettingsView: View {
         await viewModel.refreshStorageInfo()
     }
 
-    @ViewBuilder
-    // swiftlint:disable switch_case_alignment cyclomatic_complexity
-    private func destination(for route: Route) -> some View {
-        switch route {
-            case .watermarkSettings:
-                WatermarkSettingsView(viewModel: env.makeWatermarkSettingsViewModel())
-
-            case .combineSettings:
-                CombineSettingsView(viewModel: env.makeCombineSettingsViewModel())
-
-            case .license:
-                LicenseView()
-
-            case .languagePicker:
-                if let viewModel { LanguagePickerView(viewModel: viewModel) }
-
-            case .themePicker:
-                if let viewModel { ThemePickerView(viewModel: viewModel) }
-
-            case .imageQualityPicker:
-                if let viewModel { ImageQualityPickerView(viewModel: viewModel) }
-
-            case .filenamePrefixEditor:
-                if let viewModel { FilenamePrefixView(viewModel: viewModel) }
-
-            default:
-                EmptyView()
-        }
-    }
-
-    // swiftlint:enable switch_case_alignment cyclomatic_complexity
-
     private func form(for viewModel: SettingsViewModel) -> some View {
         SettingsFormBody(
             viewModel: viewModel,
@@ -126,12 +89,6 @@ private struct SettingsFormBody: View {
 
     var body: some View {
         Form {
-            Section {
-                BannerAdSlot()
-                    .listRowInsets(EdgeInsets())
-                    .listRowBackground(Color.clear)
-                    .listRowSeparator(.hidden)
-            }
             SettingsGeneralSection(viewModel: viewModel, path: $path)
             SettingsCaptureFileSection(viewModel: viewModel, path: $path)
             SettingsWatermarkSection(viewModel: viewModel, path: $path)

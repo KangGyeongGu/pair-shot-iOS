@@ -47,7 +47,8 @@ final class AppEnvironment {
     let settingsRedirectCoordinator: SettingsRedirectCoordinator
     let permissionStatusService: PermissionStatusService
 
-    // swiftlint:disable:next function_body_length
+    private var sharedSettingsViewModel: SettingsViewModel?
+
     init(
         modelContainer: ModelContainer,
         appSettings: AppSettings? = nil,
@@ -64,24 +65,45 @@ final class AppEnvironment {
         settingsRedirectCoordinator: SettingsRedirectCoordinator? = nil,
         permissionStatusService: PermissionStatusService? = nil
     ) {
+        let resolvedAppSettings = appSettings ?? AppSettings()
+        let resolvedSnackbarQueue = snackbarQueue ?? SnackbarQueue()
+
         self.modelContainer = modelContainer
-        self.appSettings = appSettings ?? AppSettings()
+        self.appSettings = resolvedAppSettings
         self.appSettingsRepo = appSettingsRepo ?? UserDefaultsAppSettingsRepository()
         self.adFreeStore = adFreeStore ?? AdFreeStore(context: modelContainer.mainContext)
         self.trackingService = trackingService ?? TrackingAuthorizationService()
-        self.interstitialAdManager = interstitialAdManager ?? InterstitialAdManager()
-        self.rewardedAdManager = rewardedAdManager ?? RewardedAdManager()
-        self.nativeAdLoader = nativeAdLoader ?? NativeAdLoader()
-        self.appOpenAdManager = appOpenAdManager ?? AppOpenAdManager()
-        self.fullscreenAdCoordinator = fullscreenAdCoordinator ?? FullscreenAdCoordinator()
-        let resolvedSnackbarQueue = snackbarQueue ?? SnackbarQueue()
-        let resolvedBackgroundTaskGuard = backgroundTaskGuard ?? BackgroundTaskGuard()
         self.snackbarQueue = resolvedSnackbarQueue
-        self.backgroundTaskGuard = resolvedBackgroundTaskGuard
+        self.backgroundTaskGuard = backgroundTaskGuard ?? BackgroundTaskGuard()
         self.settingsRedirectCoordinator = settingsRedirectCoordinator ?? SettingsRedirectCoordinator()
         self.permissionStatusService = permissionStatusService ?? PermissionStatusService()
 
+        let ads = Self.makeAdManagers(
+            interstitialAdManager: interstitialAdManager,
+            rewardedAdManager: rewardedAdManager,
+            nativeAdLoader: nativeAdLoader,
+            appOpenAdManager: appOpenAdManager,
+            fullscreenAdCoordinator: fullscreenAdCoordinator
+        )
+        self.interstitialAdManager = ads.interstitialAdManager
+        self.rewardedAdManager = ads.rewardedAdManager
+        self.nativeAdLoader = ads.nativeAdLoader
+        self.appOpenAdManager = ads.appOpenAdManager
+        self.fullscreenAdCoordinator = ads.fullscreenAdCoordinator
+
         let services = AppServiceBundle.make()
+        let repositories = AppRepositoryBundle.make(
+            container: modelContainer,
+            couponApi: services.couponApi,
+            deviceHashProvider: services.deviceHashProvider
+        )
+        let pipeline = Self.makeCorePipeline(
+            services: services,
+            repositories: repositories,
+            appSettings: resolvedAppSettings,
+            snackbarQueue: resolvedSnackbarQueue
+        )
+
         location = services.location
         exifNormalizer = services.exifNormalizer
         couponApiConfig = services.couponApiConfig
@@ -93,46 +115,68 @@ final class AppEnvironment {
             modelContainer: modelContainer,
             photoLibrary: services.photoLibrary
         )
-
-        let repositories = AppRepositoryBundle.make(
-            container: modelContainer,
-            couponApi: services.couponApi,
-            deviceHashProvider: services.deviceHashProvider
-        )
         pairRepo = repositories.pairRepo
         albumRepo = repositories.albumRepo
         couponRepo = repositories.couponRepo
+        compositorService = pipeline.compositor
+        zipExporter = pipeline.zipExporter
+        createPair = pipeline.useCases.createPair
+        captureAfter = pipeline.useCases.captureAfter
+        deletePairs = pipeline.useCases.deletePairs
+        exportPairs = pipeline.useCases.exportPairs
+        toggleAlbumMembership = pipeline.useCases.toggleAlbumMembership
+        activateCoupon = pipeline.useCases.activateCoupon
+        checkAdFreeState = pipeline.useCases.checkAdFreeState
+        immediateExport = pipeline.immediateExport
+    }
 
-        let resolvedCompositor = DefaultCompositorService(photoLibrary: services.photoLibrary)
-        compositorService = resolvedCompositor
-
-        zipExporter = ZipExporterAdapter(
+    private static func makeCorePipeline(
+        services: AppServiceBundle,
+        repositories: AppRepositoryBundle,
+        appSettings: AppSettings,
+        snackbarQueue: SnackbarQueue
+    ) -> AppCorePipelineBundle {
+        let compositor = DefaultCompositorService(photoLibrary: services.photoLibrary)
+        let zipExporter = ZipExporterAdapter(
             photoLibrary: services.photoLibrary,
             pairRepo: repositories.pairRepo,
-            compositor: resolvedCompositor,
-            appSettings: self.appSettings
+            compositor: compositor,
+            appSettings: appSettings
         )
-
         let useCases = AppUseCaseBundle.make(
             services: services,
             repositories: repositories,
             zipExporter: zipExporter
         )
-        createPair = useCases.createPair
-        captureAfter = useCases.captureAfter
-        deletePairs = useCases.deletePairs
-        exportPairs = useCases.exportPairs
-        toggleAlbumMembership = useCases.toggleAlbumMembership
-        activateCoupon = useCases.activateCoupon
-        checkAdFreeState = useCases.checkAdFreeState
-
-        immediateExport = ImmediateExportService(
+        let immediateExport = ImmediateExportService(
             photoLibrary: services.photoLibrary,
             exportPairs: useCases.exportPairs,
             photoLibraryExporter: services.photoLibraryExporter,
-            snackbarQueue: resolvedSnackbarQueue,
-            compositor: resolvedCompositor,
-            appSettings: self.appSettings
+            snackbarQueue: snackbarQueue,
+            compositor: compositor,
+            appSettings: appSettings
+        )
+        return AppCorePipelineBundle(
+            compositor: compositor,
+            zipExporter: zipExporter,
+            useCases: useCases,
+            immediateExport: immediateExport
+        )
+    }
+
+    private static func makeAdManagers(
+        interstitialAdManager: InterstitialAdManager?,
+        rewardedAdManager: RewardedAdManager?,
+        nativeAdLoader: NativeAdLoader?,
+        appOpenAdManager: AppOpenAdManager?,
+        fullscreenAdCoordinator: FullscreenAdCoordinator?
+    ) -> AppAdManagerBundle {
+        AppAdManagerBundle(
+            interstitialAdManager: interstitialAdManager ?? InterstitialAdManager(),
+            rewardedAdManager: rewardedAdManager ?? RewardedAdManager(),
+            nativeAdLoader: nativeAdLoader ?? NativeAdLoader(),
+            appOpenAdManager: appOpenAdManager ?? AppOpenAdManager(),
+            fullscreenAdCoordinator: fullscreenAdCoordinator ?? FullscreenAdCoordinator()
         )
     }
 
@@ -153,13 +197,11 @@ final class AppEnvironment {
     func makeAfterCameraViewModel(
         albumId: UUID?,
         initialPairId: UUID? = nil,
-        retakeMode: Bool = false,
         sortOrder: HomeSortOrder = .newest
     ) -> AfterCameraViewModel {
         AfterCameraViewModel(
             albumId: albumId,
             initialPairId: initialPairId,
-            retakeMode: retakeMode,
             sortOrder: sortOrder,
             captureAfter: captureAfter,
             pairRepo: pairRepo,
@@ -217,10 +259,13 @@ final class AppEnvironment {
     }
 
     func makeSettingsViewModel() -> SettingsViewModel {
-        SettingsViewModel(
+        if let sharedSettingsViewModel { return sharedSettingsViewModel }
+        let viewModel = SettingsViewModel(
             appSettings: appSettings,
             appSettingsRepo: appSettingsRepo
         )
+        sharedSettingsViewModel = viewModel
+        return viewModel
     }
 
     func makeWatermarkSettingsViewModel() -> WatermarkSettingsViewModel {
@@ -264,6 +309,23 @@ final class AppEnvironment {
     }
 
     deinit {}
+}
+
+@MainActor
+struct AppAdManagerBundle {
+    let interstitialAdManager: InterstitialAdManager
+    let rewardedAdManager: RewardedAdManager
+    let nativeAdLoader: NativeAdLoader
+    let appOpenAdManager: AppOpenAdManager
+    let fullscreenAdCoordinator: FullscreenAdCoordinator
+}
+
+@MainActor
+struct AppCorePipelineBundle {
+    let compositor: any CompositorService
+    let zipExporter: ZipExporting
+    let useCases: AppUseCaseBundle
+    let immediateExport: ImmediateExportService
 }
 
 @MainActor

@@ -2,31 +2,35 @@ import SwiftUI
 
 struct ExportSettingsView: View {
     @Bindable var viewModel: ExportSettingsViewModel
-    let onRequestSettingsRedirect: ((ExportSettingsRedirectTarget) -> Void)?
+    let onPushWatermarkSettings: (() -> Void)?
+    let onPushCombineSettings: (() -> Void)?
     @Environment(\.dismiss) private var dismiss
+    @Environment(AdFreeStore.self) private var adFreeStore
+    @Environment(RewardedAdManager.self) private var rewardedManager
+    @Environment(\.fullscreenAdCoordinator) private var coordinator
 
     init(
         viewModel: ExportSettingsViewModel,
-        onRequestSettingsRedirect: ((ExportSettingsRedirectTarget) -> Void)? = nil
+        onPushWatermarkSettings: (() -> Void)? = nil,
+        onPushCombineSettings: (() -> Void)? = nil
     ) {
         self.viewModel = viewModel
-        self.onRequestSettingsRedirect = onRequestSettingsRedirect
+        self.onPushWatermarkSettings = onPushWatermarkSettings
+        self.onPushCombineSettings = onPushCombineSettings
     }
 
     var body: some View {
-        Form {
-            Section {
-                BannerAdSlot()
-                    .listRowInsets(EdgeInsets())
-                    .listRowBackground(Color.clear)
-                    .listRowSeparator(.hidden)
+        VStack(spacing: 0) {
+            BannerAdSlot()
+
+            Form {
+                includesSection
+                formatSection
+                watermarkSection
+                combineSection
             }
-            includesSection
-            formatSection
-            watermarkSection
-            combineSection
+            .listStyle(.insetGrouped)
         }
-        .listStyle(.insetGrouped)
         .navigationTitle(String(localized: "export_settings_title"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -71,14 +75,55 @@ struct ExportSettingsView: View {
         )
         .onDisappear { viewModel.cleanupPendingZip() }
         .task { await observeEvents() }
-        .onChange(of: viewModel.pendingRedirect) { _, _ in
-            handlePendingRedirect()
+        .task { rewardedManager.loadIfNeeded(adFreeStore: adFreeStore) }
+        .alert(
+            String(localized: "rewarded_gate_title"),
+            isPresented: $viewModel.showWatermarkGateDialog
+        ) {
+            Button(String(localized: "rewarded_gate_confirm")) {
+                Task { await confirmWatermarkGate() }
+            }
+            Button(String(localized: "common_button_cancel"), role: .cancel) {}
+        } message: {
+            Text(String(localized: "rewarded_gate_body_watermark_detail"))
+        }
+        .alert(
+            String(localized: "rewarded_gate_title"),
+            isPresented: $viewModel.showCombineGateDialog
+        ) {
+            Button(String(localized: "rewarded_gate_confirm")) {
+                Task { await confirmCombineGate() }
+            }
+            Button(String(localized: "common_button_cancel"), role: .cancel) {}
+        } message: {
+            Text(String(localized: "rewarded_gate_body_combine_detail"))
         }
     }
 
-    private func handlePendingRedirect() {
-        guard let target = viewModel.consumeRedirect() else { return }
-        onRequestSettingsRedirect?(target)
+    @MainActor
+    private func confirmWatermarkGate() async {
+        let result = await viewModel.confirmWatermarkGateAd(
+            rewardedManager: rewardedManager,
+            adFreeStore: adFreeStore,
+            coordinator: coordinator,
+            rootViewController: BannerAdView.resolveTopPresentedViewController()
+        )
+        if case .proceed = result {
+            onPushWatermarkSettings?()
+        }
+    }
+
+    @MainActor
+    private func confirmCombineGate() async {
+        let result = await viewModel.confirmCombineGateAd(
+            rewardedManager: rewardedManager,
+            adFreeStore: adFreeStore,
+            coordinator: coordinator,
+            rootViewController: BannerAdView.resolveTopPresentedViewController()
+        )
+        if case .proceed = result {
+            onPushCombineSettings?()
+        }
     }
 
     private var includesSection: some View {
@@ -117,9 +162,14 @@ struct ExportSettingsView: View {
             Toggle(String(localized: "export_settings_apply_watermark"), isOn: $viewModel.applyWatermark)
             if viewModel.applyWatermark {
                 Button {
-                    viewModel.requestWatermarkRedirect()
+                    if viewModel.requestWatermarkGate(
+                        rewardedManager: rewardedManager,
+                        adFreeStore: adFreeStore
+                    ) {
+                        onPushWatermarkSettings?()
+                    }
                 } label: {
-                    redirectRowLabel
+                    userSettingsRowLabel
                 }
                 .buttonStyle(.plain)
             }
@@ -133,9 +183,14 @@ struct ExportSettingsView: View {
             Toggle(String(localized: "export_settings_apply_combine"), isOn: $viewModel.applyCombineSettings)
             if viewModel.applyCombineSettings {
                 Button {
-                    viewModel.requestCombineRedirect()
+                    if viewModel.requestCombineGate(
+                        rewardedManager: rewardedManager,
+                        adFreeStore: adFreeStore
+                    ) {
+                        onPushCombineSettings?()
+                    }
                 } label: {
-                    redirectRowLabel
+                    userSettingsRowLabel
                 }
                 .buttonStyle(.plain)
             }
@@ -144,9 +199,11 @@ struct ExportSettingsView: View {
         }
     }
 
-    private var redirectRowLabel: some View {
-        HStack {
-            Text(String(localized: "export_settings_button_detail_redirect"))
+    private var userSettingsRowLabel: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "slider.horizontal.3")
+                .foregroundStyle(.secondary)
+            Text(String(localized: "settings_item_user_settings"))
                 .foregroundStyle(.primary)
             Spacer()
             Image(systemName: "chevron.right")
@@ -187,7 +244,7 @@ struct ExportSettingsView: View {
                 Color.appLetterbox.opacity(0.35).ignoresSafeArea()
                 ProgressView(String(localized: "export_progress_exporting"))
                     .padding()
-                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14))
+                    .adaptiveGlass(in: RoundedRectangle(cornerRadius: 14), kind: .thin)
             }
         }
     }

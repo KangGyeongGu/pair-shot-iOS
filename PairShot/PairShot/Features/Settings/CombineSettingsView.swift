@@ -4,23 +4,21 @@ struct CombineSettingsView: View {
     @Bindable var viewModel: CombineSettingsViewModel
 
     var body: some View {
-        Form {
-            Section {
-                BannerAdSlot()
-                    .listRowInsets(EdgeInsets())
-                    .listRowBackground(Color.clear)
-                    .listRowSeparator(.hidden)
+        VStack(spacing: 0) {
+            BannerAdSlot()
+
+            Form {
+                directionSection
+                borderSection
+                labelSection
+                if viewModel.settings.label.isEnabled {
+                    labelModeSection
+                    labelBackgroundSection
+                }
+                previewSection
             }
-            directionSection
-            borderSection
-            labelSection
-            if viewModel.settings.label.isEnabled {
-                labelModeSection
-                labelBackgroundSection
-            }
-            previewSection
+            .listStyle(.insetGrouped)
         }
-        .listStyle(.insetGrouped)
         .navigationTitle(String(localized: "export_settings_section_combine"))
         .navigationBarTitleDisplayMode(.inline)
         .onChange(of: viewModel.settings) { _, _ in
