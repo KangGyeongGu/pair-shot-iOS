@@ -55,6 +55,43 @@ final class AdFreeStore {
         )
     }
 
+    func refreshFromServer(
+        api: any CouponActivationApi,
+        deviceHashProvider: any DeviceHashProviding,
+        now: Date = .now
+    ) async {
+        refresh(now: now)
+        let activeOnDisk = fetchAllCoupons().filter { $0.status == .active }
+        guard !activeOnDisk.isEmpty else { return }
+        let hash = deviceHashProvider.deviceHash()
+        var changed = false
+        for coupon in activeOnDisk where !coupon.serverCouponId.isEmpty {
+            let request = StatusRequestDto(couponId: coupon.serverCouponId, deviceHash: hash)
+            let result = await api.fetchStatus(request)
+            switch result {
+                case .activated:
+                    break
+
+                case .revoked, .notFoundOrForeign:
+                    coupon.status = .revoked
+                    changed = true
+
+                case .networkError, .serverError:
+                    break
+            }
+        }
+        if changed {
+            do {
+                try context.save()
+            } catch {
+                AppLogger.coupon.error(
+                    "AdFreeStore server sync save failed: \(error.localizedDescription, privacy: .public)"
+                )
+            }
+            refresh(now: now)
+        }
+    }
+
     private func fetchAllCoupons() -> [Coupon] {
         let descriptor = FetchDescriptor<Coupon>()
         return (try? context.fetch(descriptor)) ?? []

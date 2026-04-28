@@ -119,16 +119,19 @@ final class SwiftDataCouponRepository: CouponRepository {
     private func handleSuccess(code: String, response: ActivateResponseDto) async -> CouponActivationOutcome {
         let timestamp = now()
         let activatedAt = Self.parseIso8601(response.activatedAt) ?? timestamp
+        let isUnlimited = response.durationDays == nil && response.expiresAt == nil
         let durationDays = response.durationDays ?? 0
+        let resolvedKindRawString: String? = isUnlimited ? CouponKind.unlimited.rawString : nil
         let coupon = Coupon(
             code: code,
             activatedAt: activatedAt,
             durationDays: durationDays,
             signatureBase64: "",
             status: .active,
-            kindRawString: nil,
+            kindRawString: resolvedKindRawString,
             payloadVersion: 1,
-            issuedAt: activatedAt
+            issuedAt: activatedAt,
+            serverCouponId: response.couponId
         )
         do {
             try await add(coupon)

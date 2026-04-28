@@ -47,6 +47,10 @@ struct PairShotApp: App {
                 .task {
                     env.photoLibrarySyncService.register()
                     await bootstrapAds()
+                    await env.adFreeStore.refreshFromServer(
+                        api: env.couponApi,
+                        deviceHashProvider: env.deviceHashProvider
+                    )
                     await env.permissionStatusService.refreshAll()
                     if !env.permissionStatusService.hasRequestedInitialPermissions {
                         await env.permissionStatusService.requestAllInOrder()
@@ -94,7 +98,10 @@ struct PairShotApp: App {
         Task { @MainActor in
             await env.permissionStatusService.refreshAll()
             await env.photoLibrarySyncService.revalidate()
-            env.adFreeStore.refresh()
+            await env.adFreeStore.refreshFromServer(
+                api: env.couponApi,
+                deviceHashProvider: env.deviceHashProvider
+            )
             env.interstitialAdManager.loadIfNeeded(adFreeStore: env.adFreeStore)
             env.appOpenAdManager.loadIfNeeded(adFreeStore: env.adFreeStore)
             env.rewardedAdManager.loadIfNeeded(adFreeStore: env.adFreeStore)

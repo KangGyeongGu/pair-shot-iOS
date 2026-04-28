@@ -4,6 +4,7 @@ import SwiftData
 @Model
 final class Coupon {
     @Attribute(.unique) var id: UUID
+    var serverCouponId: String = ""
     var code: String
     var activatedAt: Date
     var durationDays: Int
@@ -27,9 +28,11 @@ final class Coupon {
         status: Status = .active,
         kindRawString: String? = nil,
         payloadVersion: Int = 1,
-        issuedAt: Date? = nil
+        issuedAt: Date? = nil,
+        serverCouponId: String = ""
     ) {
         id = UUID()
+        self.serverCouponId = serverCouponId
         self.code = code
         self.activatedAt = activatedAt
         self.durationDays = durationDays
