@@ -85,17 +85,7 @@ final class SettingsViewModel {
     }
 
     var overlayAlphaEnabled: Bool = false {
-        didSet {
-            if overlayAlphaEnabled {
-                if appSettings.defaultOverlayAlpha <= 0 {
-                    appSettings.defaultOverlayAlpha = CompositionDefaults.fallbackAlpha
-                }
-                overlayAlphaValue = appSettings.defaultOverlayAlpha
-            } else {
-                appSettings.defaultOverlayAlpha = 0
-                overlayAlphaValue = 0
-            }
-        }
+        didSet { appSettings.overlayEnabled = overlayAlphaEnabled }
     }
 
     var overlayAlphaValue: Double = 0 {
@@ -163,7 +153,7 @@ final class SettingsViewModel {
         events = AsyncStream { continuation = $0 }
         eventsContinuation = continuation
         overlayAlphaValue = CompositionDefaults.clampAlpha(appSettings.defaultOverlayAlpha)
-        overlayAlphaEnabled = appSettings.defaultOverlayAlpha > 0
+        overlayAlphaEnabled = appSettings.overlayEnabled
     }
 
     func dismiss() {
