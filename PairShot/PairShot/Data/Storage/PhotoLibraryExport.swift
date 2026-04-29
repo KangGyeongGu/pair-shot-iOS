@@ -20,7 +20,7 @@ enum PhotoLibraryExportError: Error, Equatable {
 final class PhotoLibraryExport: PhotoLibraryExporting {
     init() {}
 
-    func authorize() async -> PHAuthorizationStatus {
+    nonisolated func authorize() async -> PHAuthorizationStatus {
         let current = PHPhotoLibrary.authorizationStatus(for: .addOnly)
         switch current {
             case .authorized, .limited:
@@ -38,7 +38,7 @@ final class PhotoLibraryExport: PhotoLibraryExporting {
     }
 
     @discardableResult
-    func saveImageData(_ data: Data, type: ImageMediaType) async throws -> String {
+    nonisolated func saveImageData(_ data: Data, type: ImageMediaType) async throws -> String {
         let status = PHPhotoLibrary.authorizationStatus(for: .addOnly)
         guard status == .authorized || status == .limited else {
             AppLogger.storage.error("PhotoLibraryExport not authorized")
@@ -50,14 +50,15 @@ final class PhotoLibraryExport: PhotoLibraryExporting {
                 Error
             >) in
                 let placeholderBox = PlaceholderBox()
-                PHPhotoLibrary.shared().performChanges {
+                let resourceType: PHAssetResourceType = switch type {
+                    case .photo: .photo
+                }
+                let changesBlock: @Sendable () -> Void = {
                     let request = PHAssetCreationRequest.forAsset()
-                    let resourceType: PHAssetResourceType = switch type {
-                        case .photo: .photo
-                    }
                     request.addResource(with: resourceType, data: data, options: nil)
                     placeholderBox.placeholder = request.placeholderForCreatedAsset
-                } completionHandler: { success, error in
+                }
+                let completionBlock: @Sendable (Bool, Error?) -> Void = { success, error in
                     if success, let id = placeholderBox.placeholder?.localIdentifier {
                         continuation.resume(returning: id)
                     } else if let error {
@@ -68,6 +69,7 @@ final class PhotoLibraryExport: PhotoLibraryExporting {
                         continuation.resume(throwing: PhotoLibraryExportError.writeFailed("unknown"))
                     }
                 }
+                PHPhotoLibrary.shared().performChanges(changesBlock, completionHandler: completionBlock)
             }
             AppLogger.storage.info("PhotoLibraryExport saveImageData success")
             return identifier
