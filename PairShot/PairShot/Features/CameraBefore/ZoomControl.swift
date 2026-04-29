@@ -43,11 +43,6 @@ struct ZoomControl: View {
             EmptyView()
         } else {
             ZStack {
-                Rectangle()
-                    .fill(Color.clear)
-                    .contentShape(Rectangle())
-                    .gesture(dragGesture)
-
                 if isDragging {
                     ZoomDialOverlay(
                         currentRatio: currentRatio,
@@ -65,6 +60,9 @@ struct ZoomControl: View {
                 }
             }
             .frame(height: 80)
+            .frame(maxWidth: .infinity)
+            .contentShape(Rectangle())
+            .simultaneousGesture(dragGesture)
             .animation(reduceMotion ? nil : .easeOut(duration: 0.18), value: isDragging)
         }
     }
