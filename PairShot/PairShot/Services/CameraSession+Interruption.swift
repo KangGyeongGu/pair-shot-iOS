@@ -2,11 +2,11 @@
 import Foundation
 import OSLog
 
-final class InterruptionObserverBox: @unchecked Sendable {
-    nonisolated(unsafe) var observers: [NSObjectProtocol] = []
-    nonisolated init() {}
+nonisolated final class InterruptionObserverBox: @unchecked Sendable {
+    var observers: [NSObjectProtocol] = []
+    init() {}
 
-    nonisolated func cleanup() {
+    func cleanup() {
         let center = NotificationCenter.default
         for observer in observers {
             center.removeObserver(observer)
@@ -15,8 +15,8 @@ final class InterruptionObserverBox: @unchecked Sendable {
     }
 }
 
-extension CameraSession {
-    nonisolated func registerInterruptionObservers() {
+nonisolated extension CameraSession {
+    func registerInterruptionObservers() {
         let session = box.session
         let observerBox = observerBox
         let center = NotificationCenter.default
@@ -56,9 +56,9 @@ extension CameraSession {
     }
 
     func resumeAfterInterruption() async {
-        guard didConfigure, hasInputInternal else { return }
         let session = box.session
-        await runOnSessionQueueVoid {
+        await runOnSessionQueueVoid { [weak self] in
+            guard let self, didConfigure, hasInputInternal else { return }
             guard !session.isRunning else { return }
             session.startRunning()
         }
@@ -66,9 +66,9 @@ extension CameraSession {
     }
 
     func resumeAfterRuntimeError() async {
-        guard didConfigure, hasInputInternal else { return }
         let session = box.session
-        await runOnSessionQueueVoid {
+        await runOnSessionQueueVoid { [weak self] in
+            guard let self, didConfigure, hasInputInternal else { return }
             if session.isRunning {
                 session.stopRunning()
             }

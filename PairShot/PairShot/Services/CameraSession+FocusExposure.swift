@@ -2,19 +2,19 @@
 import Foundation
 import OSLog
 
-extension CameraSession {
+nonisolated extension CameraSession {
     var exposureBiasRange: ClosedRange<Float>? {
         get async {
-            guard let device = activeDevice else { return nil }
-            return await runOnSessionQueue {
-                device.minExposureTargetBias ... device.maxExposureTargetBias
+            await runOnSessionQueue { [weak self] in
+                guard let device = self?.activeDevice else { return nil }
+                return device.minExposureTargetBias ... device.maxExposureTargetBias
             }
         }
     }
 
     func focus(at point: CGPoint) async {
-        guard let device = activeDevice else { return }
-        await runOnSessionQueueVoid {
+        await runOnSessionQueueVoid { [weak self] in
+            guard let device = self?.activeDevice else { return }
             do {
                 try device.lockForConfiguration()
                 defer { device.unlockForConfiguration() }
@@ -38,10 +38,13 @@ extension CameraSession {
     }
 
     func setExposureBias(_ bias: Float) async {
-        guard let device = activeDevice else { return }
         let queue = sessionQueue
         await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
-            queue.async {
+            queue.async { [weak self] in
+                guard let device = self?.activeDevice else {
+                    cont.resume()
+                    return
+                }
                 do {
                     try device.lockForConfiguration()
                     let clamped = max(device.minExposureTargetBias, min(bias, device.maxExposureTargetBias))
@@ -59,20 +62,26 @@ extension CameraSession {
     }
 
     func setFlashMode(_ mode: CameraFlashMode) async {
-        flashMode = mode
+        await runOnSessionQueueVoid { [weak self] in
+            self?.flashMode = mode
+        }
         await applyTorchState()
     }
 
     func cycleFlashMode() async -> CameraFlashMode {
-        let next = flashMode.next
-        await setFlashMode(next)
+        let next = await runOnSessionQueue { [weak self] () -> CameraFlashMode in
+            guard let self else { return .off }
+            let value = flashMode.next
+            flashMode = value
+            return value
+        }
+        await applyTorchState()
         return next
     }
 
     func setLowLightBoost(enabled: Bool) async {
-        guard let device = activeDevice else { return }
-        await runOnSessionQueueVoid {
-            guard device.isLowLightBoostSupported else { return }
+        await runOnSessionQueueVoid { [weak self] in
+            guard let device = self?.activeDevice, device.isLowLightBoostSupported else { return }
             do {
                 try device.lockForConfiguration()
                 defer { device.unlockForConfiguration() }
@@ -86,10 +95,14 @@ extension CameraSession {
     }
 
     func applyTorchState() async {
-        guard let device = activeDevice else { return }
-        let mode = flashMode
-        await runOnSessionQueueVoid {
-            guard device.hasTorch else { return }
+        await runOnSessionQueueVoid { [weak self] in
+            guard let self,
+                  let device = activeDevice,
+                  device.hasTorch
+            else {
+                return
+            }
+            let mode = flashMode
             do {
                 try device.lockForConfiguration()
                 defer { device.unlockForConfiguration() }

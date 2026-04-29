@@ -2,41 +2,56 @@
 import Foundation
 import OSLog
 
-extension CameraSession {
+nonisolated extension CameraSession {
     func capturePhoto() async throws -> CapturedPhoto {
-        guard let photoOutput, let device = activeDevice else {
+        let captureContext = await runOnSessionQueue { [weak self] () -> CaptureContext? in
+            guard let self,
+                  let photoOutput,
+                  let device = activeDevice
+            else {
+                return nil
+            }
+
+            let settings = AVCapturePhotoSettings()
+            let outputMax = photoOutput.maxPhotoDimensions
+            if outputMax.width > 0, outputMax.height > 0 {
+                settings.maxPhotoDimensions = outputMax
+            }
+            if device.hasFlash {
+                switch flashMode {
+                    case .auto: settings.flashMode = .auto
+                    case .on: settings.flashMode = .on
+                    case .off, .torch: settings.flashMode = .off
+                }
+            }
+            return CaptureContext(
+                photoOutput: photoOutput,
+                settings: settings,
+                zoom: Double(device.videoZoomFactor),
+                lens: Self.lensIdentifier(for: device)
+            )
+        }
+
+        guard let captureContext else {
             AppLogger.camera.error("Camera capturePhoto failed: not configured")
             throw CameraSessionError.notConfigured
         }
 
-        let settings = AVCapturePhotoSettings()
-        let outputMax = photoOutput.maxPhotoDimensions
-        if outputMax.width > 0, outputMax.height > 0 {
-            settings.maxPhotoDimensions = outputMax
-        }
-        if device.hasFlash {
-            switch flashMode {
-                case .auto: settings.flashMode = .auto
-                case .on: settings.flashMode = .on
-                case .off, .torch: settings.flashMode = .off
-            }
-        }
-
-        let zoom = Double(device.videoZoomFactor)
-        let lens = lensIdentifier(for: device)
         let queue = sessionQueue
 
         return try await withCheckedThrowingContinuation { cont in
             let id = UUID()
             let delegate = PhotoCaptureDelegate { [weak self] result in
                 guard let self else { return }
-                Task { await self.removeDelegate(id: id) }
+                sessionQueue.async { [weak self] in
+                    self?.inFlightDelegates.removeValue(forKey: id)
+                }
                 switch result {
                     case let .success(data):
                         cont.resume(returning: CapturedPhoto(
                             jpegData: data,
-                            zoomFactor: zoom,
-                            lensIdentifier: lens,
+                            zoomFactor: captureContext.zoom,
+                            lensIdentifier: captureContext.lens,
                             capturedAt: .now
                         ))
 
@@ -46,18 +61,14 @@ extension CameraSession {
                         cont.resume(throwing: err)
                 }
             }
-            inFlightDelegates[id] = delegate
-            queue.async {
-                photoOutput.capturePhoto(with: settings, delegate: delegate)
+            queue.async { [weak self] in
+                self?.inFlightDelegates[id] = delegate
+                captureContext.photoOutput.capturePhoto(with: captureContext.settings, delegate: delegate)
             }
         }
     }
 
-    func removeDelegate(id: UUID) {
-        inFlightDelegates.removeValue(forKey: id)
-    }
-
-    func lensIdentifier(for device: AVCaptureDevice) -> String {
+    nonisolated static func lensIdentifier(for device: AVCaptureDevice) -> String {
         let raw = device.deviceType.rawValue
         let stripped = raw.replacingOccurrences(of: "AVCaptureDeviceType", with: "")
         let position = switch device.position {
@@ -70,16 +81,30 @@ extension CameraSession {
     }
 }
 
-final class PhotoCaptureDelegate: NSObject, AVCapturePhotoCaptureDelegate, @unchecked Sendable {
+nonisolated private final class CaptureContext: @unchecked Sendable {
+    let photoOutput: AVCapturePhotoOutput
+    let settings: AVCapturePhotoSettings
+    let zoom: Double
+    let lens: String
+
+    init(photoOutput: AVCapturePhotoOutput, settings: AVCapturePhotoSettings, zoom: Double, lens: String) {
+        self.photoOutput = photoOutput
+        self.settings = settings
+        self.zoom = zoom
+        self.lens = lens
+    }
+}
+
+nonisolated final class PhotoCaptureDelegate: NSObject, AVCapturePhotoCaptureDelegate, @unchecked Sendable {
     private let completion: @Sendable (Result<Data, CameraSessionError>) -> Void
     private let lock = NSLock()
-    private nonisolated(unsafe) var didFinish = false
+    private var didFinish = false
 
-    nonisolated init(completion: @escaping @Sendable (Result<Data, CameraSessionError>) -> Void) {
+    init(completion: @escaping @Sendable (Result<Data, CameraSessionError>) -> Void) {
         self.completion = completion
     }
 
-    nonisolated func photoOutput(
+    func photoOutput(
         _: AVCapturePhotoOutput,
         didFinishProcessingPhoto photo: AVCapturePhoto,
         error: Error?
@@ -95,7 +120,7 @@ final class PhotoCaptureDelegate: NSObject, AVCapturePhotoCaptureDelegate, @unch
         finish(with: .success(data))
     }
 
-    nonisolated func photoOutput(
+    func photoOutput(
         _: AVCapturePhotoOutput,
         didFinishCaptureFor _: AVCaptureResolvedPhotoSettings,
         error: Error?
@@ -105,7 +130,7 @@ final class PhotoCaptureDelegate: NSObject, AVCapturePhotoCaptureDelegate, @unch
         }
     }
 
-    private nonisolated func finish(with result: Result<Data, CameraSessionError>) {
+    private func finish(with result: Result<Data, CameraSessionError>) {
         lock.lock()
         if didFinish {
             lock.unlock()

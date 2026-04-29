@@ -2,10 +2,10 @@
 import Foundation
 import OSLog
 
-extension CameraSession {
+nonisolated extension CameraSession {
     func zoomSnapshot() async -> CameraZoomSnapshot {
-        guard let device = activeDevice else { return CameraZoomSnapshot.empty }
-        return await runOnSessionQueue {
+        await runOnSessionQueue { [weak self] in
+            guard let device = self?.activeDevice else { return CameraZoomSnapshot.empty }
             let presets = ZoomPresetBuilder.build(for: device)
             let firstSwitch = device.virtualDeviceSwitchOverVideoZoomFactors
                 .first.map { Double(truncating: $0) } ?? 1.0
@@ -23,32 +23,36 @@ extension CameraSession {
 
     var minZoomFactor: Double {
         get async {
-            guard let device = activeDevice else { return 1.0 }
-            return await runOnSessionQueue { Double(device.minAvailableVideoZoomFactor) }
+            await runOnSessionQueue { [weak self] in
+                guard let device = self?.activeDevice else { return 1.0 }
+                return Double(device.minAvailableVideoZoomFactor)
+            }
         }
     }
 
     var maxZoomFactor: Double {
         get async {
-            guard let device = activeDevice else { return 1.0 }
-            return await runOnSessionQueue {
-                CameraZoomCapabilities.recommendedMaxFactor(for: device)
+            await runOnSessionQueue { [weak self] in
+                guard let device = self?.activeDevice else { return 1.0 }
+                return CameraZoomCapabilities.recommendedMaxFactor(for: device)
             }
         }
     }
 
     var currentZoomFactor: Double {
         get async {
-            guard let device = activeDevice else { return 1.0 }
-            return await runOnSessionQueue { Double(device.videoZoomFactor) }
+            await runOnSessionQueue { [weak self] in
+                guard let device = self?.activeDevice else { return 1.0 }
+                return Double(device.videoZoomFactor)
+            }
         }
     }
 
     var ultraWideSwitchOverFactor: Double? {
         get async {
-            guard let device = activeDevice else { return nil }
-            return await runOnSessionQueue {
-                device.virtualDeviceSwitchOverVideoZoomFactors
+            await runOnSessionQueue { [weak self] in
+                guard let device = self?.activeDevice else { return nil }
+                return device.virtualDeviceSwitchOverVideoZoomFactors
                     .first.map { Double(truncating: $0) }
             }
         }
@@ -56,9 +60,9 @@ extension CameraSession {
 
     var firstSwitchOver: Double {
         get async {
-            guard let device = activeDevice else { return 1.0 }
-            return await runOnSessionQueue {
-                device.virtualDeviceSwitchOverVideoZoomFactors
+            await runOnSessionQueue { [weak self] in
+                guard let device = self?.activeDevice else { return 1.0 }
+                return device.virtualDeviceSwitchOverVideoZoomFactors
                     .first.map { Double(truncating: $0) } ?? 1.0
             }
         }
@@ -66,14 +70,16 @@ extension CameraSession {
 
     var availablePresets: [ZoomPresetSpec] {
         get async {
-            guard let device = activeDevice else { return [] }
-            return await runOnSessionQueue { ZoomPresetBuilder.build(for: device) }
+            await runOnSessionQueue { [weak self] in
+                guard let device = self?.activeDevice else { return [] }
+                return ZoomPresetBuilder.build(for: device)
+            }
         }
     }
 
     func ramp(toZoomFactor factor: Double, rate: Float = 4.0) async {
-        guard let device = activeDevice else { return }
-        await runOnSessionQueueVoid {
+        await runOnSessionQueueVoid { [weak self] in
+            guard let device = self?.activeDevice else { return }
             let minF = Double(device.minAvailableVideoZoomFactor)
             let maxF = Double(device.maxAvailableVideoZoomFactor)
             let clamped = max(minF, min(factor, maxF))
@@ -89,8 +95,8 @@ extension CameraSession {
     }
 
     func setZoomFactor(_ factor: Double) async {
-        guard let device = activeDevice else { return }
-        await runOnSessionQueueVoid {
+        await runOnSessionQueueVoid { [weak self] in
+            guard let device = self?.activeDevice else { return }
             let minF = Double(device.minAvailableVideoZoomFactor)
             let maxF = Double(device.maxAvailableVideoZoomFactor)
             let clamped = max(minF, min(factor, maxF))

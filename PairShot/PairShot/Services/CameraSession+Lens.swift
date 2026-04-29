@@ -2,49 +2,43 @@
 import Foundation
 import OSLog
 
-extension CameraSession {
+nonisolated extension CameraSession {
     func switchLens(to position: CameraLensPosition) async {
-        guard didConfigure else { return }
-
         let avPosition: AVCaptureDevice.Position = position == .back ? .back : .front
         let session = box.session
-        let priorInput = activeInput
-        let currentPhotoOutput = photoOutput
 
-        let result = await runOnSessionQueue { () -> SwitchLensResult? in
-            guard let device = Self.preferredDevice(for: avPosition) else { return nil }
+        await runOnSessionQueueVoid { [weak self] in
+            guard let self, didConfigure else { return }
+            guard let device = Self.preferredDevice(for: avPosition) else { return }
 
             session.beginConfiguration()
             defer { session.commitConfiguration() }
 
-            if let priorInput {
+            if let priorInput = activeInput {
                 session.removeInput(priorInput)
             }
 
             do {
                 let input = try AVCaptureDeviceInput(device: device)
-                guard session.canAddInput(input) else { return nil }
+                guard session.canAddInput(input) else { return }
                 session.addInput(input)
                 Self.applyDefaultZoom(to: device)
-                if let currentPhotoOutput {
+                if let currentPhotoOutput = photoOutput {
                     Self.applyMaxPhotoDimensions(to: currentPhotoOutput, device: device)
                 }
-                return SwitchLensResult(device: device, input: input)
+                activeDevice = device
+                activeInput = input
+                lensPositionStorage = position
+                hasInputInternal = true
+                AppLogger.camera.debug("Camera lens switched to \(position.rawValue, privacy: .public)")
             } catch {
                 AppLogger.camera.error("Camera lens switch failed: \(error.localizedDescription, privacy: .public)")
-                return nil
+                return
             }
         }
-
-        guard let result else { return }
-        activeDevice = result.device
-        activeInput = result.input
-        updateLensPosition(position)
-        hasInputInternal = true
-        AppLogger.camera.debug("Camera lens switched to \(position.rawValue, privacy: .public)")
     }
 
-    static func preferredDevice(for position: AVCaptureDevice.Position) -> AVCaptureDevice? {
+    nonisolated static func preferredDevice(for position: AVCaptureDevice.Position) -> AVCaptureDevice? {
         let preferredTypes: [AVCaptureDevice.DeviceType] = [
             .builtInTripleCamera,
             .builtInDualWideCamera,
@@ -89,15 +83,5 @@ extension CameraSession {
         return valid.max { lhs, rhs in
             Int64(lhs.width) * Int64(lhs.height) < Int64(rhs.width) * Int64(rhs.height)
         }
-    }
-}
-
-final class SwitchLensResult: @unchecked Sendable {
-    nonisolated(unsafe) let device: AVCaptureDevice
-    nonisolated(unsafe) let input: AVCaptureDeviceInput
-
-    nonisolated init(device: AVCaptureDevice, input: AVCaptureDeviceInput) {
-        self.device = device
-        self.input = input
     }
 }

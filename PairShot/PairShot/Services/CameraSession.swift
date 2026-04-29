@@ -45,7 +45,7 @@ nonisolated enum CameraSessionError: Error {
     case noPhotoData
 }
 
-struct CameraZoomSnapshot {
+nonisolated struct CameraZoomSnapshot {
     let minFactor: Double
     let maxFactor: Double
     let currentFactor: Double
@@ -54,7 +54,7 @@ struct CameraZoomSnapshot {
     let presets: [ZoomPresetSpec]
     let exposureBiasRange: ClosedRange<Float>?
 
-    nonisolated static let empty = Self(
+    static let empty = Self(
         minFactor: 1,
         maxFactor: 1,
         currentFactor: 1,
@@ -86,39 +86,30 @@ nonisolated enum CameraZoomCapabilities {
     }
 }
 
-final class CaptureSessionBox: @unchecked Sendable {
-    nonisolated(unsafe) let session: AVCaptureSession
-    nonisolated init() {
+nonisolated final class CaptureSessionBox: @unchecked Sendable {
+    let session: AVCaptureSession
+    init() {
         session = AVCaptureSession()
     }
 }
 
-actor CameraSession {
+nonisolated final class CameraSession: @unchecked Sendable {
     let box = CaptureSessionBox()
     let observerBox = InterruptionObserverBox()
     let sessionQueue = DispatchQueue(label: "com.pairshot.camera.session", qos: .userInitiated)
     private let permissionResolver: @Sendable () async -> CameraAuthorizationState
+
     var didConfigure = false
     var hasInputInternal = false
-
     var activeDevice: AVCaptureDevice?
     var activeInput: AVCaptureDeviceInput?
     var photoOutput: AVCapturePhotoOutput?
     var inFlightDelegates: [UUID: PhotoCaptureDelegate] = [:]
-
-    private(set) var lensPosition: CameraLensPosition = .back
+    var lensPositionStorage: CameraLensPosition = .back
     var flashMode: CameraFlashMode = .off
 
-    nonisolated var captureSession: AVCaptureSession {
+    var captureSession: AVCaptureSession {
         box.session
-    }
-
-    var hasInput: Bool {
-        hasInputInternal
-    }
-
-    var isRunning: Bool {
-        box.session.isRunning
     }
 
     init(
@@ -151,12 +142,17 @@ actor CameraSession {
                 return
         }
 
-        if !didConfigure {
+        let alreadyConfigured = await runOnSessionQueue { [weak self] in
+            self?.didConfigure ?? false
+        }
+        if !alreadyConfigured {
             await configureInitialInput()
-            didConfigure = true
         }
 
-        guard hasInputInternal else {
+        let canStart = await runOnSessionQueue { [weak self] in
+            self?.hasInputInternal ?? false
+        }
+        guard canStart else {
             AppLogger.camera.error("Camera session start aborted: no input device")
             return
         }
@@ -178,16 +174,19 @@ actor CameraSession {
         AppLogger.camera.debug("Camera session stopped")
     }
 
-    func updateLensPosition(_ position: CameraLensPosition) {
-        lensPosition = position
+    func lensPosition() async -> CameraLensPosition {
+        await runOnSessionQueue { [weak self] in
+            self?.lensPositionStorage ?? .back
+        }
     }
 
     private func configureInitialInput() async {
         let session = box.session
-        var resultBox = InitialInputResult(device: nil, input: nil, photoOutput: nil, hasInput: false)
         var attempt = 0
         while attempt < 2 {
-            resultBox = await runOnSessionQueue {
+            let success = await runOnSessionQueue { [weak self] () -> Bool in
+                guard let self else { return false }
+
                 session.beginConfiguration()
                 defer { session.commitConfiguration() }
 
@@ -220,37 +219,31 @@ actor CameraSession {
                 }
 
                 guard let device = resolvedDevice, let input = resolvedInput else {
-                    return InitialInputResult(device: nil, input: nil, photoOutput: nil, hasInput: false)
+                    return false
                 }
 
                 let output = AVCapturePhotoOutput()
                 guard session.canAddOutput(output) else {
                     AppLogger.camera.error("Camera session canAddOutput=false; rolling back input")
                     session.removeInput(input)
-                    return InitialInputResult(device: nil, input: nil, photoOutput: nil, hasInput: false)
+                    return false
                 }
                 session.addOutput(output)
                 Self.applyMaxPhotoDimensions(to: output, device: device)
 
-                return InitialInputResult(
-                    device: device,
-                    input: input,
-                    photoOutput: output,
-                    hasInput: true
-                )
+                activeDevice = device
+                activeInput = input
+                photoOutput = output
+                hasInputInternal = true
+                lensPositionStorage = .back
+                didConfigure = true
+                return true
             }
-            if resultBox.hasInput, resultBox.photoOutput != nil { break }
+            if success { break }
             attempt += 1
             if attempt < 2 {
                 try? await Task.sleep(for: .milliseconds(150))
             }
-        }
-        activeDevice = resultBox.device
-        activeInput = resultBox.input
-        photoOutput = resultBox.photoOutput
-        hasInputInternal = resultBox.hasInput
-        if resultBox.hasInput {
-            lensPosition = .back
         }
     }
 
@@ -278,7 +271,7 @@ actor CameraSession {
     }
 }
 
-enum CameraSessionPermissionResolver {
+nonisolated enum CameraSessionPermissionResolver {
     @Sendable
     static func systemDefault() async -> CameraAuthorizationState {
         switch AVCaptureDevice.authorizationStatus(for: .video) {
@@ -301,26 +294,7 @@ enum CameraSessionPermissionResolver {
     }
 }
 
-nonisolated final class InitialInputResult: @unchecked Sendable {
-    let device: AVCaptureDevice?
-    let input: AVCaptureDeviceInput?
-    let photoOutput: AVCapturePhotoOutput?
-    let hasInput: Bool
-
-    init(
-        device: AVCaptureDevice?,
-        input: AVCaptureDeviceInput?,
-        photoOutput: AVCapturePhotoOutput?,
-        hasInput: Bool
-    ) {
-        self.device = device
-        self.input = input
-        self.photoOutput = photoOutput
-        self.hasInput = hasInput
-    }
-}
-
-struct ZoomPresetSpec: Identifiable, Hashable {
+nonisolated struct ZoomPresetSpec: Identifiable, Hashable {
     let id: String
     let factor: Double
     let label: String
