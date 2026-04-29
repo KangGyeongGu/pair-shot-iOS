@@ -102,8 +102,6 @@ final class PhotoCaptureDelegate: NSObject, AVCapturePhotoCaptureDelegate, @unch
     ) {
         if let error {
             finish(with: .failure(.captureFailed(error.localizedDescription)))
-        } else {
-            finish(with: .failure(.captureFailed("capture finished without photo data")))
         }
     }
 

@@ -54,7 +54,6 @@ struct PairShotApp: App {
                         await env.permissionStatusService.requestAllInOrder()
                     }
                     await env.photoLibrarySyncService.revalidate()
-                    try? await Task.sleep(for: .milliseconds(800))
                     await bootstrapAds()
                 }
         }

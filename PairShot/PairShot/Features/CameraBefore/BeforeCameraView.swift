@@ -50,7 +50,10 @@ struct BeforeCameraView: View {
                 didStartViewModel = true
                 Task {
                     await vm.onAppear()
-                    if !hasPresentedColdStartAppOpen, vm.cameraPermissionGranted == true {
+                    Task { @MainActor in
+                        guard !hasPresentedColdStartAppOpen, vm.cameraPermissionGranted == true else {
+                            return
+                        }
                         hasPresentedColdStartAppOpen = true
                         await env.appOpenAdManager.presentIfReady(
                             from: BannerAdView.resolveRootViewController(),
