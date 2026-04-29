@@ -21,7 +21,8 @@ enum GhostOverlayLoader {
         guard let data = await photoLibrary.requestImageData(localIdentifier: localIdentifier) else {
             return nil
         }
-        return UIImage(data: data)
+        guard let cgImage = UIImage(data: data)?.cgImage else { return nil }
+        return UIImage(cgImage: cgImage, scale: 1, orientation: .up)
     }
 }
 

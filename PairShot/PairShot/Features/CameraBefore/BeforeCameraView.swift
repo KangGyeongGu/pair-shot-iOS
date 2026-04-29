@@ -118,7 +118,10 @@ struct BeforeCameraView: View {
         } else {
             BeforeCameraStack(
                 captureSession: viewModel.captureSession,
-                onMakePreviewView: { view in previewView = view },
+                onMakePreviewView: { view in
+                    previewView = view
+                    viewModel.session.attachPreviewLayer(view.previewLayer)
+                },
                 previewLayerProvider: { previewView?.previewLayer },
                 isGridOn: viewModel.isGridOn,
                 isLevelOn: viewModel.isLevelOn,

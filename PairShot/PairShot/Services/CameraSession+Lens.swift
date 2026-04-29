@@ -36,6 +36,9 @@ nonisolated extension CameraSession {
                 return
             }
         }
+        await MainActor.run { [weak self] in
+            self?.setupRotationCoordinator()
+        }
     }
 
     nonisolated static func preferredDevice(for position: AVCaptureDevice.Position) -> AVCaptureDevice? {

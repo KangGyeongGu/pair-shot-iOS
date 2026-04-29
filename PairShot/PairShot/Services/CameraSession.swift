@@ -107,6 +107,9 @@ final nonisolated class CameraSession: @unchecked Sendable {
     var inFlightDelegates: [UUID: PhotoCaptureDelegate] = [:]
     var lensPositionStorage: CameraLensPosition = .back
     var flashMode: CameraFlashMode = .off
+    weak var managedPreviewLayer: AVCaptureVideoPreviewLayer?
+    var rotationCoordinator: AVCaptureDevice.RotationCoordinator?
+    var rotationObservers: [NSKeyValueObservation] = []
 
     var captureSession: AVCaptureSession {
         box.session
@@ -163,6 +166,9 @@ final nonisolated class CameraSession: @unchecked Sendable {
             session.startRunning()
         }
         AppLogger.camera.debug("Camera session started")
+        await MainActor.run { [weak self] in
+            self?.setupRotationCoordinator()
+        }
     }
 
     func stop() async {
@@ -245,6 +251,43 @@ final nonisolated class CameraSession: @unchecked Sendable {
                 try? await Task.sleep(for: .milliseconds(150))
             }
         }
+    }
+
+    @MainActor
+    func attachPreviewLayer(_ layer: AVCaptureVideoPreviewLayer) {
+        managedPreviewLayer = layer
+        setupRotationCoordinator()
+    }
+
+    @MainActor
+    func setupRotationCoordinator() {
+        rotationObservers.removeAll()
+        rotationCoordinator = nil
+        guard let device = activeDevice, let previewLayer = managedPreviewLayer else { return }
+        let coordinator = AVCaptureDevice.RotationCoordinator(device: device, previewLayer: previewLayer)
+        previewLayer.connection?.videoRotationAngle = coordinator.videoRotationAngleForHorizonLevelPreview
+        photoOutput?.connection(with: .video)?.videoRotationAngle = coordinator
+            .videoRotationAngleForHorizonLevelCapture
+        let prevObserver = coordinator.observe(
+            \.videoRotationAngleForHorizonLevelPreview,
+            options: [.new]
+        ) { [weak self] _, change in
+            guard let angle = change.newValue else { return }
+            Task { @MainActor in
+                self?.managedPreviewLayer?.connection?.videoRotationAngle = angle
+            }
+        }
+        let captureObserver = coordinator.observe(
+            \.videoRotationAngleForHorizonLevelCapture,
+            options: [.new]
+        ) { [weak self] _, change in
+            guard let angle = change.newValue else { return }
+            Task { @MainActor in
+                self?.photoOutput?.connection(with: .video)?.videoRotationAngle = angle
+            }
+        }
+        rotationObservers = [prevObserver, captureObserver]
+        rotationCoordinator = coordinator
     }
 
     func runOnSessionQueue<T: Sendable>(

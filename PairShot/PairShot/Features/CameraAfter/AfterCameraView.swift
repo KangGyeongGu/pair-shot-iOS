@@ -101,7 +101,9 @@ struct AfterCameraView: View {
         } else {
             AfterCameraStack(
                 captureSession: viewModel.captureSession,
-                onMakePreviewView: { _ in },
+                onMakePreviewView: { view in
+                    viewModel.session.attachPreviewLayer(view.previewLayer)
+                },
                 ghostImage: cachedGhostImage,
                 alpha: viewModel.alpha,
                 overlayEnabled: viewModel.overlayEnabled,
