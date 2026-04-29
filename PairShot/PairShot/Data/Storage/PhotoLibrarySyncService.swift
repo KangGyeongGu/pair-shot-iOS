@@ -40,19 +40,19 @@ final class PhotoLibrarySyncService: NSObject, PHPhotoLibraryChangeObserver {
     func withObserverPaused<T>(
         _ body: () async throws -> T
     ) async rethrows -> T {
-        pause()
-        defer { resume() }
+        pauseObserver()
+        defer { resumeObserver() }
         return try await body()
     }
 
-    private func pause() {
+    func pauseObserver() {
         pauseDepth += 1
         if pauseDepth == 1, isRegistered {
             PHPhotoLibrary.shared().unregisterChangeObserver(self)
         }
     }
 
-    private func resume() {
+    func resumeObserver() {
         pauseDepth = max(0, pauseDepth - 1)
         if pauseDepth == 0, isRegistered {
             PHPhotoLibrary.shared().register(self)
@@ -71,8 +71,8 @@ final class PhotoLibrarySyncService: NSObject, PHPhotoLibraryChangeObserver {
     nonisolated func photoLibraryDidChange(_: PHChange) {
         Task { @MainActor [weak self] in
             guard let self else { return }
-            guard self.pauseDepth == 0 else { return }
-            await self.revalidate()
+            guard pauseDepth == 0 else { return }
+            await revalidate()
         }
     }
 

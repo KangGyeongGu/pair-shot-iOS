@@ -39,30 +39,26 @@ final class PhotoLibraryService {
         guard status == .authorized || status == .limited else {
             throw LibraryError.notAuthorized
         }
-        let task: () async throws -> String = {
-            try await withCheckedThrowingContinuation { continuation in
-                let placeholderBox = PhotoLibraryPlaceholderBox()
-                PHPhotoLibrary.shared().performChanges {
-                    let request = PHAssetCreationRequest.forAsset()
-                    let options = PHAssetResourceCreationOptions()
-                    options.uniformTypeIdentifier = "public.jpeg"
-                    request.addResource(with: .photo, data: jpegData, options: options)
-                    placeholderBox.placeholder = request.placeholderForCreatedAsset
-                } completionHandler: { success, error in
-                    if success, let id = placeholderBox.placeholder?.localIdentifier {
-                        continuation.resume(returning: id)
-                    } else if let error {
-                        continuation.resume(throwing: LibraryError.saveFailed(String(describing: error)))
-                    } else {
-                        continuation.resume(throwing: LibraryError.saveFailed("unknown"))
-                    }
+        syncService?.pauseObserver()
+        defer { syncService?.resumeObserver() }
+        return try await withCheckedThrowingContinuation { continuation in
+            let placeholderBox = PhotoLibraryPlaceholderBox()
+            PHPhotoLibrary.shared().performChanges {
+                let request = PHAssetCreationRequest.forAsset()
+                let options = PHAssetResourceCreationOptions()
+                options.uniformTypeIdentifier = "public.jpeg"
+                request.addResource(with: .photo, data: jpegData, options: options)
+                placeholderBox.placeholder = request.placeholderForCreatedAsset
+            } completionHandler: { success, error in
+                if success, let id = placeholderBox.placeholder?.localIdentifier {
+                    continuation.resume(returning: id)
+                } else if let error {
+                    continuation.resume(throwing: LibraryError.saveFailed(String(describing: error)))
+                } else {
+                    continuation.resume(throwing: LibraryError.saveFailed("unknown"))
                 }
             }
         }
-        if let syncService {
-            return try await syncService.withObserverPaused(task)
-        }
-        return try await task()
     }
 
     nonisolated func fetchAsset(localIdentifier: String) -> PHAsset? {
@@ -77,26 +73,21 @@ final class PhotoLibraryService {
         var collected: [PHAsset] = []
         assets.enumerateObjects { asset, _, _ in collected.append(asset) }
         guard !collected.isEmpty else { return }
-        let task: () async throws -> Void = {
-            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-                PHPhotoLibrary.shared().performChanges {
-                    PHAssetChangeRequest.deleteAssets(assets)
-                } completionHandler: { success, error in
-                    if success {
-                        continuation.resume(returning: ())
-                    } else if let error {
-                        continuation.resume(throwing: LibraryError.deleteFailed(String(describing: error)))
-                    } else {
-                        continuation.resume(throwing: LibraryError.deleteFailed("unknown"))
-                    }
+        syncService?.pauseObserver()
+        defer { syncService?.resumeObserver() }
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            PHPhotoLibrary.shared().performChanges {
+                PHAssetChangeRequest.deleteAssets(assets)
+            } completionHandler: { success, error in
+                if success {
+                    continuation.resume(returning: ())
+                } else if let error {
+                    continuation.resume(throwing: LibraryError.deleteFailed(String(describing: error)))
+                } else {
+                    continuation.resume(throwing: LibraryError.deleteFailed("unknown"))
                 }
             }
         }
-        if let syncService {
-            try await syncService.withObserverPaused(task)
-            return
-        }
-        try await task()
     }
 
     nonisolated func requestImageData(
@@ -131,7 +122,7 @@ final class PhotoLibraryService {
     }
 }
 
-nonisolated private final class PhotoLibraryPlaceholderBox: @unchecked Sendable {
+private final nonisolated class PhotoLibraryPlaceholderBox: @unchecked Sendable {
     var placeholder: PHObjectPlaceholder?
 }
 

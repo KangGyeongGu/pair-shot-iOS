@@ -72,6 +72,8 @@ extension CameraSession {
 
 final class PhotoCaptureDelegate: NSObject, AVCapturePhotoCaptureDelegate, @unchecked Sendable {
     private let completion: @Sendable (Result<Data, CameraSessionError>) -> Void
+    private let lock = NSLock()
+    private nonisolated(unsafe) var didFinish = false
 
     nonisolated init(completion: @escaping @Sendable (Result<Data, CameraSessionError>) -> Void) {
         self.completion = completion
@@ -83,13 +85,36 @@ final class PhotoCaptureDelegate: NSObject, AVCapturePhotoCaptureDelegate, @unch
         error: Error?
     ) {
         if let error {
-            completion(.failure(.captureFailed(error.localizedDescription)))
+            finish(with: .failure(.captureFailed(error.localizedDescription)))
             return
         }
         guard let data = photo.fileDataRepresentation() else {
-            completion(.failure(.noPhotoData))
+            finish(with: .failure(.noPhotoData))
             return
         }
-        completion(.success(data))
+        finish(with: .success(data))
+    }
+
+    nonisolated func photoOutput(
+        _: AVCapturePhotoOutput,
+        didFinishCaptureFor _: AVCaptureResolvedPhotoSettings,
+        error: Error?
+    ) {
+        if let error {
+            finish(with: .failure(.captureFailed(error.localizedDescription)))
+        } else {
+            finish(with: .failure(.captureFailed("capture finished without photo data")))
+        }
+    }
+
+    private nonisolated func finish(with result: Result<Data, CameraSessionError>) {
+        lock.lock()
+        if didFinish {
+            lock.unlock()
+            return
+        }
+        didFinish = true
+        lock.unlock()
+        completion(result)
     }
 }
