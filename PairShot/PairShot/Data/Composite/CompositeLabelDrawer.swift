@@ -18,13 +18,15 @@ nonisolated enum CompositeLabelDrawer {
         let settings: CombineSettings
         let isBefore: Bool
         let cgContext: CGContext
+        let scaleFactor: CGFloat
     }
 
     static func drawIfEnabled(
         context: UIGraphicsImageRendererContext,
         combineSettings: CombineSettings?,
         beforeRect: CGRect,
-        afterRect: CGRect
+        afterRect: CGRect,
+        scaleFactor: CGFloat = 1
     ) {
         guard let settings = combineSettings, settings.label.isEnabled else { return }
         drawLabel(LabelDrawContext(
@@ -32,14 +34,16 @@ nonisolated enum CompositeLabelDrawer {
             imageRect: beforeRect,
             settings: settings,
             isBefore: true,
-            cgContext: context.cgContext
+            cgContext: context.cgContext,
+            scaleFactor: scaleFactor
         ))
         drawLabel(LabelDrawContext(
             text: settings.label.afterText,
             imageRect: afterRect,
             settings: settings,
             isBefore: false,
-            cgContext: context.cgContext
+            cgContext: context.cgContext,
+            scaleFactor: scaleFactor
         ))
     }
 
@@ -82,7 +86,8 @@ nonisolated enum CompositeLabelDrawer {
                 cgContext: ctx.cgContext,
                 settings: ctx.settings,
                 labelRect: labelRect,
-                isFree: isFree
+                isFree: isFree,
+                scaleFactor: ctx.scaleFactor
             )
         }
         let textSize = attributed.size()
@@ -130,14 +135,15 @@ nonisolated enum CompositeLabelDrawer {
         cgContext: CGContext,
         settings: CombineSettings,
         labelRect: CGRect,
-        isFree: Bool
+        isFree: Bool,
+        scaleFactor: CGFloat
     ) {
         let bgColor = effectiveLabelBgColor(settings: settings)
             .withAlphaComponent(CGFloat(max(0, min(1, settings.labelBackground.opacity))))
         cgContext.saveGState()
         cgContext.setFillColor(bgColor.cgColor)
         if isFree, settings.labelBackground.cornerRadius > 0 {
-            let radius = CGFloat(settings.labelBackground.cornerRadius)
+            let radius = CGFloat(settings.labelBackground.cornerRadius) * scaleFactor
             let path = UIBezierPath(roundedRect: labelRect, cornerRadius: radius)
             cgContext.addPath(path.cgPath)
             cgContext.fillPath()

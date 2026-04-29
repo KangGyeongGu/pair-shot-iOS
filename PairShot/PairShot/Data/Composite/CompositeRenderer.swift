@@ -78,13 +78,18 @@ nonisolated enum CompositeRenderer {
         }.value
     }
 
+    static let referenceImageWidth: CGFloat = 1024
+
     nonisolated static func renderComposite(
         before: UIImage,
         after: UIImage,
         layout: CompositeLayout,
         combineSettings: CombineSettings? = nil
     ) -> UIImage {
-        let borderPx = CompositeLabelDrawer.resolveBorderPx(combineSettings)
+        let imageMaxWidth = max(before.size.width, after.size.width, 1)
+        let scaleFactor = imageMaxWidth / referenceImageWidth
+        let baseBorderPx = CompositeLabelDrawer.resolveBorderPx(combineSettings)
+        let borderPx = baseBorderPx * scaleFactor
         let frames = composeFrames(
             beforeSize: before.size,
             afterSize: after.size,
@@ -107,7 +112,8 @@ nonisolated enum CompositeRenderer {
                 context: context,
                 combineSettings: combineSettings,
                 beforeRect: frames.beforeRect,
-                afterRect: frames.afterRect
+                afterRect: frames.afterRect,
+                scaleFactor: scaleFactor
             )
         }
     }
