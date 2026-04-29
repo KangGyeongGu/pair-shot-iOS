@@ -18,9 +18,10 @@ final class BeforeCameraViewModel {
     let session: CameraSession
 
     var lensPosition: CameraLensPosition = .back
-    var flashMode: CameraFlashMode {
-        get { CameraFlashModeMapping.flashMode(from: appSettings.cameraFlashMode) }
-        set { appSettings.cameraFlashMode = CameraFlashModeMapping.persisted(from: newValue) }
+    var flashMode: CameraFlashMode = .off {
+        didSet {
+            appSettings.cameraFlashMode = CameraFlashModeMapping.persisted(from: flashMode)
+        }
     }
 
     var activePreset: ZoomPresetSpec?
@@ -32,19 +33,16 @@ final class BeforeCameraViewModel {
     var pinchBaseFactor: Double = 1.0
     var currentZoomRatio: Double = 1.0
     var isDraggingZoom: Bool = false
-    var isGridOn: Bool {
-        get { appSettings.cameraGridEnabled }
-        set { appSettings.cameraGridEnabled = newValue }
+    var isGridOn: Bool = false {
+        didSet { appSettings.cameraGridEnabled = isGridOn }
     }
 
-    var isLevelOn: Bool {
-        get { appSettings.cameraLevelEnabled }
-        set { appSettings.cameraLevelEnabled = newValue }
+    var isLevelOn: Bool = false {
+        didSet { appSettings.cameraLevelEnabled = isLevelOn }
     }
 
-    var isNightModeOn: Bool {
-        get { appSettings.cameraNightMode }
-        set { appSettings.cameraNightMode = newValue }
+    var isNightModeOn: Bool = false {
+        didSet { appSettings.cameraNightMode = isNightModeOn }
     }
 
     var isCapturing: Bool = false
@@ -99,6 +97,10 @@ final class BeforeCameraViewModel {
         var continuation: AsyncStream<Event>.Continuation!
         events = AsyncStream { continuation = $0 }
         eventsContinuation = continuation
+        isGridOn = appSettings.cameraGridEnabled
+        isLevelOn = appSettings.cameraLevelEnabled
+        isNightModeOn = appSettings.cameraNightMode
+        flashMode = CameraFlashModeMapping.flashMode(from: appSettings.cameraFlashMode)
     }
 
     nonisolated var captureSession: AVCaptureSession {
@@ -358,7 +360,7 @@ final class BeforeCameraViewModel {
 }
 
 enum ZoomDialMetrics {
-    static let dragRangeSpanPt: Double = 300
+    static let dragRangeSpanPt: Double = 600
     static let pixelsPerMinorTick: Double = 30
 }
 

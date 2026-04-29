@@ -25,9 +25,8 @@ final class AfterCameraViewModel {
     var currentPair: PhotoPair?
     var ghostImageData: Data?
     var alpha: Double = GhostOverlayMath.defaultAlpha
-    var overlayEnabled: Bool {
-        get { appSettings.overlayEnabled }
-        set { appSettings.overlayEnabled = newValue }
+    var overlayEnabled: Bool = true {
+        didSet { appSettings.overlayEnabled = overlayEnabled }
     }
 
     var activePreset: ZoomPresetSpec?
@@ -45,24 +44,22 @@ final class AfterCameraViewModel {
     var captureErrorMessage: String?
     var ghostWarningToast: String?
 
-    var isGridOn: Bool {
-        get { appSettings.cameraGridEnabled }
-        set { appSettings.cameraGridEnabled = newValue }
+    var isGridOn: Bool = false {
+        didSet { appSettings.cameraGridEnabled = isGridOn }
     }
 
-    var isLevelOn: Bool {
-        get { appSettings.cameraLevelEnabled }
-        set { appSettings.cameraLevelEnabled = newValue }
+    var isLevelOn: Bool = false {
+        didSet { appSettings.cameraLevelEnabled = isLevelOn }
     }
 
-    var isNightModeOn: Bool {
-        get { appSettings.cameraNightMode }
-        set { appSettings.cameraNightMode = newValue }
+    var isNightModeOn: Bool = false {
+        didSet { appSettings.cameraNightMode = isNightModeOn }
     }
 
-    var flashMode: CameraFlashMode {
-        get { CameraFlashModeMapping.flashMode(from: appSettings.cameraFlashMode) }
-        set { appSettings.cameraFlashMode = CameraFlashModeMapping.persisted(from: newValue) }
+    var flashMode: CameraFlashMode = .off {
+        didSet {
+            appSettings.cameraFlashMode = CameraFlashModeMapping.persisted(from: flashMode)
+        }
     }
 
     var lensPosition: CameraLensPosition = .back
@@ -115,6 +112,11 @@ final class AfterCameraViewModel {
         var continuation: AsyncStream<Event>.Continuation!
         events = AsyncStream { continuation = $0 }
         eventsContinuation = continuation
+        overlayEnabled = appSettings.overlayEnabled
+        isGridOn = appSettings.cameraGridEnabled
+        isLevelOn = appSettings.cameraLevelEnabled
+        isNightModeOn = appSettings.cameraNightMode
+        flashMode = CameraFlashModeMapping.flashMode(from: appSettings.cameraFlashMode)
     }
 
     nonisolated var captureSession: AVCaptureSession {
