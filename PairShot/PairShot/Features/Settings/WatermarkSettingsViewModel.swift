@@ -16,14 +16,17 @@ final class WatermarkSettingsViewModel {
     }
 
     private let appSettingsRepo: AppSettingsRepository
+    private let appSettings: AppSettings
 
-    init(appSettingsRepo: AppSettingsRepository) {
+    init(appSettingsRepo: AppSettingsRepository, appSettings: AppSettings) {
         self.appSettingsRepo = appSettingsRepo
+        self.appSettings = appSettings
         let snapshot = appSettingsRepo.load()
         settings = snapshot.watermark ?? .default
     }
 
     func saveSettings() async {
+        appSettings.watermarkSettings = settings
         var snapshot = appSettingsRepo.load()
         snapshot.watermark = settings
         try? await appSettingsRepo.save(snapshot)

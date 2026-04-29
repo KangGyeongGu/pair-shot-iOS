@@ -533,7 +533,8 @@ private struct WatermarkSettingsViewPreviewWrapper: View {
     private static let previewDefaults: UserDefaults = .init(suiteName: "preview-watermark") ?? .standard
 
     @State private var viewModel = WatermarkSettingsViewModel(
-        appSettingsRepo: UserDefaultsAppSettingsRepository(defaults: previewDefaults)
+        appSettingsRepo: UserDefaultsAppSettingsRepository(defaults: previewDefaults),
+        appSettings: AppSettings(defaults: previewDefaults)
     )
 
     var body: some View {

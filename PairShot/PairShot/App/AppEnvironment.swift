@@ -311,11 +311,11 @@ final class AppEnvironment {
     }
 
     func makeWatermarkSettingsViewModel() -> WatermarkSettingsViewModel {
-        WatermarkSettingsViewModel(appSettingsRepo: appSettingsRepo)
+        WatermarkSettingsViewModel(appSettingsRepo: appSettingsRepo, appSettings: appSettings)
     }
 
     func makeCombineSettingsViewModel() -> CombineSettingsViewModel {
-        CombineSettingsViewModel(appSettingsRepo: appSettingsRepo)
+        CombineSettingsViewModel(appSettingsRepo: appSettingsRepo, appSettings: appSettings)
     }
 
     func makeAdFreeStatusViewModel() -> AdFreeStatusViewModel {
