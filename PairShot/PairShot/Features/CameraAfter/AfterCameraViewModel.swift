@@ -24,7 +24,10 @@ final class AfterCameraViewModel {
     var selectedPairId: UUID?
     var currentPair: PhotoPair?
     var ghostImageData: Data?
-    var alpha: Double = GhostOverlayMath.defaultAlpha
+    var alpha: Double = GhostOverlayMath.defaultAlpha {
+        didSet { appSettings.defaultOverlayAlpha = alpha }
+    }
+
     var overlayEnabled: Bool = true {
         didSet { appSettings.overlayEnabled = overlayEnabled }
     }
@@ -112,6 +115,7 @@ final class AfterCameraViewModel {
         var continuation: AsyncStream<Event>.Continuation!
         events = AsyncStream { continuation = $0 }
         eventsContinuation = continuation
+        alpha = GhostOverlayMath.clamp(appSettings.defaultOverlayAlpha)
         overlayEnabled = appSettings.overlayEnabled
         isGridOn = appSettings.cameraGridEnabled
         isLevelOn = appSettings.cameraLevelEnabled
