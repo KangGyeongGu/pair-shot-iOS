@@ -1,3 +1,4 @@
+import OSLog
 import SwiftData
 import SwiftUI
 #if canImport(GoogleMobileAds)
@@ -44,7 +45,6 @@ struct PairShotApp: App {
                 .environment(\.locale, env.appSettings.resolvedLocale)
                 .preferredColorScheme(env.appSettings.resolvedColorScheme)
                 .task {
-                    env.photoLibrarySyncService.register()
                     await env.adFreeStore.refreshFromServer(
                         api: env.couponApi,
                         deviceHashProvider: env.deviceHashProvider
@@ -53,7 +53,6 @@ struct PairShotApp: App {
                     if !env.permissionStatusService.hasRequestedInitialPermissions {
                         await env.permissionStatusService.requestAllInOrder()
                     }
-                    await env.photoLibrarySyncService.revalidate()
                     await bootstrapAds()
                 }
         }
@@ -88,7 +87,6 @@ struct PairShotApp: App {
 
         Task { @MainActor in
             await env.permissionStatusService.refreshAll()
-            await env.photoLibrarySyncService.revalidate()
             await env.adFreeStore.refreshFromServer(
                 api: env.couponApi,
                 deviceHashProvider: env.deviceHashProvider

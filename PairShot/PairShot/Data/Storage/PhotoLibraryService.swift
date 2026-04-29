@@ -3,8 +3,7 @@ import OSLog
 import Photos
 import UIKit
 
-@MainActor
-final class PhotoLibraryService {
+final class PhotoLibraryService: @unchecked Sendable {
     enum LibraryError: Error, Equatable {
         case notAuthorized
         case saveFailed(String)
@@ -12,11 +11,9 @@ final class PhotoLibraryService {
         case deleteFailed(String)
     }
 
-    weak var syncService: PhotoLibrarySyncService?
-
     init() {}
 
-    func authorize(level: PHAccessLevel = .addOnly) async -> PHAuthorizationStatus {
+    nonisolated func authorize(level: PHAccessLevel = .addOnly) async -> PHAuthorizationStatus {
         let current = PHPhotoLibrary.authorizationStatus(for: level)
         switch current {
             case .authorized, .limited:
@@ -34,22 +31,21 @@ final class PhotoLibraryService {
     }
 
     @discardableResult
-    func saveImage(_ jpegData: Data) async throws -> String {
+    nonisolated func saveImage(_ jpegData: Data) async throws -> String {
         let status = await authorize(level: .addOnly)
         guard status == .authorized || status == .limited else {
             throw LibraryError.notAuthorized
         }
-        syncService?.pauseObserver()
-        defer { syncService?.resumeObserver() }
-        return try await withCheckedThrowingContinuation { continuation in
+        return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<String, Error>) in
             let placeholderBox = PhotoLibraryPlaceholderBox()
-            PHPhotoLibrary.shared().performChanges {
+            let changesBlock: @Sendable () -> Void = {
                 let request = PHAssetCreationRequest.forAsset()
                 let options = PHAssetResourceCreationOptions()
                 options.uniformTypeIdentifier = "public.jpeg"
                 request.addResource(with: .photo, data: jpegData, options: options)
                 placeholderBox.placeholder = request.placeholderForCreatedAsset
-            } completionHandler: { success, error in
+            }
+            let completionBlock: @Sendable (Bool, Error?) -> Void = { success, error in
                 if success, let id = placeholderBox.placeholder?.localIdentifier {
                     continuation.resume(returning: id)
                 } else if let error {
@@ -58,6 +54,7 @@ final class PhotoLibraryService {
                     continuation.resume(throwing: LibraryError.saveFailed("unknown"))
                 }
             }
+            PHPhotoLibrary.shared().performChanges(changesBlock, completionHandler: completionBlock)
         }
     }
 
@@ -66,19 +63,19 @@ final class PhotoLibraryService {
         return PHAsset.fetchAssets(withLocalIdentifiers: [localIdentifier], options: nil).firstObject
     }
 
-    func deleteAssets(localIdentifiers: [String]) async throws {
+    nonisolated func deleteAssets(localIdentifiers: [String]) async throws {
         let ids = localIdentifiers.filter { !$0.isEmpty }
         guard !ids.isEmpty else { return }
         let assets = PHAsset.fetchAssets(withLocalIdentifiers: ids, options: nil)
         var collected: [PHAsset] = []
         assets.enumerateObjects { asset, _, _ in collected.append(asset) }
         guard !collected.isEmpty else { return }
-        syncService?.pauseObserver()
-        defer { syncService?.resumeObserver() }
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            PHPhotoLibrary.shared().performChanges {
-                PHAssetChangeRequest.deleteAssets(assets)
-            } completionHandler: { success, error in
+            let assetsBox = PhotoLibraryAssetsBox(value: assets)
+            let changesBlock: @Sendable () -> Void = {
+                PHAssetChangeRequest.deleteAssets(assetsBox.value)
+            }
+            let completionBlock: @Sendable (Bool, Error?) -> Void = { success, error in
                 if success {
                     continuation.resume(returning: ())
                 } else if let error {
@@ -87,6 +84,7 @@ final class PhotoLibraryService {
                     continuation.resume(throwing: LibraryError.deleteFailed("unknown"))
                 }
             }
+            PHPhotoLibrary.shared().performChanges(changesBlock, completionHandler: completionBlock)
         }
     }
 
@@ -124,6 +122,13 @@ final class PhotoLibraryService {
 
 private final nonisolated class PhotoLibraryPlaceholderBox: @unchecked Sendable {
     var placeholder: PHObjectPlaceholder?
+}
+
+private final nonisolated class PhotoLibraryAssetsBox: @unchecked Sendable {
+    let value: PHFetchResult<PHAsset>
+    init(value: PHFetchResult<PHAsset>) {
+        self.value = value
+    }
 }
 
 @MainActor

@@ -42,8 +42,7 @@ nonisolated extension CameraSession {
         return try await withCheckedThrowingContinuation { cont in
             let id = UUID()
             let delegate = PhotoCaptureDelegate { [weak self] result in
-                guard let self else { return }
-                sessionQueue.async { [weak self] in
+                queue.async { [weak self] in
                     self?.inFlightDelegates.removeValue(forKey: id)
                 }
                 switch result {
@@ -81,7 +80,7 @@ nonisolated extension CameraSession {
     }
 }
 
-nonisolated private final class CaptureContext: @unchecked Sendable {
+private final nonisolated class CaptureContext: @unchecked Sendable {
     let photoOutput: AVCapturePhotoOutput
     let settings: AVCapturePhotoSettings
     let zoom: Double
@@ -95,10 +94,8 @@ nonisolated private final class CaptureContext: @unchecked Sendable {
     }
 }
 
-nonisolated final class PhotoCaptureDelegate: NSObject, AVCapturePhotoCaptureDelegate, @unchecked Sendable {
+final nonisolated class PhotoCaptureDelegate: NSObject, AVCapturePhotoCaptureDelegate, @unchecked Sendable {
     private let completion: @Sendable (Result<Data, CameraSessionError>) -> Void
-    private let lock = NSLock()
-    private var didFinish = false
 
     init(completion: @escaping @Sendable (Result<Data, CameraSessionError>) -> Void) {
         self.completion = completion
@@ -110,34 +107,13 @@ nonisolated final class PhotoCaptureDelegate: NSObject, AVCapturePhotoCaptureDel
         error: Error?
     ) {
         if let error {
-            finish(with: .failure(.captureFailed(error.localizedDescription)))
+            completion(.failure(.captureFailed(error.localizedDescription)))
             return
         }
         guard let data = photo.fileDataRepresentation() else {
-            finish(with: .failure(.noPhotoData))
+            completion(.failure(.noPhotoData))
             return
         }
-        finish(with: .success(data))
-    }
-
-    func photoOutput(
-        _: AVCapturePhotoOutput,
-        didFinishCaptureFor _: AVCaptureResolvedPhotoSettings,
-        error: Error?
-    ) {
-        if let error {
-            finish(with: .failure(.captureFailed(error.localizedDescription)))
-        }
-    }
-
-    private func finish(with result: Result<Data, CameraSessionError>) {
-        lock.lock()
-        if didFinish {
-            lock.unlock()
-            return
-        }
-        didFinish = true
-        lock.unlock()
-        completion(result)
+        completion(.success(data))
     }
 }

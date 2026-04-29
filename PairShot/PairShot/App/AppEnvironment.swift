@@ -19,7 +19,6 @@ final class AppEnvironment {
     let zipExporter: ZipExporting
     let photoLibraryExporter: any PhotoLibraryExporting
     let photoLibrary: PhotoLibraryService
-    let photoLibrarySyncService: PhotoLibrarySyncService
 
     let createPair: CreatePairUseCase
     let captureAfter: CaptureAfterUseCase
@@ -122,13 +121,6 @@ final class AppEnvironment {
         deviceHashProvider = services.deviceHashProvider
         photoLibraryExporter = services.photoLibraryExporter
         photoLibrary = services.photoLibrary
-        let resolvedSyncService = PhotoLibrarySyncService(
-            modelContainer: modelContainer,
-            photoLibrary: services.photoLibrary,
-            thumbnailCache: resolvedThumbnailCache
-        )
-        photoLibrarySyncService = resolvedSyncService
-        services.photoLibrary.syncService = resolvedSyncService
         pairRepo = repositories.pairRepo
         albumRepo = repositories.albumRepo
         couponRepo = repositories.couponRepo
