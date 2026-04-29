@@ -76,12 +76,16 @@ struct RotationGuideOverlay: View {
 }
 
 enum RotationGuideResolver {
-    static func direction(for orientation: UIDeviceOrientation) -> RotationGuideDirection {
-        switch orientation {
-            case .landscapeLeft: .right
-            case .landscapeRight: .left
-            default: .upright
+    static func direction(
+        for orientation: UIDeviceOrientation,
+        beforeIsLandscape: Bool
+    ) -> RotationGuideDirection {
+        let deviceIsLandscape = orientation.isLandscape
+        if beforeIsLandscape == deviceIsLandscape { return .upright }
+        if beforeIsLandscape {
+            return .right
         }
+        return .left
     }
 }
 

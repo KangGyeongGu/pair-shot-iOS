@@ -52,9 +52,8 @@ struct GhostOverlayView: View {
             if isEnabled, let image {
                 Image(uiImage: image)
                     .resizable()
-                    .scaledToFill()
+                    .scaledToFit()
                     .frame(width: width, height: height)
-                    .clipped()
                     .opacity(GhostOverlayMath.clamp(alpha))
             } else {
                 Color.black.opacity(0.001)

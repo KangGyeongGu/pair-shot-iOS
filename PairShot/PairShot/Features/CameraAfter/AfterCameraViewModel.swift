@@ -175,8 +175,21 @@ final class AfterCameraViewModel {
         adopt(pair: pair)
     }
 
+    var lastDeviceOrientation: UIDeviceOrientation = .portrait
+    var beforeIsLandscape: Bool = false {
+        didSet { recomputeRotationDirection() }
+    }
+
     func updateRotation(orientation: UIDeviceOrientation) {
-        rotationDirection = RotationGuideResolver.direction(for: orientation)
+        lastDeviceOrientation = orientation
+        recomputeRotationDirection()
+    }
+
+    private func recomputeRotationDirection() {
+        rotationDirection = RotationGuideResolver.direction(
+            for: lastDeviceOrientation,
+            beforeIsLandscape: beforeIsLandscape
+        )
     }
 
     func dismiss() {

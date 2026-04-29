@@ -154,13 +154,19 @@ struct AfterCameraView: View {
     private func updateCachedGhostImage(from data: Data?) {
         guard let data else {
             cachedGhostImage = nil
+            viewModel?.beforeIsLandscape = false
             return
         }
         Task { @MainActor in
             let image = await Task.detached(priority: .userInitiated) {
-                UIImage(data: data)
+                UIImage(data: data).flatMap { source in
+                    source.cgImage.map { UIImage(cgImage: $0, scale: 1, orientation: .up) }
+                }
             }.value
             cachedGhostImage = image
+            if let size = image?.size {
+                viewModel?.beforeIsLandscape = size.width > size.height
+            }
         }
     }
 

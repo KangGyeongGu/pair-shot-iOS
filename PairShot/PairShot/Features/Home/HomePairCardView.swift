@@ -158,6 +158,7 @@ private struct HomePairCardSide: View {
                 Image(uiImage: thumbnail)
                     .resizable()
                     .scaledToFill()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if isLongLoading {
                 ProgressView()
                     .progressViewStyle(.circular)
