@@ -152,24 +152,28 @@ private struct HomePairCardSide: View {
     @State private var isLongLoading: Bool = false
 
     var body: some View {
-        ZStack {
-            Color(uiColor: .secondarySystemBackground)
-            if let thumbnail {
-                Image(uiImage: thumbnail)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if isLongLoading {
-                ProgressView()
-                    .progressViewStyle(.circular)
-                    .tint(.secondary)
-            } else if case .image = placeholder {
-                Image(systemName: "photo")
-                    .font(.title2.weight(.light))
-                    .foregroundStyle(.secondary)
+        GeometryReader { geo in
+            ZStack {
+                Color(uiColor: .secondarySystemBackground)
+                if let thumbnail {
+                    Image(uiImage: thumbnail)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: geo.size.width, height: geo.size.height)
+                        .clipped()
+                } else if isLongLoading {
+                    ProgressView()
+                        .progressViewStyle(.circular)
+                        .tint(.secondary)
+                } else if case .image = placeholder {
+                    Image(systemName: "photo")
+                        .font(.title2.weight(.light))
+                        .foregroundStyle(.secondary)
+                }
             }
+            .frame(width: geo.size.width, height: geo.size.height)
+            .clipped()
         }
-        .clipped()
         .task(id: localIdentifier ?? "") { await load() }
     }
 

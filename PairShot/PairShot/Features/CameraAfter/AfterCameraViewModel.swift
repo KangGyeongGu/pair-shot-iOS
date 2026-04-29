@@ -1,6 +1,7 @@
 @preconcurrency import AVFoundation
 import Foundation
 import Observation
+import OSLog
 import UIKit
 
 // swiftlint:disable type_contents_order switch_case_alignment
@@ -181,15 +182,18 @@ final class AfterCameraViewModel {
     }
 
     func updateRotation(orientation: UIDeviceOrientation) {
+        AppLogger.camera.info("[CAM-ROT-DEV] updateRotation: orientation.rawValue=\(orientation.rawValue, privacy: .public), isLandscape=\(orientation.isLandscape, privacy: .public), beforeIsLandscape=\(self.beforeIsLandscape, privacy: .public)")
         lastDeviceOrientation = orientation
         recomputeRotationDirection()
     }
 
     private func recomputeRotationDirection() {
-        rotationDirection = RotationGuideResolver.direction(
+        let direction = RotationGuideResolver.direction(
             for: lastDeviceOrientation,
             beforeIsLandscape: beforeIsLandscape
         )
+        AppLogger.camera.info("[CAM-ROT-RES] rotationDirection=\(String(describing: direction), privacy: .public)")
+        rotationDirection = direction
     }
 
     func dismiss() {

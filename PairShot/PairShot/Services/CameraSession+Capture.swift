@@ -62,6 +62,8 @@ nonisolated extension CameraSession {
             }
             queue.async { [weak self] in
                 self?.inFlightDelegates[id] = delegate
+                let angle = captureContext.photoOutput.connection(with: .video)?.videoRotationAngle ?? -1
+                AppLogger.camera.info("[CAM-ROT-CAP] photoOutput connection angle=\(angle, privacy: .public)")
                 captureContext.photoOutput.capturePhoto(with: captureContext.settings, delegate: delegate)
             }
         }

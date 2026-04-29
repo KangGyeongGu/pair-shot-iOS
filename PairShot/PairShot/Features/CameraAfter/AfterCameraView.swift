@@ -1,3 +1,4 @@
+import OSLog
 import SwiftData
 import SwiftUI
 import UIKit
@@ -165,7 +166,9 @@ struct AfterCameraView: View {
             }.value
             cachedGhostImage = image
             if let size = image?.size {
-                viewModel?.beforeIsLandscape = size.width > size.height
+                let isLandscape = size.width > size.height
+                AppLogger.camera.info("[CAM-ROT-IMG] cachedGhost size=\(size.width, privacy: .public)x\(size.height, privacy: .public), isLandscape=\(isLandscape, privacy: .public)")
+                viewModel?.beforeIsLandscape = isLandscape
             }
         }
     }
