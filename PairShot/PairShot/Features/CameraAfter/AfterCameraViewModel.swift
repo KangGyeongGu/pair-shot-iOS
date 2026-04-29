@@ -177,12 +177,12 @@ final class AfterCameraViewModel {
     }
 
     var lastDeviceOrientation: UIDeviceOrientation = .portrait
-    var beforeIsLandscape: Bool = false {
+    var beforeExifOrientation: CGImagePropertyOrientation = .up {
         didSet { recomputeRotationDirection() }
     }
 
     func updateRotation(orientation: UIDeviceOrientation) {
-        AppLogger.camera.info("[CAM-ROT-DEV] updateRotation: orientation.rawValue=\(orientation.rawValue, privacy: .public), isLandscape=\(orientation.isLandscape, privacy: .public), beforeIsLandscape=\(self.beforeIsLandscape, privacy: .public)")
+        AppLogger.camera.info("[CAM-ROT-DEV] updateRotation: orientation.rawValue=\(orientation.rawValue, privacy: .public), isLandscape=\(orientation.isLandscape, privacy: .public), beforeExif=\(self.beforeExifOrientation.rawValue, privacy: .public)")
         lastDeviceOrientation = orientation
         recomputeRotationDirection()
     }
@@ -190,7 +190,7 @@ final class AfterCameraViewModel {
     private func recomputeRotationDirection() {
         let direction = RotationGuideResolver.direction(
             for: lastDeviceOrientation,
-            beforeIsLandscape: beforeIsLandscape
+            beforeExif: beforeExifOrientation
         )
         AppLogger.camera.info("[CAM-ROT-RES] rotationDirection=\(String(describing: direction), privacy: .public)")
         rotationDirection = direction

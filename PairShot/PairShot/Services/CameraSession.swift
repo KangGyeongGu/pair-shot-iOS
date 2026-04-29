@@ -266,8 +266,6 @@ final nonisolated class CameraSession: @unchecked Sendable {
         guard let device = activeDevice, let previewLayer = managedPreviewLayer else { return }
         let coordinator = AVCaptureDevice.RotationCoordinator(device: device, previewLayer: previewLayer)
         previewLayer.connection?.videoRotationAngle = coordinator.videoRotationAngleForHorizonLevelPreview
-        photoOutput?.connection(with: .video)?.videoRotationAngle = coordinator
-            .videoRotationAngleForHorizonLevelCapture
         let prevObserver = coordinator.observe(
             \.videoRotationAngleForHorizonLevelPreview,
             options: [.new]
@@ -277,16 +275,7 @@ final nonisolated class CameraSession: @unchecked Sendable {
                 self?.managedPreviewLayer?.connection?.videoRotationAngle = angle
             }
         }
-        let captureObserver = coordinator.observe(
-            \.videoRotationAngleForHorizonLevelCapture,
-            options: [.new]
-        ) { [weak self] _, change in
-            guard let angle = change.newValue else { return }
-            Task { @MainActor in
-                self?.photoOutput?.connection(with: .video)?.videoRotationAngle = angle
-            }
-        }
-        rotationObservers = [prevObserver, captureObserver]
+        rotationObservers = [prevObserver]
         rotationCoordinator = coordinator
     }
 

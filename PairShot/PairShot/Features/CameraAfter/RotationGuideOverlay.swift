@@ -78,14 +78,15 @@ struct RotationGuideOverlay: View {
 enum RotationGuideResolver {
     static func direction(
         for orientation: UIDeviceOrientation,
-        beforeIsLandscape: Bool
+        beforeExif: CGImagePropertyOrientation
     ) -> RotationGuideDirection {
+        let beforeIsLandscape = (beforeExif == .up || beforeExif == .down)
         let deviceIsLandscape = orientation.isLandscape
         if beforeIsLandscape == deviceIsLandscape { return .upright }
         if beforeIsLandscape {
-            return .right
+            return beforeExif == .up ? .right : .left
         }
-        return .left
+        return orientation == .landscapeLeft ? .left : .right
     }
 }
 

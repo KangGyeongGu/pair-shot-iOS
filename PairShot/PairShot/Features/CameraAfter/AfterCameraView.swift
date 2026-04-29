@@ -155,21 +155,20 @@ struct AfterCameraView: View {
     private func updateCachedGhostImage(from data: Data?) {
         guard let data else {
             cachedGhostImage = nil
-            viewModel?.beforeIsLandscape = false
+            viewModel?.beforeExifOrientation = .up
             return
         }
         Task { @MainActor in
-            let image = await Task.detached(priority: .userInitiated) {
-                UIImage(data: data).flatMap { source in
+            let result = await Task.detached(priority: .userInitiated) {
+                let exif = ExifOrientationCodec.read(from: data) ?? .up
+                let image = UIImage(data: data).flatMap { source in
                     source.cgImage.map { UIImage(cgImage: $0, scale: 1, orientation: .up) }
                 }
+                return (image, exif)
             }.value
-            cachedGhostImage = image
-            if let size = image?.size {
-                let isLandscape = size.width > size.height
-                AppLogger.camera.info("[CAM-ROT-IMG] cachedGhost size=\(size.width, privacy: .public)x\(size.height, privacy: .public), isLandscape=\(isLandscape, privacy: .public)")
-                viewModel?.beforeIsLandscape = isLandscape
-            }
+            cachedGhostImage = result.0
+            AppLogger.camera.info("[CAM-ROT-IMG] cachedGhost exif=\(result.1.rawValue, privacy: .public), size=\(result.0?.size.width ?? 0, privacy: .public)x\(result.0?.size.height ?? 0, privacy: .public)")
+            viewModel?.beforeExifOrientation = result.1
         }
     }
 

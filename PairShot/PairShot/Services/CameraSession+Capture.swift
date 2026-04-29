@@ -37,6 +37,15 @@ nonisolated extension CameraSession {
             throw CameraSessionError.notConfigured
         }
 
+        let captureAngle: CGFloat = await MainActor.run { [weak self] in
+            self?.rotationCoordinator?.videoRotationAngleForHorizonLevelCapture ?? 90
+        }
+        let exifOrientation = ExifOrientationCodec.fromCaptureAngle(captureAngle)
+        AppLogger.camera
+            .info(
+                "[CAM-ROT-CAP] captureAngle=\(captureAngle, privacy: .public), exif=\(exifOrientation.rawValue, privacy: .public)"
+            )
+
         let queue = sessionQueue
 
         return try await withCheckedThrowingContinuation { cont in
@@ -46,9 +55,10 @@ nonisolated extension CameraSession {
                     self?.inFlightDelegates.removeValue(forKey: id)
                 }
                 switch result {
-                    case let .success(data):
+                    case let .success(rawJpeg):
+                        let processedJpeg = ExifOrientationCodec.write(exifOrientation, to: rawJpeg) ?? rawJpeg
                         cont.resume(returning: CapturedPhoto(
-                            jpegData: data,
+                            jpegData: processedJpeg,
                             zoomFactor: captureContext.zoom,
                             lensIdentifier: captureContext.lens,
                             capturedAt: .now
@@ -62,8 +72,6 @@ nonisolated extension CameraSession {
             }
             queue.async { [weak self] in
                 self?.inFlightDelegates[id] = delegate
-                let angle = captureContext.photoOutput.connection(with: .video)?.videoRotationAngle ?? -1
-                AppLogger.camera.info("[CAM-ROT-CAP] photoOutput connection angle=\(angle, privacy: .public)")
                 captureContext.photoOutput.capturePhoto(with: captureContext.settings, delegate: delegate)
             }
         }
