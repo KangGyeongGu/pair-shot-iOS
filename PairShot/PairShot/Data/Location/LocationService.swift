@@ -3,7 +3,7 @@ import Foundation
 import OSLog
 
 @MainActor
-final class CoreLocationService: NSObject, LocationFetching, CLLocationManagerDelegate {
+final class CoreLocationService: NSObject, CLLocationManagerDelegate {
     private let manager = CLLocationManager()
     private var continuation: CheckedContinuation<CLLocation?, Never>?
 

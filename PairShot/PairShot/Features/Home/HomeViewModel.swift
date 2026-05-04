@@ -92,7 +92,7 @@ final class HomeViewModel {
     private let deletePairs: DeletePairsUseCase
     private let deleteCombinedExports: DeleteCombinedExportsUseCase?
     private let toggleAlbumMembership: ToggleAlbumMembershipUseCase
-    private let location: LocationFetching
+    private let location: CoreLocationService
     private let thumbnailCache: PhotoLibraryThumbnailCache
     private let immediateExport: ImmediateExportService
     private let appSettings: AppSettings
@@ -106,7 +106,7 @@ final class HomeViewModel {
         deletePairs: DeletePairsUseCase,
         toggleAlbumMembership: ToggleAlbumMembershipUseCase,
         photoLibrary: PhotoLibraryService,
-        location: LocationFetching,
+        location: CoreLocationService,
         immediateExport: ImmediateExportService,
         appSettings: AppSettings,
         thumbnailCache: PhotoLibraryThumbnailCache,

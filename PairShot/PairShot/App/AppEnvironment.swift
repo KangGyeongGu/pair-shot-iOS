@@ -11,12 +11,12 @@ final class AppEnvironment {
     let albumRepo: AlbumRepository
     let couponRepo: CouponRepository
 
-    let location: LocationFetching
+    let location: CoreLocationService
     let couponApiConfig: CouponApiConfig
-    let couponApi: any CouponActivationApi
+    let couponApi: URLSessionCouponActivationApi
     let deviceHashProvider: DeviceHashProvider
-    let zipExporter: ZipExporting
-    let photoLibraryExporter: any PhotoLibraryExporting
+    let zipExporter: ZipExporterAdapter
+    let photoLibraryExporter: PhotoLibraryExport
     let photoLibrary: PhotoLibraryService
     let photoLibrarySync: PhotoLibrarySyncService
 
@@ -98,8 +98,8 @@ final class AppEnvironment {
         let apiConfig = CouponApiConfig.resolve()
         let api = URLSessionCouponActivationApi(config: apiConfig)
         let hashProvider = DeviceHashProvider(salt: apiConfig.deviceHashSalt)
-        let resolvedLocation: LocationFetching = CoreLocationService()
-        let resolvedPhotoLibraryExporter: any PhotoLibraryExporting = PhotoLibraryExport()
+        let resolvedLocation = CoreLocationService()
+        let resolvedPhotoLibraryExporter = PhotoLibraryExport()
         let resolvedPhotoLibrary = PhotoLibraryService()
 
         location = resolvedLocation

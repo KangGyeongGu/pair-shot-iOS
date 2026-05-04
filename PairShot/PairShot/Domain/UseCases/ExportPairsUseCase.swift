@@ -6,12 +6,12 @@ struct ExportPairsUseCase {
     }
 
     let pairRepo: PhotoPairRepository
-    let zipExporter: ZipExporting
+    let zipExporter: ZipExporterAdapter
     let now: @Sendable () -> Date
 
     init(
         pairRepo: PhotoPairRepository,
-        zipExporter: ZipExporting,
+        zipExporter: ZipExporterAdapter,
         now: @escaping @Sendable () -> Date = { .now }
     ) {
         self.pairRepo = pairRepo

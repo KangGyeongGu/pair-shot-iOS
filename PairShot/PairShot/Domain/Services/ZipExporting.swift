@@ -21,13 +21,3 @@ nonisolated struct ExportRenderOptions: Equatable {
 
     static let none = Self(applyCombineSettings: false, applyWatermark: false)
 }
-
-protocol ZipExporting: Sendable {
-    func exportPairsToZip(
-        pairIds: [UUID],
-        selection: ExportContents,
-        renderOptions: ExportRenderOptions,
-        in tempDirectory: URL,
-        now: Date
-    ) async throws -> URL
-}

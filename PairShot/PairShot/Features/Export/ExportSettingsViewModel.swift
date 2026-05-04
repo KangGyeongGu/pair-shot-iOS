@@ -78,7 +78,7 @@ final class ExportSettingsViewModel {
     private let pairRepo: PhotoPairRepository
     private let photoLibrary: PhotoLibraryService
     private let exportPairs: ExportPairsUseCase
-    private let photoLibraryExporter: any PhotoLibraryExporting
+    private let photoLibraryExporter: PhotoLibraryExport
     private let snackbarQueue: SnackbarQueue
     private let tempDirectoryProvider: @Sendable () -> URL
     private let eventsContinuation: AsyncStream<Event>.Continuation
@@ -98,7 +98,7 @@ final class ExportSettingsViewModel {
         pairRepo: PhotoPairRepository,
         photoLibrary: PhotoLibraryService,
         exportPairs: ExportPairsUseCase,
-        photoLibraryExporter: any PhotoLibraryExporting,
+        photoLibraryExporter: PhotoLibraryExport,
         snackbarQueue: SnackbarQueue,
         tempDirectoryProvider: @escaping @Sendable () -> URL = { FileManager.default.temporaryDirectory },
         preferences: ExportPreferences = ExportPreferences(),

@@ -8,13 +8,13 @@ final class CreatePairUseCase {
 
     let pairRepo: PhotoPairRepository
     let photoLibrary: PhotoLibraryService
-    let location: LocationFetching
+    let location: CoreLocationService
     let now: @Sendable () -> Date
 
     init(
         pairRepo: PhotoPairRepository,
         photoLibrary: PhotoLibraryService,
-        location: LocationFetching,
+        location: CoreLocationService,
         now: @escaping @Sendable () -> Date = { .now }
     ) {
         self.pairRepo = pairRepo

@@ -2,12 +2,6 @@ import Foundation
 import OSLog
 import Photos
 
-protocol PhotoLibraryExporting: Sendable {
-    func authorize() async -> PHAuthorizationStatus
-    @discardableResult
-    func saveImageData(_ data: Data, type: ImageMediaType) async throws -> String
-}
-
 enum ImageMediaType {
     case photo
 }
@@ -17,7 +11,7 @@ enum PhotoLibraryExportError: Error, Equatable {
     case writeFailed(String)
 }
 
-final class PhotoLibraryExport: PhotoLibraryExporting {
+final class PhotoLibraryExport: Sendable {
     init() {}
 
     nonisolated func authorize() async -> PHAuthorizationStatus {

@@ -1,7 +1,7 @@
 import Foundation
 import OSLog
 
-struct URLSessionCouponActivationApi: CouponActivationApi {
+struct URLSessionCouponActivationApi {
     private static let badRequestErrorInvalidCodeFormat: String = "INVALID_CODE_FORMAT"
     private static let badRequestErrorInvalidSignature: String = "INVALID_SIGNATURE"
     private static let revokedStatusValue: String = "revoked"

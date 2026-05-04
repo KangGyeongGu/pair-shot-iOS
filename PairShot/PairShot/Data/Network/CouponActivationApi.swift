@@ -24,9 +24,3 @@ enum ListApiResult {
     case networkError
     case serverError
 }
-
-protocol CouponActivationApi: Sendable {
-    func activate(_ request: ActivateRequestDto) async -> ActivationApiResult
-    func fetchStatus(_ request: StatusRequestDto) async -> StatusApiResult
-    func fetchMyCoupons(deviceHash: String) async -> ListApiResult
-}

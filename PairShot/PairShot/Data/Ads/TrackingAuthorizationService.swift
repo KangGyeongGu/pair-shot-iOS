@@ -3,13 +3,7 @@ import Foundation
 import Observation
 import OSLog
 
-protocol TrackingAuthorizationProviding: Sendable {
-    var currentStatus: ATTrackingManager.AuthorizationStatus { get }
-
-    func requestAuthorization() async -> ATTrackingManager.AuthorizationStatus
-}
-
-struct SystemTrackingAuthorizationProvider: TrackingAuthorizationProviding {
+struct SystemTrackingAuthorizationProvider {
     var currentStatus: ATTrackingManager.AuthorizationStatus {
         ATTrackingManager.trackingAuthorizationStatus
     }
@@ -28,13 +22,9 @@ struct SystemTrackingAuthorizationProvider: TrackingAuthorizationProviding {
 final class TrackingAuthorizationService {
     private(set) var currentStatus: ATTrackingManager.AuthorizationStatus
 
-    private let provider: TrackingAuthorizationProviding
+    private let provider: SystemTrackingAuthorizationProvider
 
-    convenience init() {
-        self.init(provider: SystemTrackingAuthorizationProvider())
-    }
-
-    init(provider: TrackingAuthorizationProviding) {
+    init(provider: SystemTrackingAuthorizationProvider = SystemTrackingAuthorizationProvider()) {
         self.provider = provider
         currentStatus = provider.currentStatus
     }
