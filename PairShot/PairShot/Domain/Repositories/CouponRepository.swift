@@ -31,7 +31,6 @@ enum CouponActivationOutcome: Equatable {
 }
 
 protocol CouponRepository: Sendable {
-    func observeAll() -> AsyncStream<[Coupon]>
     func fetchAll() async throws -> [Coupon]
     func fetchActive(now: Date) async throws -> [Coupon]
     func add(_ coupon: Coupon) async throws

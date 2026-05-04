@@ -1,16 +1,5 @@
 @preconcurrency import AVFoundation
-import SwiftUI
 import UIKit
-
-struct CameraPreview: UIViewRepresentable {
-    let session: AVCaptureSession
-
-    func makeUIView(context _: Context) -> CameraPreviewView {
-        CameraPreviewView(session: session)
-    }
-
-    func updateUIView(_: CameraPreviewView, context _: Context) {}
-}
 
 final class CameraPreviewView: UIView {
     override class var layerClass: AnyClass {

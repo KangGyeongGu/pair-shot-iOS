@@ -126,11 +126,6 @@ final class AppSettings {
         set { defaults.set(newValue, forKey: AppSettingsKeys.cameraNightMode) }
     }
 
-    var cameraHDR: Bool {
-        get { defaults.bool(forKey: AppSettingsKeys.cameraHDR) }
-        set { defaults.set(newValue, forKey: AppSettingsKeys.cameraHDR) }
-    }
-
     var overlayEnabled: Bool {
         get { defaults.bool(forKey: AppSettingsKeys.overlayEnabled) }
         set { defaults.set(newValue, forKey: AppSettingsKeys.overlayEnabled) }
@@ -177,7 +172,6 @@ final class AppSettings {
             AppSettingsKeys.cameraLevelEnabled: false,
             AppSettingsKeys.cameraFlashMode: CameraFlashModePersistence.defaultRawValue,
             AppSettingsKeys.cameraNightMode: false,
-            AppSettingsKeys.cameraHDR: false,
             AppSettingsKeys.overlayEnabled: true,
             AppSettingsKeys.homeSortOrder: SortOrderPersistence.defaultRawValue,
             AppSettingsKeys.albumSortOrder: SortOrderPersistence.defaultRawValue,

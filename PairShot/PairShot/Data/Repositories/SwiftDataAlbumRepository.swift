@@ -12,12 +12,6 @@ final class SwiftDataAlbumRepository: AlbumRepository {
         self.container = container
     }
 
-    nonisolated func observeAll() -> AsyncStream<[Album]> {
-        AsyncStream { continuation in
-            continuation.finish()
-        }
-    }
-
     func fetchAll() async throws -> [Album] {
         try fetchAllSync()
     }

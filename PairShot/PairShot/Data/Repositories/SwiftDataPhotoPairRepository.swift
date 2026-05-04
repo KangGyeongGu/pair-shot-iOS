@@ -73,11 +73,6 @@ final class SwiftDataPhotoPairRepository: PhotoPairRepository {
         }
     }
 
-    func nextSequenceNumber() async throws -> Int {
-        let all = try fetchAllSync()
-        return all.count + 1
-    }
-
     private func fetchAllSync() throws -> [PhotoPair] {
         let descriptor = FetchDescriptor<PhotoPair>(
             sortBy: [SortDescriptor(\.createdAt, order: .reverse)]

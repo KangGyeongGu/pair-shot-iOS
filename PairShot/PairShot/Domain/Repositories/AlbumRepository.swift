@@ -1,7 +1,6 @@
 import Foundation
 
 protocol AlbumRepository: Sendable {
-    func observeAll() -> AsyncStream<[Album]>
     func fetchAll() async throws -> [Album]
     func fetch(id: UUID) async throws -> Album?
     func add(_ album: Album) async throws

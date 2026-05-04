@@ -42,7 +42,6 @@ final class AppEnvironment {
     let fullscreenAdCoordinator: FullscreenAdCoordinator
 
     let snackbarQueue: SnackbarQueue
-    let backgroundTaskGuard: BackgroundTaskGuard
     let compositorService: any CompositorService
     let immediateExport: ImmediateExportService
     let settingsRedirectCoordinator: SettingsRedirectCoordinator
@@ -66,7 +65,6 @@ final class AppEnvironment {
         appOpenAdManager: AppOpenAdManager? = nil,
         fullscreenAdCoordinator: FullscreenAdCoordinator? = nil,
         snackbarQueue: SnackbarQueue? = nil,
-        backgroundTaskGuard: BackgroundTaskGuard? = nil,
         settingsRedirectCoordinator: SettingsRedirectCoordinator? = nil,
         permissionStatusService: PermissionStatusService? = nil,
         thumbnailCache: ThumbnailCache? = nil,
@@ -82,7 +80,6 @@ final class AppEnvironment {
         self.adFreeStore = adFreeStore ?? AdFreeStore(context: modelContainer.mainContext)
         self.trackingService = trackingService ?? TrackingAuthorizationService()
         self.snackbarQueue = resolvedSnackbarQueue
-        self.backgroundTaskGuard = backgroundTaskGuard ?? BackgroundTaskGuard()
         self.settingsRedirectCoordinator = settingsRedirectCoordinator ?? SettingsRedirectCoordinator()
         self.permissionStatusService = permissionStatusService ?? PermissionStatusService()
         let resolvedThumbnailCache = thumbnailCache ?? ThumbnailCache()

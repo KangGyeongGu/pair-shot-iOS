@@ -35,24 +35,6 @@ nonisolated enum FileNameBuilder {
         build(type: .combined, prefix: prefix, timestamp: timestamp, sequenceNumber: sequenceNumber)
     }
 
-    static func thumbnail(forBaseName baseName: String) -> String {
-        let stem = (baseName as NSString).deletingPathExtension
-        let ext = (baseName as NSString).pathExtension
-        let normalizedExtension = ext.isEmpty ? "jpg" : ext
-        return "\(stem)_thumb.\(normalizedExtension)"
-    }
-
-    static func extractSequenceNumber(from fileName: String) -> Int? {
-        let pattern = "_(?:BEFORE|AFTER|PAIR)_([0-9]{\(sequenceWidth)})_"
-        guard let regex = try? NSRegularExpression(pattern: pattern) else { return nil }
-        let range = NSRange(fileName.startIndex ..< fileName.endIndex, in: fileName)
-        guard let match = regex.firstMatch(in: fileName, range: range), match.numberOfRanges >= 2 else {
-            return nil
-        }
-        guard let captureRange = Range(match.range(at: 1), in: fileName) else { return nil }
-        return Int(fileName[captureRange])
-    }
-
     private static func build(
         type: PhotoType,
         prefix: String,
@@ -88,16 +70,3 @@ extension DateFormatter {
     }()
 }
 
-nonisolated struct FileNameBuilderAdapter: FileNameBuilding {
-    func before(prefix: String, timestamp: Date, sequenceNumber: Int) -> String {
-        FileNameBuilder.before(prefix: prefix, timestamp: timestamp, sequenceNumber: sequenceNumber)
-    }
-
-    func after(prefix: String, timestamp: Date, sequenceNumber: Int) -> String {
-        FileNameBuilder.after(prefix: prefix, timestamp: timestamp, sequenceNumber: sequenceNumber)
-    }
-
-    func combined(prefix: String, timestamp: Date, sequenceNumber: Int) -> String {
-        FileNameBuilder.combined(prefix: prefix, timestamp: timestamp, sequenceNumber: sequenceNumber)
-    }
-}

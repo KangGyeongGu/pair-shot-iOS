@@ -21,7 +21,6 @@ nonisolated final class UserDefaultsAppSettingsRepository: AppSettingsRepository
             AppSettingsKeys.cameraLevelEnabled: AppSettingsHandoffDefaults.cameraLevelEnabled,
             AppSettingsKeys.cameraFlashMode: AppSettingsHandoffDefaults.cameraFlashMode,
             AppSettingsKeys.cameraNightMode: AppSettingsHandoffDefaults.cameraNightMode,
-            AppSettingsKeys.cameraHDR: AppSettingsHandoffDefaults.cameraHDR,
             AppSettingsKeys.overlayEnabled: AppSettingsHandoffDefaults.overlayEnabled,
             AppSettingsKeys.homeSortOrder: AppSettingsHandoffDefaults.homeSortOrder,
             AppSettingsKeys.albumSortOrder: AppSettingsHandoffDefaults.albumSortOrder,
@@ -143,7 +142,6 @@ nonisolated enum AppSettingsHandoffDefaults {
     static let cameraLevelEnabled: Bool = false
     static let cameraFlashMode: String = "OFF"
     static let cameraNightMode: Bool = false
-    static let cameraHDR: Bool = false
     static let overlayEnabled: Bool = true
     static let homeSortOrder: String = "DESC"
     static let albumSortOrder: String = "DESC"

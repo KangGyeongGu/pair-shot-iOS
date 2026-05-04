@@ -37,12 +37,6 @@ final class SwiftDataCouponRepository: CouponRepository {
         self.now = now
     }
 
-    nonisolated func observeAll() -> AsyncStream<[Coupon]> {
-        AsyncStream { continuation in
-            continuation.finish()
-        }
-    }
-
     func fetchAll() async throws -> [Coupon] {
         try fetchAllSync()
     }
