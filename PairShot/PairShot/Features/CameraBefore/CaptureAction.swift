@@ -45,11 +45,6 @@ struct BeforeCaptureCoordinator {
             throw CaptureActionError.session(.captureFailed(error.localizedDescription))
         }
 
-        let normalizedJPEG = await ExifNormalizationTask.normalize(
-            data: captured.jpegData,
-            jpegQuality: jpegQuality
-        )
-
         let pairId = UUID()
         let cameraSettings = CameraSettings(
             zoomFactor: captured.zoomFactor,
@@ -61,7 +56,7 @@ struct BeforeCaptureCoordinator {
 
         let localIdentifier: String
         do {
-            localIdentifier = try await photoLibrary.saveImage(normalizedJPEG)
+            localIdentifier = try await photoLibrary.saveImage(captured.jpegData)
         } catch {
             throw CaptureActionError.storage(error)
         }

@@ -53,14 +53,9 @@ struct AfterCaptureCoordinator {
             throw AfterCaptureActionError.session(.captureFailed(error.localizedDescription))
         }
 
-        let normalizedJPEG = await ExifNormalizationTask.normalize(
-            data: captured.jpegData,
-            jpegQuality: jpegQuality
-        )
-
         let localIdentifier: String
         do {
-            localIdentifier = try await photoLibrary.saveImage(normalizedJPEG)
+            localIdentifier = try await photoLibrary.saveImage(captured.jpegData)
         } catch {
             throw AfterCaptureActionError.storage(error)
         }
