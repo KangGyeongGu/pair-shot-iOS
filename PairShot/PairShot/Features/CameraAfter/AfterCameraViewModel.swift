@@ -1,8 +1,8 @@
 @preconcurrency import AVFoundation
 import Foundation
+import ImageIO
 import Observation
 import OSLog
-import UIKit
 
 // swiftlint:disable type_contents_order switch_case_alignment
 
@@ -88,6 +88,7 @@ final class AfterCameraViewModel {
     private let permissionProbe: @Sendable () async -> Bool
     private let eventsContinuation: AsyncStream<Event>.Continuation
     private var allCompletedDismissTask: Task<Void, Never>?
+    let motionService: MotionService = .init()
 
     init(
         albumId: UUID?,
@@ -131,6 +132,7 @@ final class AfterCameraViewModel {
 
     func onAppear() async {
         alpha = GhostOverlayMath.clamp(appSettings.defaultOverlayAlpha)
+        motionService.start()
         async let permission = permissionProbe()
         async let startTask: Void = session.start()
         cameraPermissionGranted = await permission
@@ -153,6 +155,7 @@ final class AfterCameraViewModel {
     func onDisappear() {
         allCompletedDismissTask?.cancel()
         allCompletedDismissTask = nil
+        motionService.stop()
         Task { await session.stop() }
     }
 
@@ -177,37 +180,40 @@ final class AfterCameraViewModel {
         adopt(pair: pair)
     }
 
-    var lastDeviceOrientation: UIDeviceOrientation = .portrait
+    var deviceRotationDegrees: Double = 90 {
+        didSet { recomputeRotationDirection() }
+    }
+
     var beforeExifOrientation: CGImagePropertyOrientation = .up
     var beforeCaptureAngle: Double = 90 {
         didSet { recomputeRotationDirection() }
     }
 
-    func updateRotation(orientation: UIDeviceOrientation) {
+    func updateDeviceRotation(degrees: Double) {
         let captureAngleSnapshot = beforeCaptureAngle
         AppLogger.camera
             .info(
-                "[CAM-ROT-DEV] updateRotation: orientation.rawValue=\(orientation.rawValue, privacy: .public), isLandscape=\(orientation.isLandscape, privacy: .public), beforeCaptureAngle=\(captureAngleSnapshot, privacy: .public)"
+                "[CAM-ROT-DEV] updateDeviceRotation: degrees=\(degrees, privacy: .public), beforeCaptureAngle=\(captureAngleSnapshot, privacy: .public)"
             )
-        lastDeviceOrientation = orientation
-        recomputeRotationDirection()
+        deviceRotationDegrees = degrees
     }
 
     private func recomputeRotationDirection() {
         let captureAngleSnapshot = beforeCaptureAngle
+        let deviceAngleSnapshot = deviceRotationDegrees
         let delta = RotationGuideResolver.displayDelta(
             captureAngleDegrees: captureAngleSnapshot,
-            orientation: lastDeviceOrientation
+            deviceAngleDegrees: deviceAngleSnapshot
         )
-        let degrees = Double(-delta)
-        ghostRotationDegrees = degrees
+        let ghost = -delta
+        ghostRotationDegrees = ghost
         let direction = RotationGuideResolver.direction(
             captureAngleDegrees: captureAngleSnapshot,
-            orientation: lastDeviceOrientation
+            deviceAngleDegrees: deviceAngleSnapshot
         )
         AppLogger.camera
             .info(
-                "[CAM-ROT-RES] rotationDirection=\(String(describing: direction), privacy: .public), ghostRotation=\(degrees, privacy: .public), beforeCaptureAngle=\(captureAngleSnapshot, privacy: .public)"
+                "[CAM-ROT-RES] rotationDirection=\(String(describing: direction), privacy: .public), ghostRotation=\(ghost, privacy: .public), beforeCaptureAngle=\(captureAngleSnapshot, privacy: .public), deviceAngle=\(deviceAngleSnapshot, privacy: .public)"
             )
         rotationDirection = direction
     }

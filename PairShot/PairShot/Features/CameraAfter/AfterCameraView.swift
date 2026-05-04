@@ -53,7 +53,7 @@ struct AfterCameraView: View {
         .task {
             ensureViewModelSync()
             guard let vm = viewModel else { return }
-            await observeOrientation(viewModel: vm)
+            await observeDeviceRotation(viewModel: vm)
         }
         .onDisappear { viewModel?.onDisappear() }
         .onChange(of: scenePhase) { _, newPhase in
@@ -227,12 +227,11 @@ struct AfterCameraView: View {
         }
     }
 
-    private func observeOrientation(viewModel: AfterCameraViewModel) async {
-        UIDevice.current.beginGeneratingDeviceOrientationNotifications()
-        viewModel.updateRotation(orientation: UIDevice.current.orientation)
-        let stream = NotificationCenter.default.notifications(named: UIDevice.orientationDidChangeNotification)
-        for await _ in stream {
-            viewModel.updateRotation(orientation: UIDevice.current.orientation)
+    private func observeDeviceRotation(viewModel: AfterCameraViewModel) async {
+        let motion = viewModel.motionService
+        while !Task.isCancelled {
+            viewModel.updateDeviceRotation(degrees: motion.screenRotationDegrees)
+            try? await Task.sleep(nanoseconds: 50_000_000)
         }
     }
 }
