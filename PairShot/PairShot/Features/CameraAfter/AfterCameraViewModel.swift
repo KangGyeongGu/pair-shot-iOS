@@ -199,7 +199,7 @@ final class AfterCameraViewModel {
             captureAngleDegrees: captureAngleSnapshot,
             orientation: lastDeviceOrientation
         )
-        let degrees = Double(delta)
+        let degrees = Double(-delta)
         ghostRotationDegrees = degrees
         let direction = RotationGuideResolver.direction(
             captureAngleDegrees: captureAngleSnapshot,
