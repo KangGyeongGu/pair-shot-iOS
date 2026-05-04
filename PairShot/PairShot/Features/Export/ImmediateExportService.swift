@@ -267,10 +267,15 @@ final class ImmediateExportService {
             appSettings: appSettings
         ) else { return }
         let context = modelContainer.mainContext
+        let pairId = pair.id
+        let descriptor = FetchDescriptor<PhotoPairEntity>(
+            predicate: #Predicate { $0.id == pairId }
+        )
+        let pairEntity = try? context.fetch(descriptor).first
         let record = ExportHistoryEntity(
             kind: kind,
             photoLocalIdentifier: identifier,
-            pair: pair
+            pair: pairEntity
         )
         context.insert(record)
         do {

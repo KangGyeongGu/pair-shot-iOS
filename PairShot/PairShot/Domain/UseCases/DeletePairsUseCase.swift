@@ -28,10 +28,9 @@ final class DeletePairsUseCase {
             if let afterId = pair.afterPhotoLocalIdentifier, !afterId.isEmpty {
                 assetIdsToDelete.append(afterId)
             }
-            for record in pair.exportHistory where !record.photoLocalIdentifier.isEmpty {
-                assetIdsToDelete.append(record.photoLocalIdentifier)
-            }
         }
+        let exportIds = try await pairRepo.allExportPhotoIdentifiers(forPairIds: ids)
+        assetIdsToDelete.append(contentsOf: exportIds)
         try? await photoLibrary.deleteAssets(localIdentifiers: assetIdsToDelete)
         try await pairRepo.delete(ids: ids)
     }

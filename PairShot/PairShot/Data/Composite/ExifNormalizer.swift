@@ -18,7 +18,7 @@ nonisolated enum ExifNormalizer {
     static func normalizeAsync(_ data: Data, jpegQuality: Double) async -> Data {
         await Task.detached(priority: .userInitiated) {
             autoreleasepool {
-                ExifNormalizer.normalize(data, jpegQuality: CGFloat(jpegQuality))
+                Self.normalize(data, jpegQuality: CGFloat(jpegQuality))
             }
         }.value
     }

@@ -7,7 +7,7 @@ final class ExportHistoryEntity {
     var kindRaw: String
     var photoLocalIdentifier: String
     var createdAt: Date
-    var pair: PhotoPair?
+    var pair: PhotoPairEntity?
 
     var kind: ExportHistoryKind {
         ExportHistoryKind(rawValue: kindRaw) ?? .combined
@@ -18,7 +18,7 @@ final class ExportHistoryEntity {
         kind: ExportHistoryKind,
         photoLocalIdentifier: String,
         createdAt: Date = .now,
-        pair: PhotoPair? = nil
+        pair: PhotoPairEntity? = nil
     ) {
         self.id = id
         kindRaw = kind.rawValue

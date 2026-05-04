@@ -8,7 +8,7 @@ struct HomeView: View {
 
     @Environment(AppEnvironment.self) private var env
     @Environment(AdFreeStore.self) private var adFreeStore
-    @Query(sort: \PhotoPair.createdAt, order: .reverse) private var allPairs: [PhotoPair]
+    @Query(sort: \PhotoPairEntity.createdAt, order: .reverse) private var allPairs: [PhotoPairEntity]
     @Query(sort: \AlbumEntity.updatedAt, order: .reverse) private var allAlbums: [AlbumEntity]
     @State private var viewModel: HomeViewModel?
 
@@ -63,7 +63,8 @@ struct HomeView: View {
     @ViewBuilder
     private func content(for viewModel: HomeViewModel) -> some View {
         @Bindable var bindable = viewModel
-        let sortedPairs = viewModel.sortedPairs(from: allPairs)
+        let domainPairs = allPairs.map { $0.toDomain() }
+        let sortedPairs = viewModel.sortedPairs(from: domainPairs)
         let sortedAlbums = viewModel.sortedAlbums(from: allAlbums)
 
         VStack(spacing: 0) {
@@ -278,7 +279,7 @@ struct HomeView: View {
         if let viewModel, viewModel.isSelectionMode {
             HomeSelectionToolbar(
                 viewModel: viewModel,
-                sortedPairs: viewModel.sortedPairs(from: allPairs),
+                sortedPairs: viewModel.sortedPairs(from: allPairs.map { $0.toDomain() }),
                 sortedAlbums: viewModel.sortedAlbums(from: allAlbums)
             )
         } else {

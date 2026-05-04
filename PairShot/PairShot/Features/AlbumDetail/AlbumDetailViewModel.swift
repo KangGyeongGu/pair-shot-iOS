@@ -100,12 +100,13 @@ final class AlbumDetailViewModel {
 
     func sortedPairs(from album: AlbumEntity?) -> [PhotoPair] {
         guard let album else { return [] }
+        let domain = album.pairs.map { $0.toDomain() }
         switch sortOrder {
             case .newest:
-                return album.pairs.sorted { $0.createdAt > $1.createdAt }
+                return domain.sorted { $0.createdAt > $1.createdAt }
 
             case .oldest:
-                return album.pairs.sorted { $0.createdAt < $1.createdAt }
+                return domain.sorted { $0.createdAt < $1.createdAt }
         }
     }
 

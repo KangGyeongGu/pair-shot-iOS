@@ -45,7 +45,7 @@ extension Color {
 }
 
 extension UIColor {
-    convenience nonisolated init(rgba: ColorRGBA) {
+    nonisolated convenience init(rgba: ColorRGBA) {
         self.init(
             red: CGFloat(rgba.red),
             green: CGFloat(rgba.green),

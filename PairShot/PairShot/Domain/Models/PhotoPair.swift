@@ -1,9 +1,7 @@
 import Foundation
-import SwiftData
 
-@Model
-final class PhotoPair {
-    @Attribute(.unique) var id: UUID
+struct PhotoPair: Identifiable, Equatable {
+    var id: UUID
     var beforePhotoLocalIdentifier: String?
     var afterPhotoLocalIdentifier: String?
     var beforeZoomFactor: Double
@@ -14,49 +12,42 @@ final class PhotoPair {
     var latitude: Double?
     var longitude: Double?
     var locationLabel: String?
-
-    @Attribute(.externalStorage) var cameraSettingsData: Data?
-
-    var albums: [AlbumEntity] = []
-
-    @Relationship(deleteRule: .cascade, inverse: \ExportHistoryEntity.pair)
-    var exportHistory: [ExportHistoryEntity] = []
-
-    var cameraSettings: CameraSettings? {
-        get {
-            guard let cameraSettingsData else { return nil }
-            return try? JSONDecoder().decode(CameraSettings.self, from: cameraSettingsData)
-        }
-        set {
-            guard let newValue else {
-                cameraSettingsData = nil
-                return
-            }
-            cameraSettingsData = try? JSONEncoder().encode(newValue)
-        }
-    }
+    var cameraSettings: CameraSettings?
+    var albumIds: [UUID]
+    var firstAlbumName: String?
+    var hasCombinedExport: Bool
 
     init(
+        id: UUID = UUID(),
         beforePhotoLocalIdentifier: String? = nil,
+        afterPhotoLocalIdentifier: String? = nil,
         beforeZoomFactor: Double = 1.0,
         beforeLensIdentifier: String = "",
-        cameraSettings: CameraSettings? = nil,
+        createdAt: Date = .now,
+        updatedAt: Date? = nil,
+        afterCapturedAt: Date? = nil,
         latitude: Double? = nil,
         longitude: Double? = nil,
         locationLabel: String? = nil,
-        capturedAt: Date = .now
+        cameraSettings: CameraSettings? = nil,
+        albumIds: [UUID] = [],
+        firstAlbumName: String? = nil,
+        hasCombinedExport: Bool = false
     ) {
-        id = UUID()
+        self.id = id
         self.beforePhotoLocalIdentifier = beforePhotoLocalIdentifier
+        self.afterPhotoLocalIdentifier = afterPhotoLocalIdentifier
         self.beforeZoomFactor = beforeZoomFactor
         self.beforeLensIdentifier = beforeLensIdentifier
-        createdAt = capturedAt
-        updatedAt = capturedAt
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt ?? createdAt
+        self.afterCapturedAt = afterCapturedAt
         self.latitude = latitude
         self.longitude = longitude
         self.locationLabel = locationLabel
-        if let cameraSettings {
-            cameraSettingsData = try? JSONEncoder().encode(cameraSettings)
-        }
+        self.cameraSettings = cameraSettings
+        self.albumIds = albumIds
+        self.firstAlbumName = firstAlbumName
+        self.hasCombinedExport = hasCombinedExport
     }
 }

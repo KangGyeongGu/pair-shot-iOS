@@ -25,7 +25,7 @@ final class CaptureAfterUseCase {
         afterJPEG: Data,
         jpegQuality: Double = AppSettingsSnapshot.defaultJpegQuality
     ) async throws -> PhotoPair {
-        guard let pair = try await pairRepo.fetch(id: pairId) else {
+        guard var pair = try await pairRepo.fetch(id: pairId) else {
             throw CaptureAfterError.pairNotFound
         }
         let timestamp = now()

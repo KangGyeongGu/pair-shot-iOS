@@ -175,7 +175,7 @@ final class RewardedAdManager {
 }
 
 #if canImport(GoogleMobileAds)
-    private final nonisolated class RewardedAdBox: @unchecked Sendable {
+    nonisolated private final class RewardedAdBox: @unchecked Sendable {
         let ad: GADRewardedAd?
         init(ad: GADRewardedAd?) {
             self.ad = ad

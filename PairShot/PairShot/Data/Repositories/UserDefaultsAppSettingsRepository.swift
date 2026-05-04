@@ -1,6 +1,6 @@
 import Foundation
 
-final nonisolated class UserDefaultsAppSettingsRepository: AppSettingsRepository, @unchecked Sendable {
+nonisolated final class UserDefaultsAppSettingsRepository: AppSettingsRepository, @unchecked Sendable {
     private let defaults: UserDefaults
 
     init(defaults: UserDefaults = .standard) {
@@ -132,7 +132,7 @@ final nonisolated class UserDefaultsAppSettingsRepository: AppSettingsRepository
     }
 }
 
-private final nonisolated class NotificationObserverTokenBox: @unchecked Sendable {
+nonisolated private final class NotificationObserverTokenBox: @unchecked Sendable {
     var token: (any NSObjectProtocol)?
     init() {}
 }

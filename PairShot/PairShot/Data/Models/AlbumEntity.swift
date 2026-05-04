@@ -11,8 +11,8 @@ final class AlbumEntity {
     var longitude: Double?
     var locationLabel: String?
 
-    @Relationship(deleteRule: .nullify, inverse: \PhotoPair.albums)
-    var pairs: [PhotoPair] = []
+    @Relationship(deleteRule: .nullify, inverse: \PhotoPairEntity.albums)
+    var pairs: [PhotoPairEntity] = []
 
     init(
         id: UUID = UUID(),

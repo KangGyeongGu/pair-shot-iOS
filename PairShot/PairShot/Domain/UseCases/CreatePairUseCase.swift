@@ -34,16 +34,16 @@ final class CreatePairUseCase {
         let localIdentifier = try await photoLibrary.saveImage(normalized)
         let resolvedLocation = await location.fetchOnce()
         let pair = PhotoPair(
+            id: pairId,
             beforePhotoLocalIdentifier: localIdentifier,
             beforeZoomFactor: cameraSettings.zoomFactor,
             beforeLensIdentifier: cameraSettings.lensPosition.rawValue,
-            cameraSettings: cameraSettings,
+            createdAt: timestamp,
             latitude: resolvedLocation?.latitude,
             longitude: resolvedLocation?.longitude,
             locationLabel: nil,
-            capturedAt: timestamp
+            cameraSettings: cameraSettings
         )
-        pair.id = pairId
         try await pairRepo.add(pair)
         return pair
     }
@@ -54,7 +54,7 @@ final class CreatePairUseCase {
         cameraSettings: CameraSettings,
         jpegQuality: Double = AppSettingsSnapshot.defaultJpegQuality
     ) async throws -> PhotoPair {
-        guard let pair = try await pairRepo.fetch(id: pairId) else {
+        guard var pair = try await pairRepo.fetch(id: pairId) else {
             throw RefillError.pairNotFound
         }
         let timestamp = now()

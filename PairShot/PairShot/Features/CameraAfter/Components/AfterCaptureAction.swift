@@ -44,6 +44,16 @@ struct AfterCaptureCoordinator {
             throw AfterCaptureActionError.alreadyComplete
         }
 
+        let pairId = pair.id
+        let descriptor = FetchDescriptor<PhotoPairEntity>(
+            predicate: #Predicate { $0.id == pairId }
+        )
+        guard let entity = try? context.fetch(descriptor).first else {
+            throw AfterCaptureActionError.persistence(
+                NSError(domain: "PairShot.AfterCapture", code: -1)
+            )
+        }
+
         let captured: CapturedPhoto
         do {
             captured = try await session.capturePhoto()
@@ -60,10 +70,10 @@ struct AfterCaptureCoordinator {
             throw AfterCaptureActionError.storage(error)
         }
 
-        pair.afterPhotoLocalIdentifier = localIdentifier
-        pair.afterCapturedAt = captured.capturedAt
-        pair.updatedAt = .now
-        for album in pair.albums {
+        entity.afterPhotoLocalIdentifier = localIdentifier
+        entity.afterCapturedAt = captured.capturedAt
+        entity.updatedAt = .now
+        for album in entity.albums {
             album.updatedAt = .now
         }
 
@@ -73,8 +83,9 @@ struct AfterCaptureCoordinator {
             throw AfterCaptureActionError.persistence(error)
         }
 
-        let next = AfterCameraPairLoader.nextPendingPair(after: pair, in: pendingScope)
-        return AfterCaptureOutcome(completedPair: pair, nextPendingPair: next)
+        let completed = entity.toDomain()
+        let next = AfterCameraPairLoader.nextPendingPair(after: completed, in: pendingScope)
+        return AfterCaptureOutcome(completedPair: completed, nextPendingPair: next)
     }
 }
 
@@ -120,7 +131,7 @@ struct AfterCameraScopeFetch {
         let fetched = try? await pairRepo.fetchAll()
         let all = fetched ?? []
         let albumScoped: [PhotoPair] = if let albumId {
-            all.filter { pair in pair.albums.contains(where: { $0.id == albumId }) }
+            all.filter { $0.albumIds.contains(albumId) }
         } else {
             all
         }

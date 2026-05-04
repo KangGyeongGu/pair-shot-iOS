@@ -62,7 +62,8 @@ struct BeforeCaptureCoordinator {
             throw CaptureActionError.storage(error)
         }
 
-        let pair = PhotoPair(
+        let entity = PhotoPairEntity(
+            id: pairId,
             beforePhotoLocalIdentifier: localIdentifier,
             beforeZoomFactor: captured.zoomFactor,
             beforeLensIdentifier: captured.lensIdentifier,
@@ -72,15 +73,14 @@ struct BeforeCaptureCoordinator {
             locationLabel: locationLabel,
             capturedAt: captured.capturedAt
         )
-        pair.id = pairId
-        context.insert(pair)
+        context.insert(entity)
 
         if let albumId {
             let descriptor = FetchDescriptor<AlbumEntity>(
                 predicate: #Predicate { $0.id == albumId }
             )
             if let album = try? context.fetch(descriptor).first {
-                pair.albums.append(album)
+                entity.albums.append(album)
                 album.updatedAt = .now
             }
         }
@@ -91,7 +91,7 @@ struct BeforeCaptureCoordinator {
             throw CaptureActionError.persistence(error)
         }
 
-        return pair
+        return entity.toDomain()
     }
 }
 

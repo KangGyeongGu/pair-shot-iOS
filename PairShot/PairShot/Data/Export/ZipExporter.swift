@@ -152,8 +152,7 @@ nonisolated enum ExportSelection {
         selection: ExportContents,
         now: Date = .now
     ) -> [Entry] {
-        let albumName = pair.albums.first?.name
-        let folder = sanitizeFolderName(albumName ?? "PairShot")
+        let folder = sanitizeFolderName(pair.firstAlbumName ?? "PairShot")
         let timestamp = makeTimestamp(now: now, pair: pair)
         var out: [Entry] = []
 

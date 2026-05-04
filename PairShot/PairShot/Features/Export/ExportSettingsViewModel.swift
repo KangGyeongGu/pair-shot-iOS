@@ -505,10 +505,15 @@ final class ExportSettingsViewModel {
             appSettings: appSettings
         ) else { return }
         let context = modelContainer.mainContext
+        let pairId = pair.id
+        let descriptor = FetchDescriptor<PhotoPairEntity>(
+            predicate: #Predicate { $0.id == pairId }
+        )
+        let pairEntity = try? context.fetch(descriptor).first
         let record = ExportHistoryEntity(
             kind: kind,
             photoLocalIdentifier: identifier,
-            pair: pair
+            pair: pairEntity
         )
         context.insert(record)
         do {
@@ -536,7 +541,7 @@ final class ExportSettingsViewModel {
     }
 }
 
-final nonisolated class ExportPreferences: @unchecked Sendable {
+nonisolated final class ExportPreferences: @unchecked Sendable {
     static let includeCombinedKey = "pairshot.exportIncludeCombined"
     static let includeBeforeKey = "pairshot.exportIncludeBefore"
     static let includeAfterKey = "pairshot.exportIncludeAfter"

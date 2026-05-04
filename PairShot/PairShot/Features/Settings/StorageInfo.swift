@@ -4,7 +4,7 @@ import SwiftUI
 struct StorageInfoView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(AppEnvironment.self) private var env
-    @Query private var pairs: [PhotoPair]
+    @Query private var pairs: [PhotoPairEntity]
 
     @State private var isClearingCache: Bool = false
     @State private var lastResult: String?

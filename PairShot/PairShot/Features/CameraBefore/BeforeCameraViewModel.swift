@@ -311,7 +311,7 @@ final class BeforeCameraViewModel {
     private func refreshPendingPairs() async {
         let all = await (try? pairRepo.fetchAll()) ?? []
         let scoped: [PhotoPair] = if let albumId {
-            all.filter { $0.albums.contains(where: { $0.id == albumId }) }
+            all.filter { $0.albumIds.contains(albumId) }
         } else {
             all
         }

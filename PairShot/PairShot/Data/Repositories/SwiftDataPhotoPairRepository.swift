@@ -13,56 +13,53 @@ final class SwiftDataPhotoPairRepository: PhotoPairRepository {
     }
 
     func fetchAll() async throws -> [PhotoPair] {
-        try fetchAllSync()
+        try fetchAllSync().map { $0.toDomain() }
     }
 
     func fetch(id: UUID) async throws -> PhotoPair? {
-        let descriptor = FetchDescriptor<PhotoPair>(
-            predicate: #Predicate { $0.id == id }
-        )
-        return try context.fetch(descriptor).first
+        try fetchEntity(id: id)?.toDomain()
     }
 
     func add(_ pair: PhotoPair) async throws {
-        context.insert(pair)
+        let entity = makeEntity(from: pair)
+        context.insert(entity)
         try context.save()
     }
 
     func update(_ pair: PhotoPair) async throws {
-        pair.updatedAt = .now
+        guard let entity = try fetchEntity(id: pair.id) else { return }
+        applyDomainFields(pair, to: entity)
+        entity.updatedAt = .now
         try context.save()
     }
 
     func delete(id: UUID) async throws {
-        let descriptor = FetchDescriptor<PhotoPair>(
-            predicate: #Predicate { $0.id == id }
-        )
-        guard let pair = try context.fetch(descriptor).first else { return }
-        context.delete(pair)
+        guard let entity = try fetchEntity(id: id) else { return }
+        context.delete(entity)
         try context.save()
     }
 
     func delete(ids: Set<UUID>) async throws {
         guard !ids.isEmpty else { return }
-        let descriptor = FetchDescriptor<PhotoPair>(
+        let descriptor = FetchDescriptor<PhotoPairEntity>(
             predicate: #Predicate { ids.contains($0.id) }
         )
         let matches = try context.fetch(descriptor)
-        for pair in matches {
-            context.delete(pair)
+        for entity in matches {
+            context.delete(entity)
         }
         try context.save()
     }
 
     func deleteCombinedExportRecords(forPairIds ids: Set<UUID>) async throws {
         guard !ids.isEmpty else { return }
-        let descriptor = FetchDescriptor<PhotoPair>(
+        let descriptor = FetchDescriptor<PhotoPairEntity>(
             predicate: #Predicate { ids.contains($0.id) }
         )
-        let pairs = try context.fetch(descriptor)
+        let entities = try context.fetch(descriptor)
         var didDelete = false
-        for pair in pairs {
-            let combined = pair.exportHistory.filter { $0.kind == .combined }
+        for entity in entities {
+            let combined = entity.exportHistory.filter { $0.kind == .combined }
             for record in combined {
                 context.delete(record)
                 didDelete = true
@@ -73,10 +70,78 @@ final class SwiftDataPhotoPairRepository: PhotoPairRepository {
         }
     }
 
-    private func fetchAllSync() throws -> [PhotoPair] {
-        let descriptor = FetchDescriptor<PhotoPair>(
+    func combinedExportPhotoIdentifiers(forPairIds ids: Set<UUID>) async throws -> [String] {
+        guard !ids.isEmpty else { return [] }
+        let descriptor = FetchDescriptor<PhotoPairEntity>(
+            predicate: #Predicate { ids.contains($0.id) }
+        )
+        let entities = try context.fetch(descriptor)
+        var collected: [String] = []
+        for entity in entities {
+            for record in entity.exportHistory where record.kind == .combined {
+                if !record.photoLocalIdentifier.isEmpty {
+                    collected.append(record.photoLocalIdentifier)
+                }
+            }
+        }
+        return collected
+    }
+
+    func allExportPhotoIdentifiers(forPairIds ids: Set<UUID>) async throws -> [String] {
+        guard !ids.isEmpty else { return [] }
+        let descriptor = FetchDescriptor<PhotoPairEntity>(
+            predicate: #Predicate { ids.contains($0.id) }
+        )
+        let entities = try context.fetch(descriptor)
+        var collected: [String] = []
+        for entity in entities {
+            for record in entity.exportHistory where !record.photoLocalIdentifier.isEmpty {
+                collected.append(record.photoLocalIdentifier)
+            }
+        }
+        return collected
+    }
+
+    private func fetchAllSync() throws -> [PhotoPairEntity] {
+        let descriptor = FetchDescriptor<PhotoPairEntity>(
             sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
         )
         return try context.fetch(descriptor)
+    }
+
+    private func fetchEntity(id: UUID) throws -> PhotoPairEntity? {
+        let descriptor = FetchDescriptor<PhotoPairEntity>(
+            predicate: #Predicate { $0.id == id }
+        )
+        return try context.fetch(descriptor).first
+    }
+
+    private func makeEntity(from domain: PhotoPair) -> PhotoPairEntity {
+        PhotoPairEntity(
+            id: domain.id,
+            beforePhotoLocalIdentifier: domain.beforePhotoLocalIdentifier,
+            afterPhotoLocalIdentifier: domain.afterPhotoLocalIdentifier,
+            beforeZoomFactor: domain.beforeZoomFactor,
+            beforeLensIdentifier: domain.beforeLensIdentifier,
+            cameraSettings: domain.cameraSettings,
+            latitude: domain.latitude,
+            longitude: domain.longitude,
+            locationLabel: domain.locationLabel,
+            capturedAt: domain.createdAt,
+            updatedAt: domain.updatedAt,
+            afterCapturedAt: domain.afterCapturedAt
+        )
+    }
+
+    private func applyDomainFields(_ domain: PhotoPair, to entity: PhotoPairEntity) {
+        entity.beforePhotoLocalIdentifier = domain.beforePhotoLocalIdentifier
+        entity.afterPhotoLocalIdentifier = domain.afterPhotoLocalIdentifier
+        entity.beforeZoomFactor = domain.beforeZoomFactor
+        entity.beforeLensIdentifier = domain.beforeLensIdentifier
+        entity.afterCapturedAt = domain.afterCapturedAt
+        entity.latitude = domain.latitude
+        entity.longitude = domain.longitude
+        entity.locationLabel = domain.locationLabel
+        entity.cameraSettings = domain.cameraSettings
     }
 }

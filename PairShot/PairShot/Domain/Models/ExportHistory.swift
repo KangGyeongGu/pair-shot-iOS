@@ -32,12 +32,6 @@ struct ExportHistory: Identifiable, Equatable {
     }
 }
 
-extension PhotoPair {
-    var hasCombinedExport: Bool {
-        exportHistory.contains { $0.kind == .combined }
-    }
-}
-
 @MainActor
 enum ExportHistoryKindResolver {
     // swiftlint:disable switch_case_alignment

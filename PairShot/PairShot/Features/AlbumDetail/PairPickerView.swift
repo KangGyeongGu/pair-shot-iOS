@@ -7,8 +7,8 @@ struct PairPickerView: View {
     @Environment(AppEnvironment.self) private var env
     @Environment(\.dismiss) private var dismiss
 
-    @Query(sort: \PhotoPair.createdAt, order: .reverse)
-    private var allPairs: [PhotoPair]
+    @Query(sort: \PhotoPairEntity.createdAt, order: .reverse)
+    private var allPairs: [PhotoPairEntity]
 
     @Query private var albums: [AlbumEntity]
 
@@ -84,7 +84,8 @@ struct PairPickerView: View {
         } else {
             ScrollView {
                 LazyVGrid(columns: columns, spacing: 8) {
-                    ForEach(allPairs) { pair in
+                    ForEach(allPairs) { entity in
+                        let pair = entity.toDomain()
                         let alreadyIn = membership.contains(pair.id)
                         let isSelected = viewModel.selection.contains(pair.id)
 

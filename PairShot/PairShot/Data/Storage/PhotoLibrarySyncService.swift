@@ -26,7 +26,7 @@ final class PhotoLibrarySyncService: NSObject, PHPhotoLibraryChangeObserver {
 
     func reconcile() async {
         let context = ModelContext(container)
-        let descriptor = FetchDescriptor<PhotoPair>()
+        let descriptor = FetchDescriptor<PhotoPairEntity>()
         guard let pairs = try? context.fetch(descriptor) else { return }
         var didChange = false
         for pair in pairs {

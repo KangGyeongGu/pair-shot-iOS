@@ -1,6 +1,6 @@
 import Foundation
 
-struct Album: Identifiable, Sendable, Equatable {
+struct Album: Identifiable, Equatable {
     var id: UUID
     var name: String
     var createdAt: Date
