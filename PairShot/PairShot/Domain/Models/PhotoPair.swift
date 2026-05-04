@@ -19,8 +19,8 @@ final class PhotoPair {
 
     var albums: [Album] = []
 
-    @Relationship(deleteRule: .cascade, inverse: \ExportHistory.pair)
-    var exportHistory: [ExportHistory] = []
+    @Relationship(deleteRule: .cascade, inverse: \ExportHistoryEntity.pair)
+    var exportHistory: [ExportHistoryEntity] = []
 
     var cameraSettings: CameraSettings? {
         get {

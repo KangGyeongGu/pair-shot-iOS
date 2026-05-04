@@ -119,7 +119,7 @@ struct ModelContainerBootstrap {
     let fallbackActive: Bool
 
     static func bootstrap() -> Self {
-        let schema = Schema([Album.self, PhotoPair.self, CouponEntity.self, ExportHistory.self])
+        let schema = Schema([Album.self, PhotoPair.self, CouponEntity.self, ExportHistoryEntity.self])
         do {
             let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
             let container = try ModelContainer(

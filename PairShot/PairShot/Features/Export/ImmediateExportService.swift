@@ -267,7 +267,7 @@ final class ImmediateExportService {
             appSettings: appSettings
         ) else { return }
         let context = modelContainer.mainContext
-        let record = ExportHistory(
+        let record = ExportHistoryEntity(
             kind: kind,
             photoLocalIdentifier: identifier,
             pair: pair

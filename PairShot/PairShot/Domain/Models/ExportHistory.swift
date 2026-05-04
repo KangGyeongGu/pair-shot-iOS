@@ -1,5 +1,4 @@
 import Foundation
-import SwiftData
 
 enum ExportHistoryKind: String, Codable, Equatable {
     case combined = "COMBINED"
@@ -7,13 +6,12 @@ enum ExportHistoryKind: String, Codable, Equatable {
     case watermarkedAfter = "WATERMARKED_AFTER"
 }
 
-@Model
-final class ExportHistory {
-    @Attribute(.unique) var id: UUID
+struct ExportHistory: Identifiable, Equatable {
+    var id: UUID
     var kindRaw: String
     var photoLocalIdentifier: String
     var createdAt: Date
-    var pair: PhotoPair?
+    var pairId: UUID?
 
     var kind: ExportHistoryKind {
         ExportHistoryKind(rawValue: kindRaw) ?? .combined
@@ -24,13 +22,13 @@ final class ExportHistory {
         kind: ExportHistoryKind,
         photoLocalIdentifier: String,
         createdAt: Date = .now,
-        pair: PhotoPair? = nil
+        pairId: UUID? = nil
     ) {
         self.id = id
         kindRaw = kind.rawValue
         self.photoLocalIdentifier = photoLocalIdentifier
         self.createdAt = createdAt
-        self.pair = pair
+        self.pairId = pairId
     }
 }
 
