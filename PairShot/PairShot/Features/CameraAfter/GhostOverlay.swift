@@ -53,10 +53,14 @@ struct GhostOverlayView: View {
 
     var body: some View {
         Group {
-            if isEnabled, let image {
+            if isEnabled, let image, let width, let height {
+                let isQuarterTurn = GhostOverlayRotation.isQuarterTurn(rotationDegrees)
+                let innerWidth = isQuarterTurn ? height : width
+                let innerHeight = isQuarterTurn ? width : height
                 Image(uiImage: image)
                     .resizable()
                     .scaledToFit()
+                    .frame(width: innerWidth, height: innerHeight)
                     .rotationEffect(.degrees(rotationDegrees))
                     .frame(width: width, height: height)
                     .opacity(GhostOverlayMath.clamp(alpha))
@@ -67,5 +71,12 @@ struct GhostOverlayView: View {
         }
         .allowsHitTesting(false)
         .accessibilityHidden(true)
+    }
+}
+
+enum GhostOverlayRotation {
+    static func isQuarterTurn(_ degrees: Double) -> Bool {
+        let absDegrees = abs(degrees.truncatingRemainder(dividingBy: 180))
+        return absDegrees > 0.5 && absDegrees < 179.5
     }
 }
