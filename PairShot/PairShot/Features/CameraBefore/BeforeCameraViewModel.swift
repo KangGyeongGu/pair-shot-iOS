@@ -275,7 +275,8 @@ final class BeforeCameraViewModel {
                 lensPosition: LensPosition.resolve(identifier: captured.lensIdentifier),
                 flashMode: BeforeCameraFlashModeMapper.persisted(from: flashMode),
                 useGrid: isGridOn,
-                useNightMode: isNightModeOn
+                useNightMode: isNightModeOn,
+                captureAngleDegrees: captured.captureAngleDegrees
             )
             if let refillPairId {
                 _ = try await createPair.refillBefore(
