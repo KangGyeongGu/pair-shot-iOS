@@ -320,7 +320,7 @@ final class BeforeCameraViewModel {
         pendingPairs = scoped
             .filter { $0.afterPhotoLocalIdentifier == nil }
             .filter { $0.createdAt >= sessionStartedAt }
-            .sorted { $0.createdAt > $1.createdAt }
+            .sorted { $0.createdAt < $1.createdAt }
     }
 
     private func emitTickHaptics(for ratio: Double) {

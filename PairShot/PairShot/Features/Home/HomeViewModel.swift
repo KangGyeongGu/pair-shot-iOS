@@ -150,7 +150,7 @@ final class HomeViewModel {
         let grouped = Dictionary(grouping: sorted) { calendar.startOfDay(for: $0.createdAt) }
         return grouped
             .map { (date: $0.key, pairs: $0.value) }
-            .sorted { $0.date > $1.date }
+            .sorted { sortOrder == .newest ? $0.date > $1.date : $0.date < $1.date }
     }
 
     func sortedAlbums(from all: [Album]) -> [Album] {

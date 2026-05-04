@@ -80,11 +80,21 @@ enum RotationGuideResolver {
         for orientation: UIDeviceOrientation,
         beforeExif: CGImagePropertyOrientation
     ) -> RotationGuideDirection {
-        let beforeIsLandscape = (beforeExif == .up || beforeExif == .down)
+        let beforeIsLandscape = switch beforeExif {
+            case .left, .right, .leftMirrored, .rightMirrored:
+                true
+
+            case .up, .down, .upMirrored, .downMirrored:
+                false
+
+            @unknown default:
+                false
+        }
         let deviceIsLandscape = orientation.isLandscape
         if beforeIsLandscape == deviceIsLandscape { return .upright }
         if beforeIsLandscape {
-            return beforeExif == .up ? .right : .left
+            let isRightExif = beforeExif == .right || beforeExif == .rightMirrored
+            return isRightExif ? .right : .left
         }
         return orientation == .landscapeLeft ? .left : .right
     }

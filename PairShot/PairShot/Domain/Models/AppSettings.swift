@@ -137,24 +137,22 @@ final class AppSettings {
     }
 
     var homeSortOrder: String {
-        get {
-            let raw = defaults.string(forKey: AppSettingsKeys.homeSortOrder)
-                ?? SortOrderPersistence.defaultRawValue
-            return SortOrderPersistence.normalize(raw)
-        }
-        set {
-            defaults.set(SortOrderPersistence.normalize(newValue), forKey: AppSettingsKeys.homeSortOrder)
+        didSet {
+            let normalized = SortOrderPersistence.normalize(homeSortOrder)
+            defaults.set(normalized, forKey: AppSettingsKeys.homeSortOrder)
+            if normalized != homeSortOrder {
+                homeSortOrder = normalized
+            }
         }
     }
 
     var albumSortOrder: String {
-        get {
-            let raw = defaults.string(forKey: AppSettingsKeys.albumSortOrder)
-                ?? SortOrderPersistence.defaultRawValue
-            return SortOrderPersistence.normalize(raw)
-        }
-        set {
-            defaults.set(SortOrderPersistence.normalize(newValue), forKey: AppSettingsKeys.albumSortOrder)
+        didSet {
+            let normalized = SortOrderPersistence.normalize(albumSortOrder)
+            defaults.set(normalized, forKey: AppSettingsKeys.albumSortOrder)
+            if normalized != albumSortOrder {
+                albumSortOrder = normalized
+            }
         }
     }
 
@@ -185,6 +183,12 @@ final class AppSettings {
             AppSettingsKeys.albumSortOrder: SortOrderPersistence.defaultRawValue,
         ])
         watermarkEnabled = defaults.bool(forKey: AppSettingsKeys.watermarkEnabled)
+        let storedHome = defaults.string(forKey: AppSettingsKeys.homeSortOrder)
+            ?? SortOrderPersistence.defaultRawValue
+        homeSortOrder = SortOrderPersistence.normalize(storedHome)
+        let storedAlbum = defaults.string(forKey: AppSettingsKeys.albumSortOrder)
+            ?? SortOrderPersistence.defaultRawValue
+        albumSortOrder = SortOrderPersistence.normalize(storedAlbum)
     }
 }
 

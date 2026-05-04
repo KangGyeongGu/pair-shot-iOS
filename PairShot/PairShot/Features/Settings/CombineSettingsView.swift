@@ -236,7 +236,7 @@ private struct CombineSliderRow: View {
 }
 
 private struct CombineSettingsViewPreviewWrapper: View {
-    private static let previewDefaults: UserDefaults = UserDefaults(suiteName: "preview-combine") ?? .standard
+    private static let previewDefaults: UserDefaults = .init(suiteName: "preview-combine") ?? .standard
 
     @State private var viewModel = CombineSettingsViewModel(
         appSettingsRepo: UserDefaultsAppSettingsRepository(defaults: previewDefaults),

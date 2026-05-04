@@ -167,7 +167,10 @@ struct AfterCameraView: View {
                 return (image, exif)
             }.value
             cachedGhostImage = result.0
-            AppLogger.camera.info("[CAM-ROT-IMG] cachedGhost exif=\(result.1.rawValue, privacy: .public), size=\(result.0?.size.width ?? 0, privacy: .public)x\(result.0?.size.height ?? 0, privacy: .public)")
+            AppLogger.camera
+                .info(
+                    "[CAM-ROT-IMG] cachedGhost exif=\(result.1.rawValue, privacy: .public), size=\(result.0?.size.width ?? 0, privacy: .public)x\(result.0?.size.height ?? 0, privacy: .public)"
+                )
             viewModel?.beforeExifOrientation = result.1
         }
     }
