@@ -82,37 +82,14 @@ enum RotationGuideResolver {
         category: "Camera"
     )
 
-    private static let deviceAngleByOrientation: [UIDeviceOrientation: Int] = [
-        .landscapeLeft: 0,
-        .portrait: 90,
-        .faceUp: 90,
-        .faceDown: 90,
-        .unknown: 90,
-        .landscapeRight: 180,
-        .portraitUpsideDown: 270,
-    ]
-
-    private static let directionByDelta: [Int: RotationGuideDirection] = [
-        0: .upright,
-        90: .right,
-        -90: .left,
-        180: .right,
-        -180: .right,
-    ]
-
-    static func deviceAngleDegrees(from orientation: UIDeviceOrientation) -> Int {
-        deviceAngleByOrientation[orientation] ?? 90
-    }
-
     static func displayDelta(
         captureAngleDegrees: Double,
         orientation: UIDeviceOrientation
     ) -> Int {
-        let rounded = Int(captureAngleDegrees.rounded())
-        let normalizedCapture = ((rounded % 360) + 360) % 360
-        let deviceAngle = deviceAngleDegrees(from: orientation)
-        let raw = ((normalizedCapture - deviceAngle) % 360 + 360) % 360
-        return raw > 180 ? raw - 360 : raw
+        let capture = ((Int(captureAngleDegrees.rounded()) % 360) + 360) % 360
+        let device = deviceAngle(for: orientation)
+        let mod = ((capture - device) % 360 + 360) % 360
+        return mod > 180 ? mod - 360 : mod
     }
 
     static func direction(
@@ -120,13 +97,21 @@ enum RotationGuideResolver {
         orientation: UIDeviceOrientation
     ) -> RotationGuideDirection {
         let delta = displayDelta(captureAngleDegrees: captureAngleDegrees, orientation: orientation)
-        let result = directionByDelta[delta] ?? .upright
-        let deviceAngle = deviceAngleDegrees(from: orientation)
+        let result: RotationGuideDirection = delta == 0 ? .upright : (delta > 0 ? .right : .left)
         logger
             .info(
-                "[CAM-ROT-BRANCH] captureAngle=\(captureAngleDegrees, privacy: .public), deviceOrient=\(orientation.rawValue, privacy: .public), deviceAngle=\(deviceAngle, privacy: .public), displayDelta=\(delta, privacy: .public), direction=\(String(describing: result), privacy: .public)"
+                "[CAM-ROT-BRANCH] captureAngle=\(captureAngleDegrees, privacy: .public), deviceOrient=\(orientation.rawValue, privacy: .public), displayDelta=\(delta, privacy: .public), direction=\(String(describing: result), privacy: .public)"
             )
         return result
+    }
+
+    private static func deviceAngle(for orientation: UIDeviceOrientation) -> Int {
+        switch orientation {
+            case .landscapeLeft: 0
+            case .landscapeRight: 180
+            case .portraitUpsideDown: 270
+            default: 90
+        }
     }
 }
 
