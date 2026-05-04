@@ -1,4 +1,5 @@
 import Foundation
+import ImageIO
 import SwiftUI
 import UIKit
 
@@ -9,6 +10,22 @@ enum GhostOverlayMath {
     static func clamp(_ value: Double) -> Double {
         max(alphaRange.lowerBound, min(value, alphaRange.upperBound))
     }
+}
+
+nonisolated func UIImageOrientationFromCGPropertyOrientation(
+    _ orientation: CGImagePropertyOrientation
+) -> UIImage.Orientation {
+    let mapping: [CGImagePropertyOrientation: UIImage.Orientation] = [
+        .up: .up,
+        .upMirrored: .upMirrored,
+        .down: .down,
+        .downMirrored: .downMirrored,
+        .left: .left,
+        .leftMirrored: .leftMirrored,
+        .right: .right,
+        .rightMirrored: .rightMirrored,
+    ]
+    return mapping[orientation] ?? .up
 }
 
 @MainActor
@@ -22,7 +39,9 @@ enum GhostOverlayLoader {
             return nil
         }
         guard let cgImage = UIImage(data: data)?.cgImage else { return nil }
-        return UIImage(cgImage: cgImage, scale: 1, orientation: .up)
+        let exif = ExifOrientationCodec.read(from: data) ?? .up
+        let uiOrientation = UIImageOrientationFromCGPropertyOrientation(exif)
+        return UIImage(cgImage: cgImage, scale: 1, orientation: uiOrientation)
     }
 }
 
@@ -30,6 +49,7 @@ struct GhostOverlayView: View {
     let image: UIImage?
     let alpha: Double
     let isEnabled: Bool
+    let rotationDegrees: Double
     let width: CGFloat?
     let height: CGFloat?
 
@@ -37,12 +57,14 @@ struct GhostOverlayView: View {
         image: UIImage?,
         alpha: Double,
         isEnabled: Bool = true,
+        rotationDegrees: Double = 0,
         width: CGFloat? = nil,
         height: CGFloat? = nil
     ) {
         self.image = image
         self.alpha = alpha
         self.isEnabled = isEnabled
+        self.rotationDegrees = rotationDegrees
         self.width = width
         self.height = height
     }
@@ -53,6 +75,7 @@ struct GhostOverlayView: View {
                 Image(uiImage: image)
                     .resizable()
                     .scaledToFit()
+                    .rotationEffect(.degrees(rotationDegrees))
                     .frame(width: width, height: height)
                     .opacity(GhostOverlayMath.clamp(alpha))
             } else {

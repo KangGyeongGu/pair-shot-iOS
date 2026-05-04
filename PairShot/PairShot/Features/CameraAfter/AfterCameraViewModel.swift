@@ -69,6 +69,7 @@ final class AfterCameraViewModel {
     var lensPosition: CameraLensPosition = .back
 
     var rotationDirection: RotationGuideDirection = .upright
+    var ghostRotationDegrees: Double = 0
     var allCompleted: Bool = false
 
     var pendingPairCount: Int = 0
@@ -192,11 +193,20 @@ final class AfterCameraViewModel {
     }
 
     private func recomputeRotationDirection() {
+        let delta = RotationGuideResolver.displayDelta(
+            beforeExif: beforeExifOrientation,
+            orientation: lastDeviceOrientation
+        )
+        let degrees = Double(delta)
+        ghostRotationDegrees = degrees
         let direction = RotationGuideResolver.direction(
             for: lastDeviceOrientation,
             beforeExif: beforeExifOrientation
         )
-        AppLogger.camera.info("[CAM-ROT-RES] rotationDirection=\(String(describing: direction), privacy: .public)")
+        AppLogger.camera
+            .info(
+                "[CAM-ROT-RES] rotationDirection=\(String(describing: direction), privacy: .public), ghostRotation=\(degrees, privacy: .public)"
+            )
         rotationDirection = direction
     }
 

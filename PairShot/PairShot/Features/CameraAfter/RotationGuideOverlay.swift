@@ -82,39 +82,66 @@ enum RotationGuideResolver {
         category: "Camera"
     )
 
+    private static let captureAngleByExif: [CGImagePropertyOrientation: Int] = [
+        .up: 0,
+        .upMirrored: 0,
+        .right: 90,
+        .rightMirrored: 90,
+        .down: 180,
+        .downMirrored: 180,
+        .left: 270,
+        .leftMirrored: 270,
+    ]
+
+    private static let deviceAngleByOrientation: [UIDeviceOrientation: Int] = [
+        .landscapeLeft: 0,
+        .portrait: 90,
+        .faceUp: 90,
+        .faceDown: 90,
+        .unknown: 90,
+        .landscapeRight: 180,
+        .portraitUpsideDown: 270,
+    ]
+
+    private static let directionByDelta: [Int: RotationGuideDirection] = [
+        0: .upright,
+        90: .right,
+        -90: .left,
+        180: .right,
+        -180: .right,
+    ]
+
+    static func captureAngleDegrees(from exif: CGImagePropertyOrientation) -> Int {
+        captureAngleByExif[exif] ?? 90
+    }
+
+    static func deviceAngleDegrees(from orientation: UIDeviceOrientation) -> Int {
+        deviceAngleByOrientation[orientation] ?? 90
+    }
+
+    static func displayDelta(
+        beforeExif: CGImagePropertyOrientation,
+        orientation: UIDeviceOrientation
+    ) -> Int {
+        let captureAngle = captureAngleDegrees(from: beforeExif)
+        let deviceAngle = deviceAngleDegrees(from: orientation)
+        let raw = ((captureAngle - deviceAngle) % 360 + 360) % 360
+        return raw > 180 ? raw - 360 : raw
+    }
+
     static func direction(
         for orientation: UIDeviceOrientation,
         beforeExif: CGImagePropertyOrientation
     ) -> RotationGuideDirection {
-        let beforeIsLandscape = switch beforeExif {
-            case .up, .down, .upMirrored, .downMirrored:
-                true
-
-            case .left, .right, .leftMirrored, .rightMirrored:
-                false
-
-            @unknown default:
-                false
-        }
-        let deviceIsLandscape = orientation.isLandscape
-        let direction: RotationGuideDirection
-        let branch: String
-        if beforeIsLandscape == deviceIsLandscape {
-            direction = .upright
-            branch = "match-upright"
-        } else if beforeIsLandscape {
-            let isUpExif = beforeExif == .up || beforeExif == .upMirrored
-            direction = isUpExif ? .left : .right
-            branch = "before-landscape"
-        } else {
-            direction = orientation == .landscapeLeft ? .left : .right
-            branch = "before-portrait"
-        }
+        let delta = displayDelta(beforeExif: beforeExif, orientation: orientation)
+        let result = directionByDelta[delta] ?? .upright
+        let captureAngle = captureAngleDegrees(from: beforeExif)
+        let deviceAngle = deviceAngleDegrees(from: orientation)
         logger
             .info(
-                "[CAM-ROT-BRANCH] beforeExif=\(beforeExif.rawValue, privacy: .public), beforeIsLandscape=\(beforeIsLandscape, privacy: .public), deviceOrient=\(orientation.rawValue, privacy: .public), deviceIsLandscape=\(deviceIsLandscape, privacy: .public), branch=\(branch, privacy: .public), direction=\(String(describing: direction), privacy: .public)"
+                "[CAM-ROT-BRANCH] beforeExif=\(beforeExif.rawValue, privacy: .public), captureAngle=\(captureAngle, privacy: .public), deviceOrient=\(orientation.rawValue, privacy: .public), deviceAngle=\(deviceAngle, privacy: .public), displayDelta=\(delta, privacy: .public), direction=\(String(describing: result), privacy: .public)"
             )
-        return direction
+        return result
     }
 }
 

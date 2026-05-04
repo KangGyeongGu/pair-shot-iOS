@@ -108,6 +108,7 @@ struct AfterCameraView: View {
                 ghostImage: cachedGhostImage,
                 alpha: viewModel.alpha,
                 overlayEnabled: viewModel.overlayEnabled,
+                ghostRotationDegrees: viewModel.ghostRotationDegrees,
                 pairs: viewModel.pairs,
                 selectedPairId: selectedPairIdBinding(for: viewModel),
                 rotationDirection: viewModel.rotationDirection,
@@ -167,7 +168,13 @@ struct AfterCameraView: View {
                 let cgHeight = sourceImage?.cgImage?.height ?? 0
                 let bytes = data.count
                 let image = sourceImage.flatMap { source in
-                    source.cgImage.map { UIImage(cgImage: $0, scale: 1, orientation: .up) }
+                    source.cgImage.map {
+                        UIImage(
+                            cgImage: $0,
+                            scale: 1,
+                            orientation: UIImageOrientationFromCGPropertyOrientation(exif)
+                        )
+                    }
                 }
                 AppLogger.camera
                     .info(

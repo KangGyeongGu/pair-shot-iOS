@@ -11,6 +11,7 @@ struct AfterCameraStack: View {
     let ghostImage: UIImage?
     let alpha: Double
     let overlayEnabled: Bool
+    let ghostRotationDegrees: Double
 
     let pairs: [PhotoPair]
     let selectedPairId: Binding<UUID?>
@@ -105,6 +106,7 @@ struct AfterCameraStack: View {
                 image: ghostImage,
                 alpha: alpha,
                 isEnabled: overlayEnabled,
+                rotationDegrees: ghostRotationDegrees,
                 width: width,
                 height: previewHeight
             )
