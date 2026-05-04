@@ -8,7 +8,7 @@ struct AlbumDetailView: View {
     @Environment(AppEnvironment.self) private var env
     @Environment(AdFreeStore.self) private var adFreeStore
     @Environment(\.dismiss) private var dismiss
-    @Query private var albums: [Album]
+    @Query private var albums: [AlbumEntity]
 
     @State private var viewModel: AlbumDetailViewModel?
 
@@ -23,7 +23,7 @@ struct AlbumDetailView: View {
     ) {
         self.albumId = albumId
         self.onPushExportSettings = onPushExportSettings
-        let predicate = #Predicate<Album> { $0.id == albumId }
+        let predicate = #Predicate<AlbumEntity> { $0.id == albumId }
         _albums = Query(filter: predicate)
     }
 
@@ -53,7 +53,7 @@ struct AlbumDetailView: View {
     }
 
     @ViewBuilder
-    private func content(for viewModel: AlbumDetailViewModel, album: Album) -> some View {
+    private func content(for viewModel: AlbumDetailViewModel, album: AlbumEntity) -> some View {
         let sortedPairs = viewModel.sortedPairs(from: album)
 
         VStack(spacing: 0) {

@@ -8,7 +8,7 @@ struct PreviewEnvironment<Content: View>: View {
 
     // swiftlint:disable:next force_try
     private let container = try! ModelContainer(
-        for: Schema([Album.self, PhotoPair.self, CouponEntity.self, ExportHistoryEntity.self]),
+        for: Schema([AlbumEntity.self, PhotoPair.self, CouponEntity.self, ExportHistoryEntity.self]),
         configurations: ModelConfiguration(isStoredInMemoryOnly: true)
     )
 

@@ -2,7 +2,7 @@ import SwiftUI
 import UIKit
 
 struct HomeAlbumCardView: View {
-    let album: Album
+    let album: AlbumEntity
     let isSelectionMode: Bool
     let isSelected: Bool
 
@@ -57,7 +57,7 @@ struct HomeAlbumCardView: View {
     }
 
     static func accessibilityLabel(
-        for album: Album,
+        for album: AlbumEntity,
         isSelected: Bool,
         isSelectionMode: Bool
     ) -> String {

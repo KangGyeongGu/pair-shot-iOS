@@ -98,7 +98,7 @@ final class AlbumDetailViewModel {
         try? await useCase(ids: [pair.id])
     }
 
-    func sortedPairs(from album: Album?) -> [PhotoPair] {
+    func sortedPairs(from album: AlbumEntity?) -> [PhotoPair] {
         guard let album else { return [] }
         switch sortOrder {
             case .newest:
@@ -293,12 +293,22 @@ final class AlbumDetailViewModel {
         showRenameAlert = true
     }
 
-    func confirmRename(album: Album) async {
+    func confirmRename(album: AlbumEntity) async {
         let trimmed = renameDraft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
         album.name = trimmed
         album.updatedAt = .now
-        try? await albumRepo.update(album)
+        let domain = Album(
+            id: album.id,
+            name: album.name,
+            latitude: album.latitude,
+            longitude: album.longitude,
+            locationLabel: album.locationLabel,
+            createdAt: album.createdAt,
+            updatedAt: album.updatedAt,
+            pairIds: album.pairs.map(\.id)
+        )
+        try? await albumRepo.update(domain)
     }
 
     func requestAlbumDeletion() {

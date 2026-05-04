@@ -76,7 +76,7 @@ struct BeforeCaptureCoordinator {
         context.insert(pair)
 
         if let albumId {
-            let descriptor = FetchDescriptor<Album>(
+            let descriptor = FetchDescriptor<AlbumEntity>(
                 predicate: #Predicate { $0.id == albumId }
             )
             if let album = try? context.fetch(descriptor).first {

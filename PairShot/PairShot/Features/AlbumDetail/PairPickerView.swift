@@ -10,7 +10,7 @@ struct PairPickerView: View {
     @Query(sort: \PhotoPair.createdAt, order: .reverse)
     private var allPairs: [PhotoPair]
 
-    @Query private var albums: [Album]
+    @Query private var albums: [AlbumEntity]
 
     @State private var viewModel: PairPickerViewModel?
 
@@ -21,7 +21,7 @@ struct PairPickerView: View {
 
     init(albumId: UUID) {
         self.albumId = albumId
-        let predicate = #Predicate<Album> { $0.id == albumId }
+        let predicate = #Predicate<AlbumEntity> { $0.id == albumId }
         _albums = Query(filter: predicate)
     }
 

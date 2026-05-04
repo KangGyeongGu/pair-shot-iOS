@@ -9,7 +9,7 @@ struct HomeView: View {
     @Environment(AppEnvironment.self) private var env
     @Environment(AdFreeStore.self) private var adFreeStore
     @Query(sort: \PhotoPair.createdAt, order: .reverse) private var allPairs: [PhotoPair]
-    @Query(sort: \Album.updatedAt, order: .reverse) private var allAlbums: [Album]
+    @Query(sort: \AlbumEntity.updatedAt, order: .reverse) private var allAlbums: [AlbumEntity]
     @State private var viewModel: HomeViewModel?
 
     private let columns: [GridItem] = [
@@ -100,7 +100,7 @@ struct HomeView: View {
     private func grids(
         viewModel: HomeViewModel,
         sortedPairs: [PhotoPair],
-        sortedAlbums: [Album]
+        sortedAlbums: [AlbumEntity]
     ) -> some View {
         switch viewModel.contentMode {
             case .pairs:
@@ -232,7 +232,7 @@ struct HomeView: View {
         return base
     }
 
-    private func albumsList(viewModel: HomeViewModel, albums: [Album]) -> some View {
+    private func albumsList(viewModel: HomeViewModel, albums: [AlbumEntity]) -> some View {
         List {
             ForEach(albums) { album in
                 HomeAlbumCardView(

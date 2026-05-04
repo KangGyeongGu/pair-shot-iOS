@@ -17,7 +17,7 @@ final class PhotoPair {
 
     @Attribute(.externalStorage) var cameraSettingsData: Data?
 
-    var albums: [Album] = []
+    var albums: [AlbumEntity] = []
 
     @Relationship(deleteRule: .cascade, inverse: \ExportHistoryEntity.pair)
     var exportHistory: [ExportHistoryEntity] = []

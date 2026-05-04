@@ -1,14 +1,18 @@
 import Foundation
+import SwiftData
 
-struct Album: Identifiable, Sendable, Equatable {
-    var id: UUID
+@Model
+final class AlbumEntity {
+    @Attribute(.unique) var id: UUID
     var name: String
     var createdAt: Date
     var updatedAt: Date
     var latitude: Double?
     var longitude: Double?
     var locationLabel: String?
-    var pairIds: [UUID]
+
+    @Relationship(deleteRule: .nullify, inverse: \PhotoPair.albums)
+    var pairs: [PhotoPair] = []
 
     init(
         id: UUID = UUID(),
@@ -16,17 +20,14 @@ struct Album: Identifiable, Sendable, Equatable {
         latitude: Double? = nil,
         longitude: Double? = nil,
         locationLabel: String? = nil,
-        createdAt: Date = .now,
-        updatedAt: Date? = nil,
-        pairIds: [UUID] = []
+        createdAt: Date = .now
     ) {
         self.id = id
         self.name = name
         self.createdAt = createdAt
-        self.updatedAt = updatedAt ?? createdAt
+        updatedAt = createdAt
         self.latitude = latitude
         self.longitude = longitude
         self.locationLabel = locationLabel
-        self.pairIds = pairIds
     }
 }
