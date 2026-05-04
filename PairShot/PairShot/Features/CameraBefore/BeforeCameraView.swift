@@ -13,7 +13,7 @@ struct BeforeCameraView: View {
     @State private var viewModel: BeforeCameraViewModel?
     @State private var didStartViewModel = false
     @State private var hasPresentedColdStartAppOpen = false
-    @State private var motion = MotionService()
+    @State private var didSubscribeMotion = false
     @State private var focusIndicator: FocusIndicatorState?
     @State private var previewView: CameraPreviewView?
     @State private var afterCameraTarget: AfterCameraTarget?
@@ -67,15 +67,15 @@ struct BeforeCameraView: View {
         }
         .onDisappear {
             viewModel?.onDisappear()
-            motion.stop()
+            releaseMotionIfNeeded()
         }
         .onChange(of: scenePhase) { _, newPhase in
             viewModel?.handleScenePhaseAction(CameraScenePhaseGate.action(for: newPhase))
-            if newPhase == .background { motion.stop() }
-            if newPhase == .active, viewModel?.isLevelOn == true { motion.start() }
+            if newPhase == .background { releaseMotionIfNeeded() }
+            if newPhase == .active, viewModel?.isLevelOn == true { acquireMotionIfNeeded() }
         }
         .onChange(of: viewModel?.isLevelOn ?? false) { _, isOn in
-            if isOn { motion.start() } else { motion.stop() }
+            if isOn { acquireMotionIfNeeded() } else { releaseMotionIfNeeded() }
         }
         .fullScreenCover(item: $afterCameraTarget) { target in
             NavigationStack {
@@ -127,7 +127,7 @@ struct BeforeCameraView: View {
                 isLevelOn: viewModel.isLevelOn,
                 isNightModeOn: viewModel.isNightModeOn,
                 flashMode: viewModel.flashMode,
-                rollDegrees: motion.rollDegrees,
+                rollDegrees: env.motionService.rollDegrees,
                 presets: viewModel.availablePresets,
                 displayMultiplier: viewModel.displayMultiplier,
                 activePreset: viewModel.activePreset,
@@ -183,6 +183,18 @@ struct BeforeCameraView: View {
             albumId: albumId,
             refillPairId: refillPairId
         )
+    }
+
+    private func acquireMotionIfNeeded() {
+        guard !didSubscribeMotion else { return }
+        env.motionService.start()
+        didSubscribeMotion = true
+    }
+
+    private func releaseMotionIfNeeded() {
+        guard didSubscribeMotion else { return }
+        env.motionService.stop()
+        didSubscribeMotion = false
     }
 
     private func observeEvents(viewModel: BeforeCameraViewModel) async {

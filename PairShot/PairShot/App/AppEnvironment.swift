@@ -49,6 +49,7 @@ final class AppEnvironment {
     let permissionStatusService: PermissionStatusService
     let thumbnailCache: ThumbnailCache
     let hapticService: HapticService
+    let motionService: MotionService
 
     private var sharedSettingsViewModel: SettingsViewModel?
 
@@ -69,7 +70,8 @@ final class AppEnvironment {
         settingsRedirectCoordinator: SettingsRedirectCoordinator? = nil,
         permissionStatusService: PermissionStatusService? = nil,
         thumbnailCache: ThumbnailCache? = nil,
-        hapticService: HapticService? = nil
+        hapticService: HapticService? = nil,
+        motionService: MotionService? = nil
     ) {
         let resolvedAppSettings = appSettings ?? AppSettings()
         let resolvedSnackbarQueue = snackbarQueue ?? SnackbarQueue()
@@ -86,6 +88,7 @@ final class AppEnvironment {
         let resolvedThumbnailCache = thumbnailCache ?? ThumbnailCache()
         self.thumbnailCache = resolvedThumbnailCache
         self.hapticService = hapticService ?? HapticService()
+        self.motionService = motionService ?? MotionService()
 
         let ads = Self.makeAdManagers(
             interstitialAdManager: interstitialAdManager,

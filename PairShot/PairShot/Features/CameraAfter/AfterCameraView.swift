@@ -16,6 +16,7 @@ struct AfterCameraView: View {
     @State private var showSettingsSheet = false
     @State private var cachedGhostImage: UIImage?
     @State private var didStartViewModel = false
+    @State private var didSubscribeMotion = false
 
     init(
         albumId: UUID? = nil,
@@ -53,9 +54,12 @@ struct AfterCameraView: View {
         .task {
             ensureViewModelSync()
             guard let vm = viewModel else { return }
-            await observeOrientation(viewModel: vm)
+            await observeDeviceRotation(viewModel: vm)
         }
-        .onDisappear { viewModel?.onDisappear() }
+        .onDisappear {
+            viewModel?.onDisappear()
+            releaseMotionIfNeeded()
+        }
         .onChange(of: scenePhase) { _, newPhase in
             viewModel?.handleScenePhaseAction(CameraScenePhaseGate.action(for: newPhase))
         }
@@ -227,12 +231,25 @@ struct AfterCameraView: View {
         }
     }
 
-    private func observeOrientation(viewModel: AfterCameraViewModel) async {
-        UIDevice.current.beginGeneratingDeviceOrientationNotifications()
-        viewModel.updateRotation(orientation: UIDevice.current.orientation)
-        let stream = NotificationCenter.default.notifications(named: UIDevice.orientationDidChangeNotification)
-        for await _ in stream {
-            viewModel.updateRotation(orientation: UIDevice.current.orientation)
+    private func observeDeviceRotation(viewModel: AfterCameraViewModel) async {
+        acquireMotionIfNeeded()
+        let motion = env.motionService
+        viewModel.updateDeviceRotation(degrees: motion.screenRotationDegrees)
+        while !Task.isCancelled {
+            try? await Task.sleep(nanoseconds: 50_000_000)
+            viewModel.updateDeviceRotation(degrees: motion.screenRotationDegrees)
         }
+    }
+
+    private func acquireMotionIfNeeded() {
+        guard !didSubscribeMotion else { return }
+        env.motionService.start()
+        didSubscribeMotion = true
+    }
+
+    private func releaseMotionIfNeeded() {
+        guard didSubscribeMotion else { return }
+        env.motionService.stop()
+        didSubscribeMotion = false
     }
 }

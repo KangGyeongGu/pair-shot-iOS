@@ -77,6 +77,8 @@ struct RotationGuideOverlay: View {
 }
 
 enum RotationGuideResolver {
+    static let upRightTolerance: Double = 15
+
     private static let logger = Logger(
         subsystem: Bundle.main.bundleIdentifier ?? "com.pairshot",
         category: "Camera"
@@ -84,34 +86,32 @@ enum RotationGuideResolver {
 
     static func displayDelta(
         captureAngleDegrees: Double,
-        orientation: UIDeviceOrientation
-    ) -> Int {
-        let capture = ((Int(captureAngleDegrees.rounded()) % 360) + 360) % 360
-        let device = deviceAngle(for: orientation)
-        let mod = ((capture - device) % 360 + 360) % 360
-        return mod > 180 ? mod - 360 : mod
+        deviceAngleDegrees: Double
+    ) -> Double {
+        let raw = (captureAngleDegrees - deviceAngleDegrees).truncatingRemainder(dividingBy: 360)
+        let positive = (raw + 360).truncatingRemainder(dividingBy: 360)
+        return positive > 180 ? positive - 360 : positive
     }
 
     static func direction(
         captureAngleDegrees: Double,
-        orientation: UIDeviceOrientation
+        deviceAngleDegrees: Double
     ) -> RotationGuideDirection {
-        let delta = displayDelta(captureAngleDegrees: captureAngleDegrees, orientation: orientation)
-        let result: RotationGuideDirection = delta == 0 ? .upright : (delta > 0 ? .right : .left)
+        let delta = displayDelta(
+            captureAngleDegrees: captureAngleDegrees,
+            deviceAngleDegrees: deviceAngleDegrees
+        )
+        let result: RotationGuideDirection
+        if abs(delta) <= upRightTolerance {
+            result = .upright
+        } else {
+            result = delta > 0 ? .right : .left
+        }
         logger
             .info(
-                "[CAM-ROT-BRANCH] captureAngle=\(captureAngleDegrees, privacy: .public), deviceOrient=\(orientation.rawValue, privacy: .public), displayDelta=\(delta, privacy: .public), direction=\(String(describing: result), privacy: .public)"
+                "[CAM-ROT-BRANCH] captureAngle=\(captureAngleDegrees, privacy: .public), deviceAngle=\(deviceAngleDegrees, privacy: .public), displayDelta=\(delta, privacy: .public), tolerance=\(upRightTolerance, privacy: .public), direction=\(String(describing: result), privacy: .public)"
             )
         return result
-    }
-
-    private static func deviceAngle(for orientation: UIDeviceOrientation) -> Int {
-        switch orientation {
-            case .landscapeLeft: 0
-            case .landscapeRight: 180
-            case .portraitUpsideDown: 270
-            default: 90
-        }
     }
 }
 
