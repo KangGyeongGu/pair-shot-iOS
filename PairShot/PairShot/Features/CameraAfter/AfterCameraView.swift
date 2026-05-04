@@ -161,9 +161,18 @@ struct AfterCameraView: View {
         Task { @MainActor in
             let result = await Task.detached(priority: .userInitiated) {
                 let exif = ExifOrientationCodec.read(from: data) ?? .up
-                let image = UIImage(data: data).flatMap { source in
+                let sourceImage = UIImage(data: data)
+                let sourceOrient = sourceImage?.imageOrientation.rawValue ?? -1
+                let cgWidth = sourceImage?.cgImage?.width ?? 0
+                let cgHeight = sourceImage?.cgImage?.height ?? 0
+                let bytes = data.count
+                let image = sourceImage.flatMap { source in
                     source.cgImage.map { UIImage(cgImage: $0, scale: 1, orientation: .up) }
                 }
+                AppLogger.camera
+                    .info(
+                        "[CAM-ROT-IMG-EX] dataBytes=\(bytes, privacy: .public), exifRead=\(exif.rawValue, privacy: .public), uiImageOrient=\(sourceOrient, privacy: .public), cgImage=\(cgWidth, privacy: .public)x\(cgHeight, privacy: .public)"
+                    )
                 return (image, exif)
             }.value
             cachedGhostImage = result.0

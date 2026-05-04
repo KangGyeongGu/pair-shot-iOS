@@ -1,3 +1,4 @@
+import OSLog
 import SwiftUI
 
 enum RotationGuideDirection {
@@ -76,27 +77,44 @@ struct RotationGuideOverlay: View {
 }
 
 enum RotationGuideResolver {
+    private static let logger = Logger(
+        subsystem: Bundle.main.bundleIdentifier ?? "com.pairshot",
+        category: "Camera"
+    )
+
     static func direction(
         for orientation: UIDeviceOrientation,
         beforeExif: CGImagePropertyOrientation
     ) -> RotationGuideDirection {
         let beforeIsLandscape = switch beforeExif {
-            case .left, .right, .leftMirrored, .rightMirrored:
+            case .up, .down, .upMirrored, .downMirrored:
                 true
 
-            case .up, .down, .upMirrored, .downMirrored:
+            case .left, .right, .leftMirrored, .rightMirrored:
                 false
 
             @unknown default:
                 false
         }
         let deviceIsLandscape = orientation.isLandscape
-        if beforeIsLandscape == deviceIsLandscape { return .upright }
-        if beforeIsLandscape {
-            let isRightExif = beforeExif == .right || beforeExif == .rightMirrored
-            return isRightExif ? .right : .left
+        let direction: RotationGuideDirection
+        let branch: String
+        if beforeIsLandscape == deviceIsLandscape {
+            direction = .upright
+            branch = "match-upright"
+        } else if beforeIsLandscape {
+            let isUpExif = beforeExif == .up || beforeExif == .upMirrored
+            direction = isUpExif ? .left : .right
+            branch = "before-landscape"
+        } else {
+            direction = orientation == .landscapeLeft ? .left : .right
+            branch = "before-portrait"
         }
-        return orientation == .landscapeLeft ? .left : .right
+        logger
+            .info(
+                "[CAM-ROT-BRANCH] beforeExif=\(beforeExif.rawValue, privacy: .public), beforeIsLandscape=\(beforeIsLandscape, privacy: .public), deviceOrient=\(orientation.rawValue, privacy: .public), deviceIsLandscape=\(deviceIsLandscape, privacy: .public), branch=\(branch, privacy: .public), direction=\(String(describing: direction), privacy: .public)"
+            )
+        return direction
     }
 }
 
