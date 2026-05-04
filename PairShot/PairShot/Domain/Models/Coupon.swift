@@ -1,18 +1,16 @@
 import Foundation
-import SwiftData
 
-@Model
-final class Coupon {
-    @Attribute(.unique) var id: UUID
-    var serverCouponId: String = ""
+struct Coupon: Identifiable, Equatable {
+    var id: UUID
+    var serverCouponId: String
     var code: String
     var activatedAt: Date
     var durationDays: Int
     var signatureBase64: String
     var status: Status
-    var kindRawString: String = ""
-    var payloadVersion: Int = 1
-    var issuedAt = Date(timeIntervalSince1970: 0)
+    var kindRawString: String
+    var payloadVersion: Int
+    var issuedAt: Date
 
     enum Status: String, Codable, CaseIterable {
         case active
@@ -21,6 +19,7 @@ final class Coupon {
     }
 
     init(
+        id: UUID = UUID(),
         code: String,
         activatedAt: Date = .now,
         durationDays: Int,
@@ -31,7 +30,7 @@ final class Coupon {
         issuedAt: Date? = nil,
         serverCouponId: String = ""
     ) {
-        id = UUID()
+        self.id = id
         self.serverCouponId = serverCouponId
         self.code = code
         self.activatedAt = activatedAt

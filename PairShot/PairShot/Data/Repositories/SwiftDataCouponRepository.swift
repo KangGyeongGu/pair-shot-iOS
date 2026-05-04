@@ -38,32 +38,33 @@ final class SwiftDataCouponRepository: CouponRepository {
     }
 
     func fetchAll() async throws -> [Coupon] {
-        try fetchAllSync()
+        try fetchAllSync().map(toDomain)
     }
 
     func fetchActive(now: Date) async throws -> [Coupon] {
-        try fetchAllSync().filter { $0.isCurrentlyActive(now: now) }
+        try fetchAllSync().map(toDomain).filter { $0.isCurrentlyActive(now: now) }
     }
 
     func add(_ coupon: Coupon) async throws {
-        context.insert(coupon)
+        let entity = makeEntity(from: coupon)
+        context.insert(entity)
         try context.save()
     }
 
     func updateStatus(id: UUID, status: Coupon.Status) async throws {
-        let descriptor = FetchDescriptor<Coupon>(
+        let descriptor = FetchDescriptor<CouponEntity>(
             predicate: #Predicate { $0.id == id }
         )
-        guard let coupon = try context.fetch(descriptor).first else { return }
-        coupon.status = status
+        guard let entity = try context.fetch(descriptor).first else { return }
+        entity.status = status
         try context.save()
     }
 
     func rolloverExpired(now: Date) async throws {
-        let all = try fetchAllSync()
+        let entities = try fetchAllSync()
         var changed = false
-        for coupon in all where coupon.status == .active && !coupon.isCurrentlyActive(now: now) {
-            coupon.status = .expired
+        for entity in entities where entity.status == .active && !toDomain(entity).isCurrentlyActive(now: now) {
+            entity.status = .expired
             changed = true
         }
         if changed {
@@ -135,11 +136,53 @@ final class SwiftDataCouponRepository: CouponRepository {
         return .success(coupon: coupon, expiresAt: expiresAt)
     }
 
-    private func fetchAllSync() throws -> [Coupon] {
-        let descriptor = FetchDescriptor<Coupon>(
+    private func fetchAllSync() throws -> [CouponEntity] {
+        let descriptor = FetchDescriptor<CouponEntity>(
             sortBy: [SortDescriptor(\.activatedAt, order: .reverse)]
         )
         return try context.fetch(descriptor)
+    }
+
+    private func toDomain(_ entity: CouponEntity) -> Coupon {
+        Coupon(
+            id: entity.id,
+            code: entity.code,
+            activatedAt: entity.activatedAt,
+            durationDays: entity.durationDays,
+            signatureBase64: entity.signatureBase64,
+            status: entity.status,
+            kindRawString: entity.kindRawString,
+            payloadVersion: entity.payloadVersion,
+            issuedAt: entity.issuedAt,
+            serverCouponId: entity.serverCouponId
+        )
+    }
+
+    private func makeEntity(from domain: Coupon) -> CouponEntity {
+        CouponEntity(
+            id: domain.id,
+            code: domain.code,
+            activatedAt: domain.activatedAt,
+            durationDays: domain.durationDays,
+            signatureBase64: domain.signatureBase64,
+            status: domain.status,
+            kindRawString: domain.kindRawString,
+            payloadVersion: domain.payloadVersion,
+            issuedAt: domain.issuedAt,
+            serverCouponId: domain.serverCouponId
+        )
+    }
+
+    private func update(_ entity: CouponEntity, from domain: Coupon) {
+        entity.serverCouponId = domain.serverCouponId
+        entity.code = domain.code
+        entity.activatedAt = domain.activatedAt
+        entity.durationDays = domain.durationDays
+        entity.signatureBase64 = domain.signatureBase64
+        entity.status = domain.status
+        entity.kindRawString = domain.kindRawString
+        entity.payloadVersion = domain.payloadVersion
+        entity.issuedAt = domain.issuedAt
     }
 
     private static func parseIso8601(_ raw: String?) -> Date? {

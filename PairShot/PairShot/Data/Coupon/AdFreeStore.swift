@@ -19,14 +19,15 @@ final class AdFreeStore {
     }
 
     func refresh(now: Date = .now) {
-        let allCoupons = fetchAllCoupons()
-        let activeOnDisk = allCoupons.filter { $0.status == .active }
-        var stillActive: [Coupon] = []
-        for coupon in activeOnDisk {
-            if coupon.isCurrentlyActive(now: now) {
-                stillActive.append(coupon)
+        let allEntities = fetchAllEntities()
+        let activeOnDisk = allEntities.filter { $0.status == .active }
+        var stillActiveDomain: [Coupon] = []
+        for entity in activeOnDisk {
+            let domain = Self.toDomain(entity)
+            if domain.isCurrentlyActive(now: now) {
+                stillActiveDomain.append(domain)
             } else {
-                coupon.status = .expired
+                entity.status = .expired
             }
         }
         do {
@@ -37,11 +38,11 @@ final class AdFreeStore {
             )
         }
 
-        let refreshedAll = fetchAllCoupons()
+        let refreshedAll = fetchAllEntities().map(Self.toDomain)
         activeCoupons = AdFreeCouponSorter.active(refreshedAll, now: now)
         pastCoupons = AdFreeCouponSorter.past(refreshedAll, now: now)
 
-        if let latest = stillActive.map(\.expirationDate).max() {
+        if let latest = stillActiveDomain.map(\.expirationDate).max() {
             currentExpiration = latest
             isAdFree = true
         } else {
@@ -61,19 +62,19 @@ final class AdFreeStore {
         now: Date = .now
     ) async {
         refresh(now: now)
-        let activeOnDisk = fetchAllCoupons().filter { $0.status == .active }
+        let activeOnDisk = fetchAllEntities().filter { $0.status == .active }
         guard !activeOnDisk.isEmpty else { return }
         let hash = deviceHashProvider.deviceHash()
         var changed = false
-        for coupon in activeOnDisk where !coupon.serverCouponId.isEmpty {
-            let request = StatusRequestDto(couponId: coupon.serverCouponId, deviceHash: hash)
+        for entity in activeOnDisk where !entity.serverCouponId.isEmpty {
+            let request = StatusRequestDto(couponId: entity.serverCouponId, deviceHash: hash)
             let result = await api.fetchStatus(request)
             switch result {
                 case .activated:
                     break
 
                 case .revoked, .notFoundOrForeign:
-                    coupon.status = .revoked
+                    entity.status = .revoked
                     changed = true
 
                 case .networkError, .serverError:
@@ -92,9 +93,24 @@ final class AdFreeStore {
         }
     }
 
-    private func fetchAllCoupons() -> [Coupon] {
-        let descriptor = FetchDescriptor<Coupon>()
+    private func fetchAllEntities() -> [CouponEntity] {
+        let descriptor = FetchDescriptor<CouponEntity>()
         return (try? context.fetch(descriptor)) ?? []
+    }
+
+    private static func toDomain(_ entity: CouponEntity) -> Coupon {
+        Coupon(
+            id: entity.id,
+            code: entity.code,
+            activatedAt: entity.activatedAt,
+            durationDays: entity.durationDays,
+            signatureBase64: entity.signatureBase64,
+            status: entity.status,
+            kindRawString: entity.kindRawString,
+            payloadVersion: entity.payloadVersion,
+            issuedAt: entity.issuedAt,
+            serverCouponId: entity.serverCouponId
+        )
     }
 }
 
