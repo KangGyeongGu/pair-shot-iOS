@@ -169,11 +169,7 @@ struct AfterCameraView: View {
                 let bytes = data.count
                 let image = sourceImage.flatMap { source in
                     source.cgImage.map {
-                        UIImage(
-                            cgImage: $0,
-                            scale: 1,
-                            orientation: UIImageOrientationFromCGPropertyOrientation(exif)
-                        )
+                        UIImage(cgImage: $0, scale: 1, orientation: .up)
                     }
                 }
                 AppLogger.camera

@@ -12,22 +12,6 @@ enum GhostOverlayMath {
     }
 }
 
-nonisolated func UIImageOrientationFromCGPropertyOrientation(
-    _ orientation: CGImagePropertyOrientation
-) -> UIImage.Orientation {
-    let mapping: [CGImagePropertyOrientation: UIImage.Orientation] = [
-        .up: .up,
-        .upMirrored: .upMirrored,
-        .down: .down,
-        .downMirrored: .downMirrored,
-        .left: .left,
-        .leftMirrored: .leftMirrored,
-        .right: .right,
-        .rightMirrored: .rightMirrored,
-    ]
-    return mapping[orientation] ?? .up
-}
-
 @MainActor
 enum GhostOverlayLoader {
     static func loadImage(
@@ -39,9 +23,7 @@ enum GhostOverlayLoader {
             return nil
         }
         guard let cgImage = UIImage(data: data)?.cgImage else { return nil }
-        let exif = ExifOrientationCodec.read(from: data) ?? .up
-        let uiOrientation = UIImageOrientationFromCGPropertyOrientation(exif)
-        return UIImage(cgImage: cgImage, scale: 1, orientation: uiOrientation)
+        return UIImage(cgImage: cgImage, scale: 1, orientation: .up)
     }
 }
 

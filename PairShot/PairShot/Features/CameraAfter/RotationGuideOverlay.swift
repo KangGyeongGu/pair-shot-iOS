@@ -82,17 +82,6 @@ enum RotationGuideResolver {
         category: "Camera"
     )
 
-    private static let captureAngleByExif: [CGImagePropertyOrientation: Int] = [
-        .up: 0,
-        .upMirrored: 0,
-        .right: 90,
-        .rightMirrored: 90,
-        .down: 180,
-        .downMirrored: 180,
-        .left: 270,
-        .leftMirrored: 270,
-    ]
-
     private static let deviceAngleByOrientation: [UIDeviceOrientation: Int] = [
         .landscapeLeft: 0,
         .portrait: 90,
@@ -111,35 +100,31 @@ enum RotationGuideResolver {
         -180: .right,
     ]
 
-    static func captureAngleDegrees(from exif: CGImagePropertyOrientation) -> Int {
-        captureAngleByExif[exif] ?? 90
-    }
-
     static func deviceAngleDegrees(from orientation: UIDeviceOrientation) -> Int {
         deviceAngleByOrientation[orientation] ?? 90
     }
 
     static func displayDelta(
-        beforeExif: CGImagePropertyOrientation,
+        captureAngleDegrees: Double,
         orientation: UIDeviceOrientation
     ) -> Int {
-        let captureAngle = captureAngleDegrees(from: beforeExif)
+        let rounded = Int(captureAngleDegrees.rounded())
+        let normalizedCapture = ((rounded % 360) + 360) % 360
         let deviceAngle = deviceAngleDegrees(from: orientation)
-        let raw = ((captureAngle - deviceAngle) % 360 + 360) % 360
+        let raw = ((normalizedCapture - deviceAngle) % 360 + 360) % 360
         return raw > 180 ? raw - 360 : raw
     }
 
     static func direction(
-        for orientation: UIDeviceOrientation,
-        beforeExif: CGImagePropertyOrientation
+        captureAngleDegrees: Double,
+        orientation: UIDeviceOrientation
     ) -> RotationGuideDirection {
-        let delta = displayDelta(beforeExif: beforeExif, orientation: orientation)
+        let delta = displayDelta(captureAngleDegrees: captureAngleDegrees, orientation: orientation)
         let result = directionByDelta[delta] ?? .upright
-        let captureAngle = captureAngleDegrees(from: beforeExif)
         let deviceAngle = deviceAngleDegrees(from: orientation)
         logger
             .info(
-                "[CAM-ROT-BRANCH] beforeExif=\(beforeExif.rawValue, privacy: .public), captureAngle=\(captureAngle, privacy: .public), deviceOrient=\(orientation.rawValue, privacy: .public), deviceAngle=\(deviceAngle, privacy: .public), displayDelta=\(delta, privacy: .public), direction=\(String(describing: result), privacy: .public)"
+                "[CAM-ROT-BRANCH] captureAngle=\(captureAngleDegrees, privacy: .public), deviceOrient=\(orientation.rawValue, privacy: .public), deviceAngle=\(deviceAngle, privacy: .public), displayDelta=\(delta, privacy: .public), direction=\(String(describing: result), privacy: .public)"
             )
         return result
     }

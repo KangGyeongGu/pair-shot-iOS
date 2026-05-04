@@ -33,18 +33,21 @@ nonisolated struct CameraSettings: Codable, Equatable {
     var flashMode: FlashMode
     var useGrid: Bool
     var useNightMode: Bool
+    var captureAngleDegrees: Double?
 
     init(
         zoomFactor: Double = 1.0,
         lensPosition: LensPosition = .backWide,
         flashMode: FlashMode = .off,
         useGrid: Bool = false,
-        useNightMode: Bool = false
+        useNightMode: Bool = false,
+        captureAngleDegrees: Double? = nil
     ) {
         self.zoomFactor = zoomFactor
         self.lensPosition = lensPosition
         self.flashMode = flashMode
         self.useGrid = useGrid
         self.useNightMode = useNightMode
+        self.captureAngleDegrees = captureAngleDegrees
     }
 }

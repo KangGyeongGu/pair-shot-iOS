@@ -61,6 +61,7 @@ nonisolated extension CameraSession {
                             jpegData: processedJpeg,
                             zoomFactor: captureContext.zoom,
                             lensIdentifier: captureContext.lens,
+                            captureAngleDegrees: Double(captureAngle),
                             capturedAt: .now
                         ))
 

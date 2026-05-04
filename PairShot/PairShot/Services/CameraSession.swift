@@ -35,6 +35,7 @@ nonisolated struct CapturedPhoto {
     let jpegData: Data
     let zoomFactor: Double
     let lensIdentifier: String
+    let captureAngleDegrees: Double
     let capturedAt: Date
 }
 

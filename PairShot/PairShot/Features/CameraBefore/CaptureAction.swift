@@ -51,7 +51,8 @@ struct BeforeCaptureCoordinator {
             lensPosition: LensPosition.resolve(identifier: captured.lensIdentifier),
             flashMode: .off,
             useGrid: false,
-            useNightMode: false
+            useNightMode: false,
+            captureAngleDegrees: captured.captureAngleDegrees
         )
 
         let localIdentifier: String

@@ -178,34 +178,36 @@ final class AfterCameraViewModel {
     }
 
     var lastDeviceOrientation: UIDeviceOrientation = .portrait
-    var beforeExifOrientation: CGImagePropertyOrientation = .up {
+    var beforeExifOrientation: CGImagePropertyOrientation = .up
+    var beforeCaptureAngle: Double = 90 {
         didSet { recomputeRotationDirection() }
     }
 
     func updateRotation(orientation: UIDeviceOrientation) {
-        let exifRaw = beforeExifOrientation.rawValue
+        let captureAngleSnapshot = beforeCaptureAngle
         AppLogger.camera
             .info(
-                "[CAM-ROT-DEV] updateRotation: orientation.rawValue=\(orientation.rawValue, privacy: .public), isLandscape=\(orientation.isLandscape, privacy: .public), beforeExif=\(exifRaw, privacy: .public)"
+                "[CAM-ROT-DEV] updateRotation: orientation.rawValue=\(orientation.rawValue, privacy: .public), isLandscape=\(orientation.isLandscape, privacy: .public), beforeCaptureAngle=\(captureAngleSnapshot, privacy: .public)"
             )
         lastDeviceOrientation = orientation
         recomputeRotationDirection()
     }
 
     private func recomputeRotationDirection() {
+        let captureAngleSnapshot = beforeCaptureAngle
         let delta = RotationGuideResolver.displayDelta(
-            beforeExif: beforeExifOrientation,
+            captureAngleDegrees: captureAngleSnapshot,
             orientation: lastDeviceOrientation
         )
         let degrees = Double(delta)
         ghostRotationDegrees = degrees
         let direction = RotationGuideResolver.direction(
-            for: lastDeviceOrientation,
-            beforeExif: beforeExifOrientation
+            captureAngleDegrees: captureAngleSnapshot,
+            orientation: lastDeviceOrientation
         )
         AppLogger.camera
             .info(
-                "[CAM-ROT-RES] rotationDirection=\(String(describing: direction), privacy: .public), ghostRotation=\(degrees, privacy: .public)"
+                "[CAM-ROT-RES] rotationDirection=\(String(describing: direction), privacy: .public), ghostRotation=\(degrees, privacy: .public), beforeCaptureAngle=\(captureAngleSnapshot, privacy: .public)"
             )
         rotationDirection = direction
     }
@@ -273,6 +275,7 @@ final class AfterCameraViewModel {
         ghostImageData = nil
         alpha = GhostOverlayMath.clamp(appSettings.defaultOverlayAlpha)
         hasRestoredZoom = false
+        beforeCaptureAngle = pair.cameraSettings?.captureAngleDegrees ?? 90
         Task { await loadGhost(for: pair) }
         Task { await restoreZoom(for: pair) }
     }
