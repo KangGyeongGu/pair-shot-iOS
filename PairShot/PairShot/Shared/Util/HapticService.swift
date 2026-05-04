@@ -34,13 +34,7 @@ enum HapticNotificationKind: Equatable {
 }
 
 @MainActor
-protocol HapticServicing: AnyObject {
-    func impact(_ style: HapticImpactStyle)
-    func notify(_ kind: HapticNotificationKind)
-}
-
-@MainActor
-final class HapticService: HapticServicing {
+final class HapticService {
     init() {}
 
     func impact(_ style: HapticImpactStyle) {

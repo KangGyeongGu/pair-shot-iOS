@@ -126,11 +126,11 @@ final class PhotoLibraryService: @unchecked Sendable {
     }
 }
 
-nonisolated private final class PhotoLibraryPlaceholderBox: @unchecked Sendable {
+private final nonisolated class PhotoLibraryPlaceholderBox: @unchecked Sendable {
     var placeholder: PHObjectPlaceholder?
 }
 
-nonisolated private final class PhotoLibraryAssetsBox: @unchecked Sendable {
+private final nonisolated class PhotoLibraryAssetsBox: @unchecked Sendable {
     let value: PHFetchResult<PHAsset>
     init(value: PHFetchResult<PHAsset>) {
         self.value = value
@@ -139,6 +139,8 @@ nonisolated private final class PhotoLibraryAssetsBox: @unchecked Sendable {
 
 @MainActor
 final class PhotoLibraryThumbnailCache {
+    nonisolated static let defaultThumbnailPixelSize: CGFloat = 600
+
     private let cache: NSCache<NSString, UIImage>
     private let manager = PHCachingImageManager()
     private let failedKeys: NSCache<NSString, NSNumber>
@@ -156,6 +158,25 @@ final class PhotoLibraryThumbnailCache {
     func cached(localIdentifier: String, targetSize: CGSize) -> UIImage? {
         guard !localIdentifier.isEmpty else { return nil }
         return cache.object(forKey: cacheKey(localIdentifier, targetSize))
+    }
+
+    func cached(
+        localIdentifier: String,
+        pixelSize: CGFloat = PhotoLibraryThumbnailCache.defaultThumbnailPixelSize
+    ) -> UIImage? {
+        cached(localIdentifier: localIdentifier, targetSize: CGSize(width: pixelSize, height: pixelSize))
+    }
+
+    func image(
+        for localIdentifier: String,
+        pixelSize: CGFloat = PhotoLibraryThumbnailCache.defaultThumbnailPixelSize,
+        progressHandler: (@Sendable (Double) -> Void)? = nil
+    ) async -> UIImage? {
+        await image(
+            for: localIdentifier,
+            targetSize: CGSize(width: pixelSize, height: pixelSize),
+            progressHandler: progressHandler
+        )
     }
 
     func image(

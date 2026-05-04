@@ -60,7 +60,6 @@ final class BeforeCameraViewModel {
     private let albumRepo: AlbumRepository
     private let appSettings: AppSettings
     let hapticService: HapticService
-    private let captureSource: BeforeCameraCaptureSource
     private let permissionProbe: @Sendable () async -> Bool
     private let eventsContinuation: AsyncStream<Event>.Continuation
     private var dragAccumulatorPx: Double = 0
@@ -80,8 +79,7 @@ final class BeforeCameraViewModel {
         appSettings: AppSettings,
         hapticService: HapticService,
         session: CameraSession? = nil,
-        captureSource: BeforeCameraCaptureSource? = nil,
-        permissionProbe: @escaping @Sendable () async -> Bool = BeforeCameraPermissionProbe.resolve
+        permissionProbe: @escaping @Sendable () async -> Bool = CameraPermissionProbe.resolve
     ) {
         self.albumId = albumId
         self.refillPairId = refillPairId
@@ -92,7 +90,6 @@ final class BeforeCameraViewModel {
         self.hapticService = hapticService
         let resolvedSession = session ?? CameraSession()
         self.session = resolvedSession
-        self.captureSource = captureSource ?? CameraSessionCaptureSource(session: resolvedSession)
         self.permissionProbe = permissionProbe
         var continuation: AsyncStream<Event>.Continuation!
         events = AsyncStream { continuation = $0 }
@@ -269,11 +266,11 @@ final class BeforeCameraViewModel {
         isCapturing = true
         defer { isCapturing = false }
         do {
-            let captured = try await captureSource.capturePhoto()
+            let captured = try await session.capturePhoto()
             let cameraSettings = CameraSettings(
                 zoomFactor: captured.zoomFactor,
                 lensPosition: LensPosition.resolve(identifier: captured.lensIdentifier),
-                flashMode: BeforeCameraFlashModeMapper.persisted(from: flashMode),
+                flashMode: CameraFlashModeMapping.cameraSettingsFlashMode(from: flashMode),
                 useGrid: isGridOn,
                 useNightMode: isNightModeOn,
                 captureAngleDegrees: captured.captureAngleDegrees
@@ -365,24 +362,6 @@ enum ZoomDialMetrics {
     static let pixelsPerMinorTick: Double = 30
 }
 
-enum BeforeCameraFlashModeMapper {
-    static func persisted(from camera: CameraFlashMode) -> FlashMode {
-        switch camera {
-            case .off:
-                .off
-
-            case .on:
-                .on
-
-            case .auto:
-                .auto
-
-            case .torch:
-                .torch
-        }
-    }
-}
-
 nonisolated enum CameraFlashModeMapping {
     static func flashMode(from raw: String) -> CameraFlashMode {
         switch raw.uppercased() {
@@ -415,24 +394,13 @@ nonisolated enum CameraFlashModeMapping {
                 CameraFlashModePersistence.torch
         }
     }
-}
 
-protocol BeforeCameraCaptureSource: Sendable {
-    func capturePhoto() async throws -> CapturedPhoto
-}
-
-struct CameraSessionCaptureSource: BeforeCameraCaptureSource {
-    let session: CameraSession
-
-    func capturePhoto() async throws -> CapturedPhoto {
-        try await session.capturePhoto()
-    }
-}
-
-enum BeforeCameraPermissionProbe {
-    @Sendable
-    static func resolve() async -> Bool {
-        let service = await MainActor.run { PermissionStatusService() }
-        return await service.requestCameraAccessIfNeeded()
+    static func cameraSettingsFlashMode(from camera: CameraFlashMode) -> FlashMode {
+        switch camera {
+            case .off: .off
+            case .on: .on
+            case .auto: .auto
+            case .torch: .torch
+        }
     }
 }

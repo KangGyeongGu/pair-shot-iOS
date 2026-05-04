@@ -18,7 +18,7 @@ final class SettingsViewModel {
 
     let appSettings: AppSettings
     let appSettingsRepo: AppSettingsRepository
-    let thumbnailCache: ThumbnailCache
+    let thumbnailCache: PhotoLibraryThumbnailCache
     let hapticService: HapticService
     let events: AsyncStream<Event>
 
@@ -142,7 +142,7 @@ final class SettingsViewModel {
     init(
         appSettings: AppSettings,
         appSettingsRepo: AppSettingsRepository,
-        thumbnailCache: ThumbnailCache,
+        thumbnailCache: PhotoLibraryThumbnailCache,
         hapticService: HapticService
     ) {
         self.appSettings = appSettings
@@ -302,19 +302,11 @@ final class SettingsViewModel {
 }
 
 extension SettingsViewModel {
-    func triggerWatermarkPulse() {
-        shouldPulseWatermark = true
+    func triggerPulse(_ flag: ReferenceWritableKeyPath<SettingsViewModel, Bool>) {
+        self[keyPath: flag] = true
         Task { @MainActor in
             try? await Task.sleep(nanoseconds: 50_000_000)
-            shouldPulseWatermark = false
-        }
-    }
-
-    func triggerCombinePulse() {
-        shouldPulseCombine = true
-        Task { @MainActor in
-            try? await Task.sleep(nanoseconds: 50_000_000)
-            shouldPulseCombine = false
+            self[keyPath: flag] = false
         }
     }
 

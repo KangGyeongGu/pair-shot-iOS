@@ -9,20 +9,17 @@ final class CreatePairUseCase {
     let pairRepo: PhotoPairRepository
     let photoLibrary: PhotoLibraryService
     let location: LocationFetching
-    let exifNormalizer: ExifNormalizing
     let now: @Sendable () -> Date
 
     init(
         pairRepo: PhotoPairRepository,
         photoLibrary: PhotoLibraryService,
         location: LocationFetching,
-        exifNormalizer: ExifNormalizing,
         now: @escaping @Sendable () -> Date = { .now }
     ) {
         self.pairRepo = pairRepo
         self.photoLibrary = photoLibrary
         self.location = location
-        self.exifNormalizer = exifNormalizer
         self.now = now
     }
 
@@ -33,7 +30,7 @@ final class CreatePairUseCase {
     ) async throws -> PhotoPair {
         let timestamp = now()
         let pairId = UUID()
-        let normalized = await exifNormalizer.normalize(beforeJPEG, jpegQuality: jpegQuality)
+        let normalized = await ExifNormalizer.normalizeAsync(beforeJPEG, jpegQuality: jpegQuality)
         let localIdentifier = try await photoLibrary.saveImage(normalized)
         let resolvedLocation = await location.fetchOnce()
         let pair = PhotoPair(
@@ -61,7 +58,7 @@ final class CreatePairUseCase {
             throw RefillError.pairNotFound
         }
         let timestamp = now()
-        let normalized = await exifNormalizer.normalize(beforeJPEG, jpegQuality: jpegQuality)
+        let normalized = await ExifNormalizer.normalizeAsync(beforeJPEG, jpegQuality: jpegQuality)
         let localIdentifier = try await photoLibrary.saveImage(normalized)
         pair.beforePhotoLocalIdentifier = localIdentifier
         pair.beforeZoomFactor = cameraSettings.zoomFactor

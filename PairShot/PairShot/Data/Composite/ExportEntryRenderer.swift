@@ -7,7 +7,6 @@ enum ExportEntryRenderer {
         entry: ExportSelection.Entry,
         pair: PhotoPair,
         photoLibrary: PhotoLibraryService,
-        compositor: any CompositorService,
         appSettings: AppSettings?,
         renderOptions: ExportRenderOptions,
         now: Date
@@ -16,7 +15,7 @@ enum ExportEntryRenderer {
             case .combined:
                 await renderCombined(
                     pair: pair,
-                    compositor: compositor,
+                    photoLibrary: photoLibrary,
                     appSettings: appSettings,
                     renderOptions: renderOptions,
                     now: now
@@ -34,7 +33,7 @@ enum ExportEntryRenderer {
 
     private static func renderCombined(
         pair: PhotoPair,
-        compositor: any CompositorService,
+        photoLibrary: PhotoLibraryService,
         appSettings: AppSettings?,
         renderOptions: ExportRenderOptions,
         now: Date
@@ -57,7 +56,12 @@ enum ExportEntryRenderer {
             watermark: watermark,
             combineSettings: combineSettings
         )
-        return try? await compositor.makeComposite(for: pair, options: options, now: now)
+        return try? await CompositeRenderer.makeComposite(
+            for: pair,
+            options: options,
+            photoLibrary: photoLibrary,
+            now: now
+        )
     }
 
     private static func renderIndividual(

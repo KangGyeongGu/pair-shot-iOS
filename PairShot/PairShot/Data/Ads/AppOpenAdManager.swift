@@ -136,7 +136,7 @@ final class AppOpenAdManager {
 }
 
 #if canImport(GoogleMobileAds)
-    nonisolated private final class AppOpenAdBox: @unchecked Sendable {
+    private final nonisolated class AppOpenAdBox: @unchecked Sendable {
         let ad: GADAppOpenAd?
         init(ad: GADAppOpenAd?) {
             self.ad = ad

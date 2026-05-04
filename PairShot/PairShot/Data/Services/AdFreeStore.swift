@@ -57,7 +57,7 @@ final class AdFreeStore {
 
     func refreshFromServer(
         api: any CouponActivationApi,
-        deviceHashProvider: any DeviceHashProviding,
+        deviceHashProvider: DeviceHashProvider,
         now: Date = .now
     ) async {
         refresh(now: now)

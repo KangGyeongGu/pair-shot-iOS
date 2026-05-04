@@ -17,7 +17,6 @@ final class ImmediateExportService {
     private let snackbarQueue: SnackbarQueue
     private let preferences: ExportPreferences
     private let tempDirectoryProvider: @Sendable () -> URL
-    private let compositor: any CompositorService
     private let appSettings: AppSettings
     private let modelContainer: ModelContainer?
 
@@ -30,7 +29,6 @@ final class ImmediateExportService {
         exportPairs: ExportPairsUseCase,
         photoLibraryExporter: any PhotoLibraryExporting,
         snackbarQueue: SnackbarQueue,
-        compositor: any CompositorService,
         appSettings: AppSettings,
         modelContainer: ModelContainer? = nil,
         preferences: ExportPreferences = ExportPreferences(),
@@ -40,7 +38,6 @@ final class ImmediateExportService {
         self.exportPairs = exportPairs
         self.photoLibraryExporter = photoLibraryExporter
         self.snackbarQueue = snackbarQueue
-        self.compositor = compositor
         self.appSettings = appSettings
         self.modelContainer = modelContainer
         self.preferences = preferences
@@ -171,7 +168,6 @@ final class ImmediateExportService {
                     entry: entry,
                     pair: pair,
                     photoLibrary: photoLibrary,
-                    compositor: compositor,
                     appSettings: appSettings,
                     renderOptions: renderOptions,
                     now: now
@@ -215,7 +211,6 @@ final class ImmediateExportService {
                 entry: item.entry,
                 pair: item.pair,
                 photoLibrary: photoLibrary,
-                compositor: compositor,
                 appSettings: appSettings,
                 renderOptions: renderOptions,
                 now: now

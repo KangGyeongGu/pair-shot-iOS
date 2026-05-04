@@ -2,12 +2,8 @@ import CoreLocation
 import Foundation
 import OSLog
 
-protocol LocationProviding: Sendable {
-    func requestSingleLocation() async -> CLLocation?
-}
-
 @MainActor
-final class CoreLocationService: NSObject, LocationProviding, CLLocationManagerDelegate {
+final class CoreLocationService: NSObject, LocationFetching, CLLocationManagerDelegate {
     private let manager = CLLocationManager()
     private var continuation: CheckedContinuation<CLLocation?, Never>?
 
@@ -17,7 +13,12 @@ final class CoreLocationService: NSObject, LocationProviding, CLLocationManagerD
         manager.desiredAccuracy = kCLLocationAccuracyHundredMeters
     }
 
-    func requestSingleLocation() async -> CLLocation? {
+    func fetchOnce() async -> DomainLocation? {
+        guard let cl = await requestSingleLocation() else { return nil }
+        return DomainLocation(latitude: cl.coordinate.latitude, longitude: cl.coordinate.longitude)
+    }
+
+    private func requestSingleLocation() async -> CLLocation? {
         guard continuation == nil else { return nil }
 
         return await withCheckedContinuation { (cont: CheckedContinuation<CLLocation?, Never>) in
@@ -73,14 +74,5 @@ final class CoreLocationService: NSObject, LocationProviding, CLLocationManagerD
             AppLogger.camera.error("Location request failed: \(description, privacy: .public)")
             self?.finish(with: nil)
         }
-    }
-}
-
-struct LocationFetcherAdapter: LocationFetching {
-    let provider: LocationProviding
-
-    func fetchOnce() async -> DomainLocation? {
-        guard let cl = await provider.requestSingleLocation() else { return nil }
-        return DomainLocation(latitude: cl.coordinate.latitude, longitude: cl.coordinate.longitude)
     }
 }

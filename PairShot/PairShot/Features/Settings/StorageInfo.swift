@@ -71,12 +71,3 @@ struct StorageInfoView: View {
         lastResult = String(localized: "storage_section_cache_clean")
     }
 }
-
-enum StorageInfoMath {
-    static func formatBytes(_ bytes: Int64) -> String {
-        let formatter = ByteCountFormatter()
-        formatter.countStyle = .file
-        formatter.allowsNonnumericFormatting = true
-        return formatter.string(fromByteCount: max(0, bytes))
-    }
-}

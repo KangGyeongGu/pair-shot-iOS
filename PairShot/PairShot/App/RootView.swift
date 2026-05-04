@@ -116,30 +116,8 @@ struct RootView: View {
     // swiftlint:enable switch_case_alignment cyclomatic_complexity
 }
 
-private struct RootViewPreviewWrapper: View {
-    // swiftlint:disable:next force_try
-    let container = try! ModelContainer(
-        for: Schema([Album.self, PhotoPair.self, Coupon.self]),
-        configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-    )
-
-    var body: some View {
-        let appSettings = AppSettings(defaults: UserDefaults(suiteName: "preview-root") ?? .standard)
-        let env = AppEnvironment(modelContainer: container, appSettings: appSettings)
-        return RootView()
-            .modelContainer(container)
-            .environment(env)
-            .environment(env.adFreeStore)
-            .environment(\.fullscreenAdCoordinator, env.fullscreenAdCoordinator)
-            .environment(env.interstitialAdManager)
-            .environment(env.appOpenAdManager)
-            .environment(env.rewardedAdManager)
-            .environment(env.nativeAdLoader)
-            .environment(env.trackingService)
-            .environment(env.appSettings)
-    }
-}
-
 #Preview {
-    RootViewPreviewWrapper()
+    PreviewEnvironment(suiteName: "preview-root") {
+        RootView()
+    }
 }

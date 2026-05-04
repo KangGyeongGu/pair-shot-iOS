@@ -19,7 +19,7 @@ final class PairPreviewViewModel {
 
     let events: AsyncStream<Event>
 
-    private let compositor: any CompositorService
+    private let photoLibrary: PhotoLibraryService
     private let appSettings: AppSettings
     private let eventsContinuation: AsyncStream<Event>.Continuation
 
@@ -28,11 +28,11 @@ final class PairPreviewViewModel {
 
     init(
         pair: PhotoPair,
-        compositor: any CompositorService,
+        photoLibrary: PhotoLibraryService,
         appSettings: AppSettings
     ) {
         self.pair = pair
-        self.compositor = compositor
+        self.photoLibrary = photoLibrary
         self.appSettings = appSettings
         var continuation: AsyncStream<Event>.Continuation!
         events = AsyncStream { continuation = $0 }
@@ -58,9 +58,10 @@ final class PairPreviewViewModel {
                 watermark: watermark,
                 combineSettings: combineSettings
             )
-            let data = try await compositor.makeComposite(
+            let data = try await CompositeRenderer.makeComposite(
                 for: pair,
                 options: options,
+                photoLibrary: photoLibrary,
                 now: .now
             )
             livePreviewImage = UIImage(data: data)

@@ -101,11 +101,10 @@ enum RotationGuideResolver {
             captureAngleDegrees: captureAngleDegrees,
             deviceAngleDegrees: deviceAngleDegrees
         )
-        let result: RotationGuideDirection
-        if abs(delta) <= upRightTolerance {
-            result = .upright
+        let result: RotationGuideDirection = if abs(delta) <= upRightTolerance {
+            .upright
         } else {
-            result = delta > 0 ? .right : .left
+            delta > 0 ? .right : .left
         }
         logger
             .info(

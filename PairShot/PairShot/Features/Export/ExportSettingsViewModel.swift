@@ -83,7 +83,6 @@ final class ExportSettingsViewModel {
     private let tempDirectoryProvider: @Sendable () -> URL
     private let eventsContinuation: AsyncStream<Event>.Continuation
     private let appSettings: AppSettings?
-    private let compositor: any CompositorService
     private var preferences: ExportPreferences
     private let interstitialAdManager: InterstitialAdManager?
     private let adFreeStore: AdFreeStore?
@@ -101,7 +100,6 @@ final class ExportSettingsViewModel {
         exportPairs: ExportPairsUseCase,
         photoLibraryExporter: any PhotoLibraryExporting,
         snackbarQueue: SnackbarQueue,
-        compositor: any CompositorService,
         tempDirectoryProvider: @escaping @Sendable () -> URL = { FileManager.default.temporaryDirectory },
         preferences: ExportPreferences = ExportPreferences(),
         appSettings: AppSettings? = nil,
@@ -117,7 +115,6 @@ final class ExportSettingsViewModel {
         self.exportPairs = exportPairs
         self.photoLibraryExporter = photoLibraryExporter
         self.snackbarQueue = snackbarQueue
-        self.compositor = compositor
         self.tempDirectoryProvider = tempDirectoryProvider
         self.preferences = preferences
         self.appSettings = appSettings
@@ -376,7 +373,6 @@ final class ExportSettingsViewModel {
                     entry: item.entry,
                     pair: item.pair,
                     photoLibrary: photoLibrary,
-                    compositor: compositor,
                     appSettings: appSettings,
                     renderOptions: renderOptions,
                     now: now
@@ -471,7 +467,6 @@ final class ExportSettingsViewModel {
                     entry: entry,
                     pair: pair,
                     photoLibrary: photoLibrary,
-                    compositor: compositor,
                     appSettings: appSettings,
                     renderOptions: renderOptions,
                     now: now
@@ -543,7 +538,7 @@ final class ExportSettingsViewModel {
     }
 }
 
-nonisolated final class ExportPreferences: @unchecked Sendable {
+final nonisolated class ExportPreferences: @unchecked Sendable {
     static let includeCombinedKey = "pairshot.exportIncludeCombined"
     static let includeBeforeKey = "pairshot.exportIncludeBefore"
     static let includeAfterKey = "pairshot.exportIncludeAfter"

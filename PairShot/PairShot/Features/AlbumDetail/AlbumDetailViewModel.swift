@@ -56,7 +56,7 @@ final class AlbumDetailViewModel {
     private let deletePairs: DeletePairsUseCase
     private let deleteCombinedExports: DeleteCombinedExportsUseCase?
     private let toggleAlbumMembership: ToggleAlbumMembershipUseCase
-    private let thumbnailCache: ThumbnailCache
+    private let thumbnailCache: PhotoLibraryThumbnailCache
     private let immediateExport: ImmediateExportService
     private let appSettings: AppSettings
     private let interstitialAdManager: InterstitialAdManager?
@@ -72,7 +72,7 @@ final class AlbumDetailViewModel {
         photoLibrary: PhotoLibraryService,
         immediateExport: ImmediateExportService,
         appSettings: AppSettings,
-        thumbnailCache: ThumbnailCache,
+        thumbnailCache: PhotoLibraryThumbnailCache,
         interstitialAdManager: InterstitialAdManager? = nil,
         adFreeStore: AdFreeStore? = nil,
         fullscreenAdCoordinator: FullscreenAdCoordinator? = nil,
@@ -276,27 +276,22 @@ final class AlbumDetailViewModel {
     }
 
     func confirmPairDeletion(mode: DeletePairsUseCase.Mode, pairs: [PhotoPair]) async {
-        let snapshots = pairs.map { pair in
-            EvictionSnapshot(
-                beforeIdentifier: pair.beforePhotoLocalIdentifier,
-                afterIdentifier: pair.afterPhotoLocalIdentifier
-            )
+        let snapshots: [(before: String?, after: String?)] = pairs.map {
+            ($0.beforePhotoLocalIdentifier, $0.afterPhotoLocalIdentifier)
         }
         let ids = Set(pairs.map(\.id))
         try? await deletePairs(ids: ids, mode: mode)
         for snapshot in snapshots {
-            evictThumbnails(for: snapshot)
+            evictThumbnails(beforeIdentifier: snapshot.before, afterIdentifier: snapshot.after)
         }
         cancelSelection()
     }
 
     func confirmSinglePairDeletion(_ pair: PhotoPair) async {
-        let snapshot = EvictionSnapshot(
-            beforeIdentifier: pair.beforePhotoLocalIdentifier,
-            afterIdentifier: pair.afterPhotoLocalIdentifier
-        )
+        let beforeId = pair.beforePhotoLocalIdentifier
+        let afterId = pair.afterPhotoLocalIdentifier
         try? await deletePairs(ids: [pair.id], mode: .wholePair)
-        evictThumbnails(for: snapshot)
+        evictThumbnails(beforeIdentifier: beforeId, afterIdentifier: afterId)
     }
 
     func beginRename(currentName: String) {
@@ -321,17 +316,12 @@ final class AlbumDetailViewModel {
         albumDeleted = true
     }
 
-    private func evictThumbnails(for snapshot: EvictionSnapshot) {
-        if let beforeId = snapshot.beforeIdentifier {
-            thumbnailCache.evict(localIdentifier: beforeId)
+    private func evictThumbnails(beforeIdentifier: String?, afterIdentifier: String?) {
+        if let beforeIdentifier {
+            thumbnailCache.evict(localIdentifier: beforeIdentifier)
         }
-        if let afterId = snapshot.afterIdentifier {
-            thumbnailCache.evict(localIdentifier: afterId)
+        if let afterIdentifier {
+            thumbnailCache.evict(localIdentifier: afterIdentifier)
         }
     }
-}
-
-private struct EvictionSnapshot {
-    let beforeIdentifier: String?
-    let afterIdentifier: String?
 }

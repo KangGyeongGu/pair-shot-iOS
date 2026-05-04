@@ -83,20 +83,17 @@ struct ZipExporterAdapter: ZipExporting {
     let exporter: ZipExporter
     let photoLibrary: PhotoLibraryService
     let pairRepo: PhotoPairRepository
-    let compositor: any CompositorService
     let appSettings: AppSettings
 
     init(
         exporter: ZipExporter = ZipExporter(),
         photoLibrary: PhotoLibraryService,
         pairRepo: PhotoPairRepository,
-        compositor: any CompositorService,
         appSettings: AppSettings
     ) {
         self.exporter = exporter
         self.photoLibrary = photoLibrary
         self.pairRepo = pairRepo
-        self.compositor = compositor
         self.appSettings = appSettings
     }
 
@@ -125,7 +122,6 @@ struct ZipExporterAdapter: ZipExporting {
                     entry: entry,
                     pair: pair,
                     photoLibrary: photoLibrary,
-                    compositor: compositor,
                     appSettings: appSettings,
                     renderOptions: renderOptions,
                     now: now

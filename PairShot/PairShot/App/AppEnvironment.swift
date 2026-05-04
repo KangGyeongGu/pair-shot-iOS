@@ -12,10 +12,9 @@ final class AppEnvironment {
     let couponRepo: CouponRepository
 
     let location: LocationFetching
-    let exifNormalizer: ExifNormalizing
     let couponApiConfig: CouponApiConfig
     let couponApi: any CouponActivationApi
-    let deviceHashProvider: any DeviceHashProviding
+    let deviceHashProvider: DeviceHashProvider
     let zipExporter: ZipExporting
     let photoLibraryExporter: any PhotoLibraryExporting
     let photoLibrary: PhotoLibraryService
@@ -42,11 +41,10 @@ final class AppEnvironment {
     let fullscreenAdCoordinator: FullscreenAdCoordinator
 
     let snackbarQueue: SnackbarQueue
-    let compositorService: any CompositorService
     let immediateExport: ImmediateExportService
     let settingsRedirectCoordinator: SettingsRedirectCoordinator
     let permissionStatusService: PermissionStatusService
-    let thumbnailCache: ThumbnailCache
+    let thumbnailCache: PhotoLibraryThumbnailCache
     let hapticService: HapticService
     let motionService: MotionService
 
@@ -67,7 +65,7 @@ final class AppEnvironment {
         snackbarQueue: SnackbarQueue? = nil,
         settingsRedirectCoordinator: SettingsRedirectCoordinator? = nil,
         permissionStatusService: PermissionStatusService? = nil,
-        thumbnailCache: ThumbnailCache? = nil,
+        thumbnailCache: PhotoLibraryThumbnailCache? = nil,
         hapticService: HapticService? = nil,
         motionService: MotionService? = nil
     ) {
@@ -82,120 +80,95 @@ final class AppEnvironment {
         self.snackbarQueue = resolvedSnackbarQueue
         self.settingsRedirectCoordinator = settingsRedirectCoordinator ?? SettingsRedirectCoordinator()
         self.permissionStatusService = permissionStatusService ?? PermissionStatusService()
-        let resolvedThumbnailCache = thumbnailCache ?? ThumbnailCache()
-        self.thumbnailCache = resolvedThumbnailCache
+        self.thumbnailCache = thumbnailCache ?? PhotoLibraryThumbnailCache()
         self.hapticService = hapticService ?? HapticService()
         self.motionService = motionService ?? MotionService()
 
-        let ads = Self.makeAdManagers(
-            interstitialAdManager: interstitialAdManager,
-            rewardedAdManager: rewardedAdManager,
-            nativeAdLoader: nativeAdLoader,
-            appOpenAdManager: appOpenAdManager,
-            fullscreenAdCoordinator: fullscreenAdCoordinator,
-            trackingService: self.trackingService
-        )
-        self.interstitialAdManager = ads.interstitialAdManager
-        self.rewardedAdManager = ads.rewardedAdManager
-        self.nativeAdLoader = ads.nativeAdLoader
-        self.appOpenAdManager = ads.appOpenAdManager
-        self.fullscreenAdCoordinator = ads.fullscreenAdCoordinator
+        let resolvedTrackingService = self.trackingService
+        self.interstitialAdManager = interstitialAdManager
+            ?? InterstitialAdManager(trackingService: resolvedTrackingService)
+        self.rewardedAdManager = rewardedAdManager
+            ?? RewardedAdManager(trackingService: resolvedTrackingService)
+        self.nativeAdLoader = nativeAdLoader
+            ?? NativeAdLoader(trackingService: resolvedTrackingService)
+        self.appOpenAdManager = appOpenAdManager
+            ?? AppOpenAdManager(trackingService: resolvedTrackingService)
+        self.fullscreenAdCoordinator = fullscreenAdCoordinator ?? FullscreenAdCoordinator()
 
-        let services = AppServiceBundle.make()
-        let repositories = AppRepositoryBundle.make(
-            container: modelContainer,
-            couponApi: services.couponApi,
-            deviceHashProvider: services.deviceHashProvider
-        )
-        let pipeline = Self.makeCorePipeline(
-            services: services,
-            repositories: repositories,
-            appSettings: resolvedAppSettings,
-            snackbarQueue: resolvedSnackbarQueue,
-            modelContainer: modelContainer
-        )
+        let apiConfig = CouponApiConfig.resolve()
+        let api = URLSessionCouponActivationApi(config: apiConfig)
+        let hashProvider = DeviceHashProvider(salt: apiConfig.deviceHashSalt)
+        let resolvedLocation: LocationFetching = CoreLocationService()
+        let resolvedPhotoLibraryExporter: any PhotoLibraryExporting = PhotoLibraryExport()
+        let resolvedPhotoLibrary = PhotoLibraryService()
 
-        location = services.location
-        exifNormalizer = services.exifNormalizer
-        couponApiConfig = services.couponApiConfig
-        couponApi = services.couponApi
-        deviceHashProvider = services.deviceHashProvider
-        photoLibraryExporter = services.photoLibraryExporter
-        photoLibrary = services.photoLibrary
+        location = resolvedLocation
+        couponApiConfig = apiConfig
+        couponApi = api
+        deviceHashProvider = hashProvider
+        photoLibraryExporter = resolvedPhotoLibraryExporter
+        photoLibrary = resolvedPhotoLibrary
         photoLibrarySync = PhotoLibrarySyncService(
             container: modelContainer,
-            photoLibrary: services.photoLibrary
+            photoLibrary: resolvedPhotoLibrary
         )
-        pairRepo = repositories.pairRepo
-        albumRepo = repositories.albumRepo
-        couponRepo = repositories.couponRepo
-        compositorService = pipeline.compositor
-        zipExporter = pipeline.zipExporter
-        createPair = pipeline.useCases.createPair
-        captureAfter = pipeline.useCases.captureAfter
-        deletePairs = pipeline.useCases.deletePairs
-        deleteCombinedExports = pipeline.useCases.deleteCombinedExports
-        exportPairs = pipeline.useCases.exportPairs
-        toggleAlbumMembership = pipeline.useCases.toggleAlbumMembership
-        activateCoupon = pipeline.useCases.activateCoupon
-        checkAdFreeState = pipeline.useCases.checkAdFreeState
-        immediateExport = pipeline.immediateExport
-    }
 
-    private static func makeCorePipeline(
-        services: AppServiceBundle,
-        repositories: AppRepositoryBundle,
-        appSettings: AppSettings,
-        snackbarQueue: SnackbarQueue,
-        modelContainer: ModelContainer
-    ) -> AppCorePipelineBundle {
-        let compositor = DefaultCompositorService(photoLibrary: services.photoLibrary)
-        let zipExporter = ZipExporterAdapter(
-            photoLibrary: services.photoLibrary,
-            pairRepo: repositories.pairRepo,
-            compositor: compositor,
-            appSettings: appSettings
+        let resolvedPairRepo = SwiftDataPhotoPairRepository(container: modelContainer)
+        let resolvedAlbumRepo = SwiftDataAlbumRepository(container: modelContainer)
+        let resolvedCouponRepo = SwiftDataCouponRepository(
+            container: modelContainer,
+            api: api,
+            deviceHashProvider: hashProvider
         )
-        let useCases = AppUseCaseBundle.make(
-            services: services,
-            repositories: repositories,
-            zipExporter: zipExporter
+        pairRepo = resolvedPairRepo
+        albumRepo = resolvedAlbumRepo
+        couponRepo = resolvedCouponRepo
+
+        let resolvedZipExporter = ZipExporterAdapter(
+            photoLibrary: resolvedPhotoLibrary,
+            pairRepo: resolvedPairRepo,
+            appSettings: resolvedAppSettings
         )
-        let immediateExport = ImmediateExportService(
-            photoLibrary: services.photoLibrary,
-            exportPairs: useCases.exportPairs,
-            photoLibraryExporter: services.photoLibraryExporter,
-            snackbarQueue: snackbarQueue,
-            compositor: compositor,
-            appSettings: appSettings,
+        zipExporter = resolvedZipExporter
+
+        createPair = CreatePairUseCase(
+            pairRepo: resolvedPairRepo,
+            photoLibrary: resolvedPhotoLibrary,
+            location: resolvedLocation
+        )
+        captureAfter = CaptureAfterUseCase(
+            pairRepo: resolvedPairRepo,
+            photoLibrary: resolvedPhotoLibrary
+        )
+        deletePairs = DeletePairsUseCase(
+            pairRepo: resolvedPairRepo,
+            photoLibrary: resolvedPhotoLibrary
+        )
+        deleteCombinedExports = DeleteCombinedExportsUseCase(
+            pairRepo: resolvedPairRepo,
+            photoLibrary: resolvedPhotoLibrary
+        )
+        let resolvedExportPairs = ExportPairsUseCase(
+            pairRepo: resolvedPairRepo,
+            zipExporter: resolvedZipExporter
+        )
+        exportPairs = resolvedExportPairs
+        toggleAlbumMembership = ToggleAlbumMembershipUseCase(
+            albumRepo: resolvedAlbumRepo
+        )
+        activateCoupon = ActivateCouponUseCase(
+            couponRepo: resolvedCouponRepo
+        )
+        checkAdFreeState = CheckAdFreeStateUseCase(
+            couponRepo: resolvedCouponRepo
+        )
+        immediateExport = ImmediateExportService(
+            photoLibrary: resolvedPhotoLibrary,
+            exportPairs: resolvedExportPairs,
+            photoLibraryExporter: resolvedPhotoLibraryExporter,
+            snackbarQueue: resolvedSnackbarQueue,
+            appSettings: resolvedAppSettings,
             modelContainer: modelContainer
-        )
-        return AppCorePipelineBundle(
-            compositor: compositor,
-            zipExporter: zipExporter,
-            useCases: useCases,
-            immediateExport: immediateExport
-        )
-    }
-
-    private static func makeAdManagers(
-        interstitialAdManager: InterstitialAdManager?,
-        rewardedAdManager: RewardedAdManager?,
-        nativeAdLoader: NativeAdLoader?,
-        appOpenAdManager: AppOpenAdManager?,
-        fullscreenAdCoordinator: FullscreenAdCoordinator?,
-        trackingService: TrackingAuthorizationService
-    ) -> AppAdManagerBundle {
-        AppAdManagerBundle(
-            interstitialAdManager: interstitialAdManager
-                ?? InterstitialAdManager(trackingService: trackingService),
-            rewardedAdManager: rewardedAdManager
-                ?? RewardedAdManager(trackingService: trackingService),
-            nativeAdLoader: nativeAdLoader
-                ?? NativeAdLoader(trackingService: trackingService),
-            appOpenAdManager: appOpenAdManager
-                ?? AppOpenAdManager(trackingService: trackingService),
-            fullscreenAdCoordinator: fullscreenAdCoordinator ?? FullscreenAdCoordinator()
         )
     }
 
@@ -203,8 +176,7 @@ final class AppEnvironment {
         albumId: UUID?,
         refillPairId: UUID? = nil
     ) -> BeforeCameraViewModel {
-        let bundle = makeCameraSessionBundle()
-        return BeforeCameraViewModel(
+        BeforeCameraViewModel(
             albumId: albumId,
             refillPairId: refillPairId,
             createPair: createPair,
@@ -212,8 +184,8 @@ final class AppEnvironment {
             albumRepo: albumRepo,
             appSettings: appSettings,
             hapticService: hapticService,
-            session: bundle.session,
-            permissionProbe: bundle.probe
+            session: makeCameraSession(),
+            permissionProbe: makeCameraPermissionProbe()
         )
     }
 
@@ -222,8 +194,7 @@ final class AppEnvironment {
         initialPairId: UUID? = nil,
         sortOrder: HomeSortOrder = .newest
     ) -> AfterCameraViewModel {
-        let bundle = makeCameraSessionBundle()
-        return AfterCameraViewModel(
+        AfterCameraViewModel(
             albumId: albumId,
             initialPairId: initialPairId,
             sortOrder: sortOrder,
@@ -232,29 +203,28 @@ final class AppEnvironment {
             photoLibrary: photoLibrary,
             appSettings: appSettings,
             hapticService: hapticService,
-            session: bundle.session,
-            permissionProbe: bundle.probe
+            session: makeCameraSession(),
+            permissionProbe: makeCameraPermissionProbe()
         )
     }
 
-    private func makeCameraSessionBundle() -> CameraSessionBundle {
-        let service = permissionStatusService
-        let probe: @Sendable () async -> Bool = {
-            await service.requestCameraAccessIfNeeded()
-        }
+    private func makeCameraSession() -> CameraSession {
+        let probe = makeCameraPermissionProbe()
         let resolver: @Sendable () async -> CameraAuthorizationState = {
             await probe() ? .authorized : .denied
         }
-        return CameraSessionBundle(
-            session: CameraSession(permissionResolver: resolver),
-            probe: probe
-        )
+        return CameraSession(permissionResolver: resolver)
+    }
+
+    private func makeCameraPermissionProbe() -> @Sendable () async -> Bool {
+        let service = permissionStatusService
+        return { await service.requestCameraAccessIfNeeded() }
     }
 
     func makePairPreviewViewModel(pair: PhotoPair) -> PairPreviewViewModel {
         PairPreviewViewModel(
             pair: pair,
-            compositor: compositorService,
+            photoLibrary: photoLibrary,
             appSettings: appSettings
         )
     }
@@ -347,137 +317,11 @@ final class AppEnvironment {
             exportPairs: exportPairs,
             photoLibraryExporter: photoLibraryExporter,
             snackbarQueue: snackbarQueue,
-            compositor: compositorService,
             appSettings: appSettings,
             interstitialAdManager: interstitialAdManager,
             adFreeStore: adFreeStore,
             fullscreenAdCoordinator: fullscreenAdCoordinator,
             modelContainer: modelContainer
-        )
-    }
-}
-
-@MainActor
-struct AppAdManagerBundle {
-    let interstitialAdManager: InterstitialAdManager
-    let rewardedAdManager: RewardedAdManager
-    let nativeAdLoader: NativeAdLoader
-    let appOpenAdManager: AppOpenAdManager
-    let fullscreenAdCoordinator: FullscreenAdCoordinator
-}
-
-@MainActor
-struct CameraSessionBundle {
-    let session: CameraSession
-    let probe: @Sendable () async -> Bool
-}
-
-@MainActor
-struct AppCorePipelineBundle {
-    let compositor: any CompositorService
-    let zipExporter: ZipExporting
-    let useCases: AppUseCaseBundle
-    let immediateExport: ImmediateExportService
-}
-
-@MainActor
-struct AppServiceBundle {
-    let location: LocationFetching
-    let exifNormalizer: ExifNormalizing
-    let couponApiConfig: CouponApiConfig
-    let couponApi: any CouponActivationApi
-    let deviceHashProvider: any DeviceHashProviding
-    let photoLibraryExporter: any PhotoLibraryExporting
-    let photoLibrary: PhotoLibraryService
-
-    static func make() -> Self {
-        let apiConfig = CouponApiConfig.resolve()
-        let api = URLSessionCouponActivationApi(config: apiConfig)
-        let hashProvider = DeviceHashProvider(salt: apiConfig.deviceHashSalt)
-        return Self(
-            location: LocationFetcherAdapter(provider: CoreLocationService()),
-            exifNormalizer: ExifNormalizerAdapter(),
-            couponApiConfig: apiConfig,
-            couponApi: api,
-            deviceHashProvider: hashProvider,
-            photoLibraryExporter: PhotoLibraryExport(),
-            photoLibrary: PhotoLibraryService()
-        )
-    }
-}
-
-@MainActor
-struct AppRepositoryBundle {
-    let pairRepo: PhotoPairRepository
-    let albumRepo: AlbumRepository
-    let couponRepo: CouponRepository
-
-    static func make(
-        container: ModelContainer,
-        couponApi: any CouponActivationApi,
-        deviceHashProvider: any DeviceHashProviding
-    ) -> Self {
-        Self(
-            pairRepo: SwiftDataPhotoPairRepository(container: container),
-            albumRepo: SwiftDataAlbumRepository(container: container),
-            couponRepo: SwiftDataCouponRepository(
-                container: container,
-                api: couponApi,
-                deviceHashProvider: deviceHashProvider
-            )
-        )
-    }
-}
-
-@MainActor
-struct AppUseCaseBundle {
-    let createPair: CreatePairUseCase
-    let captureAfter: CaptureAfterUseCase
-    let deletePairs: DeletePairsUseCase
-    let deleteCombinedExports: DeleteCombinedExportsUseCase
-    let exportPairs: ExportPairsUseCase
-    let toggleAlbumMembership: ToggleAlbumMembershipUseCase
-    let activateCoupon: ActivateCouponUseCase
-    let checkAdFreeState: CheckAdFreeStateUseCase
-
-    static func make(
-        services: AppServiceBundle,
-        repositories: AppRepositoryBundle,
-        zipExporter: ZipExporting
-    ) -> Self {
-        Self(
-            createPair: CreatePairUseCase(
-                pairRepo: repositories.pairRepo,
-                photoLibrary: services.photoLibrary,
-                location: services.location,
-                exifNormalizer: services.exifNormalizer
-            ),
-            captureAfter: CaptureAfterUseCase(
-                pairRepo: repositories.pairRepo,
-                photoLibrary: services.photoLibrary,
-                exifNormalizer: services.exifNormalizer
-            ),
-            deletePairs: DeletePairsUseCase(
-                pairRepo: repositories.pairRepo,
-                photoLibrary: services.photoLibrary
-            ),
-            deleteCombinedExports: DeleteCombinedExportsUseCase(
-                pairRepo: repositories.pairRepo,
-                photoLibrary: services.photoLibrary
-            ),
-            exportPairs: ExportPairsUseCase(
-                pairRepo: repositories.pairRepo,
-                zipExporter: zipExporter
-            ),
-            toggleAlbumMembership: ToggleAlbumMembershipUseCase(
-                albumRepo: repositories.albumRepo
-            ),
-            activateCoupon: ActivateCouponUseCase(
-                couponRepo: repositories.couponRepo
-            ),
-            checkAdFreeState: CheckAdFreeStateUseCase(
-                couponRepo: repositories.couponRepo
-            )
         )
     }
 }

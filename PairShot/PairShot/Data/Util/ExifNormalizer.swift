@@ -15,6 +15,14 @@ nonisolated enum ExifNormalizer {
         return stampOrientationOne(normalizedData) ?? normalizedData
     }
 
+    static func normalizeAsync(_ data: Data, jpegQuality: Double) async -> Data {
+        await Task.detached(priority: .userInitiated) {
+            autoreleasepool {
+                ExifNormalizer.normalize(data, jpegQuality: CGFloat(jpegQuality))
+            }
+        }.value
+    }
+
     static func redrawWithUprightOrientation(_ image: UIImage) -> UIImage {
         if image.imageOrientation == .up { return image }
         let format = UIGraphicsImageRendererFormat()
@@ -45,21 +53,5 @@ nonisolated enum ExifNormalizer {
 
     private static func encode(_ image: UIImage, quality: CGFloat) -> Data? {
         image.jpegData(compressionQuality: quality)
-    }
-}
-
-nonisolated enum ExifNormalizationTask {
-    static func normalize(data: Data, jpegQuality: CGFloat) async -> Data {
-        await Task.detached(priority: .userInitiated) {
-            autoreleasepool {
-                ExifNormalizer.normalize(data, jpegQuality: jpegQuality)
-            }
-        }.value
-    }
-}
-
-nonisolated struct ExifNormalizerAdapter: ExifNormalizing {
-    func normalize(_ data: Data, jpegQuality: Double) async -> Data {
-        await ExifNormalizationTask.normalize(data: data, jpegQuality: CGFloat(jpegQuality))
     }
 }

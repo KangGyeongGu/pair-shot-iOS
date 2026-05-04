@@ -18,7 +18,7 @@ final class SwiftDataCouponRepository: CouponRepository {
 
     private let container: ModelContainer
     private let api: any CouponActivationApi
-    private let deviceHashProvider: any DeviceHashProviding
+    private let deviceHashProvider: DeviceHashProvider
     private let now: @Sendable () -> Date
 
     private var context: ModelContext {
@@ -28,7 +28,7 @@ final class SwiftDataCouponRepository: CouponRepository {
     init(
         container: ModelContainer,
         api: any CouponActivationApi,
-        deviceHashProvider: any DeviceHashProviding,
+        deviceHashProvider: DeviceHashProvider,
         now: @escaping @Sendable () -> Date = { .now }
     ) {
         self.container = container

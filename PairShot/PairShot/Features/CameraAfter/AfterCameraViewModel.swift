@@ -84,7 +84,6 @@ final class AfterCameraViewModel {
     private let photoLibrary: PhotoLibraryService
     private let appSettings: AppSettings
     let hapticService: HapticService
-    private let captureSource: AfterCameraCaptureSource
     private let permissionProbe: @Sendable () async -> Bool
     private let eventsContinuation: AsyncStream<Event>.Continuation
     private var allCompletedDismissTask: Task<Void, Never>?
@@ -99,8 +98,7 @@ final class AfterCameraViewModel {
         appSettings: AppSettings,
         hapticService: HapticService,
         session: CameraSession? = nil,
-        captureSource: AfterCameraCaptureSource? = nil,
-        permissionProbe: @escaping @Sendable () async -> Bool = AfterCameraPermissionProbe.resolve
+        permissionProbe: @escaping @Sendable () async -> Bool = CameraPermissionProbe.resolve
     ) {
         self.albumId = albumId
         self.initialPairId = initialPairId
@@ -112,7 +110,6 @@ final class AfterCameraViewModel {
         self.hapticService = hapticService
         let resolvedSession = session ?? CameraSession()
         self.session = resolvedSession
-        self.captureSource = captureSource ?? AfterCameraSessionCaptureSource(session: resolvedSession)
         self.permissionProbe = permissionProbe
         var continuation: AsyncStream<Event>.Continuation!
         events = AsyncStream { continuation = $0 }
@@ -224,7 +221,7 @@ final class AfterCameraViewModel {
         isCapturing = true
         defer { isCapturing = false }
         do {
-            let captured = try await captureSource.capturePhoto()
+            let captured = try await session.capturePhoto()
             let updated = try await captureAfter(
                 pairId: pair.id,
                 afterJPEG: captured.jpegData,
@@ -337,26 +334,6 @@ enum AfterCameraCaptureErrorMessages {
             return String(localized: "camera_error_no_disk_space")
         }
         return String(localized: "camera_error_unknown")
-    }
-}
-
-protocol AfterCameraCaptureSource: Sendable {
-    func capturePhoto() async throws -> CapturedPhoto
-}
-
-struct AfterCameraSessionCaptureSource: AfterCameraCaptureSource {
-    let session: CameraSession
-
-    func capturePhoto() async throws -> CapturedPhoto {
-        try await session.capturePhoto()
-    }
-}
-
-enum AfterCameraPermissionProbe {
-    @Sendable
-    static func resolve() async -> Bool {
-        let service = await MainActor.run { PermissionStatusService() }
-        return await service.requestCameraAccessIfNeeded()
     }
 }
 

@@ -44,8 +44,8 @@ struct SettingsView: View {
               let target = env.settingsRedirectCoordinator.consume()
         else { return }
         switch target {
-            case .watermark: viewModel.triggerWatermarkPulse()
-            case .combine: viewModel.triggerCombinePulse()
+            case .watermark: viewModel.triggerPulse(\.shouldPulseWatermark)
+            case .combine: viewModel.triggerPulse(\.shouldPulseCombine)
         }
     }
 

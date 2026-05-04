@@ -3,12 +3,7 @@ import Foundation
 import UIKit
 
 @MainActor
-protocol DeviceHashProviding {
-    func deviceHash() -> String
-}
-
-@MainActor
-struct DeviceHashProvider: DeviceHashProviding {
+struct DeviceHashProvider {
     private static let hexCharacters: [Character] = Array("0123456789abcdef")
 
     private let salt: String

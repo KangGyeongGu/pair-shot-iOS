@@ -91,7 +91,7 @@ nonisolated extension CameraSession {
     }
 }
 
-nonisolated private final class CaptureContext: @unchecked Sendable {
+private final nonisolated class CaptureContext: @unchecked Sendable {
     let photoOutput: AVCapturePhotoOutput
     let settings: AVCapturePhotoSettings
     let zoom: Double
@@ -105,7 +105,7 @@ nonisolated private final class CaptureContext: @unchecked Sendable {
     }
 }
 
-nonisolated final class PhotoCaptureDelegate: NSObject, AVCapturePhotoCaptureDelegate, @unchecked Sendable {
+final nonisolated class PhotoCaptureDelegate: NSObject, AVCapturePhotoCaptureDelegate, @unchecked Sendable {
     private let completion: @Sendable (Result<Data, CameraSessionError>) -> Void
 
     init(completion: @escaping @Sendable (Result<Data, CameraSessionError>) -> Void) {

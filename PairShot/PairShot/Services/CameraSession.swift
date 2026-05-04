@@ -87,14 +87,14 @@ nonisolated enum CameraZoomCapabilities {
     }
 }
 
-nonisolated final class CaptureSessionBox: @unchecked Sendable {
+final nonisolated class CaptureSessionBox: @unchecked Sendable {
     let session: AVCaptureSession
     init() {
         session = AVCaptureSession()
     }
 }
 
-nonisolated final class CameraSession: @unchecked Sendable {
+final nonisolated class CameraSession: @unchecked Sendable {
     let box = CaptureSessionBox()
     let observerBox = InterruptionObserverBox()
     let sessionQueue = DispatchQueue(label: "com.pairshot.camera.session", qos: .userInitiated)

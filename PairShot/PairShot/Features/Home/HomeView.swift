@@ -299,29 +299,10 @@ enum HomeDateFormatter {
     }
 }
 
-private struct RootViewPreviewWrapper: View {
-    // swiftlint:disable:next force_try
-    let container = try! ModelContainer(
-        for: Schema([Album.self, PhotoPair.self, Coupon.self]),
-        configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-    )
-
-    var body: some View {
-        let appSettings = AppSettings(defaults: UserDefaults(suiteName: "preview-home") ?? .standard)
-        let env = AppEnvironment(modelContainer: container, appSettings: appSettings)
-        return NavigationStack {
+#Preview {
+    PreviewEnvironment(suiteName: "preview-home") {
+        NavigationStack {
             HomeView()
         }
-        .modelContainer(container)
-        .environment(env)
-        .environment(env.adFreeStore)
-        .environment(\.fullscreenAdCoordinator, env.fullscreenAdCoordinator)
-        .environment(env.interstitialAdManager)
-        .environment(env.nativeAdLoader)
-        .environment(env.appSettings)
     }
-}
-
-#Preview {
-    RootViewPreviewWrapper()
 }
