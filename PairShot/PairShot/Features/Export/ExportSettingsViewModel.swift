@@ -307,7 +307,6 @@ final class ExportSettingsViewModel {
                         ids: pairIds,
                         selection: makeSelection(),
                         renderOptions: makeRenderOptions(),
-                        format: .zip,
                         tempDirectory: tempDirectoryProvider()
                     )
                     pendingZipURL = url
@@ -420,7 +419,6 @@ final class ExportSettingsViewModel {
                 ids: pairIds,
                 selection: makeSelection(),
                 renderOptions: makeRenderOptions(),
-                format: .zip,
                 tempDirectory: tempDirectoryProvider()
             )
             pendingZipURL = url

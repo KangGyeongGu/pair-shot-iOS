@@ -1,4 +1,3 @@
-import OSLog
 import SwiftData
 import SwiftUI
 import UIKit
@@ -53,8 +52,8 @@ struct AfterCameraView: View {
         }
         .task {
             ensureViewModelSync()
-            guard let vm = viewModel else { return }
-            await observeDeviceRotation(viewModel: vm)
+            acquireMotionIfNeeded()
+            viewModel?.updateDeviceRotation(degrees: env.motionService.screenRotationDegrees)
         }
         .onDisappear {
             viewModel?.onDisappear()
@@ -65,6 +64,9 @@ struct AfterCameraView: View {
         }
         .onChange(of: viewModel?.ghostImageData) { _, newData in
             updateCachedGhostImage(from: newData)
+        }
+        .onChange(of: env.motionService.screenRotationDegrees) { _, newValue in
+            viewModel?.updateDeviceRotation(degrees: newValue)
         }
         .captureErrorAlert(message: Binding(
             get: { viewModel?.captureErrorMessage },
@@ -167,26 +169,14 @@ struct AfterCameraView: View {
             let result = await Task.detached(priority: .userInitiated) {
                 let exif = ExifOrientationCodec.read(from: data) ?? .up
                 let sourceImage = UIImage(data: data)
-                let sourceOrient = sourceImage?.imageOrientation.rawValue ?? -1
-                let cgWidth = sourceImage?.cgImage?.width ?? 0
-                let cgHeight = sourceImage?.cgImage?.height ?? 0
-                let bytes = data.count
                 let image = sourceImage.flatMap { source in
                     source.cgImage.map {
                         UIImage(cgImage: $0, scale: 1, orientation: .up)
                     }
                 }
-                AppLogger.camera
-                    .info(
-                        "[CAM-ROT-IMG-EX] dataBytes=\(bytes, privacy: .public), exifRead=\(exif.rawValue, privacy: .public), uiImageOrient=\(sourceOrient, privacy: .public), cgImage=\(cgWidth, privacy: .public)x\(cgHeight, privacy: .public)"
-                    )
                 return (image, exif)
             }.value
             cachedGhostImage = result.0
-            AppLogger.camera
-                .info(
-                    "[CAM-ROT-IMG] cachedGhost exif=\(result.1.rawValue, privacy: .public), size=\(result.0?.size.width ?? 0, privacy: .public)x\(result.0?.size.height ?? 0, privacy: .public)"
-                )
             viewModel?.beforeExifOrientation = result.1
         }
     }
@@ -228,16 +218,6 @@ struct AfterCameraView: View {
                         debounceKey: "all-after-captured"
                     )
             }
-        }
-    }
-
-    private func observeDeviceRotation(viewModel: AfterCameraViewModel) async {
-        acquireMotionIfNeeded()
-        let motion = env.motionService
-        viewModel.updateDeviceRotation(degrees: motion.screenRotationDegrees)
-        while !Task.isCancelled {
-            try? await Task.sleep(nanoseconds: 50_000_000)
-            viewModel.updateDeviceRotation(degrees: motion.screenRotationDegrees)
         }
     }
 

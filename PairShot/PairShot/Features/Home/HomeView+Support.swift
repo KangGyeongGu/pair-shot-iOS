@@ -248,13 +248,13 @@ struct HomeDeleteDialogs: ViewModifier {
             ) { request in
                 Button(String(localized: "dialog_delete_pair_button_all"), role: .destructive) {
                     Task {
-                        await viewModel.confirmPairDeletion(mode: .wholePair, pairs: request.pairs)
+                        await viewModel.confirmPairDeletion(pairs: request.pairs)
                         viewModel.pendingPairDelete = nil
                     }
                 }
                 Button(String(localized: "dialog_delete_pair_button_combined_only"), role: .destructive) {
                     Task {
-                        await viewModel.confirmPairDeletion(mode: .combinedOnly, pairs: request.pairs)
+                        await viewModel.confirmCombinedDeletion(pairs: request.pairs)
                         viewModel.pendingPairDelete = nil
                     }
                 }

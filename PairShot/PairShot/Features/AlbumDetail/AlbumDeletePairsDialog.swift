@@ -19,16 +19,8 @@ struct AlbumDeletePairsDialog: ViewModifier {
                 }
                 Button(String(localized: "album_delete_method_button_all"), role: .destructive) {
                     Task {
-                        await viewModel.confirmPairDeletion(mode: .wholePair, pairs: request.pairs)
+                        await viewModel.confirmPairDeletion(pairs: request.pairs)
                         viewModel.pendingPairDelete = nil
-                    }
-                }
-                if viewModel.hasCombined(in: request.pairs) {
-                    Button(String(localized: "album_delete_method_button_combined_only")) {
-                        Task {
-                            await viewModel.confirmPairDeletion(mode: .combinedOnly, pairs: request.pairs)
-                            viewModel.pendingPairDelete = nil
-                        }
                     }
                 }
                 Button(String(localized: "common_button_cancel"), role: .cancel) {

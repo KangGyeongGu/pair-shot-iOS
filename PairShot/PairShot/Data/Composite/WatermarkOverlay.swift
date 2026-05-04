@@ -3,14 +3,6 @@ import Foundation
 import UIKit
 
 nonisolated enum WatermarkOverlay {
-    static let defaultEnabled = false
-
-    static var isEnabled: Bool {
-        let defaults = UserDefaults.standard
-        defaults.register(defaults: [AppSettingsKeys.watermarkEnabled: defaultEnabled])
-        return defaults.bool(forKey: AppSettingsKeys.watermarkEnabled)
-    }
-
     static func apply(to source: UIImage, settings: WatermarkSettings) -> UIImage {
         let canvasSize = source.size
         guard canvasSize.width > 0, canvasSize.height > 0 else {

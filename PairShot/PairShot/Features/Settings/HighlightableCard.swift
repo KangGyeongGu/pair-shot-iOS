@@ -25,17 +25,12 @@ struct HighlightableCard<Content: View>: View {
 
     private func startPulse() {
         if reduceMotion { return }
-        Task { @MainActor in
-            for _ in 0 ..< 2 {
-                withAnimation(.easeInOut(duration: 0.6)) {
-                    pulseOpacity = 0.3
-                }
-                try? await Task.sleep(nanoseconds: 600_000_000)
-                withAnimation(.easeInOut(duration: 0.4)) {
-                    pulseOpacity = 0.0
-                }
-                try? await Task.sleep(nanoseconds: 400_000_000)
-            }
+        pulseOpacity = 0
+        withAnimation(.easeInOut(duration: 0.5).repeatCount(4, autoreverses: true)) {
+            pulseOpacity = 0.3
+        }
+        withAnimation(.easeInOut(duration: 0.4).delay(2.0)) {
+            pulseOpacity = 0
         }
     }
 }

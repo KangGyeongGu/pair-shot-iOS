@@ -1,5 +1,4 @@
 import Foundation
-import OSLog
 import Photos
 import UIKit
 
@@ -105,13 +104,7 @@ final class PhotoLibraryService: @unchecked Sendable {
             PHImageManager.default().requestImageDataAndOrientation(
                 for: asset,
                 options: options
-            ) { data, dataUTI, phkOrientation, info in
-                let degraded = (info?[PHImageResultIsDegradedKey] as? Bool) ?? false
-                let bytes = data?.count ?? 0
-                AppLogger.camera
-                    .info(
-                        "[CAM-ROT-PHK] requestImageDataAndOrientation: phkOrientation=\(phkOrientation.rawValue, privacy: .public), dataBytes=\(bytes, privacy: .public), uti=\(dataUTI ?? "nil", privacy: .public), degraded=\(degraded, privacy: .public)"
-                    )
+            ) { data, _, _, _ in
                 continuation.resume(returning: data)
             }
         }

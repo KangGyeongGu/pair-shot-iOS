@@ -1,7 +1,6 @@
 @preconcurrency import AVFoundation
 import Foundation
 import Observation
-import OSLog
 import UIKit
 
 // swiftlint:disable type_contents_order switch_case_alignment
@@ -184,11 +183,6 @@ final class AfterCameraViewModel {
     }
 
     func updateDeviceRotation(degrees: Double) {
-        let captureAngleSnapshot = beforeCaptureAngle
-        AppLogger.camera
-            .info(
-                "[CAM-ROT-DEV] updateDeviceRotation: degrees=\(degrees, privacy: .public), beforeCaptureAngle=\(captureAngleSnapshot, privacy: .public)"
-            )
         deviceRotationDegrees = degrees
     }
 
@@ -199,17 +193,11 @@ final class AfterCameraViewModel {
             captureAngleDegrees: captureAngleSnapshot,
             deviceAngleDegrees: deviceAngleSnapshot
         )
-        let ghost = -delta
-        ghostRotationDegrees = ghost
-        let direction = RotationGuideResolver.direction(
+        ghostRotationDegrees = -delta
+        rotationDirection = RotationGuideResolver.direction(
             captureAngleDegrees: captureAngleSnapshot,
             deviceAngleDegrees: deviceAngleSnapshot
         )
-        AppLogger.camera
-            .info(
-                "[CAM-ROT-RES] rotationDirection=\(String(describing: direction), privacy: .public), ghostRotation=\(ghost, privacy: .public), beforeCaptureAngle=\(captureAngleSnapshot, privacy: .public), deviceAngle=\(deviceAngleSnapshot, privacy: .public)"
-            )
-        rotationDirection = direction
     }
 
     func dismiss() {
@@ -263,7 +251,7 @@ final class AfterCameraViewModel {
     private func scheduleAllCompletedDismiss() {
         allCompletedDismissTask?.cancel()
         allCompletedDismissTask = Task { [weak self] in
-            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            try? await Task.sleep(for: .seconds(2))
             guard let self, !Task.isCancelled else { return }
             eventsContinuation.yield(.dismiss)
         }

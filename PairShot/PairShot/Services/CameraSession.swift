@@ -189,68 +189,59 @@ final nonisolated class CameraSession: @unchecked Sendable {
 
     private func configureInitialInput() async {
         let session = box.session
-        var attempt = 0
-        while attempt < 2 {
-            let success = await runOnSessionQueue { [weak self] () -> Bool in
-                guard let self else { return false }
+        await runOnSessionQueueVoid { [weak self] in
+            guard let self else { return }
 
-                session.beginConfiguration()
-                defer { session.commitConfiguration() }
+            session.beginConfiguration()
+            defer { session.commitConfiguration() }
 
-                if session.canSetSessionPreset(.photo) {
-                    session.sessionPreset = .photo
-                }
-
-                let candidates: [AVCaptureDevice.DeviceType] = [
-                    .builtInTripleCamera,
-                    .builtInDualWideCamera,
-                    .builtInDualCamera,
-                    .builtInWideAngleCamera,
-                ]
-                var resolvedDevice: AVCaptureDevice?
-                var resolvedInput: AVCaptureDeviceInput?
-                for type in candidates {
-                    guard let device = AVCaptureDevice.default(type, for: .video, position: .back) else {
-                        continue
-                    }
-                    guard let input = try? AVCaptureDeviceInput(device: device),
-                          session.canAddInput(input)
-                    else {
-                        continue
-                    }
-                    session.addInput(input)
-                    Self.applyDefaultZoom(to: device)
-                    resolvedDevice = device
-                    resolvedInput = input
-                    break
-                }
-
-                guard let device = resolvedDevice, let input = resolvedInput else {
-                    return false
-                }
-
-                let output = AVCapturePhotoOutput()
-                guard session.canAddOutput(output) else {
-                    AppLogger.camera.error("Camera session canAddOutput=false; rolling back input")
-                    session.removeInput(input)
-                    return false
-                }
-                session.addOutput(output)
-                Self.applyMaxPhotoDimensions(to: output, device: device)
-
-                activeDevice = device
-                activeInput = input
-                photoOutput = output
-                hasInputInternal = true
-                lensPositionStorage = .back
-                didConfigure = true
-                return true
+            if session.canSetSessionPreset(.photo) {
+                session.sessionPreset = .photo
             }
-            if success { break }
-            attempt += 1
-            if attempt < 2 {
-                try? await Task.sleep(for: .milliseconds(150))
+
+            let candidates: [AVCaptureDevice.DeviceType] = [
+                .builtInTripleCamera,
+                .builtInDualWideCamera,
+                .builtInDualCamera,
+                .builtInWideAngleCamera,
+            ]
+            var resolvedDevice: AVCaptureDevice?
+            var resolvedInput: AVCaptureDeviceInput?
+            for type in candidates {
+                guard let device = AVCaptureDevice.default(type, for: .video, position: .back) else {
+                    continue
+                }
+                guard let input = try? AVCaptureDeviceInput(device: device),
+                      session.canAddInput(input)
+                else {
+                    continue
+                }
+                session.addInput(input)
+                Self.applyDefaultZoom(to: device)
+                resolvedDevice = device
+                resolvedInput = input
+                break
             }
+
+            guard let device = resolvedDevice, let input = resolvedInput else {
+                return
+            }
+
+            let output = AVCapturePhotoOutput()
+            guard session.canAddOutput(output) else {
+                AppLogger.camera.error("Camera session canAddOutput=false; rolling back input")
+                session.removeInput(input)
+                return
+            }
+            session.addOutput(output)
+            Self.applyMaxPhotoDimensions(to: output, device: device)
+
+            activeDevice = device
+            activeInput = input
+            photoOutput = output
+            hasInputInternal = true
+            lensPositionStorage = .back
+            didConfigure = true
         }
     }
 

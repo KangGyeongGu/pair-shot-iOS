@@ -64,7 +64,6 @@ final class ImmediateExportService {
                         ids: pairs.map(\.id),
                         selection: selection,
                         renderOptions: currentRenderOptions(),
-                        format: .zip,
                         tempDirectory: tempDirectoryProvider()
                     )
                     snackbarQueue.completeProgress(handle, finalMessage: nil)
@@ -292,7 +291,6 @@ final class ImmediateExportService {
                 ids: pairs.map(\.id),
                 selection: currentSelection(),
                 renderOptions: currentRenderOptions(),
-                format: .zip,
                 tempDirectory: tempDirectoryProvider()
             )
             snackbarQueue.updateProgress(progress, value: 1.0)

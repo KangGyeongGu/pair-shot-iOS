@@ -2,11 +2,6 @@ import Foundation
 
 @MainActor
 final class DeletePairsUseCase {
-    enum Mode: Equatable {
-        case wholePair
-        case combinedOnly
-    }
-
     let pairRepo: PhotoPairRepository
     let photoLibrary: PhotoLibraryService
 
@@ -18,15 +13,9 @@ final class DeletePairsUseCase {
         self.photoLibrary = photoLibrary
     }
 
-    func callAsFunction(ids: Set<UUID>, mode: Mode) async throws {
+    func callAsFunction(ids: Set<UUID>) async throws {
         guard !ids.isEmpty else { return }
-        switch mode {
-            case .wholePair:
-                try await deleteWholePairs(ids: ids)
-
-            case .combinedOnly:
-                break
-        }
+        try await deleteWholePairs(ids: ids)
     }
 
     private func deleteWholePairs(ids: Set<UUID>) async throws {

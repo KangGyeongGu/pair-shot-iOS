@@ -1,4 +1,3 @@
-import OSLog
 import SwiftUI
 
 enum RotationGuideDirection {
@@ -79,11 +78,6 @@ struct RotationGuideOverlay: View {
 enum RotationGuideResolver {
     static let upRightTolerance: Double = 15
 
-    private static let logger = Logger(
-        subsystem: Bundle.main.bundleIdentifier ?? "com.pairshot",
-        category: "Camera"
-    )
-
     static func displayDelta(
         captureAngleDegrees: Double,
         deviceAngleDegrees: Double
@@ -101,16 +95,10 @@ enum RotationGuideResolver {
             captureAngleDegrees: captureAngleDegrees,
             deviceAngleDegrees: deviceAngleDegrees
         )
-        let result: RotationGuideDirection = if abs(delta) <= upRightTolerance {
-            .upright
-        } else {
-            delta > 0 ? .right : .left
+        if abs(delta) <= upRightTolerance {
+            return .upright
         }
-        logger
-            .info(
-                "[CAM-ROT-BRANCH] captureAngle=\(captureAngleDegrees, privacy: .public), deviceAngle=\(deviceAngleDegrees, privacy: .public), displayDelta=\(delta, privacy: .public), tolerance=\(upRightTolerance, privacy: .public), direction=\(String(describing: result), privacy: .public)"
-            )
-        return result
+        return delta > 0 ? .right : .left
     }
 }
 

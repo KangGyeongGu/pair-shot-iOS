@@ -1,3 +1,4 @@
+@preconcurrency import AVFoundation
 import Foundation
 
 nonisolated enum LensPosition: String, Codable, CaseIterable {
@@ -10,13 +11,27 @@ nonisolated enum LensPosition: String, Codable, CaseIterable {
 
     static func resolve(identifier: String?) -> Self {
         guard let identifier else { return .backWide }
-        let lower = identifier.lowercased()
-        if lower.contains("ultra") { return .backUltraWide }
-        if lower.contains("tele") { return .backTele }
-        if lower.contains("front") { return .front }
-        if lower.contains("triple") { return .backTriple }
-        if lower.contains("dual") { return .backDualWide }
-        return .backWide
+        let parts = identifier.split(separator: ".", maxSplits: 1).map(String.init)
+        guard let typeRaw = parts.first else { return .backWide }
+        let position = parts.count > 1 ? parts[1] : "back"
+        if position == "front" { return .front }
+        switch typeRaw {
+            case AVCaptureDevice.DeviceType.builtInUltraWideCamera.rawValue:
+                return .backUltraWide
+
+            case AVCaptureDevice.DeviceType.builtInTelephotoCamera.rawValue:
+                return .backTele
+
+            case AVCaptureDevice.DeviceType.builtInTripleCamera.rawValue:
+                return .backTriple
+
+            case AVCaptureDevice.DeviceType.builtInDualWideCamera.rawValue,
+                 AVCaptureDevice.DeviceType.builtInDualCamera.rawValue:
+                return .backDualWide
+
+            default:
+                return .backWide
+        }
     }
 }
 

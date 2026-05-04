@@ -41,10 +41,6 @@ nonisolated extension CameraSession {
             self?.rotationCoordinator?.videoRotationAngleForHorizonLevelCapture ?? 90
         }
         let exifOrientation = ExifOrientationCodec.fromCaptureAngle(captureAngle)
-        AppLogger.camera
-            .info(
-                "[CAM-ROT-CAP] captureAngle=\(captureAngle, privacy: .public), exif=\(exifOrientation.rawValue, privacy: .public)"
-            )
 
         let queue = sessionQueue
 
@@ -79,15 +75,13 @@ nonisolated extension CameraSession {
     }
 
     nonisolated static func lensIdentifier(for device: AVCaptureDevice) -> String {
-        let raw = device.deviceType.rawValue
-        let stripped = raw.replacingOccurrences(of: "AVCaptureDeviceType", with: "")
         let position = switch device.position {
             case .back: "back"
             case .front: "front"
             case .unspecified: "unspecified"
             @unknown default: "unknown"
         }
-        return "\(stripped).\(position)"
+        return "\(device.deviceType.rawValue).\(position)"
     }
 }
 

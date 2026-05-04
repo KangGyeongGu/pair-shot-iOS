@@ -173,9 +173,7 @@ final class HomeViewModel {
         cancelSelection()
     }
 
-    func reload() async {
-        try? await Task.sleep(nanoseconds: 200_000_000)
-    }
+    func reload() async {}
 
     func enterSelectionMode() {
         guard !isSelectionMode else { return }
@@ -409,22 +407,29 @@ final class HomeViewModel {
         pendingAlbumRename = HomeAlbumRenameRequest(album: album)
     }
 
-    func confirmPairDeletion(mode: DeletePairsUseCase.Mode, pairs: [PhotoPair]) async {
+    func confirmPairDeletion(pairs: [PhotoPair]) async {
         let snapshots: [(before: String?, after: String?)] = pairs.map {
             ($0.beforePhotoLocalIdentifier, $0.afterPhotoLocalIdentifier)
         }
         let ids = Set(pairs.map(\.id))
-        try? await deletePairs(ids: ids, mode: mode)
+        try? await deletePairs(ids: ids)
         for snapshot in snapshots {
             evictThumbnails(beforeIdentifier: snapshot.before, afterIdentifier: snapshot.after)
         }
         cancelSelection()
     }
 
+    func confirmCombinedDeletion(pairs: [PhotoPair]) async {
+        guard let useCase = deleteCombinedExports else { return }
+        let ids = Set(pairs.map(\.id))
+        try? await useCase(ids: ids)
+        cancelSelection()
+    }
+
     func confirmSinglePairDeletion(_ pair: PhotoPair) async {
         let beforeId = pair.beforePhotoLocalIdentifier
         let afterId = pair.afterPhotoLocalIdentifier
-        try? await deletePairs(ids: [pair.id], mode: .wholePair)
+        try? await deletePairs(ids: [pair.id])
         evictThumbnails(beforeIdentifier: beforeId, afterIdentifier: afterId)
     }
 

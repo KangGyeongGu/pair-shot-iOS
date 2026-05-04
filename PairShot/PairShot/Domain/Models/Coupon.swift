@@ -50,8 +50,7 @@ final class Coupon {
     var expirationDate: Date {
         switch kind {
             case let .timed(days):
-                Calendar.current.date(byAdding: .day, value: days, to: activatedAt)
-                    ?? activatedAt.addingTimeInterval(TimeInterval(days) * 86_400)
+                Calendar.current.date(byAdding: .day, value: days, to: activatedAt) ?? activatedAt
 
             case .unlimited:
                 .distantFuture
