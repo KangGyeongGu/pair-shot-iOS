@@ -7,7 +7,6 @@ import OSLog
 @Observable
 final class MotionService {
     var rollDegrees: Double = 0
-    var screenRotationDegrees: Double = 90
 
     private(set) var isStreaming: Bool = false
 
@@ -17,7 +16,7 @@ final class MotionService {
     private let isManagerOwned: Bool
     private let motionQueue: OperationQueue
 
-    init(updateInterval: TimeInterval = 0.05) {
+    init(updateInterval: TimeInterval = 1.0) {
         self.updateInterval = updateInterval
         manager = CMMotionManager()
         isManagerOwned = true
@@ -27,7 +26,7 @@ final class MotionService {
         motionQueue.maxConcurrentOperationCount = 1
     }
 
-    init(manager: CMMotionManager, updateInterval: TimeInterval = 0.05) {
+    init(manager: CMMotionManager, updateInterval: TimeInterval = 1.0) {
         self.updateInterval = updateInterval
         self.manager = manager
         isManagerOwned = false
@@ -46,12 +45,9 @@ final class MotionService {
         manager.deviceMotionUpdateInterval = updateInterval
         manager.startDeviceMotionUpdates(to: motionQueue) { [weak self] motion, _ in
             guard let motion else { return }
-            let rollDegrees = motion.attitude.roll * 180 / .pi
-            let rawScreenAngle = atan2(motion.gravity.x, motion.gravity.y) * 180 / .pi
-            let normalizedScreenAngle = (rawScreenAngle - 90 + 360).truncatingRemainder(dividingBy: 360)
+            let degrees = motion.attitude.roll * 180 / .pi
             Task { @MainActor [weak self] in
-                self?.rollDegrees = rollDegrees
-                self?.screenRotationDegrees = normalizedScreenAngle
+                self?.rollDegrees = degrees
             }
         }
         isStreaming = true
@@ -62,7 +58,6 @@ final class MotionService {
         manager.stopDeviceMotionUpdates()
         isStreaming = false
         rollDegrees = 0
-        screenRotationDegrees = 90
     }
 
     func isLevel(tolerance: Double = 1.5) -> Bool {

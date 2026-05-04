@@ -77,38 +77,54 @@ struct RotationGuideOverlay: View {
 }
 
 enum RotationGuideResolver {
-    static let upRightTolerance: Double = 15
-
     private static let logger = Logger(
         subsystem: Bundle.main.bundleIdentifier ?? "com.pairshot",
         category: "Camera"
     )
 
+    private static let deviceAngleByOrientation: [UIDeviceOrientation: Int] = [
+        .landscapeLeft: 0,
+        .portrait: 90,
+        .faceUp: 90,
+        .faceDown: 90,
+        .unknown: 90,
+        .landscapeRight: 180,
+        .portraitUpsideDown: 270,
+    ]
+
+    private static let directionByDelta: [Int: RotationGuideDirection] = [
+        0: .upright,
+        90: .right,
+        -90: .left,
+        180: .right,
+        -180: .right,
+    ]
+
+    static func deviceAngleDegrees(from orientation: UIDeviceOrientation) -> Int {
+        deviceAngleByOrientation[orientation] ?? 90
+    }
+
     static func displayDelta(
         captureAngleDegrees: Double,
-        deviceAngleDegrees: Double
-    ) -> Double {
-        let raw = (captureAngleDegrees - deviceAngleDegrees).truncatingRemainder(dividingBy: 360)
-        let positive = (raw + 360).truncatingRemainder(dividingBy: 360)
-        return positive > 180 ? positive - 360 : positive
+        orientation: UIDeviceOrientation
+    ) -> Int {
+        let rounded = Int(captureAngleDegrees.rounded())
+        let normalizedCapture = ((rounded % 360) + 360) % 360
+        let deviceAngle = deviceAngleDegrees(from: orientation)
+        let raw = ((normalizedCapture - deviceAngle) % 360 + 360) % 360
+        return raw > 180 ? raw - 360 : raw
     }
 
     static func direction(
         captureAngleDegrees: Double,
-        deviceAngleDegrees: Double
+        orientation: UIDeviceOrientation
     ) -> RotationGuideDirection {
-        let delta = displayDelta(
-            captureAngleDegrees: captureAngleDegrees,
-            deviceAngleDegrees: deviceAngleDegrees
-        )
-        let result: RotationGuideDirection = if abs(delta) <= upRightTolerance {
-            .upright
-        } else {
-            delta > 0 ? .right : .left
-        }
+        let delta = displayDelta(captureAngleDegrees: captureAngleDegrees, orientation: orientation)
+        let result = directionByDelta[delta] ?? .upright
+        let deviceAngle = deviceAngleDegrees(from: orientation)
         logger
             .info(
-                "[CAM-ROT-BRANCH] captureAngle=\(captureAngleDegrees, privacy: .public), deviceAngle=\(deviceAngleDegrees, privacy: .public), displayDelta=\(delta, privacy: .public), tolerance=\(upRightTolerance, privacy: .public), direction=\(String(describing: result), privacy: .public)"
+                "[CAM-ROT-BRANCH] captureAngle=\(captureAngleDegrees, privacy: .public), deviceOrient=\(orientation.rawValue, privacy: .public), deviceAngle=\(deviceAngle, privacy: .public), displayDelta=\(delta, privacy: .public), direction=\(String(describing: result), privacy: .public)"
             )
         return result
     }
