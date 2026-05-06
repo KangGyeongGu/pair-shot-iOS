@@ -164,7 +164,6 @@ final class RewardedAdManager {
             return .granted
         #endif
     }
-
 }
 
 #if canImport(GoogleMobileAds)

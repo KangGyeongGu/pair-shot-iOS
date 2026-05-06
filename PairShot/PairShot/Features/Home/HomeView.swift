@@ -64,8 +64,9 @@ struct HomeView: View {
     private func content(for viewModel: HomeViewModel) -> some View {
         @Bindable var bindable = viewModel
         let domainPairs = allPairs.map { $0.toDomain() }
+        let domainAlbums = allAlbums.map { Self.toDomain($0) }
         let sortedPairs = viewModel.sortedPairs(from: domainPairs)
-        let sortedAlbums = viewModel.sortedAlbums(from: allAlbums)
+        let sortedAlbums = viewModel.sortedAlbums(from: domainAlbums)
 
         VStack(spacing: 0) {
             BannerAdSlot()
@@ -101,7 +102,7 @@ struct HomeView: View {
     private func grids(
         viewModel: HomeViewModel,
         sortedPairs: [PhotoPair],
-        sortedAlbums: [AlbumEntity]
+        sortedAlbums: [Album]
     ) -> some View {
         switch viewModel.contentMode {
             case .pairs:
@@ -233,7 +234,7 @@ struct HomeView: View {
         return base
     }
 
-    private func albumsList(viewModel: HomeViewModel, albums: [AlbumEntity]) -> some View {
+    private func albumsList(viewModel: HomeViewModel, albums: [Album]) -> some View {
         List {
             ForEach(albums) { album in
                 HomeAlbumCardView(
@@ -280,11 +281,24 @@ struct HomeView: View {
             HomeSelectionToolbar(
                 viewModel: viewModel,
                 sortedPairs: viewModel.sortedPairs(from: allPairs.map { $0.toDomain() }),
-                sortedAlbums: viewModel.sortedAlbums(from: allAlbums)
+                sortedAlbums: viewModel.sortedAlbums(from: allAlbums.map { Self.toDomain($0) })
             )
         } else {
             HomeDefaultToolbar(viewModel: viewModel, onPushSettings: onPushSettings)
         }
+    }
+
+    static func toDomain(_ entity: AlbumEntity) -> Album {
+        Album(
+            id: entity.id,
+            name: entity.name,
+            latitude: entity.latitude,
+            longitude: entity.longitude,
+            locationLabel: entity.locationLabel,
+            createdAt: entity.createdAt,
+            updatedAt: entity.updatedAt,
+            pairIds: entity.pairs.map(\.id)
+        )
     }
 }
 

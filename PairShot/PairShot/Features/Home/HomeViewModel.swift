@@ -1,7 +1,6 @@
 import CoreLocation
 import Foundation
 import Observation
-import SwiftData
 
 enum HomeContentMode: String, CaseIterable, Identifiable {
     case pairs
@@ -28,7 +27,7 @@ struct HomePairDeleteRequest: Identifiable {
 
 struct HomeAlbumDeleteRequest: Identifiable {
     let id = UUID()
-    let albums: [AlbumEntity]
+    let albums: [Album]
 }
 
 struct HomeSinglePairDeleteRequest: Identifiable {
@@ -38,12 +37,12 @@ struct HomeSinglePairDeleteRequest: Identifiable {
 
 struct HomeSingleAlbumDeleteRequest: Identifiable {
     let id = UUID()
-    let album: AlbumEntity
+    let album: Album
 }
 
 struct HomeAlbumRenameRequest: Identifiable {
     let id = UUID()
-    let album: AlbumEntity
+    let album: Album
 }
 
 struct HomePairPreviewRequest: Identifiable {
@@ -153,7 +152,7 @@ final class HomeViewModel {
             .sorted { sortOrder == .newest ? $0.date > $1.date : $0.date < $1.date }
     }
 
-    func sortedAlbums(from all: [AlbumEntity]) -> [AlbumEntity] {
+    func sortedAlbums(from all: [Album]) -> [Album] {
         switch sortOrder {
             case .newest:
                 all.sorted { $0.updatedAt > $1.updatedAt }
@@ -227,7 +226,7 @@ final class HomeViewModel {
         }
     }
 
-    func tapAlbum(_ album: AlbumEntity) {
+    func tapAlbum(_ album: Album) {
         if isSelectionMode {
             toggleAlbumSelection(album.id)
         }
@@ -238,7 +237,7 @@ final class HomeViewModel {
         selectedPairIds = selectedPairIds == allIds ? [] : allIds
     }
 
-    func selectAllAlbums(from all: [AlbumEntity]) {
+    func selectAllAlbums(from all: [Album]) {
         let allIds = Set(all.map(\.id))
         selectedAlbumIds = selectedAlbumIds == allIds ? [] : allIds
     }
@@ -247,7 +246,7 @@ final class HomeViewModel {
         !all.isEmpty && selectedPairIds.count == all.count
     }
 
-    func areAllAlbumsSelected(from all: [AlbumEntity]) -> Bool {
+    func areAllAlbumsSelected(from all: [Album]) -> Bool {
         !all.isEmpty && selectedAlbumIds.count == all.count
     }
 
@@ -377,7 +376,7 @@ final class HomeViewModel {
         pendingPairDelete = HomePairDeleteRequest(pairs: chosen)
     }
 
-    func requestAlbumDeletion(from all: [AlbumEntity]) {
+    func requestAlbumDeletion(from all: [Album]) {
         let chosen = all.filter { selectedAlbumIds.contains($0.id) }
         guard !chosen.isEmpty else { return }
         pendingAlbumDelete = HomeAlbumDeleteRequest(albums: chosen)
@@ -388,12 +387,12 @@ final class HomeViewModel {
         pendingSinglePairDelete = HomeSinglePairDeleteRequest(pair: pair)
     }
 
-    func requestSingleAlbumDeletion(_ album: AlbumEntity) {
+    func requestSingleAlbumDeletion(_ album: Album) {
         guard !isSelectionMode else { return }
         pendingSingleAlbumDelete = HomeSingleAlbumDeleteRequest(album: album)
     }
 
-    func requestAlbumRename(from all: [AlbumEntity]) {
+    func requestAlbumRename(from all: [Album]) {
         guard selectedAlbumIds.count == 1,
               let id = selectedAlbumIds.first,
               let album = all.first(where: { $0.id == id })
@@ -427,33 +426,24 @@ final class HomeViewModel {
         evictThumbnails(beforeIdentifier: beforeId, afterIdentifier: afterId)
     }
 
-    func confirmAlbumDeletion(albums: [AlbumEntity]) async {
+    func confirmAlbumDeletion(albums: [Album]) async {
         for album in albums {
             try? await albumRepo.delete(id: album.id)
         }
         cancelSelection()
     }
 
-    func confirmSingleAlbumDeletion(_ album: AlbumEntity) async {
+    func confirmSingleAlbumDeletion(_ album: Album) async {
         try? await albumRepo.delete(id: album.id)
     }
 
-    func renameAlbum(_ album: AlbumEntity, to newName: String) async {
+    func renameAlbum(_ album: Album, to newName: String) async {
         let trimmed = newName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
-        album.name = trimmed
-        album.updatedAt = .now
-        let domain = Album(
-            id: album.id,
-            name: album.name,
-            latitude: album.latitude,
-            longitude: album.longitude,
-            locationLabel: album.locationLabel,
-            createdAt: album.createdAt,
-            updatedAt: album.updatedAt,
-            pairIds: album.pairs.map(\.id)
-        )
-        try? await albumRepo.update(domain)
+        var updated = album
+        updated.name = trimmed
+        updated.updatedAt = .now
+        try? await albumRepo.update(updated)
         cancelSelection()
     }
 

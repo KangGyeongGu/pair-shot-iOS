@@ -2,7 +2,6 @@ import Foundation
 import Observation
 import OSLog
 import Photos
-import SwiftData
 import UIKit
 
 struct ExportShareItems: Identifiable {
@@ -82,7 +81,6 @@ final class ExportSettingsViewModel {
     private let interstitialAdManager: InterstitialAdManager?
     private let adFreeStore: AdFreeStore?
     private let fullscreenAdCoordinator: FullscreenAdCoordinator?
-    private let modelContainer: ModelContainer?
 
     private var pendingZipURL: URL?
 
@@ -99,8 +97,7 @@ final class ExportSettingsViewModel {
         appSettings: AppSettings? = nil,
         interstitialAdManager: InterstitialAdManager? = nil,
         adFreeStore: AdFreeStore? = nil,
-        fullscreenAdCoordinator: FullscreenAdCoordinator? = nil,
-        modelContainer: ModelContainer? = nil
+        fullscreenAdCoordinator: FullscreenAdCoordinator? = nil
     ) {
         self.pairIds = pairIds
         self.albumId = albumId
@@ -115,7 +112,6 @@ final class ExportSettingsViewModel {
         self.interstitialAdManager = interstitialAdManager
         self.adFreeStore = adFreeStore
         self.fullscreenAdCoordinator = fullscreenAdCoordinator
-        self.modelContainer = modelContainer
         includeCombined = preferences.includeCombined
         includeBefore = preferences.includeBefore
         includeAfter = preferences.includeAfter
@@ -372,7 +368,7 @@ final class ExportSettingsViewModel {
                     continue
                 }
                 let identifier = try await photoLibraryExporter.saveImageData(data, type: .photo)
-                recordExportHistory(
+                await recordExportHistory(
                     identifier: identifier,
                     pair: item.pair,
                     entry: item.entry,
@@ -488,27 +484,18 @@ final class ExportSettingsViewModel {
         pair: PhotoPair,
         entry: ExportSelection.Entry,
         renderOptions: ExportRenderOptions
-    ) {
-        guard let modelContainer else { return }
+    ) async {
         guard let kind = ExportHistoryKindResolver.resolve(
             entryKind: entry.kind,
             renderOptions: renderOptions,
             appSettings: appSettings
         ) else { return }
-        let context = modelContainer.mainContext
-        let pairId = pair.id
-        let descriptor = FetchDescriptor<PhotoPairEntity>(
-            predicate: #Predicate { $0.id == pairId }
-        )
-        let pairEntity = try? context.fetch(descriptor).first
-        let record = ExportHistoryEntity(
-            kind: kind,
-            photoLocalIdentifier: identifier,
-            pair: pairEntity
-        )
-        context.insert(record)
         do {
-            try context.save()
+            try await pairRepo.recordExportHistory(
+                pairId: pair.id,
+                kind: kind,
+                photoLocalIdentifier: identifier
+            )
         } catch {
             AppLogger.storage.error(
                 "ExportHistory persist failed: \(error.localizedDescription, privacy: .public)"

@@ -54,7 +54,9 @@ struct AlbumDetailView: View {
 
     @ViewBuilder
     private func content(for viewModel: AlbumDetailViewModel, album: AlbumEntity) -> some View {
-        let sortedPairs = viewModel.sortedPairs(from: album)
+        let domainPairs = album.pairs.map { $0.toDomain() }
+        let sortedPairs = viewModel.sortedPairs(from: domainPairs)
+        let domainAlbum = Self.toDomain(album)
 
         VStack(spacing: 0) {
             BannerAdSlot()
@@ -70,10 +72,23 @@ struct AlbumDetailView: View {
         }
         .modifier(AlbumDetailCameraCovers(viewModel: viewModel))
         .modifier(AlbumDeletePairsDialog(viewModel: viewModel))
-        .modifier(AlbumDetailRenameAlert(viewModel: viewModel, album: album))
+        .modifier(AlbumDetailRenameAlert(viewModel: viewModel, album: domainAlbum))
         .modifier(AlbumDetailDeleteAlbumAlert(viewModel: viewModel))
         .modifier(AlbumDetailPairPickerNavigation(viewModel: viewModel))
         .modifier(AlbumDetailShareSheet(viewModel: viewModel))
+    }
+
+    static func toDomain(_ entity: AlbumEntity) -> Album {
+        Album(
+            id: entity.id,
+            name: entity.name,
+            latitude: entity.latitude,
+            longitude: entity.longitude,
+            locationLabel: entity.locationLabel,
+            createdAt: entity.createdAt,
+            updatedAt: entity.updatedAt,
+            pairIds: entity.pairs.map(\.id)
+        )
     }
 
     @ViewBuilder
@@ -153,12 +168,14 @@ struct AlbumDetailView: View {
     @ToolbarContentBuilder
     private var toolbar: some ToolbarContent {
         if let viewModel, let album = albums.first {
+            let domainPairs = album.pairs.map { $0.toDomain() }
+            let sorted = viewModel.sortedPairs(from: domainPairs)
             if viewModel.isSelectionMode {
                 AlbumDetailSelectionToolbar(
                     selectionCount: viewModel.selectedPairIds.count,
-                    allSelected: viewModel.areAllPairsSelected(from: viewModel.sortedPairs(from: album)),
+                    allSelected: viewModel.areAllPairsSelected(from: sorted),
                     onCancel: viewModel.cancelSelection,
-                    onToggleSelectAll: { viewModel.selectAllPairs(from: viewModel.sortedPairs(from: album)) }
+                    onToggleSelectAll: { viewModel.selectAllPairs(from: sorted) }
                 )
             } else {
                 AlbumDetailDefaultToolbar(

@@ -52,5 +52,4 @@ enum AdsConfig {
             return testID
         #endif
     }
-
 }

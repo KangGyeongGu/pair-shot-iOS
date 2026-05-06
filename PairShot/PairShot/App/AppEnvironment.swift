@@ -167,7 +167,7 @@ final class AppEnvironment {
             photoLibraryExporter: resolvedPhotoLibraryExporter,
             snackbarQueue: resolvedSnackbarQueue,
             appSettings: resolvedAppSettings,
-            modelContainer: modelContainer
+            pairRepo: resolvedPairRepo
         )
     }
 
@@ -319,8 +319,7 @@ final class AppEnvironment {
             appSettings: appSettings,
             interstitialAdManager: interstitialAdManager,
             adFreeStore: adFreeStore,
-            fullscreenAdCoordinator: fullscreenAdCoordinator,
-            modelContainer: modelContainer
+            fullscreenAdCoordinator: fullscreenAdCoordinator
         )
     }
 }

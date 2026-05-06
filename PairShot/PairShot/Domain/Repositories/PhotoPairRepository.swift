@@ -10,4 +10,5 @@ protocol PhotoPairRepository: Sendable {
     func deleteCombinedExportRecords(forPairIds ids: Set<UUID>) async throws
     func combinedExportPhotoIdentifiers(forPairIds ids: Set<UUID>) async throws -> [String]
     func allExportPhotoIdentifiers(forPairIds ids: Set<UUID>) async throws -> [String]
+    func recordExportHistory(pairId: UUID, kind: ExportHistoryKind, photoLocalIdentifier: String) async throws
 }

@@ -1,6 +1,5 @@
 import Foundation
 import Observation
-import SwiftData
 
 struct AlbumDetailPairDeleteRequest: Identifiable {
     let id = UUID()
@@ -98,15 +97,13 @@ final class AlbumDetailViewModel {
         try? await useCase(ids: [pair.id])
     }
 
-    func sortedPairs(from album: AlbumEntity?) -> [PhotoPair] {
-        guard let album else { return [] }
-        let domain = album.pairs.map { $0.toDomain() }
+    func sortedPairs(from pairs: [PhotoPair]) -> [PhotoPair] {
         switch sortOrder {
             case .newest:
-                return domain.sorted { $0.createdAt > $1.createdAt }
+                pairs.sorted { $0.createdAt > $1.createdAt }
 
             case .oldest:
-                return domain.sorted { $0.createdAt < $1.createdAt }
+                pairs.sorted { $0.createdAt < $1.createdAt }
         }
     }
 
@@ -294,22 +291,13 @@ final class AlbumDetailViewModel {
         showRenameAlert = true
     }
 
-    func confirmRename(album: AlbumEntity) async {
+    func confirmRename(album: Album) async {
         let trimmed = renameDraft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
-        album.name = trimmed
-        album.updatedAt = .now
-        let domain = Album(
-            id: album.id,
-            name: album.name,
-            latitude: album.latitude,
-            longitude: album.longitude,
-            locationLabel: album.locationLabel,
-            createdAt: album.createdAt,
-            updatedAt: album.updatedAt,
-            pairIds: album.pairs.map(\.id)
-        )
-        try? await albumRepo.update(domain)
+        var updated = album
+        updated.name = trimmed
+        updated.updatedAt = .now
+        try? await albumRepo.update(updated)
     }
 
     func requestAlbumDeletion() {

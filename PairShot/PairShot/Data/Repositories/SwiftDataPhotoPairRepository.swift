@@ -102,6 +102,21 @@ final class SwiftDataPhotoPairRepository: PhotoPairRepository {
         return collected
     }
 
+    func recordExportHistory(
+        pairId: UUID,
+        kind: ExportHistoryKind,
+        photoLocalIdentifier: String
+    ) async throws {
+        let pairEntity = try fetchEntity(id: pairId)
+        let record = ExportHistoryEntity(
+            kind: kind,
+            photoLocalIdentifier: photoLocalIdentifier,
+            pair: pairEntity
+        )
+        context.insert(record)
+        try context.save()
+    }
+
     private func fetchAllSync() throws -> [PhotoPairEntity] {
         let descriptor = FetchDescriptor<PhotoPairEntity>(
             sortBy: [SortDescriptor(\.createdAt, order: .reverse)]

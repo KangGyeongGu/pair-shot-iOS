@@ -1,10 +1,9 @@
-import SwiftData
 import SwiftUI
 
 struct HomeBottomBarHost: View {
     let viewModel: HomeViewModel
     let sortedPairs: [PhotoPair]
-    let sortedAlbums: [AlbumEntity]
+    let sortedAlbums: [Album]
     let onPushExportSettings: (([UUID]) -> Void)?
 
     var body: some View {
@@ -57,7 +56,7 @@ struct HomeBottomBarHost: View {
 struct HomeSelectionToolbar: ToolbarContent {
     let viewModel: HomeViewModel
     let sortedPairs: [PhotoPair]
-    let sortedAlbums: [AlbumEntity]
+    let sortedAlbums: [Album]
 
     var body: some ToolbarContent {
         ToolbarItem(placement: .topBarLeading) {
@@ -137,7 +136,7 @@ struct HomeDefaultToolbar: ToolbarContent {
 struct HomeViewSheetModifiers: ViewModifier {
     let viewModel: HomeViewModel
     let sortedPairs: [PhotoPair]
-    let sortedAlbums: [AlbumEntity]
+    let sortedAlbums: [Album]
 
     func body(content: Content) -> some View {
         content
@@ -357,13 +356,13 @@ enum HomeCreateAlbumPlaceholder {
 }
 
 struct AlbumRenameDialog: View {
-    let album: AlbumEntity
+    let album: Album
     @Binding var isPresented: Bool
     let onCommit: (String) async -> Void
 
     @State private var name: String
 
-    init(album: AlbumEntity, isPresented: Binding<Bool>, onCommit: @escaping (String) async -> Void) {
+    init(album: Album, isPresented: Binding<Bool>, onCommit: @escaping (String) async -> Void) {
         self.album = album
         _isPresented = isPresented
         self.onCommit = onCommit

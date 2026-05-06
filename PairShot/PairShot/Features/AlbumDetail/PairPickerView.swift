@@ -126,7 +126,17 @@ struct PairPickerView: View {
 
     private func membershipPairIds() -> Set<UUID> {
         guard let album = albums.first else { return [] }
-        return Set(album.pairs.map(\.id))
+        let domain = Album(
+            id: album.id,
+            name: album.name,
+            latitude: album.latitude,
+            longitude: album.longitude,
+            locationLabel: album.locationLabel,
+            createdAt: album.createdAt,
+            updatedAt: album.updatedAt,
+            pairIds: album.pairs.map(\.id)
+        )
+        return Set(domain.pairIds)
     }
 
     private func errorBinding(for viewModel: PairPickerViewModel) -> Binding<Bool> {

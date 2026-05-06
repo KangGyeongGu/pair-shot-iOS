@@ -1,7 +1,6 @@
 import Foundation
 import OSLog
 import Photos
-import SwiftData
 import UIKit
 
 enum SaveToDeviceOutcome {
@@ -17,7 +16,7 @@ final class ImmediateExportService {
     private let preferences: ExportPreferences
     private let tempDirectoryProvider: @Sendable () -> URL
     private let appSettings: AppSettings
-    private let modelContainer: ModelContainer?
+    private let pairRepo: PhotoPairRepository?
 
     private var hasAnyInclude: Bool {
         preferences.includeCombined || preferences.includeBefore || preferences.includeAfter
@@ -29,7 +28,7 @@ final class ImmediateExportService {
         photoLibraryExporter: PhotoLibraryExport,
         snackbarQueue: SnackbarQueue,
         appSettings: AppSettings,
-        modelContainer: ModelContainer? = nil,
+        pairRepo: PhotoPairRepository? = nil,
         preferences: ExportPreferences = ExportPreferences(),
         tempDirectoryProvider: @escaping @Sendable () -> URL = { FileManager.default.temporaryDirectory }
     ) {
@@ -38,7 +37,7 @@ final class ImmediateExportService {
         self.photoLibraryExporter = photoLibraryExporter
         self.snackbarQueue = snackbarQueue
         self.appSettings = appSettings
-        self.modelContainer = modelContainer
+        self.pairRepo = pairRepo
         self.preferences = preferences
         self.tempDirectoryProvider = tempDirectoryProvider
     }
@@ -216,7 +215,7 @@ final class ImmediateExportService {
             }
             do {
                 let identifier = try await photoLibraryExporter.saveImageData(data, type: .photo)
-                recordExportHistory(
+                await recordExportHistory(
                     identifier: identifier,
                     pair: item.pair,
                     entry: item.entry,
@@ -255,27 +254,21 @@ final class ImmediateExportService {
         pair: PhotoPair,
         entry: ExportSelection.Entry,
         renderOptions: ExportRenderOptions
-    ) {
-        guard let modelContainer else { return }
-        guard let kind = ExportHistoryKindResolver.resolve(
-            entryKind: entry.kind,
-            renderOptions: renderOptions,
-            appSettings: appSettings
-        ) else { return }
-        let context = modelContainer.mainContext
-        let pairId = pair.id
-        let descriptor = FetchDescriptor<PhotoPairEntity>(
-            predicate: #Predicate { $0.id == pairId }
-        )
-        let pairEntity = try? context.fetch(descriptor).first
-        let record = ExportHistoryEntity(
-            kind: kind,
-            photoLocalIdentifier: identifier,
-            pair: pairEntity
-        )
-        context.insert(record)
+    ) async {
+        guard let pairRepo else { return }
+        guard let kind = await MainActor.run(body: {
+            ExportHistoryKindResolver.resolve(
+                entryKind: entry.kind,
+                renderOptions: renderOptions,
+                appSettings: appSettings
+            )
+        }) else { return }
         do {
-            try context.save()
+            try await pairRepo.recordExportHistory(
+                pairId: pair.id,
+                kind: kind,
+                photoLocalIdentifier: identifier
+            )
         } catch {
             AppLogger.storage.error(
                 "ExportHistory persist failed: \(error.localizedDescription, privacy: .public)"

@@ -60,7 +60,7 @@ struct AlbumDetailSelectionToolbar: ToolbarContent {
 
 struct AlbumDetailRenameAlert: ViewModifier {
     @Bindable var viewModel: AlbumDetailViewModel
-    let album: AlbumEntity
+    let album: Album
 
     func body(content: Content) -> some View {
         content
