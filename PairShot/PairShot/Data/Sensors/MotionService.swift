@@ -7,7 +7,7 @@ import OSLog
 @Observable
 final class MotionService {
     var rollDegrees: Double = 0
-    var screenRotationDegrees: Double = 90
+    var orientation: CameraOrientation?
 
     private(set) var isStreaming: Bool = false
 
@@ -43,11 +43,12 @@ final class MotionService {
         manager.startDeviceMotionUpdates(to: motionQueue) { @Sendable [weak self] motion, _ in
             guard let motion else { return }
             let rollDegrees = motion.attitude.roll * 180 / .pi
-            let rawAngle = atan2(-motion.gravity.x, motion.gravity.y) * 180 / .pi
-            let normalized = (rawAngle - 90 + 360).truncatingRemainder(dividingBy: 360)
+            let detected = CameraOrientation(gravityX: motion.gravity.x, gravityY: motion.gravity.y)
             Task { @MainActor [weak self] in
                 self?.rollDegrees = rollDegrees
-                self?.screenRotationDegrees = normalized
+                if let detected {
+                    self?.orientation = detected
+                }
             }
         }
         isStreaming = true
@@ -60,7 +61,7 @@ final class MotionService {
         manager.stopDeviceMotionUpdates()
         isStreaming = false
         rollDegrees = 0
-        screenRotationDegrees = 90
+        orientation = nil
     }
 
     func isLevel(tolerance: Double = 1.5) -> Bool {

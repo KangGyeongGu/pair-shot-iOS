@@ -53,7 +53,7 @@ struct AfterCameraView: View {
         .task {
             ensureViewModelSync()
             acquireMotionIfNeeded()
-            viewModel?.updateDeviceRotation(degrees: env.motionService.screenRotationDegrees)
+            viewModel?.updateDeviceOrientation(env.motionService.orientation)
         }
         .onDisappear {
             viewModel?.onDisappear()
@@ -65,8 +65,8 @@ struct AfterCameraView: View {
         .onChange(of: viewModel?.ghostImageData) { _, newData in
             updateCachedGhostImage(from: newData)
         }
-        .onChange(of: env.motionService.screenRotationDegrees) { _, newValue in
-            viewModel?.updateDeviceRotation(degrees: newValue)
+        .onChange(of: env.motionService.orientation) { _, newValue in
+            viewModel?.updateDeviceOrientation(newValue)
         }
         .captureErrorAlert(message: Binding(
             get: { viewModel?.captureErrorMessage },

@@ -173,30 +173,30 @@ final class AfterCameraViewModel {
         adopt(pair: pair)
     }
 
-    var deviceRotationDegrees: Double = 90 {
+    var deviceOrientation: CameraOrientation? {
         didSet { recomputeRotationDirection() }
     }
 
     var beforeExifOrientation: CGImagePropertyOrientation = .up
-    var beforeCaptureAngle: Double = 90 {
+    var captureOrientation: CameraOrientation = .portrait {
         didSet {
-            recomputeGhostRotation()
+            ghostRotationDegrees = captureOrientation.ghostRotationDegrees
             recomputeRotationDirection()
         }
     }
 
-    func updateDeviceRotation(degrees: Double) {
-        deviceRotationDegrees = degrees
-    }
-
-    private func recomputeGhostRotation() {
-        ghostRotationDegrees = 90 - beforeCaptureAngle
+    func updateDeviceOrientation(_ orientation: CameraOrientation?) {
+        deviceOrientation = orientation
     }
 
     private func recomputeRotationDirection() {
-        rotationDirection = RotationGuideResolver.direction(
-            captureAngleDegrees: beforeCaptureAngle,
-            deviceAngleDegrees: deviceRotationDegrees
+        guard let device = deviceOrientation else {
+            rotationDirection = .upright
+            return
+        }
+        rotationDirection = RotationGuideDirection(
+            capture: captureOrientation,
+            device: device
         )
     }
 
@@ -263,7 +263,7 @@ final class AfterCameraViewModel {
         ghostImageData = nil
         alpha = GhostOverlayMath.clamp(appSettings.defaultOverlayAlpha)
         hasRestoredZoom = false
-        beforeCaptureAngle = pair.cameraSettings?.captureAngleDegrees ?? 90
+        captureOrientation = CameraOrientation(captureAngleDegrees: pair.cameraSettings?.captureAngleDegrees ?? 90)
         Task { await loadGhost(for: pair) }
         Task { await restoreZoom(for: pair) }
     }

@@ -75,24 +75,14 @@ struct RotationGuideOverlay: View {
     }
 }
 
-enum RotationGuideResolver {
-    static func direction(
-        captureAngleDegrees: Double,
-        deviceAngleDegrees: Double
-    ) -> RotationGuideDirection {
-        if orientationBucket(captureAngleDegrees) == orientationBucket(deviceAngleDegrees) {
-            return .upright
+extension RotationGuideDirection {
+    init(capture: CameraOrientation, device: CameraOrientation) {
+        if capture == device {
+            self = .upright
+            return
         }
-        let raw = (captureAngleDegrees - deviceAngleDegrees).truncatingRemainder(dividingBy: 360)
-        let positive = (raw + 360).truncatingRemainder(dividingBy: 360)
-        let delta = positive > 180 ? positive - 360 : positive
-        return delta > 0 ? .right : .left
-    }
-
-    private static func orientationBucket(_ angle: Double) -> Int {
-        let normalized = ((angle.truncatingRemainder(dividingBy: 360)) + 360)
-            .truncatingRemainder(dividingBy: 360)
-        return Int(((normalized + 45) / 90).rounded(.down)) % 4
+        let diff = (device.rawValue - capture.rawValue + 4) % 4
+        self = diff == 3 ? .left : .right
     }
 }
 
