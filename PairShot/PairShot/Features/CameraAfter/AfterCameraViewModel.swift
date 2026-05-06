@@ -152,19 +152,6 @@ final class AfterCameraViewModel {
         Task { await session.stop() }
     }
 
-    func handleScenePhaseAction(_ action: CameraSessionAction?) {
-        guard cameraPermissionGranted == true else { return }
-        switch action {
-            case .stop:
-                Task { await session.stop() }
-
-            case .start:
-                Task { await session.start() }
-
-            case nil:
-                break
-        }
-    }
 
     func onSelectionChanged(_ newId: UUID?) {
         guard let newId else { return }

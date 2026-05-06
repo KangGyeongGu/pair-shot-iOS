@@ -59,9 +59,6 @@ struct AfterCameraView: View {
             viewModel?.onDisappear()
             releaseMotionIfNeeded()
         }
-        .onChange(of: scenePhase) { _, newPhase in
-            viewModel?.handleScenePhaseAction(CameraScenePhaseGate.action(for: newPhase))
-        }
         .onChange(of: viewModel?.ghostImageData) { _, newData in
             updateCachedGhostImage(from: newData)
         }

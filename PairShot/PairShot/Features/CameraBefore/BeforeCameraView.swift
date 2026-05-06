@@ -70,7 +70,6 @@ struct BeforeCameraView: View {
             releaseMotionIfNeeded()
         }
         .onChange(of: scenePhase) { _, newPhase in
-            viewModel?.handleScenePhaseAction(CameraScenePhaseGate.action(for: newPhase))
             if newPhase == .background { releaseMotionIfNeeded() }
             if newPhase == .active, viewModel?.isLevelOn == true { acquireMotionIfNeeded() }
         }

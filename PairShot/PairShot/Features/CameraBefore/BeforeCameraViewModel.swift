@@ -131,19 +131,6 @@ final class BeforeCameraViewModel {
         Task { await session.stop() }
     }
 
-    func handleScenePhaseAction(_ action: CameraSessionAction?) {
-        guard cameraPermissionGranted == true else { return }
-        switch action {
-            case .stop:
-                Task { await session.stop() }
-
-            case .start:
-                Task { await session.start() }
-
-            case nil:
-                break
-        }
-    }
 
     func onPinchChanged(_ scale: Double) {
         let target = pinchBaseFactor * scale
