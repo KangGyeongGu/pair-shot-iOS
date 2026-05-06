@@ -40,7 +40,7 @@ final class MotionService {
             return
         }
         manager.deviceMotionUpdateInterval = updateInterval
-        manager.startDeviceMotionUpdates(to: motionQueue) { [weak self] motion, _ in
+        manager.startDeviceMotionUpdates(to: motionQueue) { @Sendable [weak self] motion, _ in
             guard let motion else { return }
             let rollDegrees = motion.attitude.roll * 180 / .pi
             let rawAngle = atan2(motion.gravity.x, motion.gravity.y) * 180 / .pi
