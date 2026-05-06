@@ -179,24 +179,24 @@ final class AfterCameraViewModel {
 
     var beforeExifOrientation: CGImagePropertyOrientation = .up
     var beforeCaptureAngle: Double = 90 {
-        didSet { recomputeRotationDirection() }
+        didSet {
+            recomputeGhostRotation()
+            recomputeRotationDirection()
+        }
     }
 
     func updateDeviceRotation(degrees: Double) {
         deviceRotationDegrees = degrees
     }
 
+    private func recomputeGhostRotation() {
+        ghostRotationDegrees = 90 - beforeCaptureAngle
+    }
+
     private func recomputeRotationDirection() {
-        let captureAngleSnapshot = beforeCaptureAngle
-        let deviceAngleSnapshot = deviceRotationDegrees
-        let delta = RotationGuideResolver.displayDelta(
-            captureAngleDegrees: captureAngleSnapshot,
-            deviceAngleDegrees: deviceAngleSnapshot
-        )
-        ghostRotationDegrees = -delta
         rotationDirection = RotationGuideResolver.direction(
-            captureAngleDegrees: captureAngleSnapshot,
-            deviceAngleDegrees: deviceAngleSnapshot
+            captureAngleDegrees: beforeCaptureAngle,
+            deviceAngleDegrees: deviceRotationDegrees
         )
     }
 
