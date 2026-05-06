@@ -53,6 +53,7 @@ struct PairShotApp: App {
                     if !env.permissionStatusService.hasRequestedInitialPermissions {
                         await env.permissionStatusService.requestAllInOrder()
                     }
+                    _ = await env.trackingService.requestIfUndetermined()
                     await bootstrapAds()
                 }
         }
@@ -121,6 +122,12 @@ struct ModelContainerBootstrap {
     static func bootstrap() -> Self {
         let schema = Schema([AlbumEntity.self, PhotoPairEntity.self, CouponEntity.self, ExportHistoryEntity.self])
         do {
+            _ = try FileManager.default.url(
+                for: .applicationSupportDirectory,
+                in: .userDomainMask,
+                appropriateFor: nil,
+                create: true
+            )
             let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
             let container = try ModelContainer(
                 for: schema,
