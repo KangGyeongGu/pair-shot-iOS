@@ -37,7 +37,6 @@ struct SettingsView: View {
         consumePendingPulseIfNeeded()
     }
 
-    // swiftlint:disable switch_case_alignment switch_case_on_newline
     private func consumePendingPulseIfNeeded() {
         guard let viewModel,
               let target = env.settingsRedirectCoordinator.consume()
@@ -48,17 +47,13 @@ struct SettingsView: View {
         }
     }
 
-    // swiftlint:enable switch_case_alignment switch_case_on_newline
-
     private func observeEvents() async {
         guard let viewModel else { return }
         for await event in viewModel.events {
-            // swiftlint:disable switch_case_alignment
             switch event {
                 case .dismiss:
                     dismiss()
             }
-            // swiftlint:enable switch_case_alignment
         }
     }
 

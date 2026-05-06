@@ -506,7 +506,6 @@ private struct WatermarkLogoPreview: View {
         )
     }
 
-    // swiftlint:disable function_parameter_count
     private func computeOrigin(
         in canvas: CGSize,
         width: CGFloat,
@@ -526,7 +525,6 @@ private struct WatermarkLogoPreview: View {
             case .bottomRight: CGPoint(x: canvas.width - width - padding, y: canvas.height - height - padding)
         }
     }
-    // swiftlint:enable function_parameter_count
 }
 
 private struct WatermarkSettingsViewPreviewWrapper: View {

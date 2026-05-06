@@ -312,6 +312,5 @@ struct SettingsStorageInfoSection: View {
 }
 
 enum SettingsExternalLinks {
-    // swiftlint:disable:next force_unwrapping
     static let privacyPolicy: URL = .init(string: "https://pairshot.kangkyeonggu.com/privacy")!
 }

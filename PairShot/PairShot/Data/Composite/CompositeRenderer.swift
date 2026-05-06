@@ -6,8 +6,6 @@ import SwiftData
 import UIKit
 import UniformTypeIdentifiers
 
-// swiftlint:disable switch_case_alignment vertical_whitespace_between_cases
-
 nonisolated enum CompositeRenderer {
     nonisolated enum RenderError: Error, Equatable {
         case beforeImageMissing
@@ -207,8 +205,6 @@ nonisolated enum CompositeRenderer {
         return (canvas, beforeRect, afterRect)
     }
 }
-
-// swiftlint:enable switch_case_alignment vertical_whitespace_between_cases
 
 nonisolated enum ExifEmbedder {
     static let exifDateFormat = "yyyy:MM:dd HH:mm:ss"

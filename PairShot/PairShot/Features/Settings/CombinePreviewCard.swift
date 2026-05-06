@@ -1,6 +1,5 @@
 import SwiftUI
 
-// swiftlint:disable switch_case_alignment vertical_whitespace_between_cases
 struct CombinePreviewCard: View {
     static let referenceImageWidth: CGFloat = 1024
 
@@ -171,8 +170,6 @@ struct CombinePreviewCard: View {
         return Alignment(horizontal: horizontal, vertical: vertical)
     }
 }
-
-// swiftlint:enable switch_case_alignment vertical_whitespace_between_cases
 
 #Preview {
     Form {

@@ -3,8 +3,6 @@ import Foundation
 import Observation
 import UIKit
 
-// swiftlint:disable type_contents_order switch_case_alignment
-
 @MainActor
 @Observable
 final class AfterCameraViewModel {
@@ -151,7 +149,6 @@ final class AfterCameraViewModel {
         allCompletedDismissTask = nil
         Task { await session.stop() }
     }
-
 
     func onSelectionChanged(_ newId: UUID?) {
         guard let newId else { return }
@@ -342,5 +339,3 @@ enum AfterCameraGhostLoader {
         return await photoLibrary.requestImageData(localIdentifier: localIdentifier)
     }
 }
-
-// swiftlint:enable type_contents_order switch_case_alignment

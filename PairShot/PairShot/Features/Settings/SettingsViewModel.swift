@@ -279,7 +279,6 @@ final class SettingsViewModel {
         return mapOutcome(outcome)
     }
 
-    // swiftlint:disable switch_case_alignment
     private func mapOutcome(_ outcome: RewardedAdManager.RewardOutcome) -> GateResult {
         switch outcome {
             case .granted, .skipped:
@@ -297,8 +296,6 @@ final class SettingsViewModel {
                 return .failed(reason: reason)
         }
     }
-
-    // swiftlint:enable switch_case_alignment
 }
 
 extension SettingsViewModel {

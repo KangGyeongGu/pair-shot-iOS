@@ -131,7 +131,6 @@ final class BeforeCameraViewModel {
         Task { await session.stop() }
     }
 
-
     func onPinchChanged(_ scale: Double) {
         let target = pinchBaseFactor * scale
         currentZoomRatio = clampZoom(target)

@@ -118,7 +118,6 @@ nonisolated enum WatermarkOverlay {
         context.restoreGState()
     }
 
-    // swiftlint:disable function_parameter_count
     private static func drawLogo(
         logo: UIImage,
         widthRatio: Double,
@@ -145,9 +144,6 @@ nonisolated enum WatermarkOverlay {
         logo.draw(in: rect, blendMode: .normal, alpha: safeAlpha)
     }
 
-    // swiftlint:enable function_parameter_count
-
-    // swiftlint:disable function_parameter_count
     private static func logoRect(
         position: LogoPosition,
         canvas: CGSize,
@@ -196,5 +192,4 @@ nonisolated enum WatermarkOverlay {
         }
         return CGRect(x: originX, y: originY, width: targetWidth, height: targetHeight)
     }
-    // swiftlint:enable function_parameter_count
 }

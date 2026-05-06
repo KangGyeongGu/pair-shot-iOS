@@ -2,8 +2,6 @@ import CoreGraphics
 import Foundation
 import UIKit
 
-// swiftlint:disable switch_case_alignment vertical_whitespace_between_cases
-
 nonisolated enum CompositeLabelDrawer {
     private enum LabelMetrics {
         static let minFontSize: CGFloat = 10
@@ -235,5 +233,3 @@ nonisolated enum CompositeLabelDrawer {
         }
     }
 }
-
-// swiftlint:enable switch_case_alignment vertical_whitespace_between_cases

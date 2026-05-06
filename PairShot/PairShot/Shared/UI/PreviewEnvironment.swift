@@ -6,7 +6,6 @@ struct PreviewEnvironment<Content: View>: View {
     let suiteName: String
     @ViewBuilder let content: () -> Content
 
-    // swiftlint:disable:next force_try
     private let container = try! ModelContainer(
         for: Schema([AlbumEntity.self, PhotoPairEntity.self, CouponEntity.self, ExportHistoryEntity.self]),
         configurations: ModelConfiguration(isStoredInMemoryOnly: true)

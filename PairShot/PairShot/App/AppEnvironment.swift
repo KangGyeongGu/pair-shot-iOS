@@ -50,7 +50,6 @@ final class AppEnvironment {
 
     private var sharedSettingsViewModel: SettingsViewModel?
 
-    // swiftlint:disable:next function_body_length
     init(
         modelContainer: ModelContainer,
         appSettings: AppSettings? = nil,

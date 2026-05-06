@@ -7,7 +7,6 @@ struct RootView: View {
 
     @State private var path: [Route] = []
 
-    // swiftlint:disable:next type_contents_order
     init(showFallbackAlert: Binding<Bool> = .constant(false)) {
         _showFallbackAlert = showFallbackAlert
     }
@@ -43,7 +42,7 @@ struct RootView: View {
     }
 
     @ViewBuilder
-    // swiftlint:disable switch_case_alignment cyclomatic_complexity
+
     private func destination(for route: Route) -> some View {
         switch route {
             case .home:
@@ -112,8 +111,6 @@ struct RootView: View {
                 EmptyView()
         }
     }
-
-    // swiftlint:enable switch_case_alignment cyclomatic_complexity
 }
 
 #Preview {

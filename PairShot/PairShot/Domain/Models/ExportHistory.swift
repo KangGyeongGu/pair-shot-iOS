@@ -34,7 +34,6 @@ struct ExportHistory: Identifiable, Equatable {
 
 @MainActor
 enum ExportHistoryKindResolver {
-    // swiftlint:disable switch_case_alignment
     static func resolve(
         entryKind: ExportPhotoKind,
         renderOptions: ExportRenderOptions,
@@ -57,8 +56,6 @@ enum ExportHistoryKindResolver {
                 return .watermarkedAfter
         }
     }
-
-    // swiftlint:enable switch_case_alignment
 
     private static func isWatermarkActive(
         renderOptions: ExportRenderOptions,

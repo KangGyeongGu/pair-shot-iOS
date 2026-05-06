@@ -91,7 +91,6 @@ final class ExportSettingsViewModel {
 
     private var pendingZipURL: URL?
 
-    // swiftlint:disable:next function_body_length
     init(
         pairIds: [UUID],
         albumId: UUID?,
@@ -247,7 +246,6 @@ final class ExportSettingsViewModel {
         return mapOutcome(outcome)
     }
 
-    // swiftlint:disable switch_case_alignment
     private func mapOutcome(_ outcome: RewardedAdManager.RewardOutcome) -> GateResult {
         switch outcome {
             case .granted, .skipped:
@@ -265,8 +263,6 @@ final class ExportSettingsViewModel {
                 return .failed(reason: reason)
         }
     }
-
-    // swiftlint:enable switch_case_alignment
 
     func share() async {
         guard canExecute else { return }
@@ -541,7 +537,7 @@ final class ExportSettingsViewModel {
     }
 }
 
-nonisolated final class ExportPreferences: @unchecked Sendable {
+final nonisolated class ExportPreferences: @unchecked Sendable {
     static let includeCombinedKey = "pairshot.exportIncludeCombined"
     static let includeBeforeKey = "pairshot.exportIncludeBefore"
     static let includeAfterKey = "pairshot.exportIncludeAfter"

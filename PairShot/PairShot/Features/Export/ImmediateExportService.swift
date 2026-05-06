@@ -44,7 +44,6 @@ final class ImmediateExportService {
         self.tempDirectoryProvider = tempDirectoryProvider
     }
 
-    // swiftlint:disable switch_case_alignment
     func makeShareItems(for pairs: [PhotoPair]) async throws -> ExportShareItems {
         let selection = currentSelection()
         guard hasAnyInclude else {
@@ -117,8 +116,6 @@ final class ImmediateExportService {
         }
         try? FileManager.default.removeItem(at: url)
     }
-
-    // swiftlint:enable switch_case_alignment
 
     func cleanup(items: ExportShareItems) {
         for value in items.values {

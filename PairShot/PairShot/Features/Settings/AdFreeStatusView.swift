@@ -279,7 +279,6 @@ struct AdFreeStatusView: View {
 }
 
 enum AdFreeExternalLinks {
-    // swiftlint:disable:next force_unwrapping
     static let couponHelp: URL = .init(string: "https://pairshot.kangkyeonggu.com")!
 }
 

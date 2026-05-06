@@ -75,7 +75,6 @@ struct CombinePositionPicker3x3: View {
         return "\(verticalText) \(horizontalText)"
     }
 
-    // swiftlint:disable switch_case_alignment vertical_whitespace_between_cases
     private func horizontalLabel(_ value: CombineSettings.LabelPosition.Horizontal) -> String {
         switch value {
             case .leading:
@@ -97,7 +96,6 @@ struct CombinePositionPicker3x3: View {
                 String(localized: "combine_position_bottom")
         }
     }
-    // swiftlint:enable switch_case_alignment vertical_whitespace_between_cases
 }
 
 private struct CombinePositionPicker3x3PreviewWrapper: View {

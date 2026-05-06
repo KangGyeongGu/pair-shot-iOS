@@ -1,8 +1,6 @@
 import Foundation
 import SwiftUI
 
-// swiftlint:disable switch_case_on_newline type_contents_order switch_case_alignment
-
 nonisolated enum CompositeLayout: String, CaseIterable, Identifiable {
     case horizontal
     case vertical
@@ -41,5 +39,3 @@ nonisolated struct CompositeOptions: Equatable {
         combineSettings: nil
     )
 }
-
-// swiftlint:enable switch_case_on_newline type_contents_order switch_case_alignment

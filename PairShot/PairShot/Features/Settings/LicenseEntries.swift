@@ -28,10 +28,8 @@ enum LicenseEntries {
         ),
     ]
 
-    // swiftlint:disable force_unwrapping
     private static let apacheTwoURL = URL(string: "https://www.apache.org/licenses/LICENSE-2.0")!
     private static let zipFoundationURL = URL(
         string: "https://github.com/weichsel/ZIPFoundation/blob/development/LICENSE"
     )!
-    // swiftlint:enable force_unwrapping
 }

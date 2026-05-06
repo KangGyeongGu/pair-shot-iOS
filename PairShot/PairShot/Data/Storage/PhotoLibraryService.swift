@@ -119,11 +119,11 @@ final class PhotoLibraryService: @unchecked Sendable {
     }
 }
 
-nonisolated private final class PhotoLibraryPlaceholderBox: @unchecked Sendable {
+private final nonisolated class PhotoLibraryPlaceholderBox: @unchecked Sendable {
     var placeholder: PHObjectPlaceholder?
 }
 
-nonisolated private final class PhotoLibraryAssetsBox: @unchecked Sendable {
+private final nonisolated class PhotoLibraryAssetsBox: @unchecked Sendable {
     let value: PHFetchResult<PHAsset>
     init(value: PHFetchResult<PHAsset>) {
         self.value = value
