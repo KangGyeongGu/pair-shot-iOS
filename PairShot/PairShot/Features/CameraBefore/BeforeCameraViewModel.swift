@@ -239,10 +239,6 @@ final class BeforeCameraViewModel {
         zoomRampTask = nil
     }
 
-    func onStripPairTap(_ pair: PhotoPair) {
-        eventsContinuation.yield(.openAfterCamera(pairId: pair.id))
-    }
-
     func dismiss() {
         eventsContinuation.yield(.dismiss)
     }
@@ -345,7 +341,6 @@ final class BeforeCameraViewModel {
 
 enum ZoomDialMetrics {
     static let dragRangeSpanPt: Double = 600
-    static let pixelsPerMinorTick: Double = 30
 }
 
 nonisolated enum CameraFlashModeMapping {

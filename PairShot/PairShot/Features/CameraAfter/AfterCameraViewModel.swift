@@ -332,10 +332,3 @@ enum AfterCameraZoomHaptics {
     }
 }
 
-@MainActor
-enum AfterCameraGhostLoader {
-    static func loadData(localIdentifier: String, photoLibrary: PhotoLibraryService) async -> Data? {
-        guard !localIdentifier.isEmpty else { return nil }
-        return await photoLibrary.requestImageData(localIdentifier: localIdentifier)
-    }
-}

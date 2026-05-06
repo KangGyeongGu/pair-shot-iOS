@@ -53,16 +53,4 @@ enum AdsConfig {
         #endif
     }
 
-    static func resolveRelease(
-        testID: String,
-        bundleValue: String?
-    ) -> String {
-        if let value = bundleValue,
-           !value.isEmpty,
-           value != productionPlaceholder
-        {
-            return value
-        }
-        return testID
-    }
 }

@@ -10,11 +10,6 @@ struct ExportShareItems: Identifiable {
     let values: [Any]
 }
 
-enum ExportSettingsRedirectTarget: Equatable {
-    case watermarkSettings
-    case combineSettings
-}
-
 @MainActor
 @Observable
 final class ExportSettingsViewModel {

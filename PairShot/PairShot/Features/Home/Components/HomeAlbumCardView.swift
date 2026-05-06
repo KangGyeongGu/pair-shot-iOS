@@ -81,8 +81,3 @@ struct HomeAlbumCardView: View {
         return label
     }
 }
-
-struct AlbumCoverSource: Identifiable, Hashable {
-    let id = UUID()
-    let localIdentifier: String?
-}

@@ -208,12 +208,6 @@ final class HomeViewModel {
         selectedPairIds = [pair.id]
     }
 
-    func longPressAlbum(_ album: AlbumEntity) {
-        guard !isSelectionMode else { return }
-        isSelectionMode = true
-        selectedAlbumIds = [album.id]
-    }
-
     func tapPair(_ pair: PhotoPair, allPairs _: [PhotoPair]) {
         if isSelectionMode {
             togglePairSelection(pair.id)

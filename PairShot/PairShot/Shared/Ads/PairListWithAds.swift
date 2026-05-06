@@ -1,45 +1,5 @@
 import Foundation
 
-enum PairListItem: Identifiable, Hashable {
-    case pair(PhotoPair)
-    case ad(slotIndex: Int)
-
-    var id: AnyHashable {
-        switch self {
-            case let .pair(pair):
-                AnyHashable("pair-\(pair.id.uuidString)")
-
-            case let .ad(slotIndex):
-                AnyHashable("ad-\(slotIndex)")
-        }
-    }
-
-    static func == (lhs: Self, rhs: Self) -> Bool {
-        switch (lhs, rhs) {
-            case let (.pair(left), .pair(right)):
-                left.id == right.id
-
-            case let (.ad(left), .ad(right)):
-                left == right
-
-            default:
-                false
-        }
-    }
-
-    func hash(into hasher: inout Hasher) {
-        switch self {
-            case let .pair(pair):
-                hasher.combine(0)
-                hasher.combine(pair.id)
-
-            case let .ad(slotIndex):
-                hasher.combine(1)
-                hasher.combine(slotIndex)
-        }
-    }
-}
-
 enum PairListWithAdsBuilder {
     static let pairsPerAd = 4
     static let minPairsForAds = 3

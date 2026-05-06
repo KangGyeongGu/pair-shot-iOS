@@ -33,15 +33,6 @@ struct URLSessionCouponActivationApi {
         return await performStatus(urlRequest)
     }
 
-    func fetchMyCoupons(deviceHash: String) async -> ListApiResult {
-        guard config.isEnabled else { return .networkError }
-        let body = CouponListRequestDto(deviceHash: deviceHash)
-        guard let urlRequest = makeRequest(path: CouponApiConfig.byDevicePath, body: body) else {
-            return .networkError
-        }
-        return await performList(urlRequest)
-    }
-
     private func performActivate(_ request: URLRequest) async -> ActivationApiResult {
         let response: (Data, HTTPURLResponse)
         do {

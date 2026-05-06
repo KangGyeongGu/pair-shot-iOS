@@ -12,21 +12,6 @@ enum GhostOverlayMath {
     }
 }
 
-@MainActor
-enum GhostOverlayLoader {
-    static func loadImage(
-        localIdentifier: String,
-        photoLibrary: PhotoLibraryService
-    ) async -> UIImage? {
-        guard !localIdentifier.isEmpty else { return nil }
-        guard let data = await photoLibrary.requestImageData(localIdentifier: localIdentifier) else {
-            return nil
-        }
-        guard let cgImage = UIImage(data: data)?.cgImage else { return nil }
-        return UIImage(cgImage: cgImage, scale: 1, orientation: .up)
-    }
-}
-
 struct GhostOverlayView: View {
     let image: UIImage?
     let alpha: Double

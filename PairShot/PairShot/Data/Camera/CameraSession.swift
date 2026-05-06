@@ -128,10 +128,6 @@ final nonisolated class CameraSession: @unchecked Sendable {
         observerBox.cleanup()
     }
 
-    func authorizationState() async -> CameraAuthorizationState {
-        await permissionResolver()
-    }
-
     func start() async {
         AppLogger.camera.debug("Camera session start requested")
         let state = await permissionResolver()

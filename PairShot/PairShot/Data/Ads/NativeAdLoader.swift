@@ -8,19 +8,6 @@ import UIKit
     @preconcurrency import GoogleMobileAds
 #endif
 
-enum NativeAdInsertionStrategy {
-    static func indices(forPairCount n: Int, interval: Int = 6) -> [Int] {
-        guard n > 0, interval > 0 else { return [] }
-        var slots: [Int] = []
-        var slot = interval - 1
-        while slot < n {
-            slots.append(slot)
-            slot += interval
-        }
-        return slots
-    }
-}
-
 @MainActor
 @Observable
 final class NativeAdLoader: NSObject {
@@ -71,12 +58,6 @@ final class NativeAdLoader: NSObject {
         #endif
     }
 
-    func adFor(index: Int) -> Any? {
-        guard !loadedAds.isEmpty else { return nil }
-        let safeIndex = ((index % loadedAds.count) + loadedAds.count) % loadedAds.count
-        return loadedAds[safeIndex]
-    }
-
     func dequeue(adFreeStore: AdFreeStore? = nil) -> Any? {
         if let adFreeStore, adFreeStore.isAdFree { return nil }
         guard !loadedAds.isEmpty else {
@@ -92,17 +73,6 @@ final class NativeAdLoader: NSObject {
 
     var loadedCount: Int {
         loadedAds.count
-    }
-
-    func resetForTesting() {
-        loadedAds.removeAll()
-        isLoading = false
-        lastErrorDescription = nil
-    }
-
-    func injectAdsForTesting(_ ads: [Any]) {
-        loadedAds = ads
-        isLoading = false
     }
 }
 
@@ -138,37 +108,6 @@ final class NativeAdLoader: NSObject {
         }
     }
 #endif
-
-struct NativeAdCell: View {
-    let ad: Any?
-
-    var body: some View {
-        #if canImport(GoogleMobileAds)
-            if let nativeAd = ad as? GADNativeAd {
-                NativeAdRepresentable(nativeAd: nativeAd)
-                    .frame(maxWidth: .infinity)
-                    .aspectRatio(1, contentMode: .fit)
-                    .background(Color.appOnSurfaceVariant.opacity(0.05))
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-            } else {
-                placeholder
-            }
-        #else
-            placeholder
-        #endif
-    }
-
-    private var placeholder: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 8)
-                .fill(Color.appOnSurfaceVariant.opacity(0.1))
-            Text(String(localized: "ads_native_label"))
-                .font(.appCaption)
-                .foregroundStyle(.secondary)
-        }
-        .aspectRatio(1, contentMode: .fit)
-    }
-}
 
 #if canImport(GoogleMobileAds)
     private struct NativeAdRepresentable: UIViewRepresentable {

@@ -21,33 +21,6 @@ struct SettingsIconBadge: View {
     }
 }
 
-struct SettingsRow: View {
-    let title: String
-    let subtitle: String
-    let systemImage: String
-    var icon: SettingsRowIcon?
-
-    var body: some View {
-        HStack(spacing: 12) {
-            if let icon {
-                SettingsIconBadge(icon: icon)
-            } else {
-                Image(systemName: systemImage)
-                    .frame(width: 24)
-                    .foregroundStyle(.tint)
-            }
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title).font(.body)
-                if !subtitle.isEmpty {
-                    Text(subtitle)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-        }
-    }
-}
-
 struct SettingsValueRow: View {
     var icon: SettingsRowIcon?
     let title: String

@@ -165,13 +165,6 @@ final class RewardedAdManager {
         #endif
     }
 
-    func resetSessionUnlocksForTesting() {
-        sessionUnlocks.removeAll()
-    }
-
-    func grantUnlockForTesting(_ id: UnlockID) {
-        sessionUnlocks.insert(id)
-    }
 }
 
 #if canImport(GoogleMobileAds)
