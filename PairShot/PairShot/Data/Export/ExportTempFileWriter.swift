@@ -1,8 +1,7 @@
 import Foundation
 import UIKit
 
-@MainActor
-enum ExportTempFileWriter {
+nonisolated enum ExportTempFileWriter {
     static func write(
         data: Data,
         fileName: String,

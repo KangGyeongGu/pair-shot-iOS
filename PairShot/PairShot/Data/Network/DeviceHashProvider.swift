@@ -2,8 +2,7 @@ import CryptoKit
 import Foundation
 import UIKit
 
-@MainActor
-struct DeviceHashProvider {
+nonisolated struct DeviceHashProvider {
     private static let hexCharacters: [Character] = Array("0123456789abcdef")
 
     private let salt: String
@@ -17,6 +16,7 @@ struct DeviceHashProvider {
         self.identifierResolver = identifierResolver
     }
 
+    @MainActor
     func deviceHash() -> String {
         let identifier = identifierResolver()
         let combined = identifier + salt
@@ -29,6 +29,7 @@ struct DeviceHashProvider {
         }
     }
 
+    @MainActor
     private static func systemIdentifier() -> String {
         UIDevice.current.identifierForVendor?.uuidString ?? ""
     }

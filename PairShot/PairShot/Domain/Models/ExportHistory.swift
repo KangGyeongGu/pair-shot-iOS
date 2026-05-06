@@ -32,8 +32,8 @@ struct ExportHistory: Identifiable, Equatable {
     }
 }
 
-@MainActor
-enum ExportHistoryKindResolver {
+nonisolated enum ExportHistoryKindResolver {
+    @MainActor
     static func resolve(
         entryKind: ExportPhotoKind,
         renderOptions: ExportRenderOptions,
@@ -57,6 +57,7 @@ enum ExportHistoryKindResolver {
         }
     }
 
+    @MainActor
     private static func isWatermarkActive(
         renderOptions: ExportRenderOptions,
         appSettings: AppSettings?

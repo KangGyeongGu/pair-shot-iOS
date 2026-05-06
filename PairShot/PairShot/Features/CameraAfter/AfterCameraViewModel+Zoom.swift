@@ -125,7 +125,6 @@ extension AfterCameraViewModel {
     }
 }
 
-@MainActor
 final class AfterCameraZoomDragState {
     var dragAccumulatorPx: Double = 0
     var dragStartRatio: Double = 1.0

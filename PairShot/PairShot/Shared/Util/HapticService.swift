@@ -33,7 +33,6 @@ enum HapticNotificationKind: Equatable {
     }
 }
 
-@MainActor
 final class HapticService {
     init() {}
 

@@ -146,7 +146,6 @@ struct ModelContainerBootstrap {
     }
 }
 
-@MainActor
 enum BootstrapAdsCoordinator {
     static func bootstrap(
         adFreeStore: AdFreeStore,

@@ -1,7 +1,6 @@
 import SwiftData
 import SwiftUI
 
-@MainActor
 struct PreviewEnvironment<Content: View>: View {
     let suiteName: String
     @ViewBuilder let content: () -> Content

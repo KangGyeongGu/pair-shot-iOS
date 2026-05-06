@@ -1,8 +1,8 @@
 import Foundation
 import UIKit
 
-@MainActor
-enum ExportEntryRenderer {
+nonisolated enum ExportEntryRenderer {
+    @MainActor
     static func render(
         entry: ExportSelection.Entry,
         pair: PhotoPair,
@@ -31,6 +31,7 @@ enum ExportEntryRenderer {
         }
     }
 
+    @MainActor
     private static func renderCombined(
         pair: PhotoPair,
         photoLibrary: PhotoLibraryService,
@@ -64,6 +65,7 @@ enum ExportEntryRenderer {
         )
     }
 
+    @MainActor
     private static func renderIndividual(
         entry: ExportSelection.Entry,
         photoLibrary: PhotoLibraryService,
@@ -80,6 +82,7 @@ enum ExportEntryRenderer {
         return stamped.jpegData(compressionQuality: 0.95) ?? raw
     }
 
+    @MainActor
     private static func activeWatermark(
         appSettings: AppSettings?,
         renderOptions: ExportRenderOptions

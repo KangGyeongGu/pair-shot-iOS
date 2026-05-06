@@ -78,8 +78,7 @@ struct ZipEntryPayload {
     let data: Data
 }
 
-@MainActor
-struct ZipExporterAdapter {
+nonisolated struct ZipExporterAdapter {
     let exporter: ZipExporter
     let photoLibrary: PhotoLibraryService
     let pairRepo: PhotoPairRepository

@@ -9,7 +9,6 @@ enum SaveToDeviceOutcome {
     case zipPendingExport(url: URL, progress: SnackbarProgressHandle)
 }
 
-@MainActor
 final class ImmediateExportService {
     private let photoLibrary: PhotoLibraryService
     private let exportPairs: ExportPairsUseCase
