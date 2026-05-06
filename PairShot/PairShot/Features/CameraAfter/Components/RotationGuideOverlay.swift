@@ -80,7 +80,7 @@ enum RotationGuideResolver {
         captureAngleDegrees: Double,
         deviceAngleDegrees: Double
     ) -> RotationGuideDirection {
-        if isPortrait(captureAngleDegrees) == isPortrait(deviceAngleDegrees) {
+        if orientationBucket(captureAngleDegrees) == orientationBucket(deviceAngleDegrees) {
             return .upright
         }
         let raw = (captureAngleDegrees - deviceAngleDegrees).truncatingRemainder(dividingBy: 360)
@@ -89,9 +89,10 @@ enum RotationGuideResolver {
         return delta > 0 ? .right : .left
     }
 
-    private static func isPortrait(_ angle: Double) -> Bool {
-        let mod = ((angle.truncatingRemainder(dividingBy: 180)) + 180).truncatingRemainder(dividingBy: 180)
-        return mod >= 45 && mod < 135
+    private static func orientationBucket(_ angle: Double) -> Int {
+        let normalized = ((angle.truncatingRemainder(dividingBy: 360)) + 360)
+            .truncatingRemainder(dividingBy: 360)
+        return Int(((normalized + 45) / 90).rounded(.down)) % 4
     }
 }
 
