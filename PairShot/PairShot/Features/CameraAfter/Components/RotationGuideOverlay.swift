@@ -82,7 +82,7 @@ extension RotationGuideDirection {
             return
         }
         let diff = (device.rawValue - capture.rawValue + 4) % 4
-        self = diff == 3 ? .left : .right
+        self = diff == 3 ? .right : .left
     }
 }
 
