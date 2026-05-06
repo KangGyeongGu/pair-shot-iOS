@@ -76,29 +76,22 @@ struct RotationGuideOverlay: View {
 }
 
 enum RotationGuideResolver {
-    static let upRightTolerance: Double = 15
-
-    static func displayDelta(
-        captureAngleDegrees: Double,
-        deviceAngleDegrees: Double
-    ) -> Double {
-        let raw = (captureAngleDegrees - deviceAngleDegrees).truncatingRemainder(dividingBy: 360)
-        let positive = (raw + 360).truncatingRemainder(dividingBy: 360)
-        return positive > 180 ? positive - 360 : positive
-    }
-
     static func direction(
         captureAngleDegrees: Double,
         deviceAngleDegrees: Double
     ) -> RotationGuideDirection {
-        let delta = displayDelta(
-            captureAngleDegrees: captureAngleDegrees,
-            deviceAngleDegrees: deviceAngleDegrees
-        )
-        if abs(delta) <= upRightTolerance {
+        if isPortrait(captureAngleDegrees) == isPortrait(deviceAngleDegrees) {
             return .upright
         }
+        let raw = (captureAngleDegrees - deviceAngleDegrees).truncatingRemainder(dividingBy: 360)
+        let positive = (raw + 360).truncatingRemainder(dividingBy: 360)
+        let delta = positive > 180 ? positive - 360 : positive
         return delta > 0 ? .right : .left
+    }
+
+    private static func isPortrait(_ angle: Double) -> Bool {
+        let mod = ((angle.truncatingRemainder(dividingBy: 180)) + 180).truncatingRemainder(dividingBy: 180)
+        return mod >= 45 && mod < 135
     }
 }
 
