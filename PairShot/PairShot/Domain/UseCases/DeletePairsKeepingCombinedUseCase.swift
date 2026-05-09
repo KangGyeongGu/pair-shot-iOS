@@ -25,7 +25,7 @@ final class DeletePairsKeepingCombinedUseCase {
                 originalIds.append(afterId)
             }
         }
-        try? await photoLibrary.deleteAssets(localIdentifiers: originalIds)
+        try await photoLibrary.deleteAssets(localIdentifiers: originalIds)
         try await pairRepo.delete(ids: ids)
     }
 }

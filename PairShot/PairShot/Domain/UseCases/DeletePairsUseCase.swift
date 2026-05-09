@@ -31,7 +31,7 @@ final class DeletePairsUseCase {
         }
         let exportIds = try await pairRepo.allExportPhotoIdentifiers(forPairIds: ids)
         assetIdsToDelete.append(contentsOf: exportIds)
-        try? await photoLibrary.deleteAssets(localIdentifiers: assetIdsToDelete)
+        try await photoLibrary.deleteAssets(localIdentifiers: assetIdsToDelete)
         try await pairRepo.delete(ids: ids)
     }
 }
