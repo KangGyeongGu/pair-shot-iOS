@@ -10,10 +10,8 @@ import UIKit
 enum RewardedSessionGate {
     static func shouldShowGate(
         unlockID: RewardedAdManager.UnlockID,
-        sessionUnlocks: Set<RewardedAdManager.UnlockID>,
-        isAdFree: Bool
+        sessionUnlocks: Set<RewardedAdManager.UnlockID>
     ) -> Bool {
-        if isAdFree { return false }
         if sessionUnlocks.contains(unlockID) { return false }
         return true
     }
@@ -30,7 +28,6 @@ final class RewardedAdManager {
     enum RewardOutcome: Equatable {
         case granted
         case userClosed
-        case skipped(adFree: Bool)
         case failed(reason: String)
     }
 
@@ -54,11 +51,7 @@ final class RewardedAdManager {
         #endif
     }
 
-    func loadIfNeeded(
-        adUnitID: String? = nil,
-        adFreeStore: AdFreeStore? = nil
-    ) {
-        if let adFreeStore, adFreeStore.isAdFree { return }
+    func loadIfNeeded(adUnitID: String? = nil) {
         guard !isLoaded, !isLoading else { return }
         let resolvedUnitID = adUnitID ?? AdsConfig.rewarded
         #if canImport(GoogleMobileAds)
@@ -98,14 +91,8 @@ final class RewardedAdManager {
         _ unlockID: UnlockID,
         from rootViewController: UIViewController?,
         coordinator: FullscreenAdCoordinator,
-        adFreeStore: AdFreeStore? = nil,
         adUnitID: String? = nil
     ) async -> RewardOutcome {
-        if let adFreeStore, adFreeStore.isAdFree {
-            sessionUnlocks.insert(unlockID)
-            return .skipped(adFree: true)
-        }
-
         if sessionUnlocks.contains(unlockID) {
             return .granted
         }
@@ -152,7 +139,7 @@ final class RewardedAdManager {
 
             self.ad = nil
             isLoaded = false
-            loadIfNeeded(adUnitID: adUnitID ?? AdsConfig.rewarded, adFreeStore: adFreeStore)
+            loadIfNeeded(adUnitID: adUnitID ?? AdsConfig.rewarded)
 
             if case .granted = outcome {
                 sessionUnlocks.insert(unlockID)

@@ -6,7 +6,6 @@ struct AlbumDetailView: View {
     let onPushExportSettings: (([UUID]) -> Void)?
 
     @Environment(AppEnvironment.self) private var env
-    @Environment(AdFreeStore.self) private var adFreeStore
     @Environment(\.dismiss) private var dismiss
     @Query private var albums: [AlbumEntity]
 
@@ -111,10 +110,7 @@ struct AlbumDetailView: View {
         if pairs.isEmpty {
             AlbumDetailEmptyState()
         } else {
-            let chunks = PairListWithAdsBuilder.buildChunks(
-                pairs: pairs,
-                adFree: adFreeStore.isAdFree
-            ).chunks
+            let chunks = PairListWithAdsBuilder.buildChunks(pairs: pairs).chunks
             ScrollView {
                 LazyVStack(spacing: 12) {
                     ForEach(chunks) { chunk in

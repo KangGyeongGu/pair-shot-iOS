@@ -79,7 +79,6 @@ final class ExportSettingsViewModel {
     private let appSettings: AppSettings?
     private var preferences: ExportPreferences
     private let interstitialAdManager: InterstitialAdManager?
-    private let adFreeStore: AdFreeStore?
     private let fullscreenAdCoordinator: FullscreenAdCoordinator?
 
     private var pendingZipURL: URL?
@@ -96,7 +95,6 @@ final class ExportSettingsViewModel {
         preferences: ExportPreferences = ExportPreferences(),
         appSettings: AppSettings? = nil,
         interstitialAdManager: InterstitialAdManager? = nil,
-        adFreeStore: AdFreeStore? = nil,
         fullscreenAdCoordinator: FullscreenAdCoordinator? = nil
     ) {
         self.pairIds = pairIds
@@ -110,7 +108,6 @@ final class ExportSettingsViewModel {
         self.preferences = preferences
         self.appSettings = appSettings
         self.interstitialAdManager = interstitialAdManager
-        self.adFreeStore = adFreeStore
         self.fullscreenAdCoordinator = fullscreenAdCoordinator
         includeCombined = preferences.includeCombined
         includeBefore = preferences.includeBefore
@@ -135,40 +132,30 @@ final class ExportSettingsViewModel {
         eventsContinuation.yield(.dismiss)
     }
 
-    func requestWatermarkGate(
-        rewardedManager: RewardedAdManager,
-        adFreeStore: AdFreeStore
-    ) -> Bool {
+    func requestWatermarkGate(rewardedManager: RewardedAdManager) -> Bool {
         requestGate(
             unlockID: .watermarkSettings,
             rewardedManager: rewardedManager,
-            adFreeStore: adFreeStore,
             dialogFlag: \.showWatermarkGateDialog
         )
     }
 
-    func requestCombineGate(
-        rewardedManager: RewardedAdManager,
-        adFreeStore: AdFreeStore
-    ) -> Bool {
+    func requestCombineGate(rewardedManager: RewardedAdManager) -> Bool {
         requestGate(
             unlockID: .compositionSettings,
             rewardedManager: rewardedManager,
-            adFreeStore: adFreeStore,
             dialogFlag: \.showCombineGateDialog
         )
     }
 
     func confirmWatermarkGateAd(
         rewardedManager: RewardedAdManager,
-        adFreeStore: AdFreeStore,
         coordinator: FullscreenAdCoordinator,
         rootViewController: UIViewController?
     ) async -> GateResult {
         await presentGateAd(
             unlockID: .watermarkSettings,
             rewardedManager: rewardedManager,
-            adFreeStore: adFreeStore,
             coordinator: coordinator,
             rootViewController: rootViewController
         )
@@ -176,14 +163,12 @@ final class ExportSettingsViewModel {
 
     func confirmCombineGateAd(
         rewardedManager: RewardedAdManager,
-        adFreeStore: AdFreeStore,
         coordinator: FullscreenAdCoordinator,
         rootViewController: UIViewController?
     ) async -> GateResult {
         await presentGateAd(
             unlockID: .compositionSettings,
             rewardedManager: rewardedManager,
-            adFreeStore: adFreeStore,
             coordinator: coordinator,
             rootViewController: rootViewController
         )
@@ -192,18 +177,16 @@ final class ExportSettingsViewModel {
     private func requestGate(
         unlockID: RewardedAdManager.UnlockID,
         rewardedManager: RewardedAdManager,
-        adFreeStore: AdFreeStore,
         dialogFlag: ReferenceWritableKeyPath<ExportSettingsViewModel, Bool>
     ) -> Bool {
         lastGateFailureReason = nil
         if !RewardedSessionGate.shouldShowGate(
             unlockID: unlockID,
-            sessionUnlocks: rewardedManager.sessionUnlocks,
-            isAdFree: adFreeStore.isAdFree
+            sessionUnlocks: rewardedManager.sessionUnlocks
         ) {
             return true
         }
-        rewardedManager.loadIfNeeded(adFreeStore: adFreeStore)
+        rewardedManager.loadIfNeeded()
         self[keyPath: dialogFlag] = true
         return false
     }
@@ -211,35 +194,32 @@ final class ExportSettingsViewModel {
     private func presentGateAd(
         unlockID: RewardedAdManager.UnlockID,
         rewardedManager: RewardedAdManager,
-        adFreeStore: AdFreeStore,
         coordinator: FullscreenAdCoordinator,
         rootViewController: UIViewController?
     ) async -> GateResult {
         lastGateFailureReason = nil
         if !RewardedSessionGate.shouldShowGate(
             unlockID: unlockID,
-            sessionUnlocks: rewardedManager.sessionUnlocks,
-            isAdFree: adFreeStore.isAdFree
+            sessionUnlocks: rewardedManager.sessionUnlocks
         ) {
             return .proceed
         }
         if !rewardedManager.isLoaded {
-            rewardedManager.loadIfNeeded(adFreeStore: adFreeStore)
+            rewardedManager.loadIfNeeded()
             lastGateFailureReason = String(localized: "rewarded_gate_load_failed")
             return .adNotReady
         }
         let outcome = await rewardedManager.presentForReward(
             unlockID,
             from: rootViewController,
-            coordinator: coordinator,
-            adFreeStore: adFreeStore
+            coordinator: coordinator
         )
         return mapOutcome(outcome)
     }
 
     private func mapOutcome(_ outcome: RewardedAdManager.RewardOutcome) -> GateResult {
         switch outcome {
-            case .granted, .skipped:
+            case .granted:
                 return .proceed
 
             case .userClosed:
@@ -259,7 +239,6 @@ final class ExportSettingsViewModel {
         guard canExecute else { return }
         await InterstitialAdManager.runGated(
             manager: interstitialAdManager,
-            adFreeStore: adFreeStore,
             coordinator: fullscreenAdCoordinator
         ) { [weak self] in
             await self?.performShare()
@@ -270,7 +249,6 @@ final class ExportSettingsViewModel {
         guard canExecute else { return }
         await InterstitialAdManager.runGated(
             manager: interstitialAdManager,
-            adFreeStore: adFreeStore,
             coordinator: fullscreenAdCoordinator
         ) { [weak self] in
             await self?.performSaveToDevice()

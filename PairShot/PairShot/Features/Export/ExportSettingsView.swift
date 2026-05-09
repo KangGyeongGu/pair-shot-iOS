@@ -5,7 +5,6 @@ struct ExportSettingsView: View {
     let onPushWatermarkSettings: (() -> Void)?
     let onPushCombineSettings: (() -> Void)?
     @Environment(\.dismiss) private var dismiss
-    @Environment(AdFreeStore.self) private var adFreeStore
     @Environment(RewardedAdManager.self) private var rewardedManager
     @Environment(\.fullscreenAdCoordinator) private var coordinator
 
@@ -75,7 +74,7 @@ struct ExportSettingsView: View {
         )
         .onDisappear { viewModel.cleanupPendingZip() }
         .task { await observeEvents() }
-        .task { rewardedManager.loadIfNeeded(adFreeStore: adFreeStore) }
+        .task { rewardedManager.loadIfNeeded() }
         .alert(
             String(localized: "rewarded_gate_title"),
             isPresented: $viewModel.showWatermarkGateDialog
@@ -104,7 +103,6 @@ struct ExportSettingsView: View {
     private func confirmWatermarkGate() async {
         let result = await viewModel.confirmWatermarkGateAd(
             rewardedManager: rewardedManager,
-            adFreeStore: adFreeStore,
             coordinator: coordinator,
             rootViewController: BannerAdView.resolveTopPresentedViewController()
         )
@@ -117,7 +115,6 @@ struct ExportSettingsView: View {
     private func confirmCombineGate() async {
         let result = await viewModel.confirmCombineGateAd(
             rewardedManager: rewardedManager,
-            adFreeStore: adFreeStore,
             coordinator: coordinator,
             rootViewController: BannerAdView.resolveTopPresentedViewController()
         )
@@ -162,10 +159,7 @@ struct ExportSettingsView: View {
             Toggle(String(localized: "export_settings_apply_watermark"), isOn: $viewModel.applyWatermark)
             if viewModel.applyWatermark {
                 Button {
-                    if viewModel.requestWatermarkGate(
-                        rewardedManager: rewardedManager,
-                        adFreeStore: adFreeStore
-                    ) {
+                    if viewModel.requestWatermarkGate(rewardedManager: rewardedManager) {
                         onPushWatermarkSettings?()
                     }
                 } label: {
@@ -183,10 +177,7 @@ struct ExportSettingsView: View {
             Toggle(String(localized: "export_settings_apply_combine"), isOn: $viewModel.applyCombineSettings)
             if viewModel.applyCombineSettings {
                 Button {
-                    if viewModel.requestCombineGate(
-                        rewardedManager: rewardedManager,
-                        adFreeStore: adFreeStore
-                    ) {
+                    if viewModel.requestCombineGate(rewardedManager: rewardedManager) {
                         onPushCombineSettings?()
                     }
                 } label: {

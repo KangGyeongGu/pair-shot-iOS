@@ -3,8 +3,6 @@ import SwiftUI
 import UIKit
 
 struct AfterCameraStack: View {
-    @Environment(AdFreeStore.self) private var adFreeStore
-
     let captureSession: AVCaptureSession
     let onMakePreviewView: (CameraPreviewView) -> Void
 
@@ -50,10 +48,7 @@ struct AfterCameraStack: View {
 
     var body: some View {
         GeometryReader { geo in
-            let layout = CameraLayoutMath.compute(
-                totalSize: geo.size,
-                isAdFree: adFreeStore.isAdFree
-            )
+            let layout = CameraLayoutMath.compute(totalSize: geo.size)
 
             ZStack(alignment: .top) {
                 Color.appCameraBackground.ignoresSafeArea()
@@ -83,11 +78,9 @@ struct AfterCameraStack: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
 
-                if !layout.isAdFree {
-                    BannerAdSlot()
-                        .frame(height: layout.bannerHeight)
-                        .frame(maxWidth: .infinity)
-                }
+                BannerAdSlot()
+                    .frame(height: layout.bannerHeight)
+                    .frame(maxWidth: .infinity)
             }
         }
         .ignoresSafeArea(edges: .bottom)

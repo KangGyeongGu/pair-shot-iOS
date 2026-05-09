@@ -7,7 +7,6 @@ struct HomeView: View {
     let onPushSettings: (() -> Void)?
 
     @Environment(AppEnvironment.self) private var env
-    @Environment(AdFreeStore.self) private var adFreeStore
     @Query(sort: \PhotoPairEntity.createdAt, order: .reverse) private var allPairs: [PhotoPairEntity]
     @Query(sort: \AlbumEntity.updatedAt, order: .reverse) private var allAlbums: [AlbumEntity]
     @State private var viewModel: HomeViewModel?
@@ -124,13 +123,11 @@ struct HomeView: View {
 
     private func pairsGrid(viewModel: HomeViewModel, pairs: [PhotoPair]) -> some View {
         let groups = viewModel.groupedPairs(from: pairs)
-        let isAdFree = adFreeStore.isAdFree
         var slotIndex = 0
         let groupChunks: [(date: Date, pairs: [PhotoPair], chunks: [PairListWithAdsBuilder.PairChunk])] = groups
             .map { group in
                 let result = PairListWithAdsBuilder.buildChunks(
                     pairs: group.pairs,
-                    adFree: isAdFree,
                     startingAdSlotIndex: slotIndex
                 )
                 slotIndex = result.nextSlotIndex

@@ -105,9 +105,6 @@ struct SettingsWatermarkSection: View {
     @Bindable var viewModel: SettingsViewModel
     @Binding var path: [Route]
 
-    @Environment(AdFreeStore.self) private var adFreeStore
-    @Environment(RewardedAdManager.self) private var rewardedManager
-
     var body: some View {
         Section {
             HighlightableCard(isHighlighted: viewModel.shouldPulseWatermark) {
@@ -125,12 +122,7 @@ struct SettingsWatermarkSection: View {
             }
             if viewModel.watermarkEnabled {
                 Button {
-                    if viewModel.requestWatermarkGate(
-                        rewardedManager: rewardedManager,
-                        adFreeStore: adFreeStore
-                    ) {
-                        path.append(.watermarkSettings)
-                    }
+                    path.append(.watermarkSettings)
                 } label: {
                     HStack(spacing: 12) {
                         SettingsIconBadge(
@@ -161,19 +153,11 @@ struct SettingsCombineSection: View {
     @Bindable var viewModel: SettingsViewModel
     @Binding var path: [Route]
 
-    @Environment(AdFreeStore.self) private var adFreeStore
-    @Environment(RewardedAdManager.self) private var rewardedManager
-
     var body: some View {
         Section {
             HighlightableCard(isHighlighted: viewModel.shouldPulseCombine) {
                 Button {
-                    if viewModel.requestCombineGate(
-                        rewardedManager: rewardedManager,
-                        adFreeStore: adFreeStore
-                    ) {
-                        path.append(.combineSettings)
-                    }
+                    path.append(.combineSettings)
                 } label: {
                     HStack(spacing: 12) {
                         SettingsIconBadge(
@@ -192,75 +176,6 @@ struct SettingsCombineSection: View {
         } header: {
             Text(String(localized: "settings_section_combine"))
         }
-    }
-}
-
-struct SettingsCouponSection: View {
-    let adFreeStore: AdFreeStore
-
-    var body: some View {
-        Section {
-            NavigationLink {
-                AdFreeStatusView()
-            } label: {
-                CouponRowLabel(statusText: SettingsCouponStatusFormatter.statusText(for: adFreeStore))
-            }
-        } header: {
-            Text(String(localized: "settings_section_coupon"))
-        }
-    }
-}
-
-private struct CouponRowLabel: View {
-    let statusText: String
-
-    var body: some View {
-        HStack(spacing: 12) {
-            SettingsIconBadge(
-                icon: SettingsRowIcon(systemImage: "ticket", color: .orange)
-            )
-            VStack(alignment: .leading, spacing: 2) {
-                Text(String(localized: "coupon_section_title"))
-                    .font(.body)
-                    .foregroundStyle(.primary)
-                Text(String(localized: "coupon_subtitle_ad_free"))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            Spacer()
-            Text(statusText)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.trailing)
-        }
-    }
-}
-
-enum SettingsCouponStatusFormatter {
-    static func statusText(for store: AdFreeStore, now: Date = .now) -> String {
-        if store.isAdFree {
-            return activeText(for: store, now: now)
-        }
-        if !store.pastCoupons.isEmpty {
-            return String(localized: "coupon_status_expired_reregister")
-        }
-        return String(localized: "coupon_status_none")
-    }
-
-    private static func activeText(for store: AdFreeStore, now: Date) -> String {
-        let hasUnlimited = store.activeCoupons.contains { coupon in
-            if case .unlimited = coupon.kind { return true }
-            return false
-        }
-        if hasUnlimited {
-            return String(localized: "coupon_status_active_unlimited")
-        }
-        guard let expiration = store.currentExpiration else {
-            return String(localized: "coupon_status_active_unlimited")
-        }
-        let days = AdFreeStatusFormatter.remainingDays(until: expiration, now: now)
-        let template = String(localized: "coupon_status_active_days_remaining")
-        return String(format: template, days)
     }
 }
 

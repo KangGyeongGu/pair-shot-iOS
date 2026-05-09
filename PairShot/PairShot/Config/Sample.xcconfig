@@ -1,24 +1,8 @@
-// PairShot — xcconfig template
-//
-// 사용법: cp Sample.xcconfig Debug.xcconfig (그리고 Release.xcconfig 도 동일)
-//   값을 채운 뒤 빌드. Debug/Release.xcconfig 는 .gitignore 로 추적 제외.
-//   값이 비어있으면 AdsConfig 가 fallback test ID 를 사용하고,
-//   CouponApiConfig 는 isEnabled=false 로 fail-safe.
-
-// AdMob — production application + ad unit IDs
-// 빈 값이면 AdsConfig.swift 가 Google sample/test ID 로 fallback (개발 빌드 가능).
 GAD_APPLICATION_ID =
 ADUNIT_ID_BANNER =
 ADUNIT_ID_INTERSTITIAL =
 ADUNIT_ID_APP_OPEN =
 ADUNIT_ID_NATIVE =
 ADUNIT_ID_REWARDED =
-
-// Coupon API — production server endpoint + bearer auth + device hash salt
-// 셋 중 하나라도 비어있으면 CouponApiConfig.isEnabled=false 로 쿠폰 기능 비활성.
-// URL 의 // 는 xcconfig 가 주석으로 인식하므로 $() 로 escape: https:/$()/example.com
-COUPON_API_BASE_URL =
-COUPON_API_AUTH_KEY =
-COUPON_DEVICE_HASH_SALT =
 
 SWIFT_TREAT_WARNINGS_AS_ERRORS = YES

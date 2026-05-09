@@ -5,8 +5,6 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
     @Environment(AppEnvironment.self) private var env
-    @Environment(AdFreeStore.self) private var adFreeStore
-    @Environment(RewardedAdManager.self) private var rewardedManager
     @State private var viewModel: SettingsViewModel?
 
     var body: some View {
@@ -27,7 +25,6 @@ struct SettingsView: View {
         .task { ensureViewModel() }
         .task { await observeEvents() }
         .task { await initialStorageRefresh() }
-        .task { rewardedManager.loadIfNeeded(adFreeStore: adFreeStore) }
     }
 
     private func ensureViewModel() {
@@ -65,7 +62,6 @@ struct SettingsView: View {
     private func form(for viewModel: SettingsViewModel) -> some View {
         SettingsFormBody(
             viewModel: viewModel,
-            adFreeStore: adFreeStore,
             openURL: openURL,
             path: $path
         )
@@ -74,12 +70,8 @@ struct SettingsView: View {
 
 private struct SettingsFormBody: View {
     @Bindable var viewModel: SettingsViewModel
-    let adFreeStore: AdFreeStore
     let openURL: OpenURLAction
     @Binding var path: [Route]
-
-    @Environment(RewardedAdManager.self) private var rewardedManager
-    @Environment(\.fullscreenAdCoordinator) private var coordinator
 
     var body: some View {
         Form {
@@ -87,7 +79,6 @@ private struct SettingsFormBody: View {
             SettingsCaptureFileSection(viewModel: viewModel, path: $path)
             SettingsWatermarkSection(viewModel: viewModel, path: $path)
             SettingsCombineSection(viewModel: viewModel, path: $path)
-            SettingsCouponSection(adFreeStore: adFreeStore)
             SettingsStorageInfoSection(viewModel: viewModel, openURL: openURL)
         }
         .listStyle(.insetGrouped)
@@ -104,28 +95,6 @@ private struct SettingsFormBody: View {
             Text(String(localized: "settings_dialog_cache_clear_message"))
         }
         .alert(
-            String(localized: "rewarded_gate_title"),
-            isPresented: $viewModel.showWatermarkGateDialog
-        ) {
-            Button(String(localized: "rewarded_gate_confirm")) {
-                Task { await confirmWatermarkGate() }
-            }
-            Button(String(localized: "common_button_cancel"), role: .cancel) {}
-        } message: {
-            Text(String(localized: "rewarded_gate_body_watermark_detail"))
-        }
-        .alert(
-            String(localized: "rewarded_gate_title"),
-            isPresented: $viewModel.showCombineGateDialog
-        ) {
-            Button(String(localized: "rewarded_gate_confirm")) {
-                Task { await confirmCombineGate() }
-            }
-            Button(String(localized: "common_button_cancel"), role: .cancel) {}
-        } message: {
-            Text(String(localized: "rewarded_gate_body_combine_detail"))
-        }
-        .alert(
             String(localized: "settings_language_restart_title"),
             isPresented: $viewModel.showLanguageRestartAlert
         ) {
@@ -134,32 +103,6 @@ private struct SettingsFormBody: View {
             }
         } message: {
             Text(String(localized: "settings_language_restart_message"))
-        }
-    }
-
-    @MainActor
-    private func confirmWatermarkGate() async {
-        let result = await viewModel.confirmWatermarkGateAd(
-            rewardedManager: rewardedManager,
-            adFreeStore: adFreeStore,
-            coordinator: coordinator,
-            rootViewController: BannerAdView.resolveTopPresentedViewController()
-        )
-        if case .proceed = result {
-            path.append(.watermarkSettings)
-        }
-    }
-
-    @MainActor
-    private func confirmCombineGate() async {
-        let result = await viewModel.confirmCombineGateAd(
-            rewardedManager: rewardedManager,
-            adFreeStore: adFreeStore,
-            coordinator: coordinator,
-            rootViewController: BannerAdView.resolveTopPresentedViewController()
-        )
-        if case .proceed = result {
-            path.append(.combineSettings)
         }
     }
 }

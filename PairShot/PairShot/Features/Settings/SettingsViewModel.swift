@@ -9,13 +9,6 @@ final class SettingsViewModel {
         case dismiss
     }
 
-    enum GateResult: Equatable {
-        case proceed
-        case adNotReady
-        case userClosed
-        case failed(reason: String)
-    }
-
     let appSettings: AppSettings
     let appSettingsRepo: AppSettingsRepository
     let thumbnailCache: PhotoLibraryThumbnailCache
@@ -23,12 +16,9 @@ final class SettingsViewModel {
     let events: AsyncStream<Event>
 
     var showCacheClearConfirm: Bool = false
-    var showWatermarkGateDialog: Bool = false
-    var showCombineGateDialog: Bool = false
     var showLanguageRestartAlert: Bool = false
     var shouldPulseWatermark: Bool = false
     var shouldPulseCombine: Bool = false
-    var lastGateFailureReason: String?
 
     private(set) var photoStorageBytes: Int64?
     private(set) var cacheBytes: Int64?
@@ -174,126 +164,6 @@ final class SettingsViewModel {
 
     func setImageQuality(_ preset: CaptureQualityPreset) {
         appSettings.jpegQuality = preset.rawValue
-    }
-
-    func requestWatermarkGate(
-        rewardedManager: RewardedAdManager,
-        adFreeStore: AdFreeStore
-    ) -> Bool {
-        requestGate(
-            unlockID: .watermarkSettings,
-            rewardedManager: rewardedManager,
-            adFreeStore: adFreeStore,
-            dialogFlag: \.showWatermarkGateDialog
-        )
-    }
-
-    func requestCombineGate(
-        rewardedManager: RewardedAdManager,
-        adFreeStore: AdFreeStore
-    ) -> Bool {
-        requestGate(
-            unlockID: .compositionSettings,
-            rewardedManager: rewardedManager,
-            adFreeStore: adFreeStore,
-            dialogFlag: \.showCombineGateDialog
-        )
-    }
-
-    func confirmWatermarkGateAd(
-        rewardedManager: RewardedAdManager,
-        adFreeStore: AdFreeStore,
-        coordinator: FullscreenAdCoordinator,
-        rootViewController: UIViewController?
-    ) async -> GateResult {
-        await presentGateAd(
-            unlockID: .watermarkSettings,
-            rewardedManager: rewardedManager,
-            adFreeStore: adFreeStore,
-            coordinator: coordinator,
-            rootViewController: rootViewController
-        )
-    }
-
-    func confirmCombineGateAd(
-        rewardedManager: RewardedAdManager,
-        adFreeStore: AdFreeStore,
-        coordinator: FullscreenAdCoordinator,
-        rootViewController: UIViewController?
-    ) async -> GateResult {
-        await presentGateAd(
-            unlockID: .compositionSettings,
-            rewardedManager: rewardedManager,
-            adFreeStore: adFreeStore,
-            coordinator: coordinator,
-            rootViewController: rootViewController
-        )
-    }
-
-    private func requestGate(
-        unlockID: RewardedAdManager.UnlockID,
-        rewardedManager: RewardedAdManager,
-        adFreeStore: AdFreeStore,
-        dialogFlag: ReferenceWritableKeyPath<SettingsViewModel, Bool>
-    ) -> Bool {
-        lastGateFailureReason = nil
-        if !RewardedSessionGate.shouldShowGate(
-            unlockID: unlockID,
-            sessionUnlocks: rewardedManager.sessionUnlocks,
-            isAdFree: adFreeStore.isAdFree
-        ) {
-            return true
-        }
-        rewardedManager.loadIfNeeded(adFreeStore: adFreeStore)
-        self[keyPath: dialogFlag] = true
-        return false
-    }
-
-    private func presentGateAd(
-        unlockID: RewardedAdManager.UnlockID,
-        rewardedManager: RewardedAdManager,
-        adFreeStore: AdFreeStore,
-        coordinator: FullscreenAdCoordinator,
-        rootViewController: UIViewController?
-    ) async -> GateResult {
-        lastGateFailureReason = nil
-        if !RewardedSessionGate.shouldShowGate(
-            unlockID: unlockID,
-            sessionUnlocks: rewardedManager.sessionUnlocks,
-            isAdFree: adFreeStore.isAdFree
-        ) {
-            return .proceed
-        }
-        if !rewardedManager.isLoaded {
-            rewardedManager.loadIfNeeded(adFreeStore: adFreeStore)
-            lastGateFailureReason = String(localized: "rewarded_gate_load_failed")
-            return .adNotReady
-        }
-        let outcome = await rewardedManager.presentForReward(
-            unlockID,
-            from: rootViewController,
-            coordinator: coordinator,
-            adFreeStore: adFreeStore
-        )
-        return mapOutcome(outcome)
-    }
-
-    private func mapOutcome(_ outcome: RewardedAdManager.RewardOutcome) -> GateResult {
-        switch outcome {
-            case .granted, .skipped:
-                return .proceed
-
-            case .userClosed:
-                lastGateFailureReason = String(localized: "rewarded_gate_failure_not_completed")
-                return .userClosed
-
-            case let .failed(reason):
-                lastGateFailureReason = String(
-                    format: String(localized: "rewarded_gate_failure_show_failed_template"),
-                    reason
-                )
-                return .failed(reason: reason)
-        }
     }
 }
 

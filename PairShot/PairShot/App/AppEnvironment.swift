@@ -9,12 +9,8 @@ final class AppEnvironment {
 
     let pairRepo: PhotoPairRepository
     let albumRepo: AlbumRepository
-    let couponRepo: CouponRepository
 
     let location: CoreLocationService
-    let couponApiConfig: CouponApiConfig
-    let couponApi: URLSessionCouponActivationApi
-    let deviceHashProvider: DeviceHashProvider
     let zipExporter: ZipExporterAdapter
     let photoLibraryExporter: PhotoLibraryExport
     let photoLibrary: PhotoLibraryService
@@ -27,12 +23,9 @@ final class AppEnvironment {
     let deletePairsKeepingCombined: DeletePairsKeepingCombinedUseCase
     let exportPairs: ExportPairsUseCase
     let toggleAlbumMembership: ToggleAlbumMembershipUseCase
-    let activateCoupon: ActivateCouponUseCase
-    let checkAdFreeState: CheckAdFreeStateUseCase
 
     let appSettings: AppSettings
     let appSettingsRepo: AppSettingsRepository
-    let adFreeStore: AdFreeStore
     let trackingService: TrackingAuthorizationService
 
     let interstitialAdManager: InterstitialAdManager
@@ -55,7 +48,6 @@ final class AppEnvironment {
         modelContainer: ModelContainer,
         appSettings: AppSettings? = nil,
         appSettingsRepo: AppSettingsRepository? = nil,
-        adFreeStore: AdFreeStore? = nil,
         trackingService: TrackingAuthorizationService? = nil,
         interstitialAdManager: InterstitialAdManager? = nil,
         rewardedAdManager: RewardedAdManager? = nil,
@@ -75,7 +67,6 @@ final class AppEnvironment {
         self.modelContainer = modelContainer
         self.appSettings = resolvedAppSettings
         self.appSettingsRepo = appSettingsRepo ?? UserDefaultsAppSettingsRepository()
-        self.adFreeStore = adFreeStore ?? AdFreeStore(context: modelContainer.mainContext)
         self.trackingService = trackingService ?? TrackingAuthorizationService()
         self.snackbarQueue = resolvedSnackbarQueue
         self.settingsRedirectCoordinator = settingsRedirectCoordinator ?? SettingsRedirectCoordinator()
@@ -95,17 +86,11 @@ final class AppEnvironment {
             ?? AppOpenAdManager(trackingService: resolvedTrackingService)
         self.fullscreenAdCoordinator = fullscreenAdCoordinator ?? FullscreenAdCoordinator()
 
-        let apiConfig = CouponApiConfig.resolve()
-        let api = URLSessionCouponActivationApi(config: apiConfig)
-        let hashProvider = DeviceHashProvider(salt: apiConfig.deviceHashSalt)
         let resolvedLocation = CoreLocationService()
         let resolvedPhotoLibraryExporter = PhotoLibraryExport()
         let resolvedPhotoLibrary = PhotoLibraryService()
 
         location = resolvedLocation
-        couponApiConfig = apiConfig
-        couponApi = api
-        deviceHashProvider = hashProvider
         photoLibraryExporter = resolvedPhotoLibraryExporter
         photoLibrary = resolvedPhotoLibrary
         photoLibrarySync = PhotoLibrarySyncService(
@@ -115,14 +100,8 @@ final class AppEnvironment {
 
         let resolvedPairRepo = SwiftDataPhotoPairRepository(container: modelContainer)
         let resolvedAlbumRepo = SwiftDataAlbumRepository(container: modelContainer)
-        let resolvedCouponRepo = SwiftDataCouponRepository(
-            container: modelContainer,
-            api: api,
-            deviceHashProvider: hashProvider
-        )
         pairRepo = resolvedPairRepo
         albumRepo = resolvedAlbumRepo
-        couponRepo = resolvedCouponRepo
 
         let resolvedZipExporter = ZipExporterAdapter(
             photoLibrary: resolvedPhotoLibrary,
@@ -159,12 +138,6 @@ final class AppEnvironment {
         exportPairs = resolvedExportPairs
         toggleAlbumMembership = ToggleAlbumMembershipUseCase(
             albumRepo: resolvedAlbumRepo
-        )
-        activateCoupon = ActivateCouponUseCase(
-            couponRepo: resolvedCouponRepo
-        )
-        checkAdFreeState = CheckAdFreeStateUseCase(
-            couponRepo: resolvedCouponRepo
         )
         immediateExport = ImmediateExportService(
             photoLibrary: resolvedPhotoLibrary,
@@ -245,7 +218,6 @@ final class AppEnvironment {
             appSettings: appSettings,
             thumbnailCache: thumbnailCache,
             interstitialAdManager: interstitialAdManager,
-            adFreeStore: adFreeStore,
             fullscreenAdCoordinator: fullscreenAdCoordinator,
             deleteCombinedExports: deleteCombinedExports,
             deletePairsKeepingCombined: deletePairsKeepingCombined
@@ -272,7 +244,6 @@ final class AppEnvironment {
             appSettings: appSettings,
             thumbnailCache: thumbnailCache,
             interstitialAdManager: interstitialAdManager,
-            adFreeStore: adFreeStore,
             fullscreenAdCoordinator: fullscreenAdCoordinator,
             deleteCombinedExports: deleteCombinedExports,
             deletePairsKeepingCombined: deletePairsKeepingCombined
@@ -299,18 +270,6 @@ final class AppEnvironment {
         CombineSettingsViewModel(appSettingsRepo: appSettingsRepo, appSettings: appSettings)
     }
 
-    func makeAdFreeStatusViewModel() -> AdFreeStatusViewModel {
-        AdFreeStatusViewModel(store: adFreeStore)
-    }
-
-    func makeCouponRegistrationViewModel() -> CouponRegistrationViewModel {
-        CouponRegistrationViewModel(
-            activate: activateCoupon,
-            couponRepo: couponRepo,
-            store: adFreeStore
-        )
-    }
-
     func makeExportSettingsViewModel(
         pairIds: [UUID],
         albumId: UUID?
@@ -325,7 +284,6 @@ final class AppEnvironment {
             snackbarQueue: snackbarQueue,
             appSettings: appSettings,
             interstitialAdManager: interstitialAdManager,
-            adFreeStore: adFreeStore,
             fullscreenAdCoordinator: fullscreenAdCoordinator
         )
     }

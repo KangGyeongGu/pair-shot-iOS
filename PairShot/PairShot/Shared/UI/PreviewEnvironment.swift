@@ -6,7 +6,7 @@ struct PreviewEnvironment<Content: View>: View {
     @ViewBuilder let content: () -> Content
 
     private let container = try! ModelContainer(
-        for: Schema([AlbumEntity.self, PhotoPairEntity.self, CouponEntity.self, ExportHistoryEntity.self]),
+        for: Schema([AlbumEntity.self, PhotoPairEntity.self, ExportHistoryEntity.self]),
         configurations: ModelConfiguration(isStoredInMemoryOnly: true)
     )
 
@@ -16,7 +16,6 @@ struct PreviewEnvironment<Content: View>: View {
         return content()
             .modelContainer(container)
             .environment(env)
-            .environment(env.adFreeStore)
             .environment(\.fullscreenAdCoordinator, env.fullscreenAdCoordinator)
             .environment(env.interstitialAdManager)
             .environment(env.appOpenAdManager)

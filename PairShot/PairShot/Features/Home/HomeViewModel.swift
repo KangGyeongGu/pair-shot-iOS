@@ -93,7 +93,6 @@ final class HomeViewModel {
     private let immediateExport: ImmediateExportService
     private let appSettings: AppSettings
     private let interstitialAdManager: InterstitialAdManager?
-    private let adFreeStore: AdFreeStore?
     private let fullscreenAdCoordinator: FullscreenAdCoordinator?
 
     init(
@@ -107,7 +106,6 @@ final class HomeViewModel {
         appSettings: AppSettings,
         thumbnailCache: PhotoLibraryThumbnailCache,
         interstitialAdManager: InterstitialAdManager? = nil,
-        adFreeStore: AdFreeStore? = nil,
         fullscreenAdCoordinator: FullscreenAdCoordinator? = nil,
         deleteCombinedExports: DeleteCombinedExportsUseCase? = nil,
         deletePairsKeepingCombined: DeletePairsKeepingCombinedUseCase? = nil
@@ -124,7 +122,6 @@ final class HomeViewModel {
         self.appSettings = appSettings
         self.thumbnailCache = thumbnailCache
         self.interstitialAdManager = interstitialAdManager
-        self.adFreeStore = adFreeStore
         self.fullscreenAdCoordinator = fullscreenAdCoordinator
     }
 
@@ -268,7 +265,6 @@ final class HomeViewModel {
         guard !isExporting else { return }
         await InterstitialAdManager.runGated(
             manager: interstitialAdManager,
-            adFreeStore: adFreeStore,
             coordinator: fullscreenAdCoordinator
         ) { [weak self] in
             await self?.performShare(pairs: chosen)
@@ -281,7 +277,6 @@ final class HomeViewModel {
         guard !isExporting else { return }
         await InterstitialAdManager.runGated(
             manager: interstitialAdManager,
-            adFreeStore: adFreeStore,
             coordinator: fullscreenAdCoordinator
         ) { [weak self] in
             await self?.performSaveToDevice(pairs: chosen)
@@ -297,7 +292,6 @@ final class HomeViewModel {
         guard !chosen.isEmpty, !isExporting else { return }
         await InterstitialAdManager.runGated(
             manager: interstitialAdManager,
-            adFreeStore: adFreeStore,
             coordinator: fullscreenAdCoordinator
         ) { [weak self] in
             await self?.performShare(pairs: chosen)
@@ -313,7 +307,6 @@ final class HomeViewModel {
         guard !chosen.isEmpty, !isExporting else { return }
         await InterstitialAdManager.runGated(
             manager: interstitialAdManager,
-            adFreeStore: adFreeStore,
             coordinator: fullscreenAdCoordinator
         ) { [weak self] in
             await self?.performSaveToDevice(pairs: chosen)

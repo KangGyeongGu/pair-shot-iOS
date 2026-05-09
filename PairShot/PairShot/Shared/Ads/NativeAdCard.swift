@@ -7,26 +7,19 @@ struct NativeAdCard: View {
     let slotIndex: Int
 
     @Environment(NativeAdLoader.self) private var loader
-    @Environment(AdFreeStore.self) private var adFreeStore
     @State private var ad: Any?
 
     var body: some View {
-        Group {
-            if adFreeStore.isAdFree {
-                EmptyView()
-            } else {
-                cardBody
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 120)
-                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .strokeBorder(Color(uiColor: .separator).opacity(0.5), lineWidth: 0.5)
-                    )
-                    .onAppear { ensureAdLoaded() }
-                    .id("native-ad-slot-\(slotIndex)")
-            }
-        }
+        cardBody
+            .frame(maxWidth: .infinity)
+            .frame(height: 120)
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .strokeBorder(Color(uiColor: .separator).opacity(0.5), lineWidth: 0.5)
+            )
+            .onAppear { ensureAdLoaded() }
+            .id("native-ad-slot-\(slotIndex)")
     }
 
     @ViewBuilder
@@ -54,7 +47,7 @@ struct NativeAdCard: View {
 
     private func ensureAdLoaded() {
         guard ad == nil else { return }
-        ad = loader.dequeue(adFreeStore: adFreeStore)
+        ad = loader.dequeue()
     }
 }
 
