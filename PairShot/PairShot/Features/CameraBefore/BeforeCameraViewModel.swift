@@ -254,15 +254,13 @@ final class BeforeCameraViewModel {
                 lensPosition: LensPosition.resolve(identifier: captured.lensIdentifier),
                 flashMode: CameraFlashModeMapping.cameraSettingsFlashMode(from: flashMode),
                 useGrid: isGridOn,
-                useNightMode: isNightModeOn,
-                captureAngleDegrees: captured.captureAngleDegrees
+                useNightMode: isNightModeOn
             )
             if let refillPairId {
                 _ = try await createPair.refillBefore(
                     pairId: refillPairId,
                     beforeJPEG: captured.jpegData,
-                    cameraSettings: cameraSettings,
-                    jpegQuality: appSettings.jpegQuality
+                    cameraSettings: cameraSettings
                 )
                 updateLastThumbnail(from: captured.jpegData)
                 eventsContinuation.yield(.snackbarSuccess)
@@ -271,8 +269,7 @@ final class BeforeCameraViewModel {
             }
             let pair = try await createPair(
                 beforeJPEG: captured.jpegData,
-                cameraSettings: cameraSettings,
-                jpegQuality: appSettings.jpegQuality
+                cameraSettings: cameraSettings
             )
             if let albumId {
                 try? await albumRepo.addPair(pairId: pair.id, toAlbum: albumId)

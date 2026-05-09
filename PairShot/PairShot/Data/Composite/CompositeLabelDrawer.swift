@@ -167,8 +167,10 @@ nonisolated enum CompositeLabelDrawer {
         let top: CGFloat = switch vertical {
             case .top:
                 imageRect.minY
+
             case .middle:
                 imageRect.midY - rectHeight / 2
+
             case .bottom:
                 imageRect.maxY - rectHeight
         }
@@ -210,8 +212,10 @@ nonisolated enum CompositeLabelDrawer {
         switch anchor.horizontal {
             case .leading:
                 imageRect.minX + margin
+
             case .center:
                 imageRect.minX + (imageRect.width - rectWidth) / 2
+
             case .trailing:
                 imageRect.maxX - rectWidth - margin
         }
@@ -226,8 +230,10 @@ nonisolated enum CompositeLabelDrawer {
         switch anchor.vertical {
             case .top:
                 imageRect.minY + margin
+
             case .middle:
                 imageRect.midY - rectHeight / 2
+
             case .bottom:
                 imageRect.maxY - rectHeight - margin
         }

@@ -20,6 +20,7 @@ struct CombinePreviewCard: View {
         switch settings.direction {
             case .horizontal:
                 2.0
+
             case .vertical:
                 0.5
         }
@@ -50,6 +51,7 @@ struct CombinePreviewCard: View {
         switch settings.direction {
             case .horizontal:
                 max(0, size.height - borderPx * 2)
+
             case .vertical:
                 max(0, (size.height - borderPx * 3) / 2)
         }
@@ -75,6 +77,7 @@ struct CombinePreviewCard: View {
                         paneHeight: paneHeight
                     )
                 }
+
             case .vertical:
                 VStack(spacing: 0) {
                     pane(
@@ -150,16 +153,20 @@ struct CombinePreviewCard: View {
         let horizontal: HorizontalAlignment = switch position.horizontal {
             case .leading:
                 .leading
+
             case .center:
                 .center
+
             case .trailing:
                 .trailing
         }
         let vertical: VerticalAlignment = switch position.vertical {
             case .top:
                 .top
+
             case .middle:
                 .center
+
             case .bottom:
                 .bottom
         }

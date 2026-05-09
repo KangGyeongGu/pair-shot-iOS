@@ -9,14 +9,13 @@ struct AfterCameraStack: View {
     let onMakePreviewView: (CameraPreviewView) -> Void
 
     let ghostImage: UIImage?
+    let ghostRotationDegrees: Double
+    let rotationGuideDirection: RotationGuideDirection
     let alpha: Double
     let overlayEnabled: Bool
-    let ghostRotationDegrees: Double
 
     let pairs: [PhotoPair]
     let selectedPairId: Binding<UUID?>
-
-    let rotationDirection: RotationGuideDirection
 
     let isGridOn: Bool
     let isLevelOn: Bool
@@ -120,9 +119,8 @@ struct AfterCameraStack: View {
                 .contentShape(Rectangle())
                 .gesture(pinchGesture)
 
-            if rotationDirection != .upright {
-                RotationGuideOverlay(direction: rotationDirection)
-            }
+            RotationGuideOverlay(direction: rotationGuideDirection)
+                .allowsHitTesting(false)
 
             zoomBottomOverlay
         }

@@ -136,6 +136,7 @@ nonisolated enum CompositeRenderer {
                     afterHeight: afterHeight,
                     border: border
                 )
+
             case .vertical:
                 return verticalFrames(
                     beforeWidth: beforeWidth,

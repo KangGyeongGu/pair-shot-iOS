@@ -79,8 +79,10 @@ struct CombinePositionPicker3x3: View {
         switch value {
             case .leading:
                 String(localized: "combine_position_left")
+
             case .center:
                 String(localized: "combine_position_center")
+
             case .trailing:
                 String(localized: "combine_position_right")
         }
@@ -90,8 +92,10 @@ struct CombinePositionPicker3x3: View {
         switch value {
             case .top:
                 String(localized: "combine_position_top")
+
             case .middle:
                 String(localized: "combine_position_middle")
+
             case .bottom:
                 String(localized: "combine_position_bottom")
         }

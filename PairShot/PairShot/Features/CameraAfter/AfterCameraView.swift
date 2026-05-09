@@ -14,6 +14,8 @@ struct AfterCameraView: View {
     @State private var viewModel: AfterCameraViewModel?
     @State private var showSettingsSheet = false
     @State private var cachedGhostImage: UIImage?
+    @State private var cachedGhostRotationDegrees: Double = 0
+    @State private var cachedGhostCaptureOrientation: CameraOrientation = .portrait
     @State private var didStartViewModel = false
     @State private var didSubscribeMotion = false
 
@@ -52,7 +54,6 @@ struct AfterCameraView: View {
         .task {
             ensureViewModelSync()
             acquireMotionIfNeeded()
-            viewModel?.updateDeviceOrientation(env.motionService.orientation)
         }
         .onDisappear {
             viewModel?.onDisappear()
@@ -60,9 +61,6 @@ struct AfterCameraView: View {
         }
         .onChange(of: viewModel?.ghostImageData) { _, newData in
             updateCachedGhostImage(from: newData)
-        }
-        .onChange(of: env.motionService.orientation) { _, newValue in
-            viewModel?.updateDeviceOrientation(newValue)
         }
         .captureErrorAlert(message: Binding(
             get: { viewModel?.captureErrorMessage },
@@ -108,12 +106,15 @@ struct AfterCameraView: View {
                     viewModel.session.attachPreviewLayer(view.previewLayer)
                 },
                 ghostImage: cachedGhostImage,
+                ghostRotationDegrees: cachedGhostRotationDegrees,
+                rotationGuideDirection: RotationGuideDirection(
+                    capture: cachedGhostCaptureOrientation,
+                    device: env.motionService.orientation ?? cachedGhostCaptureOrientation
+                ),
                 alpha: viewModel.alpha,
                 overlayEnabled: viewModel.overlayEnabled,
-                ghostRotationDegrees: viewModel.ghostRotationDegrees,
                 pairs: viewModel.pairs,
                 selectedPairId: selectedPairIdBinding(for: viewModel),
-                rotationDirection: viewModel.rotationDirection,
                 isGridOn: viewModel.isGridOn,
                 isLevelOn: viewModel.isLevelOn,
                 isNightModeOn: viewModel.isNightModeOn,
@@ -158,22 +159,17 @@ struct AfterCameraView: View {
     private func updateCachedGhostImage(from data: Data?) {
         guard let data else {
             cachedGhostImage = nil
-            viewModel?.beforeExifOrientation = .up
+            cachedGhostRotationDegrees = 0
+            cachedGhostCaptureOrientation = .portrait
             return
         }
-        Task { @MainActor in
-            let result = await Task.detached(priority: .userInitiated) {
-                let exif = ExifOrientationCodec.read(from: data) ?? .up
-                let sourceImage = UIImage(data: data)
-                let image = sourceImage.flatMap { source in
-                    source.cgImage.map {
-                        UIImage(cgImage: $0, scale: 1, orientation: .up)
-                    }
-                }
-                return (image, exif)
-            }.value
-            cachedGhostImage = result.0
-            viewModel?.beforeExifOrientation = result.1
+        Task.detached(priority: .userInitiated) {
+            let decoded = decodeGhostImage(data: data)
+            await MainActor.run {
+                cachedGhostImage = decoded?.image
+                cachedGhostRotationDegrees = decoded?.rotationDegrees ?? 0
+                cachedGhostCaptureOrientation = decoded?.captureOrientation ?? .portrait
+            }
         }
     }
 
@@ -228,4 +224,40 @@ struct AfterCameraView: View {
         env.motionService.stop()
         didSubscribeMotion = false
     }
+}
+
+private struct DecodedGhost {
+    let image: UIImage
+    let rotationDegrees: Double
+    let captureOrientation: CameraOrientation
+}
+
+nonisolated private func decodeGhostImage(data: Data) -> DecodedGhost? {
+    guard let source = UIImage(data: data), let cgImage = source.cgImage else {
+        return nil
+    }
+    let upright = UIImage(cgImage: cgImage, scale: 1, orientation: .up)
+    let degrees = ghostRotationDegrees()
+    let captureOrientation = captureOrientationFromEXIF(source.imageOrientation)
+    return DecodedGhost(
+        image: upright,
+        rotationDegrees: degrees,
+        captureOrientation: captureOrientation
+    )
+}
+
+nonisolated private func captureOrientationFromEXIF(
+    _ orientation: UIImage.Orientation
+) -> CameraOrientation {
+    switch orientation {
+        case .up, .upMirrored: .landscapeLeft
+        case .right, .rightMirrored: .portrait
+        case .down, .downMirrored: .landscapeRight
+        case .left, .leftMirrored: .upsideDown
+        @unknown default: .landscapeLeft
+    }
+}
+
+nonisolated private func ghostRotationDegrees() -> Double {
+    90
 }

@@ -22,15 +22,13 @@ final class CaptureAfterUseCase {
 
     func callAsFunction(
         pairId: UUID,
-        afterJPEG: Data,
-        jpegQuality: Double = AppSettingsSnapshot.defaultJpegQuality
+        afterJPEG: Data
     ) async throws -> PhotoPair {
         guard var pair = try await pairRepo.fetch(id: pairId) else {
             throw CaptureAfterError.pairNotFound
         }
         let timestamp = now()
-        let normalized = await ExifNormalizer.normalizeAsync(afterJPEG, jpegQuality: jpegQuality)
-        let localIdentifier = try await photoLibrary.saveImage(normalized)
+        let localIdentifier = try await photoLibrary.saveImage(afterJPEG)
         pair.afterPhotoLocalIdentifier = localIdentifier
         pair.afterCapturedAt = timestamp
         pair.updatedAt = timestamp

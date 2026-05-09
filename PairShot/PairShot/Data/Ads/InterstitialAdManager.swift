@@ -239,7 +239,7 @@ extension InterstitialAdManager {
 }
 
 #if canImport(GoogleMobileAds)
-    private final nonisolated class InterstitialAdBox: @unchecked Sendable {
+    nonisolated private final class InterstitialAdBox: @unchecked Sendable {
         let ad: GADInterstitialAd?
         init(ad: GADInterstitialAd?) {
             self.ad = ad

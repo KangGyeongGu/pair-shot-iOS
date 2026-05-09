@@ -25,7 +25,6 @@ struct CombineSettingsView: View {
         }
     }
 
-    @ViewBuilder
     private var previewFooter: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(String(localized: "combine_section_preview"))
@@ -179,7 +178,6 @@ struct CombineSettingsView: View {
             previewFooter
         }
     }
-
 
     private var borderColorBinding: Binding<Color> {
         Binding(

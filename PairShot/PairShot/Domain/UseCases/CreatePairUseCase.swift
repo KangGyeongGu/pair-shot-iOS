@@ -25,13 +25,11 @@ final class CreatePairUseCase {
 
     func callAsFunction(
         beforeJPEG: Data,
-        cameraSettings: CameraSettings,
-        jpegQuality: Double = AppSettingsSnapshot.defaultJpegQuality
+        cameraSettings: CameraSettings
     ) async throws -> PhotoPair {
         let timestamp = now()
         let pairId = UUID()
-        let normalized = await ExifNormalizer.normalizeAsync(beforeJPEG, jpegQuality: jpegQuality)
-        let localIdentifier = try await photoLibrary.saveImage(normalized)
+        let localIdentifier = try await photoLibrary.saveImage(beforeJPEG)
         let resolvedLocation = await location.fetchOnce()
         let pair = PhotoPair(
             id: pairId,
@@ -51,15 +49,13 @@ final class CreatePairUseCase {
     func refillBefore(
         pairId: UUID,
         beforeJPEG: Data,
-        cameraSettings: CameraSettings,
-        jpegQuality: Double = AppSettingsSnapshot.defaultJpegQuality
+        cameraSettings: CameraSettings
     ) async throws -> PhotoPair {
         guard var pair = try await pairRepo.fetch(id: pairId) else {
             throw RefillError.pairNotFound
         }
         let timestamp = now()
-        let normalized = await ExifNormalizer.normalizeAsync(beforeJPEG, jpegQuality: jpegQuality)
-        let localIdentifier = try await photoLibrary.saveImage(normalized)
+        let localIdentifier = try await photoLibrary.saveImage(beforeJPEG)
         pair.beforePhotoLocalIdentifier = localIdentifier
         pair.beforeZoomFactor = cameraSettings.zoomFactor
         pair.beforeLensIdentifier = cameraSettings.lensPosition.rawValue

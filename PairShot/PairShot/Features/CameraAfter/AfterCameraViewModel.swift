@@ -65,8 +65,6 @@ final class AfterCameraViewModel {
 
     var lensPosition: CameraLensPosition = .back
 
-    var rotationDirection: RotationGuideDirection = .upright
-    var ghostRotationDegrees: Double = 0
     var allCompleted: Bool = false
 
     var pendingPairCount: Int = 0
@@ -157,33 +155,6 @@ final class AfterCameraViewModel {
         adopt(pair: pair)
     }
 
-    var deviceOrientation: CameraOrientation? {
-        didSet { recomputeRotationDirection() }
-    }
-
-    var beforeExifOrientation: CGImagePropertyOrientation = .up
-    var captureOrientation: CameraOrientation = .portrait {
-        didSet {
-            ghostRotationDegrees = captureOrientation.ghostRotationDegrees
-            recomputeRotationDirection()
-        }
-    }
-
-    func updateDeviceOrientation(_ orientation: CameraOrientation?) {
-        deviceOrientation = orientation
-    }
-
-    private func recomputeRotationDirection() {
-        guard let device = deviceOrientation else {
-            rotationDirection = .upright
-            return
-        }
-        rotationDirection = RotationGuideDirection(
-            capture: captureOrientation,
-            device: device
-        )
-    }
-
     func dismiss() {
         eventsContinuation.yield(.dismiss)
     }
@@ -196,8 +167,7 @@ final class AfterCameraViewModel {
             let captured = try await session.capturePhoto()
             let updated = try await captureAfter(
                 pairId: pair.id,
-                afterJPEG: captured.jpegData,
-                jpegQuality: appSettings.jpegQuality
+                afterJPEG: captured.jpegData
             )
             currentPair = updated
             eventsContinuation.yield(.snackbarSuccess)
@@ -247,7 +217,6 @@ final class AfterCameraViewModel {
         ghostImageData = nil
         alpha = GhostOverlayMath.clamp(appSettings.defaultOverlayAlpha)
         hasRestoredZoom = false
-        captureOrientation = CameraOrientation(captureAngleDegrees: pair.cameraSettings?.captureAngleDegrees ?? 90)
         Task { await loadGhost(for: pair) }
         Task { await restoreZoom(for: pair) }
     }

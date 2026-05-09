@@ -35,7 +35,6 @@ nonisolated struct CapturedPhoto {
     let jpegData: Data
     let zoomFactor: Double
     let lensIdentifier: String
-    let captureAngleDegrees: Double
     let capturedAt: Date
 }
 
@@ -87,14 +86,14 @@ nonisolated enum CameraZoomCapabilities {
     }
 }
 
-final nonisolated class CaptureSessionBox: @unchecked Sendable {
+nonisolated final class CaptureSessionBox: @unchecked Sendable {
     let session: AVCaptureSession
     init() {
         session = AVCaptureSession()
     }
 }
 
-final nonisolated class CameraSession: @unchecked Sendable {
+nonisolated final class CameraSession: @unchecked Sendable {
     let box = CaptureSessionBox()
     let observerBox = InterruptionObserverBox()
     let sessionQueue = DispatchQueue(label: "com.pairshot.camera.session", qos: .userInitiated)
@@ -254,6 +253,7 @@ final nonisolated class CameraSession: @unchecked Sendable {
         guard let device = activeDevice, let previewLayer = managedPreviewLayer else { return }
         let coordinator = AVCaptureDevice.RotationCoordinator(device: device, previewLayer: previewLayer)
         previewLayer.connection?.videoRotationAngle = coordinator.videoRotationAngleForHorizonLevelPreview
+        applyCaptureRotationAngle(coordinator.videoRotationAngleForHorizonLevelCapture)
         let prevObserver = coordinator.observe(
             \.videoRotationAngleForHorizonLevelPreview,
             options: [.new]
@@ -263,8 +263,28 @@ final nonisolated class CameraSession: @unchecked Sendable {
                 self?.managedPreviewLayer?.connection?.videoRotationAngle = angle
             }
         }
-        rotationObservers = [prevObserver]
+        let captureObserver = coordinator.observe(
+            \.videoRotationAngleForHorizonLevelCapture,
+            options: [.new]
+        ) { [weak self] _, change in
+            guard let angle = change.newValue else { return }
+            Task { @MainActor in
+                self?.applyCaptureRotationAngle(angle)
+            }
+        }
+        rotationObservers = [prevObserver, captureObserver]
         rotationCoordinator = coordinator
+    }
+
+    @MainActor
+    private func applyCaptureRotationAngle(_ angle: CGFloat) {
+        let queue = sessionQueue
+        let output = photoOutput
+        queue.async {
+            guard let connection = output?.connection(with: .video) else { return }
+            guard connection.isVideoRotationAngleSupported(angle) else { return }
+            connection.videoRotationAngle = angle
+        }
     }
 
     func runOnSessionQueue<T: Sendable>(

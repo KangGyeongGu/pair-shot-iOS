@@ -6,13 +6,6 @@ nonisolated enum CameraOrientation: Int {
     case landscapeRight = 2
     case upsideDown = 3
 
-    init(captureAngleDegrees angle: Double) {
-        let normalized = ((angle.truncatingRemainder(dividingBy: 360)) + 360)
-            .truncatingRemainder(dividingBy: 360)
-        let bucket = Int(((normalized + 45) / 90).rounded(.down)) % 4
-        self = CameraOrientation(rawValue: bucket) ?? .portrait
-    }
-
     init?(gravityX x: Double, gravityY y: Double, threshold: Double = 0.6) {
         if y < -threshold {
             self = .portrait
@@ -31,14 +24,5 @@ nonisolated enum CameraOrientation: Int {
             return
         }
         return nil
-    }
-
-    var ghostRotationDegrees: Double {
-        switch self {
-            case .landscapeLeft: 90
-            case .portrait: 0
-            case .landscapeRight: -90
-            case .upsideDown: 180
-        }
     }
 }

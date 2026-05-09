@@ -37,11 +37,6 @@ nonisolated extension CameraSession {
             throw CameraSessionError.notConfigured
         }
 
-        let captureAngle: CGFloat = await MainActor.run { [weak self] in
-            self?.rotationCoordinator?.videoRotationAngleForHorizonLevelCapture ?? 90
-        }
-        let exifOrientation = ExifOrientationCodec.fromCaptureAngle(captureAngle)
-
         let queue = sessionQueue
 
         return try await withCheckedThrowingContinuation { cont in
@@ -52,12 +47,10 @@ nonisolated extension CameraSession {
                 }
                 switch result {
                     case let .success(rawJpeg):
-                        let processedJpeg = ExifOrientationCodec.write(exifOrientation, to: rawJpeg) ?? rawJpeg
                         cont.resume(returning: CapturedPhoto(
-                            jpegData: processedJpeg,
+                            jpegData: rawJpeg,
                             zoomFactor: captureContext.zoom,
                             lensIdentifier: captureContext.lens,
-                            captureAngleDegrees: Double(captureAngle),
                             capturedAt: .now
                         ))
 
@@ -85,7 +78,7 @@ nonisolated extension CameraSession {
     }
 }
 
-private final nonisolated class CaptureContext: @unchecked Sendable {
+nonisolated private final class CaptureContext: @unchecked Sendable {
     let photoOutput: AVCapturePhotoOutput
     let settings: AVCapturePhotoSettings
     let zoom: Double
@@ -99,7 +92,7 @@ private final nonisolated class CaptureContext: @unchecked Sendable {
     }
 }
 
-final nonisolated class PhotoCaptureDelegate: NSObject, AVCapturePhotoCaptureDelegate, @unchecked Sendable {
+nonisolated final class PhotoCaptureDelegate: NSObject, AVCapturePhotoCaptureDelegate, @unchecked Sendable {
     private let completion: @Sendable (Result<Data, CameraSessionError>) -> Void
 
     init(completion: @escaping @Sendable (Result<Data, CameraSessionError>) -> Void) {
