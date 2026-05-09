@@ -19,7 +19,7 @@ struct CameraSettingsOverlayChip: View {
                         height: CameraSettingsOverlayMetrics.chipSize
                     )
                     .background(
-                        Circle().fill(isOn ? Color.appBrandPrimary : Color.white.opacity(0.18))
+                        Circle().fill(isOn ? Color.accentColor : Color.white.opacity(0.18))
                     )
 
                 Text(label)

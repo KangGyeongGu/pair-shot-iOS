@@ -1,8 +1,6 @@
 import SwiftUI
 
 extension Color {
-    static let appBrandPrimary = Color("BrandPrimary")
-
     static let appSurfaceContainer = Color("SurfaceContainer")
 
     static let appOnSurfaceVariant = Color("OnSurfaceVariant")

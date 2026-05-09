@@ -22,7 +22,7 @@ struct CameraChip: View {
                 .foregroundStyle(isOn ? Color.black : Color.white)
                 .frame(width: CameraChipMetrics.size, height: CameraChipMetrics.size)
                 .background(
-                    Capsule().fill(isOn ? Color.appBrandPrimary : CameraChipMetrics.inactiveBackground)
+                    Capsule().fill(isOn ? Color.accentColor : CameraChipMetrics.inactiveBackground)
                 )
                 .contentShape(Capsule())
                 .accessibilityLabel(label)
@@ -166,7 +166,7 @@ struct AlphaInlineSlider: View {
             ),
             in: GhostOverlayMath.alphaRange
         )
-        .tint(Color.appBrandPrimary)
+        .tint(Color.accentColor)
         .frame(width: 90, height: CameraChipMetrics.size)
         .padding(.horizontal, 6)
         .background(Capsule().fill(CameraChipMetrics.inactiveBackground))

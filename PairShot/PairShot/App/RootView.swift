@@ -3,6 +3,7 @@ import SwiftUI
 
 struct RootView: View {
     @Environment(AppEnvironment.self) private var env
+    @Environment(\.colorScheme) private var colorScheme
     @Binding var showFallbackAlert: Bool
 
     @State private var path: [Route] = []
@@ -26,6 +27,7 @@ struct RootView: View {
                             destination(for: route)
                         }
                 }
+                .toolbarColorScheme(colorScheme, for: .navigationBar)
             }
         }
         .alert(
@@ -65,9 +67,6 @@ struct RootView: View {
                         path.append(.exportSettings(pairIds: pairIds, albumId: albumId))
                     }
                 )
-
-            case let .pairPicker(albumId):
-                PairPickerView(albumId: albumId)
 
             case .settings:
                 SettingsView(path: $path)

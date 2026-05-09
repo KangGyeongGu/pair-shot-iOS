@@ -38,8 +38,7 @@ struct AfterCameraView: View {
             settingsOverlay
         }
         .toolbar(.hidden, for: .navigationBar)
-        .preferredColorScheme(.dark)
-        .statusBarHidden(false)
+        .statusBarHidden(true)
         .onAppear { ensureViewModelSync() }
         .task {
             ensureViewModelSync()

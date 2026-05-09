@@ -91,11 +91,20 @@ struct HomePairCardView: View {
         }
     }
 
+    @ViewBuilder
     private var selectionMarker: some View {
-        Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-            .font(.title3)
-            .foregroundStyle(isSelected ? Color.accentColor : .white)
-            .background(Circle().fill(.black.opacity(0.35)))
+        if isSelected {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.title3)
+                .symbolRenderingMode(.palette)
+                .foregroundStyle(Color.white, Color.accentColor)
+                .background(Circle().fill(.black.opacity(0.35)))
+        } else {
+            Image(systemName: "circle")
+                .font(.title3)
+                .foregroundStyle(.white)
+                .background(Circle().fill(.black.opacity(0.35)))
+        }
     }
 
     private var borderOverlay: some View {

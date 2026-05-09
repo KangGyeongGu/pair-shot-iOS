@@ -22,7 +22,7 @@ struct CameraSettingsOverlayAlphaSlider: View {
                 ),
                 in: GhostOverlayMath.alphaRange
             )
-            .tint(Color.appBrandPrimary)
+            .tint(Color.accentColor)
             .accessibilityLabel(String(localized: "camera_settings_overlay_opacity"))
             if alpha > 0.75 {
                 HStack(spacing: 6) {

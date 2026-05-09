@@ -122,7 +122,7 @@ struct ZoomDialOverlay: View {
         var bar = Path()
         bar.move(to: CGPoint(x: centerX, y: baselineY - ZoomDialDesign.indicatorHeight))
         bar.addLine(to: CGPoint(x: centerX, y: baselineY))
-        ctx.stroke(bar, with: .color(Color.appBrandPrimary), lineWidth: ZoomDialDesign.indicatorWidth)
+        ctx.stroke(bar, with: .color(Color.accentColor), lineWidth: ZoomDialDesign.indicatorWidth)
 
         var chevron = Path()
         let tipY = baselineY - ZoomDialDesign.indicatorHeight - 1
@@ -130,7 +130,7 @@ struct ZoomDialOverlay: View {
         chevron.addLine(to: CGPoint(x: centerX + 5, y: tipY - 5))
         chevron.addLine(to: CGPoint(x: centerX, y: tipY))
         chevron.closeSubpath()
-        ctx.fill(chevron, with: .color(Color.appBrandPrimary))
+        ctx.fill(chevron, with: .color(Color.accentColor))
     }
 
     private func formatZoomLabel(_ ratio: Double) -> String {

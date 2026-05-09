@@ -91,7 +91,7 @@ struct ZoomControl: View {
                 .foregroundStyle(isActive ? Color.black : Color.white.opacity(0.85))
                 .frame(width: size, height: size)
                 .background(
-                    Circle().fill(isActive ? Color.appBrandPrimary : Color.clear)
+                    Circle().fill(isActive ? Color.accentColor : Color.clear)
                 )
                 .accessibilityLabel(display)
         }

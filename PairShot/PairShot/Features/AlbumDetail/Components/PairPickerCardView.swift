@@ -41,9 +41,10 @@ struct PairPickerCardView: View {
 
     private var selectedCheckmark: some View {
         Image(systemName: "checkmark.circle.fill")
-            .font(.title3.weight(.semibold))
-            .foregroundStyle(Color.accentColor)
-            .background(Circle().fill(.white))
+            .font(.title3)
+            .symbolRenderingMode(.palette)
+            .foregroundStyle(Color.white, Color.accentColor)
+            .background(Circle().fill(.black.opacity(0.35)))
             .allowsHitTesting(false)
     }
 
