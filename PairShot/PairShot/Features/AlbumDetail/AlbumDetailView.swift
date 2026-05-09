@@ -29,6 +29,7 @@ struct AlbumDetailView: View {
 
     var body: some View {
         ZStack {
+            Color(.systemGroupedBackground).ignoresSafeArea()
             if let viewModel, let album = albums.first {
                 content(for: viewModel, album: album)
             } else if albums.isEmpty {
@@ -39,10 +40,16 @@ struct AlbumDetailView: View {
         }
         .navigationTitle(albums.first?.name ?? "")
         .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(viewModel?.isSelectionMode == true)
         .toolbar { toolbar }
         .task { ensureViewModel() }
         .onChange(of: viewModel?.albumDeleted ?? false) { _, deleted in
             if deleted { dismiss() }
+        }
+        .sheet(isPresented: pairPickerSheetBinding) {
+            NavigationStack {
+                PairPickerView(albumId: albumId)
+            }
         }
     }
 
@@ -50,6 +57,15 @@ struct AlbumDetailView: View {
         if viewModel == nil {
             viewModel = env.makeAlbumDetailViewModel(albumId: albumId)
         }
+    }
+
+    private var pairPickerSheetBinding: Binding<Bool> {
+        Binding(
+            get: { viewModel?.navigateToPairPicker ?? false },
+            set: { newValue in
+                if !newValue { viewModel?.navigateToPairPicker = false }
+            }
+        )
     }
 
     @ViewBuilder
@@ -74,7 +90,6 @@ struct AlbumDetailView: View {
         .modifier(AlbumDeletePairsDialog(viewModel: viewModel))
         .modifier(AlbumDetailRenameAlert(viewModel: viewModel, album: domainAlbum))
         .modifier(AlbumDetailDeleteAlbumAlert(viewModel: viewModel))
-        .modifier(AlbumDetailPairPickerNavigation(viewModel: viewModel))
         .modifier(AlbumDetailShareSheet(viewModel: viewModel))
     }
 
@@ -170,6 +185,7 @@ struct AlbumDetailView: View {
         if let viewModel, let album = albums.first {
             let domainPairs = album.pairs.map { $0.toDomain() }
             let sorted = viewModel.sortedPairs(from: domainPairs)
+            let domainAlbum = Self.toDomain(album)
             if viewModel.isSelectionMode {
                 AlbumDetailSelectionToolbar(
                     selectionCount: viewModel.selectedPairIds.count,
@@ -179,8 +195,9 @@ struct AlbumDetailView: View {
                 )
             } else {
                 AlbumDetailDefaultToolbar(
+                    onSelect: viewModel.enterSelectionMode,
                     onRename: { viewModel.beginRename(currentName: album.name) },
-                    onDelete: viewModel.requestAlbumDeletion
+                    onDelete: { viewModel.requestAlbumDeletion(album: domainAlbum) }
                 )
             }
         }
@@ -225,17 +242,6 @@ struct AlbumDetailCameraCovers: ViewModifier {
                 PairPreviewView(pair: request.pair)
                     .presentationDetents([.medium, .large])
                     .presentationDragIndicator(.visible)
-            }
-    }
-}
-
-struct AlbumDetailPairPickerNavigation: ViewModifier {
-    @Bindable var viewModel: AlbumDetailViewModel
-
-    func body(content: Content) -> some View {
-        content
-            .navigationDestination(isPresented: $viewModel.navigateToPairPicker) {
-                PairPickerView(albumId: viewModel.albumId)
             }
     }
 }

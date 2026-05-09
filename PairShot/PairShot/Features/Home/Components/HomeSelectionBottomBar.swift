@@ -38,27 +38,3 @@ struct HomePairSelectionBottomBar: View {
         ])
     }
 }
-
-struct HomeAlbumSelectionBottomBar: View {
-    let selectionCount: Int
-    let onRename: () -> Void
-    let onDelete: () -> Void
-
-    var body: some View {
-        PairShotActionBar(items: [
-            PairShotActionItem(
-                title: String(localized: "common_button_rename"),
-                systemImage: "pencil",
-                isEnabled: selectionCount == 1,
-                action: onRename
-            ),
-            PairShotActionItem(
-                title: String(localized: "common_button_delete"),
-                systemImage: "trash",
-                role: .destructive,
-                isEnabled: selectionCount > 0,
-                action: onDelete
-            ),
-        ])
-    }
-}

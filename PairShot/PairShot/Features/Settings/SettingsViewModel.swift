@@ -111,8 +111,7 @@ final class SettingsViewModel {
     }
 
     var watermarkSettingsBlank: Bool {
-        let snapshot = appSettingsRepo.load()
-        guard let watermark = snapshot.watermark else { return true }
+        let watermark = appSettings.watermarkSettings
         switch watermark.type {
             case .text:
                 return watermark.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty

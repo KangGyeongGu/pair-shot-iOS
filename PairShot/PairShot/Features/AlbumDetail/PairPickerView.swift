@@ -175,14 +175,14 @@ struct PairPickerBottomBar: View {
     var body: some View {
         Button(action: action) {
             Text(buttonLabel)
-                .font(.headline)
-                .frame(maxWidth: .infinity, minHeight: 52)
+                .font(.subheadline.weight(.semibold))
+                .frame(maxWidth: .infinity, minHeight: 36)
         }
         .buttonStyle(.borderedProminent)
-        .controlSize(.large)
+        .controlSize(.regular)
         .disabled(isDisabled)
-        .padding(.horizontal, 20)
-        .padding(.vertical, 12)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 4)
         .frame(maxWidth: .infinity)
         .background(Color(.systemBackground))
     }

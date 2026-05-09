@@ -29,6 +29,7 @@ struct HomeView: View {
 
     var body: some View {
         ZStack {
+            Color(.systemGroupedBackground).ignoresSafeArea()
             if let viewModel {
                 content(for: viewModel)
             } else {
@@ -116,7 +117,7 @@ struct HomeView: View {
                 if sortedAlbums.isEmpty {
                     HomeEmptyState(variant: .albums)
                 } else {
-                    albumsList(viewModel: viewModel, albums: sortedAlbums)
+                    albumsGrid(viewModel: viewModel, albums: sortedAlbums)
                 }
         }
     }
@@ -221,58 +222,51 @@ struct HomeView: View {
         }
     }
 
-    static func formatDateHeader(_ date: Date, now: Date = .now, calendar: Calendar = .current) -> String {
-        let base = HomeDateFormatter.base(for: date, calendar: calendar)
-        let today = calendar.startOfDay(for: now)
-        let target = calendar.startOfDay(for: date)
-        if target == today {
-            return String(format: String(localized: "home_date_suffix_today"), base)
-        }
-        if let yesterday = calendar.date(byAdding: .day, value: -1, to: today), target == yesterday {
-            return String(format: String(localized: "home_date_suffix_yesterday"), base)
-        }
-        return base
+    static func formatDateHeader(_ date: Date, now _: Date = .now, calendar: Calendar = .current) -> String {
+        HomeDateFormatter.base(for: date, calendar: calendar)
     }
 
-    private func albumsList(viewModel: HomeViewModel, albums: [Album]) -> some View {
+    private func albumsGrid(viewModel: HomeViewModel, albums: [Album]) -> some View {
         List {
-            ForEach(albums) { album in
-                HomeAlbumCardView(
-                    album: album,
-                    isSelectionMode: viewModel.isSelectionMode,
-                    isSelected: viewModel.selectedAlbumIds.contains(album.id)
-                )
-                .listRowInsets(EdgeInsets())
-                .contentShape(.rect)
-                .onTapGesture {
-                    if viewModel.isSelectionMode {
-                        viewModel.tapAlbum(album)
-                    } else {
-                        onOpenAlbum?(album.id)
+            ForEach(viewModel.groupedAlbums(from: albums), id: \.date) { group in
+                Section {
+                    ForEach(group.albums) { album in
+                        albumCell(viewModel: viewModel, album: album)
                     }
-                }
-                .contextMenu {
-                    if !viewModel.isSelectionMode {
-                        Button(role: .destructive) {
-                            viewModel.requestSingleAlbumDeletion(album)
-                        } label: {
-                            Label(String(localized: "common_button_delete"), systemImage: "trash")
-                        }
-                    }
-                }
-                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                    if !viewModel.isSelectionMode {
-                        Button(role: .destructive) {
-                            viewModel.requestSingleAlbumDeletion(album)
-                        } label: {
-                            Label(String(localized: "common_button_delete"), systemImage: "trash")
-                        }
-                    }
+                } header: {
+                    Text(Self.formatDateHeader(group.date))
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Color.appOnSurfaceVariant)
                 }
             }
         }
         .listStyle(.insetGrouped)
         .refreshable { await viewModel.reload() }
+    }
+
+    private func albumCell(viewModel: HomeViewModel, album: Album) -> some View {
+        HomeAlbumCardView(
+            album: album,
+            isSelectionMode: viewModel.isSelectionMode,
+            isSelected: viewModel.selectedAlbumIds.contains(album.id)
+        )
+        .contentShape(.rect)
+        .onTapGesture {
+            if viewModel.isSelectionMode {
+                viewModel.tapAlbum(album)
+            } else {
+                onOpenAlbum?(album.id)
+            }
+        }
+        .contextMenu {
+            if !viewModel.isSelectionMode {
+                Button(role: .destructive) {
+                    viewModel.requestSingleAlbumDeletion(album)
+                } label: {
+                    Label(String(localized: "common_button_delete"), systemImage: "trash")
+                }
+            }
+        }
     }
 
     @ToolbarContentBuilder
@@ -303,13 +297,11 @@ struct HomeView: View {
 }
 
 enum HomeDateFormatter {
-    static func base(for date: Date, calendar: Calendar = .current, now: Date = .now) -> String {
+    static func base(for date: Date, calendar: Calendar = .current) -> String {
         let formatter = DateFormatter()
         formatter.locale = Locale.current
         formatter.calendar = calendar
-        let dateYear = calendar.component(.year, from: date)
-        let nowYear = calendar.component(.year, from: now)
-        formatter.setLocalizedDateFormatFromTemplate(dateYear == nowYear ? "Md" : "yMd")
+        formatter.setLocalizedDateFormatFromTemplate("yMd")
         return formatter.string(from: date)
     }
 }

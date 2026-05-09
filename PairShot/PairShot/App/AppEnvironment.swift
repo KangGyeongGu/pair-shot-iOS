@@ -24,6 +24,7 @@ final class AppEnvironment {
     let captureAfter: CaptureAfterUseCase
     let deletePairs: DeletePairsUseCase
     let deleteCombinedExports: DeleteCombinedExportsUseCase
+    let deletePairsKeepingCombined: DeletePairsKeepingCombinedUseCase
     let exportPairs: ExportPairsUseCase
     let toggleAlbumMembership: ToggleAlbumMembershipUseCase
     let activateCoupon: ActivateCouponUseCase
@@ -147,6 +148,10 @@ final class AppEnvironment {
             pairRepo: resolvedPairRepo,
             photoLibrary: resolvedPhotoLibrary
         )
+        deletePairsKeepingCombined = DeletePairsKeepingCombinedUseCase(
+            pairRepo: resolvedPairRepo,
+            photoLibrary: resolvedPhotoLibrary
+        )
         let resolvedExportPairs = ExportPairsUseCase(
             pairRepo: resolvedPairRepo,
             zipExporter: resolvedZipExporter
@@ -242,7 +247,8 @@ final class AppEnvironment {
             interstitialAdManager: interstitialAdManager,
             adFreeStore: adFreeStore,
             fullscreenAdCoordinator: fullscreenAdCoordinator,
-            deleteCombinedExports: deleteCombinedExports
+            deleteCombinedExports: deleteCombinedExports,
+            deletePairsKeepingCombined: deletePairsKeepingCombined
         )
     }
 
@@ -268,7 +274,8 @@ final class AppEnvironment {
             interstitialAdManager: interstitialAdManager,
             adFreeStore: adFreeStore,
             fullscreenAdCoordinator: fullscreenAdCoordinator,
-            deleteCombinedExports: deleteCombinedExports
+            deleteCombinedExports: deleteCombinedExports,
+            deletePairsKeepingCombined: deletePairsKeepingCombined
         )
     }
 

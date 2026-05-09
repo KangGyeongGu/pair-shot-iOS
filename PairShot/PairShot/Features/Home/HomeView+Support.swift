@@ -19,10 +19,26 @@ struct HomeBottomBarHost: View {
                     )
 
                 case .albums:
-                    HomeAlbumSelectionBottomBar(
+                    HomePairSelectionBottomBar(
                         selectionCount: viewModel.selectedAlbumIds.count,
-                        onRename: { viewModel.requestAlbumRename(from: sortedAlbums) },
-                        onDelete: { viewModel.requestAlbumDeletion(from: sortedAlbums) }
+                        onShare: {
+                            Task {
+                                await viewModel.shareSelectedAlbumPairs(
+                                    from: sortedAlbums,
+                                    allPairs: sortedPairs
+                                )
+                            }
+                        },
+                        onSaveToDevice: {
+                            Task {
+                                await viewModel.saveSelectedAlbumPairsToDevice(
+                                    from: sortedAlbums,
+                                    allPairs: sortedPairs
+                                )
+                            }
+                        },
+                        onDelete: { viewModel.requestAlbumDeletion(from: sortedAlbums) },
+                        onExportSettings: pushAlbumExport
                     )
             }
         } else {
@@ -50,6 +66,15 @@ struct HomeBottomBarHost: View {
             .map(\.id)
         guard !chosen.isEmpty else { return }
         onPushExportSettings?(chosen)
+    }
+
+    private func pushAlbumExport() {
+        let pairIds = sortedAlbums
+            .filter { viewModel.selectedAlbumIds.contains($0.id) }
+            .flatMap(\.pairIds)
+        let unique = Array(Set(pairIds))
+        guard !unique.isEmpty else { return }
+        onPushExportSettings?(unique)
     }
 }
 
@@ -201,17 +226,6 @@ struct HomeSheets: ViewModifier {
                     await viewModel.preloadAlbumLocation()
                 }
             }
-            .sheet(item: $viewModel.pendingAlbumRename) { request in
-                AlbumRenameDialog(
-                    album: request.album,
-                    isPresented: Binding(
-                        get: { viewModel.pendingAlbumRename != nil },
-                        set: { if !$0 { viewModel.pendingAlbumRename = nil } }
-                    )
-                ) { newName in
-                    await viewModel.renameAlbum(request.album, to: newName)
-                }
-            }
             .sheet(item: $viewModel.pendingShareItems) { items in
                 ShareSheet(activityItems: items.values) {
                     viewModel.clearShareItems()
@@ -251,6 +265,12 @@ struct HomeDeleteDialogs: ViewModifier {
                         viewModel.pendingPairDelete = nil
                     }
                 }
+                Button(String(localized: "dialog_delete_pair_button_original_only"), role: .destructive) {
+                    Task {
+                        await viewModel.confirmOriginalOnlyPairDeletion(pairs: request.pairs)
+                        viewModel.pendingPairDelete = nil
+                    }
+                }
                 Button(String(localized: "dialog_delete_pair_button_combined_only"), role: .destructive) {
                     Task {
                         await viewModel.confirmCombinedDeletion(pairs: request.pairs)
@@ -266,16 +286,51 @@ struct HomeDeleteDialogs: ViewModifier {
             .confirmationDialog(
                 String(localized: "album_dialog_delete_title"),
                 isPresented: albumDeleteBinding,
+                titleVisibility: .visible,
                 presenting: viewModel.pendingAlbumDelete
             ) { request in
-                Button(String(localized: "common_button_delete"), role: .destructive) {
+                Button(String(localized: "album_delete_method_button_album_only")) {
                     Task {
                         await viewModel.confirmAlbumDeletion(albums: request.albums)
                         viewModel.pendingAlbumDelete = nil
                     }
                 }
+                Button(String(localized: "album_delete_method_button_with_pairs"), role: .destructive) {
+                    viewModel.pendingAlbumDestructive = request
+                    viewModel.pendingAlbumDelete = nil
+                }
                 Button(String(localized: "common_button_cancel"), role: .cancel) {
                     viewModel.pendingAlbumDelete = nil
+                }
+            } message: { _ in
+                Text(String(localized: "album_dialog_delete_message"))
+            }
+            .confirmationDialog(
+                String(localized: "album_dialog_delete_title"),
+                isPresented: albumDestructiveBinding,
+                titleVisibility: .visible,
+                presenting: viewModel.pendingAlbumDestructive
+            ) { request in
+                Button(String(localized: "dialog_delete_pair_button_all"), role: .destructive) {
+                    Task {
+                        await viewModel.confirmAlbumDeletionAllPairs(albums: request.albums)
+                        viewModel.pendingAlbumDestructive = nil
+                    }
+                }
+                Button(String(localized: "dialog_delete_pair_button_original_only"), role: .destructive) {
+                    Task {
+                        await viewModel.confirmAlbumDeletionOriginalOnly(albums: request.albums)
+                        viewModel.pendingAlbumDestructive = nil
+                    }
+                }
+                Button(String(localized: "dialog_delete_pair_button_combined_only"), role: .destructive) {
+                    Task {
+                        await viewModel.confirmAlbumDeletionCombinedOnly(albums: request.albums)
+                        viewModel.pendingAlbumDestructive = nil
+                    }
+                }
+                Button(String(localized: "common_button_cancel"), role: .cancel) {
+                    viewModel.pendingAlbumDestructive = nil
                 }
             } message: { _ in
                 Text(String(localized: "album_dialog_delete_message"))
@@ -297,19 +352,54 @@ struct HomeDeleteDialogs: ViewModifier {
             } message: { _ in
                 Text(String(localized: "dialog_delete_pair_message"))
             }
-            .alert(
+            .confirmationDialog(
                 String(localized: "album_dialog_delete_title"),
                 isPresented: singleAlbumDeleteBinding,
+                titleVisibility: .visible,
                 presenting: viewModel.pendingSingleAlbumDelete
             ) { request in
-                Button(String(localized: "common_button_delete"), role: .destructive) {
+                Button(String(localized: "album_delete_method_button_album_only")) {
                     Task {
                         await viewModel.confirmSingleAlbumDeletion(request.album)
                         viewModel.pendingSingleAlbumDelete = nil
                     }
                 }
+                Button(String(localized: "album_delete_method_button_with_pairs"), role: .destructive) {
+                    viewModel.pendingSingleAlbumDestructive = request
+                    viewModel.pendingSingleAlbumDelete = nil
+                }
                 Button(String(localized: "common_button_cancel"), role: .cancel) {
                     viewModel.pendingSingleAlbumDelete = nil
+                }
+            } message: { _ in
+                Text(String(localized: "album_dialog_delete_message"))
+            }
+            .confirmationDialog(
+                String(localized: "album_dialog_delete_title"),
+                isPresented: singleAlbumDestructiveBinding,
+                titleVisibility: .visible,
+                presenting: viewModel.pendingSingleAlbumDestructive
+            ) { request in
+                Button(String(localized: "dialog_delete_pair_button_all"), role: .destructive) {
+                    Task {
+                        await viewModel.confirmSingleAlbumDeletionAllPairs(request.album)
+                        viewModel.pendingSingleAlbumDestructive = nil
+                    }
+                }
+                Button(String(localized: "dialog_delete_pair_button_original_only"), role: .destructive) {
+                    Task {
+                        await viewModel.confirmSingleAlbumDeletionOriginalOnly(request.album)
+                        viewModel.pendingSingleAlbumDestructive = nil
+                    }
+                }
+                Button(String(localized: "dialog_delete_pair_button_combined_only"), role: .destructive) {
+                    Task {
+                        await viewModel.confirmSingleAlbumDeletionCombinedOnly(request.album)
+                        viewModel.pendingSingleAlbumDestructive = nil
+                    }
+                }
+                Button(String(localized: "common_button_cancel"), role: .cancel) {
+                    viewModel.pendingSingleAlbumDestructive = nil
                 }
             } message: { _ in
                 Text(String(localized: "album_dialog_delete_message"))
@@ -330,6 +420,13 @@ struct HomeDeleteDialogs: ViewModifier {
         )
     }
 
+    private var albumDestructiveBinding: Binding<Bool> {
+        Binding(
+            get: { viewModel.pendingAlbumDestructive != nil },
+            set: { if !$0 { viewModel.pendingAlbumDestructive = nil } }
+        )
+    }
+
     private var singlePairDeleteBinding: Binding<Bool> {
         Binding(
             get: { viewModel.pendingSinglePairDelete != nil },
@@ -343,6 +440,13 @@ struct HomeDeleteDialogs: ViewModifier {
             set: { if !$0 { viewModel.pendingSingleAlbumDelete = nil } }
         )
     }
+
+    private var singleAlbumDestructiveBinding: Binding<Bool> {
+        Binding(
+            get: { viewModel.pendingSingleAlbumDestructive != nil },
+            set: { if !$0 { viewModel.pendingSingleAlbumDestructive = nil } }
+        )
+    }
 }
 
 enum HomeCreateAlbumPlaceholder {
@@ -352,46 +456,5 @@ enum HomeCreateAlbumPlaceholder {
             return String(localized: "home_dialog_album_create_placeholder")
         }
         return trimmed
-    }
-}
-
-struct AlbumRenameDialog: View {
-    let album: Album
-    @Binding var isPresented: Bool
-    let onCommit: (String) async -> Void
-
-    @State private var name: String
-
-    init(album: Album, isPresented: Binding<Bool>, onCommit: @escaping (String) async -> Void) {
-        self.album = album
-        _isPresented = isPresented
-        self.onCommit = onCommit
-        _name = State(initialValue: album.name)
-    }
-
-    var body: some View {
-        NavigationStack {
-            Form {
-                TextField(String(localized: "album_dialog_rename_placeholder"), text: $name)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled(true)
-            }
-            .navigationTitle(String(localized: "album_dialog_rename_title"))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(String(localized: "common_button_cancel")) { isPresented = false }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button(String(localized: "common_button_save")) {
-                        Task {
-                            await onCommit(name)
-                            isPresented = false
-                        }
-                    }
-                    .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                }
-            }
-        }
     }
 }

@@ -34,25 +34,32 @@ struct CombinePreviewCard: View {
 
     @ViewBuilder
     private func content(scaleFactor: CGFloat, size: CGSize) -> some View {
-        let paneHeight = paneHeight(in: size)
-        contentStack(scaleFactor: scaleFactor, paneHeight: paneHeight)
-            .overlay(borderOverlay(scaleFactor: scaleFactor))
+        let borderPx = settings.border.isEnabled
+            ? CGFloat(settings.border.thickness) * scaleFactor
+            : 0
+        let paneHeight = paneHeight(in: size, borderPx: borderPx)
+        let borderColor = settings.border.isEnabled
+            ? Color(rgba: settings.border.color)
+            : Color.clear
+        contentStack(scaleFactor: scaleFactor, paneHeight: paneHeight, spacing: borderPx * 2)
+            .padding(borderPx)
+            .background(borderColor)
     }
 
-    private func paneHeight(in size: CGSize) -> CGFloat {
+    private func paneHeight(in size: CGSize, borderPx: CGFloat) -> CGFloat {
         switch settings.direction {
             case .horizontal:
-                size.height
+                max(0, size.height - borderPx * 2)
             case .vertical:
-                size.height / 2
+                max(0, (size.height - borderPx * 3) / 2)
         }
     }
 
     @ViewBuilder
-    private func contentStack(scaleFactor: CGFloat, paneHeight: CGFloat) -> some View {
+    private func contentStack(scaleFactor: CGFloat, paneHeight: CGFloat, spacing: CGFloat) -> some View {
         switch settings.direction {
             case .horizontal:
-                HStack(spacing: 0) {
+                HStack(spacing: spacing) {
                     pane(
                         text: settings.label.beforeText,
                         background: Color.appOnSurfaceVariant.opacity(0.4),
@@ -86,17 +93,6 @@ struct CombinePreviewCard: View {
                     )
                 }
         }
-    }
-
-    private func borderOverlay(scaleFactor: CGFloat) -> some View {
-        let lineWidth = settings.border.isEnabled
-            ? CGFloat(settings.border.thickness) * scaleFactor
-            : 0
-        return Rectangle()
-            .strokeBorder(
-                settings.border.isEnabled ? Color(rgba: settings.border.color) : Color.clear,
-                lineWidth: lineWidth
-            )
     }
 
     private func pane(

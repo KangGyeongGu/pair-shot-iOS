@@ -1,12 +1,22 @@
 import SwiftUI
 
 struct AlbumDetailDefaultToolbar: ToolbarContent {
+    let onSelect: () -> Void
     let onRename: () -> Void
     let onDelete: () -> Void
 
     var body: some ToolbarContent {
         ToolbarItem(placement: .topBarTrailing) {
             Menu {
+                Button {
+                    onSelect()
+                } label: {
+                    Label(
+                        String(localized: "home_desc_selection_mode"),
+                        systemImage: "checkmark.circle"
+                    )
+                }
+
                 Button {
                     onRename()
                 } label: {
@@ -87,16 +97,71 @@ struct AlbumDetailDeleteAlbumAlert: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .alert(
+            .confirmationDialog(
                 String(localized: "album_dialog_delete_title"),
-                isPresented: $viewModel.showAlbumDeleteAlert
-            ) {
-                Button(String(localized: "common_button_delete"), role: .destructive) {
-                    Task { await viewModel.confirmAlbumDeletion() }
+                isPresented: albumDeleteBinding,
+                titleVisibility: .visible,
+                presenting: viewModel.pendingAlbumDelete
+            ) { album in
+                Button(String(localized: "album_delete_method_button_album_only")) {
+                    Task {
+                        await viewModel.confirmAlbumDeletion()
+                        viewModel.pendingAlbumDelete = nil
+                    }
                 }
-                Button(String(localized: "common_button_cancel"), role: .cancel) {}
-            } message: {
+                Button(String(localized: "album_delete_method_button_with_pairs"), role: .destructive) {
+                    viewModel.pendingAlbumDestructive = album
+                    viewModel.pendingAlbumDelete = nil
+                }
+                Button(String(localized: "common_button_cancel"), role: .cancel) {
+                    viewModel.pendingAlbumDelete = nil
+                }
+            } message: { _ in
                 Text(String(localized: "album_dialog_delete_message"))
             }
+            .confirmationDialog(
+                String(localized: "album_dialog_delete_title"),
+                isPresented: albumDestructiveBinding,
+                titleVisibility: .visible,
+                presenting: viewModel.pendingAlbumDestructive
+            ) { album in
+                Button(String(localized: "dialog_delete_pair_button_all"), role: .destructive) {
+                    Task {
+                        await viewModel.confirmAlbumDeletionAllPairs(album: album)
+                        viewModel.pendingAlbumDestructive = nil
+                    }
+                }
+                Button(String(localized: "dialog_delete_pair_button_original_only"), role: .destructive) {
+                    Task {
+                        await viewModel.confirmAlbumDeletionOriginalOnly(album: album)
+                        viewModel.pendingAlbumDestructive = nil
+                    }
+                }
+                Button(String(localized: "dialog_delete_pair_button_combined_only"), role: .destructive) {
+                    Task {
+                        await viewModel.confirmAlbumDeletionCombinedOnly(album: album)
+                        viewModel.pendingAlbumDestructive = nil
+                    }
+                }
+                Button(String(localized: "common_button_cancel"), role: .cancel) {
+                    viewModel.pendingAlbumDestructive = nil
+                }
+            } message: { _ in
+                Text(String(localized: "album_dialog_delete_message"))
+            }
+    }
+
+    private var albumDeleteBinding: Binding<Bool> {
+        Binding(
+            get: { viewModel.pendingAlbumDelete != nil },
+            set: { if !$0 { viewModel.pendingAlbumDelete = nil } }
+        )
+    }
+
+    private var albumDestructiveBinding: Binding<Bool> {
+        Binding(
+            get: { viewModel.pendingAlbumDestructive != nil },
+            set: { if !$0 { viewModel.pendingAlbumDestructive = nil } }
+        )
     }
 }

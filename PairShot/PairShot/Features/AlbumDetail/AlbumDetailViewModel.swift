@@ -32,11 +32,14 @@ final class AlbumDetailViewModel {
 
     var showRenameAlert: Bool = false
     var renameDraft: String = ""
-    var showAlbumDeleteAlert: Bool = false
+    var pendingAlbumDelete: Album?
+    var pendingAlbumDestructive: Album?
     var albumDeleted: Bool = false
 
     var pendingPairDelete: AlbumDetailPairDeleteRequest?
     var pendingSinglePairDelete: AlbumDetailSinglePairDeleteRequest?
+    var pendingPairDestructive: AlbumDetailPairDeleteRequest?
+    var pendingSinglePairDestructive: AlbumDetailSinglePairDeleteRequest?
     var pendingPreviewPair: AlbumDetailPairPreviewRequest?
     var pendingShareItems: ExportShareItems?
     var pendingZipExport: DocumentExporterItem?
@@ -54,6 +57,7 @@ final class AlbumDetailViewModel {
     private let albumRepo: AlbumRepository
     private let deletePairs: DeletePairsUseCase
     private let deleteCombinedExports: DeleteCombinedExportsUseCase?
+    private let deletePairsKeepingCombined: DeletePairsKeepingCombinedUseCase?
     private let toggleAlbumMembership: ToggleAlbumMembershipUseCase
     private let thumbnailCache: PhotoLibraryThumbnailCache
     private let immediateExport: ImmediateExportService
@@ -75,13 +79,15 @@ final class AlbumDetailViewModel {
         interstitialAdManager: InterstitialAdManager? = nil,
         adFreeStore: AdFreeStore? = nil,
         fullscreenAdCoordinator: FullscreenAdCoordinator? = nil,
-        deleteCombinedExports: DeleteCombinedExportsUseCase? = nil
+        deleteCombinedExports: DeleteCombinedExportsUseCase? = nil,
+        deletePairsKeepingCombined: DeletePairsKeepingCombinedUseCase? = nil
     ) {
         self.albumId = albumId
         self.pairRepo = pairRepo
         self.albumRepo = albumRepo
         self.deletePairs = deletePairs
         self.deleteCombinedExports = deleteCombinedExports
+        self.deletePairsKeepingCombined = deletePairsKeepingCombined
         self.toggleAlbumMembership = toggleAlbumMembership
         self.photoLibrary = photoLibrary
         self.immediateExport = immediateExport
@@ -93,6 +99,17 @@ final class AlbumDetailViewModel {
     }
 
     func deleteCombinedExports(for pair: PhotoPair) async {
+        guard let useCase = deleteCombinedExports else { return }
+        try? await useCase(ids: [pair.id])
+    }
+
+    func confirmCombinedDeletion(pairs: [PhotoPair]) async {
+        guard let useCase = deleteCombinedExports else { return }
+        try? await useCase(ids: Set(pairs.map(\.id)))
+        cancelSelection()
+    }
+
+    func confirmSingleCombinedDeletion(_ pair: PhotoPair) async {
         guard let useCase = deleteCombinedExports else { return }
         try? await useCase(ids: [pair.id])
     }
@@ -279,10 +296,31 @@ final class AlbumDetailViewModel {
         cancelSelection()
     }
 
+    func confirmOriginalOnlyDeletion(pairs: [PhotoPair]) async {
+        guard let useCase = deletePairsKeepingCombined else { return }
+        let snapshots: [(before: String?, after: String?)] = pairs.map {
+            ($0.beforePhotoLocalIdentifier, $0.afterPhotoLocalIdentifier)
+        }
+        let ids = Set(pairs.map(\.id))
+        try? await useCase(ids: ids)
+        for snapshot in snapshots {
+            evictThumbnails(beforeIdentifier: snapshot.before, afterIdentifier: snapshot.after)
+        }
+        cancelSelection()
+    }
+
     func confirmSinglePairDeletion(_ pair: PhotoPair) async {
         let beforeId = pair.beforePhotoLocalIdentifier
         let afterId = pair.afterPhotoLocalIdentifier
         try? await deletePairs(ids: [pair.id])
+        evictThumbnails(beforeIdentifier: beforeId, afterIdentifier: afterId)
+    }
+
+    func confirmSingleOriginalOnlyDeletion(_ pair: PhotoPair) async {
+        guard let useCase = deletePairsKeepingCombined else { return }
+        let beforeId = pair.beforePhotoLocalIdentifier
+        let afterId = pair.afterPhotoLocalIdentifier
+        try? await useCase(ids: [pair.id])
         evictThumbnails(beforeIdentifier: beforeId, afterIdentifier: afterId)
     }
 
@@ -300,11 +338,41 @@ final class AlbumDetailViewModel {
         try? await albumRepo.update(updated)
     }
 
-    func requestAlbumDeletion() {
-        showAlbumDeleteAlert = true
+    func requestAlbumDeletion(album: Album) {
+        pendingAlbumDelete = album
     }
 
     func confirmAlbumDeletion() async {
+        try? await albumRepo.delete(id: albumId)
+        albumDeleted = true
+    }
+
+    func confirmAlbumDeletionAllPairs(album: Album) async {
+        let pairIds = Set(album.pairIds)
+        if !pairIds.isEmpty {
+            try? await deletePairs(ids: pairIds)
+        }
+        try? await albumRepo.delete(id: albumId)
+        albumDeleted = true
+    }
+
+    func confirmAlbumDeletionOriginalOnly(album: Album) async {
+        guard let useCase = deletePairsKeepingCombined else { return }
+        let pairIds = Set(album.pairIds)
+        if !pairIds.isEmpty {
+            try? await useCase(ids: pairIds)
+        }
+        try? await albumRepo.delete(id: albumId)
+        albumDeleted = true
+    }
+
+    func confirmAlbumDeletionCombinedOnly(album: Album) async {
+        if let useCase = deleteCombinedExports {
+            let pairIds = Set(album.pairIds)
+            if !pairIds.isEmpty {
+                try? await useCase(ids: pairIds)
+            }
+        }
         try? await albumRepo.delete(id: albumId)
         albumDeleted = true
     }

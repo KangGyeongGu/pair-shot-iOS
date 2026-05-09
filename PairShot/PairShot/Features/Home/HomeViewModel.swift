@@ -40,11 +40,6 @@ struct HomeSingleAlbumDeleteRequest: Identifiable {
     let album: Album
 }
 
-struct HomeAlbumRenameRequest: Identifiable {
-    let id = UUID()
-    let album: Album
-}
-
 struct HomePairPreviewRequest: Identifiable {
     let id = UUID()
     let pair: PhotoPair
@@ -72,9 +67,10 @@ final class HomeViewModel {
     var pendingPreviewPair: HomePairPreviewRequest?
     var pendingPairDelete: HomePairDeleteRequest?
     var pendingAlbumDelete: HomeAlbumDeleteRequest?
+    var pendingAlbumDestructive: HomeAlbumDeleteRequest?
     var pendingSinglePairDelete: HomeSinglePairDeleteRequest?
     var pendingSingleAlbumDelete: HomeSingleAlbumDeleteRequest?
-    var pendingAlbumRename: HomeAlbumRenameRequest?
+    var pendingSingleAlbumDestructive: HomeSingleAlbumDeleteRequest?
     var pendingShareItems: ExportShareItems?
     var pendingZipExport: DocumentExporterItem?
     var isExporting: Bool = false
@@ -90,6 +86,7 @@ final class HomeViewModel {
     private let albumRepo: AlbumRepository
     private let deletePairs: DeletePairsUseCase
     private let deleteCombinedExports: DeleteCombinedExportsUseCase?
+    private let deletePairsKeepingCombined: DeletePairsKeepingCombinedUseCase?
     private let toggleAlbumMembership: ToggleAlbumMembershipUseCase
     private let location: CoreLocationService
     private let thumbnailCache: PhotoLibraryThumbnailCache
@@ -112,12 +109,14 @@ final class HomeViewModel {
         interstitialAdManager: InterstitialAdManager? = nil,
         adFreeStore: AdFreeStore? = nil,
         fullscreenAdCoordinator: FullscreenAdCoordinator? = nil,
-        deleteCombinedExports: DeleteCombinedExportsUseCase? = nil
+        deleteCombinedExports: DeleteCombinedExportsUseCase? = nil,
+        deletePairsKeepingCombined: DeletePairsKeepingCombinedUseCase? = nil
     ) {
         self.pairRepo = pairRepo
         self.albumRepo = albumRepo
         self.deletePairs = deletePairs
         self.deleteCombinedExports = deleteCombinedExports
+        self.deletePairsKeepingCombined = deletePairsKeepingCombined
         self.toggleAlbumMembership = toggleAlbumMembership
         self.photoLibrary = photoLibrary
         self.location = location
@@ -155,11 +154,19 @@ final class HomeViewModel {
     func sortedAlbums(from all: [Album]) -> [Album] {
         switch sortOrder {
             case .newest:
-                all.sorted { $0.updatedAt > $1.updatedAt }
+                all.sorted { $0.createdAt > $1.createdAt }
 
             case .oldest:
-                all.sorted { $0.updatedAt < $1.updatedAt }
+                all.sorted { $0.createdAt < $1.createdAt }
         }
+    }
+
+    func groupedAlbums(from all: [Album], calendar: Calendar = .current) -> [(date: Date, albums: [Album])] {
+        let sorted = sortedAlbums(from: all)
+        let grouped = Dictionary(grouping: sorted) { calendar.startOfDay(for: $0.createdAt) }
+        return grouped
+            .map { (date: $0.key, albums: $0.value) }
+            .sorted { sortOrder == .newest ? $0.date > $1.date : $0.date < $1.date }
     }
 
     func setSortOrder(_ order: HomeSortOrder) {
@@ -281,6 +288,38 @@ final class HomeViewModel {
         }
     }
 
+    func shareSelectedAlbumPairs(from albums: [Album], allPairs: [PhotoPair]) async {
+        let pairIds = Set(
+            albums.filter { selectedAlbumIds.contains($0.id) }.flatMap(\.pairIds)
+        )
+        guard !pairIds.isEmpty else { return }
+        let chosen = allPairs.filter { pairIds.contains($0.id) }
+        guard !chosen.isEmpty, !isExporting else { return }
+        await InterstitialAdManager.runGated(
+            manager: interstitialAdManager,
+            adFreeStore: adFreeStore,
+            coordinator: fullscreenAdCoordinator
+        ) { [weak self] in
+            await self?.performShare(pairs: chosen)
+        }
+    }
+
+    func saveSelectedAlbumPairsToDevice(from albums: [Album], allPairs: [PhotoPair]) async {
+        let pairIds = Set(
+            albums.filter { selectedAlbumIds.contains($0.id) }.flatMap(\.pairIds)
+        )
+        guard !pairIds.isEmpty else { return }
+        let chosen = allPairs.filter { pairIds.contains($0.id) }
+        guard !chosen.isEmpty, !isExporting else { return }
+        await InterstitialAdManager.runGated(
+            manager: interstitialAdManager,
+            adFreeStore: adFreeStore,
+            coordinator: fullscreenAdCoordinator
+        ) { [weak self] in
+            await self?.performSaveToDevice(pairs: chosen)
+        }
+    }
+
     private func performShare(pairs: [PhotoPair]) async {
         isExporting = true
         defer { isExporting = false }
@@ -392,14 +431,6 @@ final class HomeViewModel {
         pendingSingleAlbumDelete = HomeSingleAlbumDeleteRequest(album: album)
     }
 
-    func requestAlbumRename(from all: [Album]) {
-        guard selectedAlbumIds.count == 1,
-              let id = selectedAlbumIds.first,
-              let album = all.first(where: { $0.id == id })
-        else { return }
-        pendingAlbumRename = HomeAlbumRenameRequest(album: album)
-    }
-
     func confirmPairDeletion(pairs: [PhotoPair]) async {
         let snapshots: [(before: String?, after: String?)] = pairs.map {
             ($0.beforePhotoLocalIdentifier, $0.afterPhotoLocalIdentifier)
@@ -419,10 +450,31 @@ final class HomeViewModel {
         cancelSelection()
     }
 
+    func confirmOriginalOnlyPairDeletion(pairs: [PhotoPair]) async {
+        guard let useCase = deletePairsKeepingCombined else { return }
+        let snapshots: [(before: String?, after: String?)] = pairs.map {
+            ($0.beforePhotoLocalIdentifier, $0.afterPhotoLocalIdentifier)
+        }
+        let ids = Set(pairs.map(\.id))
+        try? await useCase(ids: ids)
+        for snapshot in snapshots {
+            evictThumbnails(beforeIdentifier: snapshot.before, afterIdentifier: snapshot.after)
+        }
+        cancelSelection()
+    }
+
     func confirmSinglePairDeletion(_ pair: PhotoPair) async {
         let beforeId = pair.beforePhotoLocalIdentifier
         let afterId = pair.afterPhotoLocalIdentifier
         try? await deletePairs(ids: [pair.id])
+        evictThumbnails(beforeIdentifier: beforeId, afterIdentifier: afterId)
+    }
+
+    func confirmSingleOriginalOnlyPairDeletion(_ pair: PhotoPair) async {
+        guard let useCase = deletePairsKeepingCombined else { return }
+        let beforeId = pair.beforePhotoLocalIdentifier
+        let afterId = pair.afterPhotoLocalIdentifier
+        try? await useCase(ids: [pair.id])
         evictThumbnails(beforeIdentifier: beforeId, afterIdentifier: afterId)
     }
 
@@ -433,18 +485,71 @@ final class HomeViewModel {
         cancelSelection()
     }
 
+    func confirmAlbumDeletionAllPairs(albums: [Album]) async {
+        let pairIds = Set(albums.flatMap(\.pairIds))
+        if !pairIds.isEmpty {
+            try? await deletePairs(ids: pairIds)
+        }
+        for album in albums {
+            try? await albumRepo.delete(id: album.id)
+        }
+        cancelSelection()
+    }
+
+    func confirmAlbumDeletionOriginalOnly(albums: [Album]) async {
+        guard let useCase = deletePairsKeepingCombined else { return }
+        let pairIds = Set(albums.flatMap(\.pairIds))
+        if !pairIds.isEmpty {
+            try? await useCase(ids: pairIds)
+        }
+        for album in albums {
+            try? await albumRepo.delete(id: album.id)
+        }
+        cancelSelection()
+    }
+
+    func confirmAlbumDeletionCombinedOnly(albums: [Album]) async {
+        if let useCase = deleteCombinedExports {
+            let pairIds = Set(albums.flatMap(\.pairIds))
+            if !pairIds.isEmpty {
+                try? await useCase(ids: pairIds)
+            }
+        }
+        for album in albums {
+            try? await albumRepo.delete(id: album.id)
+        }
+        cancelSelection()
+    }
+
     func confirmSingleAlbumDeletion(_ album: Album) async {
         try? await albumRepo.delete(id: album.id)
     }
 
-    func renameAlbum(_ album: Album, to newName: String) async {
-        let trimmed = newName.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
-        var updated = album
-        updated.name = trimmed
-        updated.updatedAt = .now
-        try? await albumRepo.update(updated)
-        cancelSelection()
+    func confirmSingleAlbumDeletionAllPairs(_ album: Album) async {
+        let pairIds = Set(album.pairIds)
+        if !pairIds.isEmpty {
+            try? await deletePairs(ids: pairIds)
+        }
+        try? await albumRepo.delete(id: album.id)
+    }
+
+    func confirmSingleAlbumDeletionOriginalOnly(_ album: Album) async {
+        guard let useCase = deletePairsKeepingCombined else { return }
+        let pairIds = Set(album.pairIds)
+        if !pairIds.isEmpty {
+            try? await useCase(ids: pairIds)
+        }
+        try? await albumRepo.delete(id: album.id)
+    }
+
+    func confirmSingleAlbumDeletionCombinedOnly(_ album: Album) async {
+        if let useCase = deleteCombinedExports {
+            let pairIds = Set(album.pairIds)
+            if !pairIds.isEmpty {
+                try? await useCase(ids: pairIds)
+            }
+        }
+        try? await albumRepo.delete(id: album.id)
     }
 
     func createAlbum(

@@ -209,6 +209,23 @@
         }
       }
     },
+    "album_delete_method_button_album_only" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete album only"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "앨범만 삭제"
+          }
+        }
+      }
+    },
     "album_delete_method_button_all" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -239,6 +256,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "합성본만 삭제"
+          }
+        }
+      }
+    },
+    "album_delete_method_button_with_pairs" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete album and pairs"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "사진까지 삭제"
           }
         }
       }
@@ -3133,6 +3167,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "합성본만"
+          }
+        }
+      }
+    },
+    "dialog_delete_pair_button_original_only" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete originals only"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "원본만 삭제"
           }
         }
       }

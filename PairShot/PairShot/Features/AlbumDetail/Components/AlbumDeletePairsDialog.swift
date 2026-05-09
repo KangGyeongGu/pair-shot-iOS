@@ -18,10 +18,8 @@ struct AlbumDeletePairsDialog: ViewModifier {
                     }
                 }
                 Button(String(localized: "album_delete_method_button_all"), role: .destructive) {
-                    Task {
-                        await viewModel.confirmPairDeletion(pairs: request.pairs)
-                        viewModel.pendingPairDelete = nil
-                    }
+                    viewModel.pendingPairDestructive = request
+                    viewModel.pendingPairDelete = nil
                 }
                 Button(String(localized: "common_button_cancel"), role: .cancel) {
                     viewModel.pendingPairDelete = nil
@@ -29,19 +27,84 @@ struct AlbumDeletePairsDialog: ViewModifier {
             } message: { request in
                 Text(String(format: String(localized: "album_dialog_delete_pairs_count"), request.pairs.count))
             }
-            .alert(
+            .confirmationDialog(
                 String(localized: "dialog_delete_pair_title"),
-                isPresented: singlePairDeleteBinding,
-                presenting: viewModel.pendingSinglePairDelete
+                isPresented: pairDestructiveBinding,
+                titleVisibility: .visible,
+                presenting: viewModel.pendingPairDestructive
             ) { request in
-                Button(String(localized: "common_button_delete"), role: .destructive) {
+                Button(String(localized: "dialog_delete_pair_button_all"), role: .destructive) {
                     Task {
-                        await viewModel.confirmSinglePairDeletion(request.pair)
-                        viewModel.pendingSinglePairDelete = nil
+                        await viewModel.confirmPairDeletion(pairs: request.pairs)
+                        viewModel.pendingPairDestructive = nil
+                    }
+                }
+                Button(String(localized: "dialog_delete_pair_button_original_only"), role: .destructive) {
+                    Task {
+                        await viewModel.confirmOriginalOnlyDeletion(pairs: request.pairs)
+                        viewModel.pendingPairDestructive = nil
+                    }
+                }
+                Button(String(localized: "dialog_delete_pair_button_combined_only"), role: .destructive) {
+                    Task {
+                        await viewModel.confirmCombinedDeletion(pairs: request.pairs)
+                        viewModel.pendingPairDestructive = nil
                     }
                 }
                 Button(String(localized: "common_button_cancel"), role: .cancel) {
+                    viewModel.pendingPairDestructive = nil
+                }
+            } message: { request in
+                Text(String(format: String(localized: "album_dialog_delete_pairs_count"), request.pairs.count))
+            }
+            .confirmationDialog(
+                String(localized: "dialog_delete_pair_title"),
+                isPresented: singlePairDeleteBinding,
+                titleVisibility: .visible,
+                presenting: viewModel.pendingSinglePairDelete
+            ) { request in
+                Button(String(localized: "album_button_remove_from_album")) {
+                    Task {
+                        await viewModel.removeFromAlbum(pairs: [request.pair])
+                        viewModel.pendingSinglePairDelete = nil
+                    }
+                }
+                Button(String(localized: "album_delete_method_button_all"), role: .destructive) {
+                    viewModel.pendingSinglePairDestructive = request
                     viewModel.pendingSinglePairDelete = nil
+                }
+                Button(String(localized: "common_button_cancel"), role: .cancel) {
+                    viewModel.pendingSinglePairDelete = nil
+                }
+            } message: { _ in
+                Text(String(localized: "dialog_delete_pair_message"))
+            }
+            .confirmationDialog(
+                String(localized: "dialog_delete_pair_title"),
+                isPresented: singlePairDestructiveBinding,
+                titleVisibility: .visible,
+                presenting: viewModel.pendingSinglePairDestructive
+            ) { request in
+                Button(String(localized: "dialog_delete_pair_button_all"), role: .destructive) {
+                    Task {
+                        await viewModel.confirmSinglePairDeletion(request.pair)
+                        viewModel.pendingSinglePairDestructive = nil
+                    }
+                }
+                Button(String(localized: "dialog_delete_pair_button_original_only"), role: .destructive) {
+                    Task {
+                        await viewModel.confirmSingleOriginalOnlyDeletion(request.pair)
+                        viewModel.pendingSinglePairDestructive = nil
+                    }
+                }
+                Button(String(localized: "dialog_delete_pair_button_combined_only"), role: .destructive) {
+                    Task {
+                        await viewModel.confirmSingleCombinedDeletion(request.pair)
+                        viewModel.pendingSinglePairDestructive = nil
+                    }
+                }
+                Button(String(localized: "common_button_cancel"), role: .cancel) {
+                    viewModel.pendingSinglePairDestructive = nil
                 }
             } message: { _ in
                 Text(String(localized: "dialog_delete_pair_message"))
@@ -55,10 +118,24 @@ struct AlbumDeletePairsDialog: ViewModifier {
         )
     }
 
+    private var pairDestructiveBinding: Binding<Bool> {
+        Binding(
+            get: { viewModel.pendingPairDestructive != nil },
+            set: { if !$0 { viewModel.pendingPairDestructive = nil } }
+        )
+    }
+
     private var singlePairDeleteBinding: Binding<Bool> {
         Binding(
             get: { viewModel.pendingSinglePairDelete != nil },
             set: { if !$0 { viewModel.pendingSinglePairDelete = nil } }
+        )
+    }
+
+    private var singlePairDestructiveBinding: Binding<Bool> {
+        Binding(
+            get: { viewModel.pendingSinglePairDestructive != nil },
+            set: { if !$0 { viewModel.pendingSinglePairDestructive = nil } }
         )
     }
 }
