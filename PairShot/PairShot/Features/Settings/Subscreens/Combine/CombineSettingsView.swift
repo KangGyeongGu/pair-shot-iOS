@@ -15,7 +15,6 @@ struct CombineSettingsView: View {
                     labelModeSection
                     labelBackgroundSection
                 }
-                previewSection
             }
             .listStyle(.insetGrouped)
         }
@@ -24,6 +23,19 @@ struct CombineSettingsView: View {
         .onChange(of: viewModel.settings) { _, _ in
             Task { await viewModel.saveSettings() }
         }
+    }
+
+    @ViewBuilder
+    private var previewFooter: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(String(localized: "combine_section_preview"))
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .textCase(.uppercase)
+            CombinePreviewCard(settings: viewModel.settings)
+        }
+        .padding(.top, 8)
+        .padding(.horizontal, -16)
     }
 
     private var directionSection: some View {
@@ -91,6 +103,10 @@ struct CombineSettingsView: View {
             }
         } header: {
             Text(String(localized: "combine_section_label"))
+        } footer: {
+            if !viewModel.settings.label.isEnabled {
+                previewFooter
+            }
         }
     }
 
@@ -159,18 +175,11 @@ struct CombineSettingsView: View {
             }
         } header: {
             Text(String(localized: "combine_section_label_background"))
+        } footer: {
+            previewFooter
         }
     }
 
-    private var previewSection: some View {
-        Section {
-            CombinePreviewCard(settings: viewModel.settings)
-                .listRowInsets(EdgeInsets())
-                .listRowBackground(Color.clear)
-        } header: {
-            Text(String(localized: "combine_section_preview"))
-        }
-    }
 
     private var borderColorBinding: Binding<Color> {
         Binding(

@@ -17,7 +17,6 @@ struct WatermarkSettingsView: View {
                 } else {
                     logoSection
                 }
-                previewSection
             }
             .listStyle(.insetGrouped)
         }
@@ -63,6 +62,8 @@ struct WatermarkSettingsView: View {
             WatermarkRepeatSlider(value: $viewModel.settings.repeatCount)
         } header: {
             Text(String(localized: "watermark_section_text"))
+        } footer: {
+            previewFooter
         }
     }
 
@@ -77,17 +78,21 @@ struct WatermarkSettingsView: View {
             WatermarkLogoPositionPicker(selection: $viewModel.settings.logoPosition)
         } header: {
             Text(String(localized: "watermark_section_logo"))
+        } footer: {
+            previewFooter
         }
     }
 
-    private var previewSection: some View {
-        Section {
-            WatermarkPreview(settings: viewModel.settings)
-                .listRowInsets(EdgeInsets())
-                .listRowBackground(Color.clear)
-        } header: {
+    private var previewFooter: some View {
+        VStack(alignment: .leading, spacing: 8) {
             Text(String(localized: "watermark_section_preview"))
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .textCase(.uppercase)
+            WatermarkPreview(settings: viewModel.settings)
         }
+        .padding(.top, 8)
+        .padding(.horizontal, -16)
     }
 }
 
@@ -343,9 +348,8 @@ private struct WatermarkLogoPickerRow: View {
                 .scaledToFit()
                 .frame(width: 60, height: 60)
                 .background(Color.appLetterbox)
-                .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
         } else {
-            RoundedRectangle(cornerRadius: 6, style: .continuous)
+            Rectangle()
                 .fill(Color.appLetterbox)
                 .frame(width: 60, height: 60)
                 .overlay {
