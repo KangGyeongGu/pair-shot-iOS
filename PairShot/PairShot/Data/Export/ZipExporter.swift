@@ -109,12 +109,14 @@ nonisolated struct ZipExporterAdapter {
                 resolved.append(pair)
             }
         }
+        let prefix = await MainActor.run { appSettings.fileNamePrefix }
         var payloads: [ZipEntryPayload] = []
-        for pair in resolved {
+        for (offset, pair) in resolved.enumerated() {
             let entries = ExportSelection.relativePaths(
                 for: pair,
                 selection: selection,
-                now: now
+                sequenceNumber: offset + 1,
+                prefix: prefix
             )
             for entry in entries {
                 guard let data = await ExportEntryRenderer.render(
@@ -149,10 +151,10 @@ nonisolated enum ExportSelection {
     static func relativePaths(
         for pair: PhotoPair,
         selection: ExportContents,
-        now: Date = .now
+        sequenceNumber: Int,
+        prefix: String
     ) -> [Entry] {
         let folder = sanitizeFolderName(pair.firstAlbumName ?? "PairShot")
-        let timestamp = makeTimestamp(now: now, pair: pair)
         var out: [Entry] = []
 
         let beforeId = pair.beforePhotoLocalIdentifier
@@ -161,24 +163,39 @@ nonisolated enum ExportSelection {
         let hasAfter = (afterId?.isEmpty == false)
 
         if selection.includeCombined, hasBefore, hasAfter {
+            let fileName = FileNameBuilder.combined(
+                prefix: prefix,
+                timestamp: pair.createdAt,
+                sequenceNumber: sequenceNumber
+            )
             out.append(Entry(
-                relativeName: "\(folder)/COMBINED/\(timestamp)_PAIR.jpg",
+                relativeName: "\(folder)/COMBINED/\(fileName)",
                 kind: .combined,
                 pairId: pair.id,
                 localIdentifier: nil
             ))
         }
         if selection.includeBefore, let beforeId, !beforeId.isEmpty {
+            let fileName = FileNameBuilder.before(
+                prefix: prefix,
+                timestamp: pair.createdAt,
+                sequenceNumber: sequenceNumber
+            )
             out.append(Entry(
-                relativeName: "\(folder)/BEFORE/\(timestamp)_BEFORE.jpg",
+                relativeName: "\(folder)/BEFORE/\(fileName)",
                 kind: .before,
                 pairId: pair.id,
                 localIdentifier: beforeId
             ))
         }
         if selection.includeAfter, let afterId, !afterId.isEmpty {
+            let fileName = FileNameBuilder.after(
+                prefix: prefix,
+                timestamp: pair.createdAt,
+                sequenceNumber: sequenceNumber
+            )
             out.append(Entry(
-                relativeName: "\(folder)/AFTER/\(timestamp)_AFTER.jpg",
+                relativeName: "\(folder)/AFTER/\(fileName)",
                 kind: .after,
                 pairId: pair.id,
                 localIdentifier: afterId
@@ -203,17 +220,5 @@ nonisolated enum ExportSelection {
             }
         }
         return out.isEmpty ? "PairShot" : out
-    }
-
-    private static func makeTimestamp(now _: Date, pair: PhotoPair) -> String {
-        let date = pair.createdAt
-        let formatter = DateFormatter()
-        formatter.calendar = Calendar(identifier: .gregorian)
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.timeZone = .current
-        formatter.dateFormat = "yyyyMMdd_HHmmss"
-        let stamp = formatter.string(from: date)
-        let suffix = String(pair.id.uuidString.prefix(8))
-        return "\(stamp)_\(suffix)"
     }
 }

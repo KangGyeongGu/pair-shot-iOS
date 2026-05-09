@@ -349,10 +349,16 @@ final class ExportSettingsViewModel {
         let selection = makeSelection()
         do {
             let pairs = try await loadPairs()
-            let allEntries: [(pair: PhotoPair, entry: ExportSelection.Entry)] = pairs.flatMap { pair in
-                ExportSelection.relativePaths(for: pair, selection: selection, now: now)
+            let allEntries: [(pair: PhotoPair, entry: ExportSelection.Entry)] = pairs.enumerated()
+                .flatMap { offset, pair in
+                    ExportSelection.relativePaths(
+                        for: pair,
+                        selection: selection,
+                        sequenceNumber: offset + 1,
+                        prefix: appSettings?.fileNamePrefix ?? ""
+                    )
                     .map { (pair: pair, entry: $0) }
-            }
+                }
             let total = max(1, allEntries.count)
             for item in allEntries {
                 guard let data = await ExportEntryRenderer.render(
@@ -445,8 +451,13 @@ final class ExportSettingsViewModel {
         let tempDir = tempDirectoryProvider()
         var urls: [URL] = []
         let now = Date()
-        for pair in pairs {
-            let entries = ExportSelection.relativePaths(for: pair, selection: selection, now: now)
+        for (offset, pair) in pairs.enumerated() {
+            let entries = ExportSelection.relativePaths(
+                for: pair,
+                selection: selection,
+                sequenceNumber: offset + 1,
+                prefix: appSettings?.fileNamePrefix ?? ""
+            )
             for entry in entries {
                 guard let data = await ExportEntryRenderer.render(
                     entry: entry,
