@@ -208,6 +208,7 @@ struct SettingsPrivacySection: View {
 
 struct SettingsPromotionCodeSection: View {
     @Environment(AppEnvironment.self) private var env
+    @Environment(AdFreeStore.self) private var adFreeStore
 
     var body: some View {
         Section {
@@ -227,7 +228,30 @@ struct SettingsPromotionCodeSection: View {
                     deviceHashProvider: env.deviceHashProvider
                 )
             }
+        } footer: {
+            if adFreeStore.isAdFree {
+                Text(adFreeStatusFooterText)
+            }
         }
+    }
+
+    private var adFreeStatusFooterText: String {
+        let activeBase = String(localized: "settings_promotion_code_status_active")
+        guard let remaining = adFreeStore.remainingDays else {
+            return String(localized: "settings_promotion_code_status_permanent")
+        }
+        let remainingText = String(
+            format: String(localized: "settings_promotion_code_status_remaining_days"),
+            remaining
+        )
+        if adFreeStore.couponCount >= 2 {
+            let couponsText = String(
+                format: String(localized: "settings_promotion_code_status_coupons_template"),
+                adFreeStore.couponCount
+            )
+            return "\(activeBase) (\(couponsText)) — \(remainingText)"
+        }
+        return "\(activeBase) — \(remainingText)"
     }
 }
 

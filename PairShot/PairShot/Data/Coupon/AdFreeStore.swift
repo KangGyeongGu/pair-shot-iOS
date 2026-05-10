@@ -5,6 +5,10 @@ import Observation
 @Observable
 final class AdFreeStore {
     private(set) var isAdFree: Bool = false
+    private(set) var expiresAt: Date?
+    private(set) var remainingDays: Int?
+    private(set) var couponCount: Int = 0
+    private(set) var activeCoupons: [AdFreeCouponInfo] = []
 
     private let fetcher: AdFreeStatusFetcher
     private let deviceHashProvider: DeviceHashProvider
@@ -17,6 +21,10 @@ final class AdFreeStore {
     func refresh() async {
         let hash = deviceHashProvider.deviceHash()
         guard let result = await fetcher.fetch(deviceHash: hash) else { return }
-        isAdFree = result
+        isAdFree = result.active
+        expiresAt = result.expiresAt
+        remainingDays = result.remainingDays
+        couponCount = result.couponCount
+        activeCoupons = result.activeCoupons
     }
 }

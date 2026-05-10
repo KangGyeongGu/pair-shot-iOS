@@ -37,6 +37,17 @@ nonisolated enum KeychainDeviceUUID {
             kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock,
             kSecAttrSynchronizable as String: false,
         ]
-        SecItemAdd(attrs as CFDictionary, nil)
+        let status = SecItemAdd(attrs as CFDictionary, nil)
+        if status == errSecDuplicateItem {
+            let query: [String: Any] = [
+                kSecClass as String: kSecClassGenericPassword,
+                kSecAttrService as String: service,
+                kSecAttrAccount as String: account,
+            ]
+            SecItemUpdate(
+                query as CFDictionary,
+                [kSecValueData as String: Data(value.utf8)] as CFDictionary
+            )
+        }
     }
 }

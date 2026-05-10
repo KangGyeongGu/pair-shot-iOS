@@ -8,8 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		6349589A2F7C17CA00622982 /* GoogleMobileAds in Frameworks */ = {isa = PBXBuildFile; productRef = 6349589B2F7C17CA00622982 /* GoogleMobileAds */; };
-		7B11AAA12FB0972000F0894C /* GoogleUserMessagingPlatform in Frameworks */ = {isa = PBXBuildFile; productRef = 7B11AAA22FB0972000F0894C /* GoogleUserMessagingPlatform */; };
 		7A0000012F7C20000000ZIP1 /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = 7A0000022F7C20000000ZIP2 /* ZIPFoundation */; };
+		7B11AAA12FB0972000F0894C /* GoogleUserMessagingPlatform in Frameworks */ = {isa = PBXBuildFile; productRef = 7B11AAA22FB0972000F0894C /* GoogleUserMessagingPlatform */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -383,20 +383,20 @@
 				minimumVersion = 11.0.0;
 			};
 		};
-		7B11AAA32FB0972000F0894C /* XCRemoteSwiftPackageReference "swift-package-manager-google-user-messaging-platform" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/googleads/swift-package-manager-google-user-messaging-platform.git";
-			requirement = {
-				kind = exactVersion;
-				version = 2.7.0;
-			};
-		};
 		7A0000032F7C20000000ZIP3 /* XCRemoteSwiftPackageReference "ZIPFoundation" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/weichsel/ZIPFoundation.git";
 			requirement = {
 				kind = upToNextMajorVersion;
 				minimumVersion = 0.9.0;
+			};
+		};
+		7B11AAA32FB0972000F0894C /* XCRemoteSwiftPackageReference "swift-package-manager-google-user-messaging-platform" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/googleads/swift-package-manager-google-user-messaging-platform.git";
+			requirement = {
+				kind = exactVersion;
+				version = 2.7.0;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
@@ -407,15 +407,15 @@
 			package = 6349589C2F7C17CA00622982 /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */;
 			productName = GoogleMobileAds;
 		};
-		7B11AAA22FB0972000F0894C /* GoogleUserMessagingPlatform */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 7B11AAA32FB0972000F0894C /* XCRemoteSwiftPackageReference "swift-package-manager-google-user-messaging-platform" */;
-			productName = GoogleUserMessagingPlatform;
-		};
 		7A0000022F7C20000000ZIP2 /* ZIPFoundation */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 7A0000032F7C20000000ZIP3 /* XCRemoteSwiftPackageReference "ZIPFoundation" */;
 			productName = ZIPFoundation;
+		};
+		7B11AAA22FB0972000F0894C /* GoogleUserMessagingPlatform */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 7B11AAA32FB0972000F0894C /* XCRemoteSwiftPackageReference "swift-package-manager-google-user-messaging-platform" */;
+			productName = GoogleUserMessagingPlatform;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
