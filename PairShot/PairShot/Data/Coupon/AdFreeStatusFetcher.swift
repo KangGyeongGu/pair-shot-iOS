@@ -29,7 +29,7 @@ nonisolated struct AdFreeStatusFetcher {
     }
 }
 
-nonisolated struct AdFreeStatusResult: Equatable {
+nonisolated struct AdFreeStatusResult: Equatable, Codable {
     let active: Bool
     let expiresAt: Date?
     let remainingDays: Int?

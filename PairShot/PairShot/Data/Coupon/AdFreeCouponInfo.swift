@@ -1,6 +1,6 @@
 import Foundation
 
-nonisolated struct AdFreeCouponInfo: Equatable, Identifiable {
+nonisolated struct AdFreeCouponInfo: Equatable, Identifiable, Codable {
     let shortCode: String
     let durationDays: Int?
     let activatedAt: Date
