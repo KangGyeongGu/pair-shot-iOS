@@ -16,6 +16,11 @@ struct AlbumDetailPairPreviewRequest: Identifiable {
     let pair: PhotoPair
 }
 
+struct AlbumDetailRecaptureAfterRequest: Identifiable {
+    let id = UUID()
+    let pair: PhotoPair
+}
+
 @MainActor
 @Observable
 final class AlbumDetailViewModel {
@@ -41,6 +46,7 @@ final class AlbumDetailViewModel {
     var pendingPairDestructive: AlbumDetailPairDeleteRequest?
     var pendingSinglePairDestructive: AlbumDetailSinglePairDeleteRequest?
     var pendingPreviewPair: AlbumDetailPairPreviewRequest?
+    var pendingRecaptureAfter: AlbumDetailRecaptureAfterRequest?
     var pendingShareItems: ExportShareItems?
     var pendingZipExport: DocumentExporterItem?
     var isExporting: Bool = false
@@ -217,6 +223,28 @@ final class AlbumDetailViewModel {
         }
     }
 
+    func sharePair(_ pair: PhotoPair) async {
+        guard !isExporting else { return }
+        await InterstitialAdManager.runGated(
+            manager: interstitialAdManager,
+            adFreeStore: adFreeStore,
+            coordinator: fullscreenAdCoordinator
+        ) { [weak self] in
+            await self?.performShare(pairs: [pair])
+        }
+    }
+
+    func exportPair(_ pair: PhotoPair) async {
+        guard !isExporting else { return }
+        await InterstitialAdManager.runGated(
+            manager: interstitialAdManager,
+            adFreeStore: adFreeStore,
+            coordinator: fullscreenAdCoordinator
+        ) { [weak self] in
+            await self?.performSaveToDevice(pairs: [pair])
+        }
+    }
+
     private func performShare(pairs: [PhotoPair]) async {
         isExporting = true
         defer { isExporting = false }
@@ -271,6 +299,11 @@ final class AlbumDetailViewModel {
     func requestSinglePairDeletion(_ pair: PhotoPair) {
         guard !isSelectionMode else { return }
         pendingSinglePairDelete = AlbumDetailSinglePairDeleteRequest(pair: pair)
+    }
+
+    func requestRecaptureAfter(_ pair: PhotoPair) {
+        guard !isSelectionMode else { return }
+        pendingRecaptureAfter = AlbumDetailRecaptureAfterRequest(pair: pair)
     }
 
     func removeFromAlbum(pairs: [PhotoPair]) async {

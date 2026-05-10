@@ -15,6 +15,9 @@ final class AfterCameraViewModel {
     let albumId: UUID?
     let initialPairId: UUID?
     let sortOrder: HomeSortOrder
+    let recaptureTargetPair: PhotoPair?
+
+    var isRecaptureMode: Bool { recaptureTargetPair != nil }
 
     let session: CameraSession
 
@@ -75,6 +78,7 @@ final class AfterCameraViewModel {
     let zoomDragState: AfterCameraZoomDragState = .init()
 
     private let captureAfter: CaptureAfterUseCase
+    private let recaptureAfter: RecaptureAfterUseCase
     private let pairRepo: PhotoPairRepository
     private let photoLibrary: PhotoLibraryService
     private let appSettings: AppSettings
@@ -87,7 +91,9 @@ final class AfterCameraViewModel {
         albumId: UUID?,
         initialPairId: UUID? = nil,
         sortOrder: HomeSortOrder = .newest,
+        recaptureTargetPair: PhotoPair? = nil,
         captureAfter: CaptureAfterUseCase,
+        recaptureAfter: RecaptureAfterUseCase,
         pairRepo: PhotoPairRepository,
         photoLibrary: PhotoLibraryService,
         appSettings: AppSettings,
@@ -98,7 +104,9 @@ final class AfterCameraViewModel {
         self.albumId = albumId
         self.initialPairId = initialPairId
         self.sortOrder = sortOrder
+        self.recaptureTargetPair = recaptureTargetPair
         self.captureAfter = captureAfter
+        self.recaptureAfter = recaptureAfter
         self.pairRepo = pairRepo
         self.photoLibrary = photoLibrary
         self.appSettings = appSettings
@@ -165,10 +173,7 @@ final class AfterCameraViewModel {
         defer { isCapturing = false }
         do {
             let captured = try await session.capturePhoto()
-            let updated = try await captureAfter(
-                pairId: pair.id,
-                afterJPEG: captured.jpegData
-            )
+            let updated = try await persistAfter(pairId: pair.id, afterJPEG: captured.jpegData)
             currentPair = updated
             eventsContinuation.yield(.snackbarSuccess)
             await advanceToNextOrFinish(after: updated)
@@ -177,7 +182,21 @@ final class AfterCameraViewModel {
         }
     }
 
+    private func persistAfter(pairId: UUID, afterJPEG: Data) async throws -> PhotoPair {
+        if isRecaptureMode {
+            return try await recaptureAfter(pairId: pairId, afterJPEG: afterJPEG)
+        }
+        return try await captureAfter(pairId: pairId, afterJPEG: afterJPEG)
+    }
+
     private func loadPendingScopeAndStart() async {
+        if let target = recaptureTargetPair {
+            pairs = [target]
+            pendingPairCount = 1
+            completedPairCount = 0
+            adopt(pair: target)
+            return
+        }
         await refreshPairs()
         guard let initialPair = AfterCameraInitialPairResolver.resolve(
             initialPairId: initialPairId,
@@ -190,6 +209,13 @@ final class AfterCameraViewModel {
     }
 
     private func advanceToNextOrFinish(after _: PhotoPair) async {
+        if isRecaptureMode {
+            currentPair = nil
+            ghostImageData = nil
+            allCompleted = true
+            eventsContinuation.yield(.dismiss)
+            return
+        }
         await refreshPairs()
         if let next = pairs.first {
             adopt(pair: next)

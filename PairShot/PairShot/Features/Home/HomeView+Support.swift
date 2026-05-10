@@ -189,6 +189,11 @@ struct HomeCameraCovers: ViewModifier {
                     )
                 }
             }
+            .fullScreenCover(item: $viewModel.pendingRecaptureAfter) { request in
+                NavigationStack {
+                    AfterCameraView(recaptureTargetPair: request.pair)
+                }
+            }
             .sheet(item: $viewModel.pendingPreviewPair) { request in
                 PairPreviewView(pair: request.pair)
                     .presentationDetents([.medium, .large])
@@ -335,15 +340,30 @@ struct HomeDeleteDialogs: ViewModifier {
             } message: { _ in
                 Text(String(localized: "album_dialog_delete_message"))
             }
-            .alert(
+            .confirmationDialog(
                 String(localized: "dialog_delete_pair_title"),
                 isPresented: singlePairDeleteBinding,
+                titleVisibility: .visible,
                 presenting: viewModel.pendingSinglePairDelete
             ) { request in
-                Button(String(localized: "common_button_delete"), role: .destructive) {
+                Button(String(localized: "dialog_delete_pair_button_all"), role: .destructive) {
                     Task {
                         await viewModel.confirmSinglePairDeletion(request.pair)
                         viewModel.pendingSinglePairDelete = nil
+                    }
+                }
+                Button(String(localized: "dialog_delete_pair_button_original_only"), role: .destructive) {
+                    Task {
+                        await viewModel.confirmSingleOriginalOnlyPairDeletion(request.pair)
+                        viewModel.pendingSinglePairDelete = nil
+                    }
+                }
+                if request.pair.hasCombinedExport {
+                    Button(String(localized: "dialog_delete_pair_button_combined_only"), role: .destructive) {
+                        Task {
+                            await viewModel.confirmSingleCombinedDeletion(request.pair)
+                            viewModel.pendingSinglePairDelete = nil
+                        }
                     }
                 }
                 Button(String(localized: "common_button_cancel"), role: .cancel) {

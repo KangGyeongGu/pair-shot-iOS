@@ -45,6 +45,11 @@ struct HomePairPreviewRequest: Identifiable {
     let pair: PhotoPair
 }
 
+struct HomeRecaptureAfterRequest: Identifiable {
+    let id = UUID()
+    let pair: PhotoPair
+}
+
 @MainActor
 @Observable
 final class HomeViewModel {
@@ -65,6 +70,7 @@ final class HomeViewModel {
     var afterCameraTargetPairId: UUID?
     var beforeCameraTargetPairId: UUID?
     var pendingPreviewPair: HomePairPreviewRequest?
+    var pendingRecaptureAfter: HomeRecaptureAfterRequest?
     var pendingPairDelete: HomePairDeleteRequest?
     var pendingAlbumDelete: HomeAlbumDeleteRequest?
     var pendingAlbumDestructive: HomeAlbumDeleteRequest?
@@ -426,6 +432,33 @@ final class HomeViewModel {
         pendingSinglePairDelete = HomeSinglePairDeleteRequest(pair: pair)
     }
 
+    func requestRecaptureAfter(_ pair: PhotoPair) {
+        guard !isSelectionMode else { return }
+        pendingRecaptureAfter = HomeRecaptureAfterRequest(pair: pair)
+    }
+
+    func sharePair(_ pair: PhotoPair) async {
+        guard !isExporting else { return }
+        await InterstitialAdManager.runGated(
+            manager: interstitialAdManager,
+            adFreeStore: adFreeStore,
+            coordinator: fullscreenAdCoordinator
+        ) { [weak self] in
+            await self?.performShare(pairs: [pair])
+        }
+    }
+
+    func exportPair(_ pair: PhotoPair) async {
+        guard !isExporting else { return }
+        await InterstitialAdManager.runGated(
+            manager: interstitialAdManager,
+            adFreeStore: adFreeStore,
+            coordinator: fullscreenAdCoordinator
+        ) { [weak self] in
+            await self?.performSaveToDevice(pairs: [pair])
+        }
+    }
+
     func requestSingleAlbumDeletion(_ album: Album) {
         guard !isSelectionMode else { return }
         pendingSingleAlbumDelete = HomeSingleAlbumDeleteRequest(album: album)
@@ -476,6 +509,11 @@ final class HomeViewModel {
         let afterId = pair.afterPhotoLocalIdentifier
         try? await useCase(ids: [pair.id])
         evictThumbnails(beforeIdentifier: beforeId, afterIdentifier: afterId)
+    }
+
+    func confirmSingleCombinedDeletion(_ pair: PhotoPair) async {
+        guard let useCase = deleteCombinedExports else { return }
+        try? await useCase(ids: [pair.id])
     }
 
     func confirmAlbumDeletion(albums: [Album]) async {

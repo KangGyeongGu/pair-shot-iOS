@@ -149,15 +149,31 @@ struct AlbumDetailView: View {
         .onLongPressGesture(minimumDuration: 0.4) { viewModel.longPressPair(pair) }
         .contextMenu {
             if !viewModel.isSelectionMode {
-                if pair.hasCombinedExport {
-                    Button(role: .destructive) {
-                        Task { await viewModel.deleteCombinedExports(for: pair) }
+                if pair.afterPhotoLocalIdentifier != nil {
+                    Button {
+                        viewModel.requestRecaptureAfter(pair)
                     } label: {
                         Label(
-                            String(localized: "pair_card_action_delete_combined"),
-                            systemImage: "square.on.square"
+                            String(localized: "pair_preview_menu_recapture"),
+                            systemImage: "camera.rotate"
                         )
                     }
+                }
+                Button {
+                    Task { await viewModel.sharePair(pair) }
+                } label: {
+                    Label(
+                        String(localized: "common_button_share"),
+                        systemImage: "square.and.arrow.up"
+                    )
+                }
+                Button {
+                    Task { await viewModel.exportPair(pair) }
+                } label: {
+                    Label(
+                        String(localized: "common_button_export"),
+                        systemImage: "square.and.arrow.down"
+                    )
                 }
                 Button(role: .destructive) {
                     viewModel.requestSinglePairDeletion(pair)
@@ -233,6 +249,11 @@ struct AlbumDetailCameraCovers: ViewModifier {
                         initialPairId: viewModel.afterCameraTargetPairId,
                         sortOrder: viewModel.sortOrder
                     )
+                }
+            }
+            .fullScreenCover(item: $viewModel.pendingRecaptureAfter) { request in
+                NavigationStack {
+                    AfterCameraView(recaptureTargetPair: request.pair)
                 }
             }
             .sheet(item: $viewModel.pendingPreviewPair) { request in

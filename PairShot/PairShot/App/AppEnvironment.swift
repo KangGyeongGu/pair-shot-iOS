@@ -21,6 +21,7 @@ final class AppEnvironment {
 
     let createPair: CreatePairUseCase
     let captureAfter: CaptureAfterUseCase
+    let recaptureAfter: RecaptureAfterUseCase
     let deletePairs: DeletePairsUseCase
     let deleteCombinedExports: DeleteCombinedExportsUseCase
     let deletePairsKeepingCombined: DeletePairsKeepingCombinedUseCase
@@ -135,9 +136,15 @@ final class AppEnvironment {
             photoLibrary: resolvedPhotoLibrary,
             location: resolvedLocation
         )
-        captureAfter = CaptureAfterUseCase(
+        let resolvedCaptureAfter = CaptureAfterUseCase(
             pairRepo: resolvedPairRepo,
             photoLibrary: resolvedPhotoLibrary
+        )
+        captureAfter = resolvedCaptureAfter
+        recaptureAfter = RecaptureAfterUseCase(
+            pairRepo: resolvedPairRepo,
+            photoLibrary: resolvedPhotoLibrary,
+            captureAfter: resolvedCaptureAfter
         )
         deletePairs = DeletePairsUseCase(
             pairRepo: resolvedPairRepo,
@@ -189,13 +196,16 @@ final class AppEnvironment {
     func makeAfterCameraViewModel(
         albumId: UUID?,
         initialPairId: UUID? = nil,
-        sortOrder: HomeSortOrder = .newest
+        sortOrder: HomeSortOrder = .newest,
+        recaptureTargetPair: PhotoPair? = nil
     ) -> AfterCameraViewModel {
         AfterCameraViewModel(
             albumId: albumId,
             initialPairId: initialPairId,
             sortOrder: sortOrder,
+            recaptureTargetPair: recaptureTargetPair,
             captureAfter: captureAfter,
+            recaptureAfter: recaptureAfter,
             pairRepo: pairRepo,
             photoLibrary: photoLibrary,
             appSettings: appSettings,
