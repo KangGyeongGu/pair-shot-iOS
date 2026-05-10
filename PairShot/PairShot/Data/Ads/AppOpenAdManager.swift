@@ -8,7 +8,7 @@ import UIKit
 #endif
 
 enum AppOpenAdGate {
-    nonisolated static let defaultMinimumInterval: TimeInterval = 240
+    nonisolated static let defaultMinimumInterval: TimeInterval = 60
 
     static func shouldPresent(
         lastShownAt: Date?,
@@ -96,9 +96,13 @@ final class AppOpenAdManager {
         now: Date = .now
     ) async -> Bool {
         if let adFreeStore, adFreeStore.isAdFree { return false }
+        if !isLoaded, !isLoading {
+            loadIfNeeded(adUnitID: adUnitID, adFreeStore: adFreeStore)
+        }
         if !isLoaded {
-            if isLoading {
-                try? await Task.sleep(for: .milliseconds(1500))
+            let deadline = Date().addingTimeInterval(5)
+            while !isLoaded, Date() < deadline {
+                try? await Task.sleep(for: .milliseconds(200))
             }
             guard isLoaded else { return false }
         }

@@ -15,8 +15,10 @@ struct PairShotApp: App {
     @State private var env: AppEnvironment
     @State private var hasBootstrappedAds = false
     @State private var showFallbackAlert: Bool
-    @State private var lastScenePhase: ScenePhase = .background
+    @State private var enteredBackgroundAt: Date?
     @Environment(\.scenePhase) private var scenePhase
+
+    private static let backgroundDwellThreshold: TimeInterval = 30
 
     init() {
         _showFallbackAlert = State(initialValue: containerBootstrap.fallbackActive)
@@ -68,8 +70,9 @@ struct PairShotApp: App {
     }
 
     private func handleScenePhaseChange(_ phase: ScenePhase) {
-        let previous = lastScenePhase
-        defer { lastScenePhase = phase }
+        if phase == .background {
+            enteredBackgroundAt = Date()
+        }
 
         guard phase == .active else { return }
 
@@ -80,22 +83,16 @@ struct PairShotApp: App {
             env.appOpenAdManager.loadIfNeeded(adFreeStore: env.adFreeStore)
             env.rewardedAdManager.loadIfNeeded(adFreeStore: env.adFreeStore)
             env.nativeAdLoader.prefetch(count: 5, adFreeStore: env.adFreeStore)
-            guard AppOpenScenePhaseGate.shouldPresent(previous: previous, current: phase) else {
-                return
-            }
+            guard let backgroundedAt = enteredBackgroundAt,
+                  Date().timeIntervalSince(backgroundedAt) >= Self.backgroundDwellThreshold
+            else { return }
+            enteredBackgroundAt = nil
             await env.appOpenAdManager.presentIfReady(
                 from: BannerAdView.resolveRootViewController(),
                 coordinator: env.fullscreenAdCoordinator,
                 adFreeStore: env.adFreeStore
             )
         }
-    }
-}
-
-enum AppOpenScenePhaseGate {
-    static func shouldPresent(previous: ScenePhase, current: ScenePhase) -> Bool {
-        guard current == .active else { return false }
-        return previous == .background
     }
 }
 
