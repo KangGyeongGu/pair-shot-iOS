@@ -21,6 +21,12 @@ enum LicenseEntries {
             url: apacheTwoURL
         ),
         LicenseEntry(
+            name: "Google User Messaging Platform",
+            author: "Google",
+            licenseType: "Apache 2.0",
+            url: apacheTwoURL
+        ),
+        LicenseEntry(
             name: "ZIPFoundation",
             author: "Thomas Zoechling",
             licenseType: "MIT",
