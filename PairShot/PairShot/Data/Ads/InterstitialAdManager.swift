@@ -49,7 +49,11 @@ final class InterstitialAdManager {
         #endif
     }
 
-    func loadIfNeeded(adUnitID: String? = nil) {
+    func loadIfNeeded(
+        adUnitID: String? = nil,
+        adFreeStore: AdFreeStore? = nil
+    ) {
+        if let adFreeStore, adFreeStore.isAdFree { return }
         guard !isLoaded, !isLoading else { return }
         let resolvedUnitID = adUnitID ?? AdsConfig.interstitial
         #if canImport(GoogleMobileAds)
@@ -88,9 +92,11 @@ final class InterstitialAdManager {
     func presentIfReady(
         from rootViewController: UIViewController?,
         coordinator: FullscreenAdCoordinator,
+        adFreeStore: AdFreeStore? = nil,
         adUnitID: String? = nil,
         now: Date = .now
     ) async -> Bool {
+        if let adFreeStore, adFreeStore.isAdFree { return false }
         guard isLoaded else { return false }
         guard InterstitialFrequencyGate.shouldPresent(
             now: now,
@@ -115,7 +121,7 @@ final class InterstitialAdManager {
             lastShownAt = now
             self.ad = nil
             isLoaded = false
-            loadIfNeeded(adUnitID: adUnitID ?? AdsConfig.interstitial)
+            loadIfNeeded(adUnitID: adUnitID ?? AdsConfig.interstitial, adFreeStore: adFreeStore)
             return true
         #else
             lastShownAt = now
@@ -128,19 +134,25 @@ final class InterstitialAdManager {
     func showIfAvailable(
         from rootViewController: UIViewController?,
         coordinator: FullscreenAdCoordinator,
+        adFreeStore: AdFreeStore? = nil,
         adUnitID: String? = nil,
         now: Date = .now,
         onFinished: @escaping @MainActor () -> Void
     ) async -> Bool {
+        if let adFreeStore, adFreeStore.isAdFree {
+            onFinished()
+            return false
+        }
+
         if let lastShownAt, now.timeIntervalSince(lastShownAt) < Self.cooldownSeconds {
             onFinished()
-            loadIfNeeded(adUnitID: adUnitID)
+            loadIfNeeded(adUnitID: adUnitID, adFreeStore: adFreeStore)
             return false
         }
 
         guard isLoaded else {
             onFinished()
-            loadIfNeeded(adUnitID: adUnitID)
+            loadIfNeeded(adUnitID: adUnitID, adFreeStore: adFreeStore)
             return false
         }
 
@@ -153,7 +165,7 @@ final class InterstitialAdManager {
             guard let ad else {
                 await coordinator.release()
                 onFinished()
-                loadIfNeeded(adUnitID: adUnitID)
+                loadIfNeeded(adUnitID: adUnitID, adFreeStore: adFreeStore)
                 return false
             }
             await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
@@ -169,7 +181,7 @@ final class InterstitialAdManager {
                         self?.lastShownAt = Date()
                         self?.ad = nil
                         self?.isLoaded = false
-                        self?.loadIfNeeded(adUnitID: adUnitID)
+                        self?.loadIfNeeded(adUnitID: adUnitID, adFreeStore: adFreeStore)
                         onFinished()
                         resume()
                     }
@@ -179,7 +191,7 @@ final class InterstitialAdManager {
                         await coordinator?.release()
                         self?.ad = nil
                         self?.isLoaded = false
-                        self?.loadIfNeeded(adUnitID: adUnitID)
+                        self?.loadIfNeeded(adUnitID: adUnitID, adFreeStore: adFreeStore)
                         onFinished()
                         resume()
                     }
@@ -201,6 +213,7 @@ final class InterstitialAdManager {
 extension InterstitialAdManager {
     static func runGated(
         manager: InterstitialAdManager?,
+        adFreeStore: AdFreeStore?,
         coordinator: FullscreenAdCoordinator?,
         work: @escaping @MainActor () async -> Void
     ) async {
@@ -212,7 +225,8 @@ extension InterstitialAdManager {
             Task { @MainActor in
                 await manager.showIfAvailable(
                     from: BannerAdView.resolveTopPresentedViewController(),
-                    coordinator: coordinator
+                    coordinator: coordinator,
+                    adFreeStore: adFreeStore
                 ) {
                     Task { @MainActor in
                         await work()

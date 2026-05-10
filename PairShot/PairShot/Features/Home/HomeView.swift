@@ -7,6 +7,7 @@ struct HomeView: View {
     let onPushSettings: (() -> Void)?
 
     @Environment(AppEnvironment.self) private var env
+    @Environment(AdFreeStore.self) private var adFreeStore
     @Query(sort: \PhotoPairEntity.createdAt, order: .reverse) private var allPairs: [PhotoPairEntity]
     @Query(sort: \AlbumEntity.updatedAt, order: .reverse) private var allAlbums: [AlbumEntity]
     @State private var viewModel: HomeViewModel?
@@ -128,6 +129,7 @@ struct HomeView: View {
             .map { group in
                 let result = PairListWithAdsBuilder.buildChunks(
                     pairs: group.pairs,
+                    adFree: adFreeStore.isAdFree,
                     startingAdSlotIndex: slotIndex
                 )
                 slotIndex = result.nextSlotIndex

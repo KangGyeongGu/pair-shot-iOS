@@ -6,6 +6,7 @@ struct ExportSettingsView: View {
     let onPushCombineSettings: (() -> Void)?
     @Environment(\.dismiss) private var dismiss
     @Environment(RewardedAdManager.self) private var rewardedManager
+    @Environment(AdFreeStore.self) private var adFreeStore
     @Environment(\.fullscreenAdCoordinator) private var coordinator
 
     init(
@@ -74,7 +75,7 @@ struct ExportSettingsView: View {
         )
         .onDisappear { viewModel.cleanupPendingZip() }
         .task { await observeEvents() }
-        .task { rewardedManager.loadIfNeeded() }
+        .task { rewardedManager.loadIfNeeded(adFreeStore: adFreeStore) }
         .alert(
             String(localized: "rewarded_gate_title"),
             isPresented: $viewModel.showWatermarkGateDialog

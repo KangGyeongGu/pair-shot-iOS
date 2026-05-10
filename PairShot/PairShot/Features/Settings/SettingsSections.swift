@@ -206,6 +206,59 @@ struct SettingsPrivacySection: View {
     }
 }
 
+struct SettingsPromotionCodeSection: View {
+    @Environment(AppEnvironment.self) private var env
+
+    var body: some View {
+        Section {
+            HStack(spacing: 12) {
+                SettingsIconBadge(
+                    icon: SettingsRowIcon(systemImage: "tag.fill", color: .pink)
+                )
+                Text(String(localized: "settings_promotion_code_redeem"))
+                Spacer()
+                Image(systemName: "arrow.up.right.square")
+                    .foregroundStyle(.secondary)
+            }
+            .contentShape(Rectangle())
+            .onTapGesture {
+                CouponRedemptionLink.open(
+                    config: env.couponApiConfig,
+                    deviceHashProvider: env.deviceHashProvider
+                )
+            }
+        }
+    }
+}
+
+struct SettingsPrivacyOptionsSection: View {
+    @Environment(AppEnvironment.self) private var env
+
+    var body: some View {
+        if env.consentManager.canShowPrivacyOptionsButton {
+            Section {
+                Button {
+                    Task { await env.consentManager.presentPrivacyOptions() }
+                } label: {
+                    HStack(spacing: 12) {
+                        SettingsIconBadge(
+                            icon: SettingsRowIcon(systemImage: "hand.raised.fill", color: .blue)
+                        )
+                        Text(String(localized: "settings_privacy_options"))
+                            .foregroundStyle(.primary)
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.caption.bold())
+                            .foregroundStyle(.tertiary)
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+}
+
 struct SettingsStorageInfoSection: View {
     @Bindable var viewModel: SettingsViewModel
     let openURL: OpenURLAction

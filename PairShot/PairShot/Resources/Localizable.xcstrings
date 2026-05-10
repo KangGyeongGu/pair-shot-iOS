@@ -4851,6 +4851,40 @@
         }
       }
     },
+    "settings_privacy_options" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Manage Ad Consent"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "광고 동의 관리"
+          }
+        }
+      }
+    },
+    "settings_promotion_code_redeem" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Redeem Promotional Code"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "프로모션 코드 등록"
+          }
+        }
+      }
+    },
     "settings_section_shooting_files" : {
       "extractionState" : "manual",
       "localizations" : {

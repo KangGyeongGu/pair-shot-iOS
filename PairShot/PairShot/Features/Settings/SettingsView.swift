@@ -80,6 +80,8 @@ private struct SettingsFormBody: View {
             SettingsWatermarkSection(viewModel: viewModel, path: $path)
             SettingsCombineSection(viewModel: viewModel, path: $path)
             SettingsPrivacySection(viewModel: viewModel)
+            SettingsPromotionCodeSection()
+            SettingsPrivacyOptionsSection()
             SettingsStorageInfoSection(viewModel: viewModel, openURL: openURL)
         }
         .listStyle(.insetGrouped)

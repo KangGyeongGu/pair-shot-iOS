@@ -48,7 +48,11 @@ final class AppOpenAdManager {
         #endif
     }
 
-    func loadIfNeeded(adUnitID: String? = nil) {
+    func loadIfNeeded(
+        adUnitID: String? = nil,
+        adFreeStore: AdFreeStore? = nil
+    ) {
+        if let adFreeStore, adFreeStore.isAdFree { return }
         guard !isLoaded, !isLoading else { return }
         let resolvedUnitID = adUnitID ?? AdsConfig.appOpen
         #if canImport(GoogleMobileAds)
@@ -87,9 +91,11 @@ final class AppOpenAdManager {
     func presentIfReady(
         from rootViewController: UIViewController?,
         coordinator: FullscreenAdCoordinator,
+        adFreeStore: AdFreeStore? = nil,
         adUnitID: String? = nil,
         now: Date = .now
     ) async -> Bool {
+        if let adFreeStore, adFreeStore.isAdFree { return false }
         if !isLoaded {
             if isLoading {
                 try? await Task.sleep(for: .milliseconds(1500))
@@ -119,7 +125,7 @@ final class AppOpenAdManager {
             lastShownAt = now
             self.ad = nil
             isLoaded = false
-            loadIfNeeded(adUnitID: adUnitID ?? AdsConfig.appOpen)
+            loadIfNeeded(adUnitID: adUnitID ?? AdsConfig.appOpen, adFreeStore: adFreeStore)
             return true
         #else
             lastShownAt = now

@@ -6,7 +6,14 @@ import UIKit
     import GoogleMobileAds
 #endif
 
+enum BannerAdGate {
+    static func shouldShow(isAdFree: Bool) -> Bool {
+        !isAdFree
+    }
+}
+
 struct BannerAdSlot: View {
+    @Environment(AdFreeStore.self) private var adFreeStore
     @Environment(TrackingAuthorizationService.self) private var tracking
 
     let adUnitID: String
@@ -16,16 +23,18 @@ struct BannerAdSlot: View {
     }
 
     var body: some View {
-        let width = BannerAdView.currentBannerWidth()
-        let height = BannerAdSize.adaptiveHeight(width: width)
-        BannerAdView(
-            adUnitID: adUnitID,
-            width: width,
-            attStatus: tracking.currentStatus
-        )
-        .frame(width: width, height: height)
-        .frame(maxWidth: .infinity, maxHeight: height, alignment: .top)
-        .clipped()
+        if BannerAdGate.shouldShow(isAdFree: adFreeStore.isAdFree) {
+            let width = BannerAdView.currentBannerWidth()
+            let height = BannerAdSize.adaptiveHeight(width: width)
+            BannerAdView(
+                adUnitID: adUnitID,
+                width: width,
+                attStatus: tracking.currentStatus
+            )
+            .frame(width: width, height: height)
+            .frame(maxWidth: .infinity, maxHeight: height, alignment: .top)
+            .clipped()
+        }
     }
 }
 

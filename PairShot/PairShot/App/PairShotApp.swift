@@ -19,10 +19,6 @@ struct PairShotApp: App {
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
-        #if canImport(GoogleMobileAds)
-            GADMobileAds.sharedInstance().start(completionHandler: nil)
-        #endif
-
         _showFallbackAlert = State(initialValue: containerBootstrap.fallbackActive)
         let environment = AppEnvironment(modelContainer: containerBootstrap.container)
         AppLanguageBundleSync.apply(environment.appSettings.language)
@@ -38,6 +34,7 @@ struct PairShotApp: App {
                 .environment(env.appOpenAdManager)
                 .environment(env.rewardedAdManager)
                 .environment(env.nativeAdLoader)
+                .environment(env.adFreeStore)
                 .environment(env.trackingService)
                 .environment(env.appSettings)
                 .environment(\.locale, env.appSettings.resolvedLocale)
@@ -58,10 +55,15 @@ struct PairShotApp: App {
     }
 
     func bootstrapAds() async {
-        env.interstitialAdManager.loadIfNeeded()
-        env.appOpenAdManager.loadIfNeeded()
-        env.rewardedAdManager.loadIfNeeded()
-        env.nativeAdLoader.prefetch(count: 5)
+        await env.consentManager.bootstrap()
+        #if canImport(GoogleMobileAds)
+            _ = await GADMobileAds.sharedInstance().start()
+        #endif
+        await env.adFreeStore.refresh()
+        env.interstitialAdManager.loadIfNeeded(adFreeStore: env.adFreeStore)
+        env.appOpenAdManager.loadIfNeeded(adFreeStore: env.adFreeStore)
+        env.rewardedAdManager.loadIfNeeded(adFreeStore: env.adFreeStore)
+        env.nativeAdLoader.prefetch(count: 5, adFreeStore: env.adFreeStore)
         hasBootstrappedAds = true
     }
 
@@ -73,16 +75,18 @@ struct PairShotApp: App {
 
         Task { @MainActor in
             await env.permissionStatusService.refreshAll()
-            env.interstitialAdManager.loadIfNeeded()
-            env.appOpenAdManager.loadIfNeeded()
-            env.rewardedAdManager.loadIfNeeded()
-            env.nativeAdLoader.prefetch(count: 5)
+            await env.adFreeStore.refresh()
+            env.interstitialAdManager.loadIfNeeded(adFreeStore: env.adFreeStore)
+            env.appOpenAdManager.loadIfNeeded(adFreeStore: env.adFreeStore)
+            env.rewardedAdManager.loadIfNeeded(adFreeStore: env.adFreeStore)
+            env.nativeAdLoader.prefetch(count: 5, adFreeStore: env.adFreeStore)
             guard AppOpenScenePhaseGate.shouldPresent(previous: previous, current: phase) else {
                 return
             }
             await env.appOpenAdManager.presentIfReady(
                 from: BannerAdView.resolveRootViewController(),
-                coordinator: env.fullscreenAdCoordinator
+                coordinator: env.fullscreenAdCoordinator,
+                adFreeStore: env.adFreeStore
             )
         }
     }

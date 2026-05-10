@@ -57,6 +57,8 @@
 	<string>$(ADUNIT_ID_NATIVE)</string>
 	<key>AdUnitID_AppOpen</key>
 	<string>$(ADUNIT_ID_APP_OPEN)</string>
+	<key>CouponApiBaseUrl</key>
+	<string>$(COUPON_API_BASE_URL)</string>
 	<key>SKAdNetworkItems</key>
 	<array>
 		<dict>

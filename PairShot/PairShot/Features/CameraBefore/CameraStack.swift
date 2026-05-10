@@ -3,6 +3,8 @@ import SwiftUI
 import UIKit
 
 struct BeforeCameraStack: View {
+    @Environment(AdFreeStore.self) private var adFreeStore
+
     let captureSession: AVCaptureSession
     let onMakePreviewView: (CameraPreviewView) -> Void
     let previewLayerProvider: () -> AVCaptureVideoPreviewLayer?
@@ -46,7 +48,10 @@ struct BeforeCameraStack: View {
 
     var body: some View {
         GeometryReader { geo in
-            let layout = CameraLayoutMath.compute(totalSize: geo.size)
+            let layout = CameraLayoutMath.compute(
+                totalSize: geo.size,
+                isAdFree: adFreeStore.isAdFree
+            )
 
             ZStack(alignment: .top) {
                 Color.appCameraBackground.ignoresSafeArea()
@@ -74,9 +79,11 @@ struct BeforeCameraStack: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
 
-                BannerAdSlot()
-                    .frame(maxWidth: .infinity, maxHeight: layout.bannerHeight, alignment: .top)
-                    .clipped()
+                if !layout.isAdFree {
+                    BannerAdSlot()
+                        .frame(maxWidth: .infinity, maxHeight: layout.bannerHeight, alignment: .top)
+                        .clipped()
+                }
             }
         }
         .ignoresSafeArea(edges: .bottom)
@@ -185,6 +192,7 @@ struct BeforeCameraPreviewLayer: UIViewRepresentable {
 }
 
 struct CameraLayoutResult {
+    let isAdFree: Bool
     let bannerHeight: CGFloat
     let previewWidth: CGFloat
     let previewHeight: CGFloat
@@ -196,8 +204,11 @@ enum CameraLayoutMath {
     static let preferredBottomBarHeight: CGFloat = 116
 
     @MainActor
-    static func compute(totalSize: CGSize) -> CameraLayoutResult {
-        let banner = BannerAdSize.adaptiveHeight(width: totalSize.width)
+    static func compute(
+        totalSize: CGSize,
+        isAdFree: Bool
+    ) -> CameraLayoutResult {
+        let banner: CGFloat = isAdFree ? 0 : BannerAdSize.adaptiveHeight(width: totalSize.width)
         let preferredPreview = totalSize.width * 4.0 / 3.0
         let previewHeight = min(preferredPreview, max(0, totalSize.height))
         let bottomTotal = max(0, totalSize.height - previewHeight)
@@ -216,6 +227,7 @@ enum CameraLayoutMath {
         }
 
         return CameraLayoutResult(
+            isAdFree: isAdFree,
             bannerHeight: banner,
             previewWidth: totalSize.width,
             previewHeight: previewHeight,

@@ -30,8 +30,10 @@ final class NativeAdLoader: NSObject {
 
     func prefetch(
         count: Int,
-        adUnitID: String? = nil
+        adUnitID: String? = nil,
+        adFreeStore: AdFreeStore? = nil
     ) {
+        if let adFreeStore, adFreeStore.isAdFree { return }
         guard count > 0 else { return }
         guard !isLoading else { return }
         let resolvedUnitID = adUnitID ?? AdsConfig.native
@@ -56,14 +58,15 @@ final class NativeAdLoader: NSObject {
         #endif
     }
 
-    func dequeue() -> Any? {
+    func dequeue(adFreeStore: AdFreeStore? = nil) -> Any? {
+        if let adFreeStore, adFreeStore.isAdFree { return nil }
         guard !loadedAds.isEmpty else {
-            prefetch(count: 1)
+            prefetch(count: 1, adFreeStore: adFreeStore)
             return nil
         }
         let ad = loadedAds.removeFirst()
         if loadedAds.count < 2 {
-            prefetch(count: 5)
+            prefetch(count: 5, adFreeStore: adFreeStore)
         }
         return ad
     }

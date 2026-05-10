@@ -79,6 +79,7 @@ final class ExportSettingsViewModel {
     private let appSettings: AppSettings?
     private var preferences: ExportPreferences
     private let interstitialAdManager: InterstitialAdManager?
+    private let adFreeStore: AdFreeStore?
     private let fullscreenAdCoordinator: FullscreenAdCoordinator?
 
     private var pendingZipURL: URL?
@@ -95,6 +96,7 @@ final class ExportSettingsViewModel {
         preferences: ExportPreferences = ExportPreferences(),
         appSettings: AppSettings? = nil,
         interstitialAdManager: InterstitialAdManager? = nil,
+        adFreeStore: AdFreeStore? = nil,
         fullscreenAdCoordinator: FullscreenAdCoordinator? = nil
     ) {
         self.pairIds = pairIds
@@ -108,6 +110,7 @@ final class ExportSettingsViewModel {
         self.preferences = preferences
         self.appSettings = appSettings
         self.interstitialAdManager = interstitialAdManager
+        self.adFreeStore = adFreeStore
         self.fullscreenAdCoordinator = fullscreenAdCoordinator
         includeCombined = preferences.includeCombined
         includeBefore = preferences.includeBefore
@@ -182,11 +185,12 @@ final class ExportSettingsViewModel {
         lastGateFailureReason = nil
         if !RewardedSessionGate.shouldShowGate(
             unlockID: unlockID,
-            sessionUnlocks: rewardedManager.sessionUnlocks
+            sessionUnlocks: rewardedManager.sessionUnlocks,
+            isAdFree: adFreeStore?.isAdFree ?? false
         ) {
             return true
         }
-        rewardedManager.loadIfNeeded()
+        rewardedManager.loadIfNeeded(adFreeStore: adFreeStore)
         self[keyPath: dialogFlag] = true
         return false
     }
@@ -200,19 +204,21 @@ final class ExportSettingsViewModel {
         lastGateFailureReason = nil
         if !RewardedSessionGate.shouldShowGate(
             unlockID: unlockID,
-            sessionUnlocks: rewardedManager.sessionUnlocks
+            sessionUnlocks: rewardedManager.sessionUnlocks,
+            isAdFree: adFreeStore?.isAdFree ?? false
         ) {
             return .proceed
         }
         if !rewardedManager.isLoaded {
-            rewardedManager.loadIfNeeded()
+            rewardedManager.loadIfNeeded(adFreeStore: adFreeStore)
             lastGateFailureReason = String(localized: "rewarded_gate_load_failed")
             return .adNotReady
         }
         let outcome = await rewardedManager.presentForReward(
             unlockID,
             from: rootViewController,
-            coordinator: coordinator
+            coordinator: coordinator,
+            adFreeStore: adFreeStore
         )
         return mapOutcome(outcome)
     }
@@ -239,6 +245,7 @@ final class ExportSettingsViewModel {
         guard canExecute else { return }
         await InterstitialAdManager.runGated(
             manager: interstitialAdManager,
+            adFreeStore: adFreeStore,
             coordinator: fullscreenAdCoordinator
         ) { [weak self] in
             await self?.performShare()
@@ -249,6 +256,7 @@ final class ExportSettingsViewModel {
         guard canExecute else { return }
         await InterstitialAdManager.runGated(
             manager: interstitialAdManager,
+            adFreeStore: adFreeStore,
             coordinator: fullscreenAdCoordinator
         ) { [weak self] in
             await self?.performSaveToDevice()

@@ -11,6 +11,9 @@ final class AppEnvironment {
     let albumRepo: AlbumRepository
 
     let location: CoreLocationService
+    let couponApiConfig: CouponApiConfig
+    let deviceHashProvider: DeviceHashProvider
+    let adFreeStatusFetcher: AdFreeStatusFetcher
     let zipExporter: ZipExporterAdapter
     let photoLibraryExporter: PhotoLibraryExport
     let photoLibrary: PhotoLibraryService
@@ -26,6 +29,7 @@ final class AppEnvironment {
 
     let appSettings: AppSettings
     let appSettingsRepo: AppSettingsRepository
+    let adFreeStore: AdFreeStore
     let trackingService: TrackingAuthorizationService
 
     let interstitialAdManager: InterstitialAdManager
@@ -33,6 +37,7 @@ final class AppEnvironment {
     let nativeAdLoader: NativeAdLoader
     let appOpenAdManager: AppOpenAdManager
     let fullscreenAdCoordinator: FullscreenAdCoordinator
+    let consentManager: ConsentManager
 
     let snackbarQueue: SnackbarQueue
     let immediateExport: ImmediateExportService
@@ -48,12 +53,14 @@ final class AppEnvironment {
         modelContainer: ModelContainer,
         appSettings: AppSettings? = nil,
         appSettingsRepo: AppSettingsRepository? = nil,
+        adFreeStore: AdFreeStore? = nil,
         trackingService: TrackingAuthorizationService? = nil,
         interstitialAdManager: InterstitialAdManager? = nil,
         rewardedAdManager: RewardedAdManager? = nil,
         nativeAdLoader: NativeAdLoader? = nil,
         appOpenAdManager: AppOpenAdManager? = nil,
         fullscreenAdCoordinator: FullscreenAdCoordinator? = nil,
+        consentManager: ConsentManager? = nil,
         snackbarQueue: SnackbarQueue? = nil,
         settingsRedirectCoordinator: SettingsRedirectCoordinator? = nil,
         permissionStatusService: PermissionStatusService? = nil,
@@ -64,9 +71,17 @@ final class AppEnvironment {
         let resolvedAppSettings = appSettings ?? AppSettings()
         let resolvedSnackbarQueue = snackbarQueue ?? SnackbarQueue()
 
+        let apiConfig = CouponApiConfig.resolve()
+        let hashProvider = DeviceHashProvider()
+        let statusFetcher = AdFreeStatusFetcher(config: apiConfig)
+
         self.modelContainer = modelContainer
         self.appSettings = resolvedAppSettings
         self.appSettingsRepo = appSettingsRepo ?? UserDefaultsAppSettingsRepository()
+        self.adFreeStore = adFreeStore ?? AdFreeStore(
+            fetcher: statusFetcher,
+            deviceHashProvider: hashProvider
+        )
         self.trackingService = trackingService ?? TrackingAuthorizationService()
         self.snackbarQueue = resolvedSnackbarQueue
         self.settingsRedirectCoordinator = settingsRedirectCoordinator ?? SettingsRedirectCoordinator()
@@ -74,6 +89,10 @@ final class AppEnvironment {
         self.thumbnailCache = thumbnailCache ?? PhotoLibraryThumbnailCache()
         self.hapticService = hapticService ?? HapticService()
         self.motionService = motionService ?? MotionService()
+
+        couponApiConfig = apiConfig
+        deviceHashProvider = hashProvider
+        adFreeStatusFetcher = statusFetcher
 
         let resolvedTrackingService = self.trackingService
         self.interstitialAdManager = interstitialAdManager
@@ -85,6 +104,7 @@ final class AppEnvironment {
         self.appOpenAdManager = appOpenAdManager
             ?? AppOpenAdManager(trackingService: resolvedTrackingService)
         self.fullscreenAdCoordinator = fullscreenAdCoordinator ?? FullscreenAdCoordinator()
+        self.consentManager = consentManager ?? ConsentManager()
 
         let resolvedLocation = CoreLocationService()
         let resolvedPhotoLibraryExporter = PhotoLibraryExport()
@@ -218,6 +238,7 @@ final class AppEnvironment {
             appSettings: appSettings,
             thumbnailCache: thumbnailCache,
             interstitialAdManager: interstitialAdManager,
+            adFreeStore: adFreeStore,
             fullscreenAdCoordinator: fullscreenAdCoordinator,
             deleteCombinedExports: deleteCombinedExports,
             deletePairsKeepingCombined: deletePairsKeepingCombined
@@ -244,6 +265,7 @@ final class AppEnvironment {
             appSettings: appSettings,
             thumbnailCache: thumbnailCache,
             interstitialAdManager: interstitialAdManager,
+            adFreeStore: adFreeStore,
             fullscreenAdCoordinator: fullscreenAdCoordinator,
             deleteCombinedExports: deleteCombinedExports,
             deletePairsKeepingCombined: deletePairsKeepingCombined
@@ -284,6 +306,7 @@ final class AppEnvironment {
             snackbarQueue: snackbarQueue,
             appSettings: appSettings,
             interstitialAdManager: interstitialAdManager,
+            adFreeStore: adFreeStore,
             fullscreenAdCoordinator: fullscreenAdCoordinator
         )
     }
