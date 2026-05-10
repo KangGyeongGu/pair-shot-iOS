@@ -128,6 +128,7 @@ struct ExportSettingsView: View {
             Toggle(String(localized: "export_settings_include_combined"), isOn: $viewModel.includeCombined)
             Toggle(String(localized: "Before"), isOn: $viewModel.includeBefore)
             Toggle(String(localized: "After"), isOn: $viewModel.includeAfter)
+            PhotosLimitedAccessButton()
         } header: {
             Text(String(localized: "export_settings_section_include"))
         }

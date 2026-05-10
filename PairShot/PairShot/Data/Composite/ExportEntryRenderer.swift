@@ -55,7 +55,8 @@ nonisolated enum ExportEntryRenderer {
             jpegQuality: 0.95,
             watermarkEnabled: watermark != nil,
             watermark: watermark,
-            combineSettings: combineSettings
+            combineSettings: combineSettings,
+            includeGPS: appSettings?.embedGPSInPhoto ?? true
         )
         return try? await CompositeRenderer.makeComposite(
             for: pair,

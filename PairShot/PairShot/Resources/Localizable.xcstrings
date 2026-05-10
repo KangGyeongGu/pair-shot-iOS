@@ -3797,6 +3797,23 @@
         }
       }
     },
+    "photos_add_more" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add More Photos"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "사진 더 추가하기"
+          }
+        }
+      }
+    },
     "rewarded_gate_body_combine_detail" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4269,6 +4286,57 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "테마 선택"
+          }
+        }
+      }
+    },
+    "settings_embed_gps_section_header" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Location"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "위치 정보"
+          }
+        }
+      }
+    },
+    "settings_embed_gps_subtitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GPS coordinates are included in EXIF when shared"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "공유 시 EXIF 에 GPS 좌표가 포함됩니다"
+          }
+        }
+      }
+    },
+    "settings_embed_gps_title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Include Location in Photos"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "사진에 위치 정보 포함"
           }
         }
       }

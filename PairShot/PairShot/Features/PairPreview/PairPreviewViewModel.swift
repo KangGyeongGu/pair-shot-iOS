@@ -56,7 +56,8 @@ final class PairPreviewViewModel {
                 jpegQuality: 0.95,
                 watermarkEnabled: watermark != nil,
                 watermark: watermark,
-                combineSettings: combineSettings
+                combineSettings: combineSettings,
+                includeGPS: appSettings.embedGPSInPhoto
             )
             let data = try await CompositeRenderer.makeComposite(
                 for: pair,

@@ -17,4 +17,5 @@ nonisolated enum AppSettingsKeys {
     static let overlayEnabled = "pairshot.overlayEnabled"
     static let homeSortOrder = "pairshot.homeSortOrder"
     static let albumSortOrder = "pairshot.albumSortOrder"
+    static let embedGPSInPhoto = "pairshot.embedGPSInPhoto"
 }

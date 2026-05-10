@@ -30,12 +30,14 @@ nonisolated struct CompositeOptions: Equatable {
     var watermarkEnabled: Bool
     var watermark: WatermarkSettings?
     var combineSettings: CombineSettings?
+    var includeGPS: Bool
 
     static let `default` = Self(
         layout: .horizontal,
         jpegQuality: 0.9,
         watermarkEnabled: false,
         watermark: nil,
-        combineSettings: nil
+        combineSettings: nil,
+        includeGPS: true
     )
 }

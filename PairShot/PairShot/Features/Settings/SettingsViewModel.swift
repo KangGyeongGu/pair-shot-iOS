@@ -64,6 +64,11 @@ final class SettingsViewModel {
         set { appSettings.watermarkEnabled = newValue }
     }
 
+    var embedGPSInPhoto: Bool {
+        get { appSettings.embedGPSInPhoto }
+        set { appSettings.embedGPSInPhoto = newValue }
+    }
+
     var imageQualityPreset: CaptureQualityPreset {
         CaptureQualityPreset.nearest(to: appSettings.jpegQuality)
     }

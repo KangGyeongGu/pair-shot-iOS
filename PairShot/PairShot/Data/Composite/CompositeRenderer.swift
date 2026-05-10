@@ -41,8 +41,8 @@ nonisolated enum CompositeRenderer {
             throw RenderError.afterImageMissing
         }
 
-        let pairLatitude = pair.latitude
-        let pairLongitude = pair.longitude
+        let pairLatitude = options.includeGPS ? pair.latitude : nil
+        let pairLongitude = options.includeGPS ? pair.longitude : nil
 
         return try await Task.detached(priority: .userInitiated) {
             try autoreleasepool {

@@ -2,7 +2,7 @@ import Foundation
 import Photos
 import UIKit
 
-final class PhotoLibraryService: @unchecked Sendable {
+nonisolated final class PhotoLibraryService: Sendable {
     enum LibraryError: Error, Equatable {
         case notAuthorized
         case saveFailed(String)

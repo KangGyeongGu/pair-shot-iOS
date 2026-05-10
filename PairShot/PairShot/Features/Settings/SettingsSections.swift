@@ -179,6 +179,33 @@ struct SettingsCombineSection: View {
     }
 }
 
+struct SettingsPrivacySection: View {
+    @Bindable var viewModel: SettingsViewModel
+
+    var body: some View {
+        Section {
+            Toggle(isOn: Binding(
+                get: { viewModel.embedGPSInPhoto },
+                set: { viewModel.embedGPSInPhoto = $0 }
+            )) {
+                HStack(spacing: 12) {
+                    SettingsIconBadge(
+                        icon: SettingsRowIcon(systemImage: "location.fill", color: .blue)
+                    )
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(String(localized: "settings_embed_gps_title"))
+                        Text(String(localized: "settings_embed_gps_subtitle"))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+        } header: {
+            Text(String(localized: "settings_embed_gps_section_header"))
+        }
+    }
+}
+
 struct SettingsStorageInfoSection: View {
     @Bindable var viewModel: SettingsViewModel
     let openURL: OpenURLAction

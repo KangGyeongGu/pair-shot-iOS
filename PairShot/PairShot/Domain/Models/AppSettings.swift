@@ -131,6 +131,11 @@ final class AppSettings {
         set { defaults.set(newValue, forKey: AppSettingsKeys.overlayEnabled) }
     }
 
+    var embedGPSInPhoto: Bool {
+        get { defaults.bool(forKey: AppSettingsKeys.embedGPSInPhoto) }
+        set { defaults.set(newValue, forKey: AppSettingsKeys.embedGPSInPhoto) }
+    }
+
     var homeSortOrder: String {
         didSet {
             let normalized = SortOrderPersistence.normalize(homeSortOrder)
@@ -173,6 +178,7 @@ final class AppSettings {
             AppSettingsKeys.cameraFlashMode: CameraFlashModePersistence.defaultRawValue,
             AppSettingsKeys.cameraNightMode: false,
             AppSettingsKeys.overlayEnabled: true,
+            AppSettingsKeys.embedGPSInPhoto: true,
             AppSettingsKeys.homeSortOrder: SortOrderPersistence.defaultRawValue,
             AppSettingsKeys.albumSortOrder: SortOrderPersistence.defaultRawValue,
         ])
