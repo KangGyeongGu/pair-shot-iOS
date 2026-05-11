@@ -112,7 +112,7 @@ struct ModelContainerBootstrap {
     let fallbackActive: Bool
 
     static func bootstrap() -> Self {
-        let schema = Schema([AlbumEntity.self, PhotoPairEntity.self, ExportHistoryEntity.self])
+        let schema = Schema(versionedSchema: SchemaV1.self)
         do {
             _ = try FileManager.default.url(
                 for: .applicationSupportDirectory,
@@ -123,13 +123,18 @@ struct ModelContainerBootstrap {
             let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
             let container = try ModelContainer(
                 for: schema,
+                migrationPlan: PairShotMigrationPlan.self,
                 configurations: [configuration]
             )
             return Self(container: container, fallbackActive: false)
         } catch {
             do {
                 let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
-                let container = try ModelContainer(for: schema, configurations: [configuration])
+                let container = try ModelContainer(
+                    for: schema,
+                    migrationPlan: PairShotMigrationPlan.self,
+                    configurations: [configuration]
+                )
                 return Self(container: container, fallbackActive: true)
             } catch {
                 fatalError("Could not create ModelContainer: \(error)")

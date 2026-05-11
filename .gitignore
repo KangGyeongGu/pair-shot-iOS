@@ -43,7 +43,7 @@ playground.xcworkspace
 # Claude Code local settings
 .claude/settings.local.json
 
-# 로컬 전용 — 레포에는 코드 + README.md 만
+# local-only
 /.claude/
 /CLAUDE.md
 /AGENTS.md
@@ -55,6 +55,5 @@ playground.xcworkspace
 /PairShot/build/
 /archive/
 
-# Secrets — xcconfig 는 디스크에만 유지, 추적 X (Sample.xcconfig 는 추적)
 PairShot/PairShot/Config/Debug.xcconfig
 PairShot/PairShot/Config/Release.xcconfig
