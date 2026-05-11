@@ -49,6 +49,10 @@ struct PairShotApp: App {
                     _ = await env.trackingService.requestIfUndetermined()
                     await bootstrapAds()
                 }
+                .onChange(of: env.consentManager.canRequestAds) { _, canRequest in
+                    guard canRequest, !hasBootstrappedAds else { return }
+                    Task { @MainActor in await startAdsAfterConsent() }
+                }
         }
         .modelContainer(sharedModelContainer)
         .onChange(of: scenePhase) { _, newPhase in
@@ -58,6 +62,13 @@ struct PairShotApp: App {
 
     func bootstrapAds() async {
         await env.consentManager.bootstrap()
+        guard env.consentManager.canRequestAds else { return }
+        await startAdsAfterConsent()
+    }
+
+    private func startAdsAfterConsent() async {
+        guard !hasBootstrappedAds else { return }
+        hasBootstrappedAds = true
         #if canImport(GoogleMobileAds)
             _ = await GADMobileAds.sharedInstance().start()
         #endif
@@ -66,7 +77,6 @@ struct PairShotApp: App {
         env.appOpenAdManager.loadIfNeeded(adFreeStore: env.adFreeStore)
         env.rewardedAdManager.loadIfNeeded(adFreeStore: env.adFreeStore)
         env.nativeAdLoader.prefetch(count: 5, adFreeStore: env.adFreeStore)
-        hasBootstrappedAds = true
     }
 
     private func handleScenePhaseChange(_ phase: ScenePhase) {
@@ -78,6 +88,7 @@ struct PairShotApp: App {
 
         Task { @MainActor in
             await env.permissionStatusService.refreshAll()
+            guard hasBootstrappedAds else { return }
             await env.adFreeStore.refresh()
             env.interstitialAdManager.loadIfNeeded(adFreeStore: env.adFreeStore)
             env.appOpenAdManager.loadIfNeeded(adFreeStore: env.adFreeStore)

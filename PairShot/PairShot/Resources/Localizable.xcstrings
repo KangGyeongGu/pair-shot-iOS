@@ -4857,13 +4857,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Manage Ad Consent"
+            "value" : "Reopen Ad Consent"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "광고 동의 관리"
+            "value" : "광고 동의 다시 보기"
           }
         }
       }

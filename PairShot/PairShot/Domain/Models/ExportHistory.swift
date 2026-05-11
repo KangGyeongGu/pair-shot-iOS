@@ -37,7 +37,7 @@ nonisolated enum ExportHistoryKindResolver {
     static func resolve(
         entryKind: ExportPhotoKind,
         renderOptions: ExportRenderOptions,
-        appSettings: AppSettings?
+        appSettings: AppSettings
     ) -> ExportHistoryKind? {
         switch entryKind {
             case .combined:
@@ -60,10 +60,9 @@ nonisolated enum ExportHistoryKindResolver {
     @MainActor
     private static func isWatermarkActive(
         renderOptions: ExportRenderOptions,
-        appSettings: AppSettings?
+        appSettings: AppSettings
     ) -> Bool {
         guard renderOptions.applyWatermark else { return false }
-        guard let appSettings else { return false }
         return appSettings.watermarkEnabled
     }
 }

@@ -7,7 +7,7 @@ nonisolated enum ExportEntryRenderer {
         entry: ExportSelection.Entry,
         pair: PhotoPair,
         photoLibrary: PhotoLibraryService,
-        appSettings: AppSettings?,
+        appSettings: AppSettings,
         renderOptions: ExportRenderOptions,
         now: Date
     ) async -> Data? {
@@ -35,20 +35,15 @@ nonisolated enum ExportEntryRenderer {
     private static func renderCombined(
         pair: PhotoPair,
         photoLibrary: PhotoLibraryService,
-        appSettings: AppSettings?,
+        appSettings: AppSettings,
         renderOptions: ExportRenderOptions,
         now: Date
     ) async -> Data? {
-        let combineSettings: CombineSettings? = if renderOptions.applyCombineSettings,
-                                                   let appSettings
-        {
-            appSettings.combineSettings
-        } else {
-            nil
-        }
+        let combineSettings: CombineSettings? = renderOptions.applyCombineSettings
+            ? appSettings.combineSettings
+            : nil
         let layout: CompositeLayout = combineSettings.map(CompositeLayoutResolver.layout(from:))
-            ?? appSettings?.defaultCompositeLayout
-            ?? .horizontal
+            ?? appSettings.defaultCompositeLayout
         let watermark = activeWatermark(appSettings: appSettings, renderOptions: renderOptions)
         let options = CompositeOptions(
             layout: layout,
@@ -56,7 +51,7 @@ nonisolated enum ExportEntryRenderer {
             watermarkEnabled: watermark != nil,
             watermark: watermark,
             combineSettings: combineSettings,
-            includeGPS: appSettings?.embedGPSInPhoto ?? true
+            includeGPS: appSettings.embedGPSInPhoto
         )
         return try? await CompositeRenderer.makeComposite(
             for: pair,
@@ -70,7 +65,7 @@ nonisolated enum ExportEntryRenderer {
     private static func renderIndividual(
         entry: ExportSelection.Entry,
         photoLibrary: PhotoLibraryService,
-        appSettings: AppSettings?,
+        appSettings: AppSettings,
         renderOptions: ExportRenderOptions
     ) async -> Data? {
         guard let id = entry.localIdentifier,
@@ -85,11 +80,10 @@ nonisolated enum ExportEntryRenderer {
 
     @MainActor
     private static func activeWatermark(
-        appSettings: AppSettings?,
+        appSettings: AppSettings,
         renderOptions: ExportRenderOptions
     ) -> WatermarkSettings? {
-        guard let appSettings,
-              renderOptions.applyWatermark,
+        guard renderOptions.applyWatermark,
               appSettings.watermarkEnabled
         else { return nil }
         return appSettings.watermarkSettings

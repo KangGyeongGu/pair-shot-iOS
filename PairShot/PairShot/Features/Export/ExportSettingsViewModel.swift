@@ -76,7 +76,7 @@ final class ExportSettingsViewModel {
     private let snackbarQueue: SnackbarQueue
     private let tempDirectoryProvider: @Sendable () -> URL
     private let eventsContinuation: AsyncStream<Event>.Continuation
-    private let appSettings: AppSettings?
+    private let appSettings: AppSettings
     private var preferences: ExportPreferences
     private let interstitialAdManager: InterstitialAdManager?
     private let adFreeStore: AdFreeStore?
@@ -94,7 +94,7 @@ final class ExportSettingsViewModel {
         snackbarQueue: SnackbarQueue,
         tempDirectoryProvider: @escaping @Sendable () -> URL = { FileManager.default.temporaryDirectory },
         preferences: ExportPreferences = ExportPreferences(),
-        appSettings: AppSettings? = nil,
+        appSettings: AppSettings,
         interstitialAdManager: InterstitialAdManager? = nil,
         adFreeStore: AdFreeStore? = nil,
         fullscreenAdCoordinator: FullscreenAdCoordinator? = nil
@@ -341,7 +341,7 @@ final class ExportSettingsViewModel {
                         for: pair,
                         selection: selection,
                         sequenceNumber: offset + 1,
-                        prefix: appSettings?.fileNamePrefix ?? ""
+                        prefix: appSettings.fileNamePrefix
                     )
                     .map { (pair: pair, entry: $0) }
                 }
@@ -442,7 +442,7 @@ final class ExportSettingsViewModel {
                 for: pair,
                 selection: selection,
                 sequenceNumber: offset + 1,
-                prefix: appSettings?.fileNamePrefix ?? ""
+                prefix: appSettings.fileNamePrefix
             )
             for entry in entries {
                 guard let data = await ExportEntryRenderer.render(
