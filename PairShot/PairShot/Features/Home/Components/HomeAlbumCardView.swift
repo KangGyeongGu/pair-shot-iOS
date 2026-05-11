@@ -63,6 +63,17 @@ struct HomeAlbumCardView: View {
         )
     }
 
+    private var displayName: String {
+        album.name.isEmpty ? String(localized: "home_album_untitled") : album.name
+    }
+
+    private var trimmedLocation: String? {
+        guard let label = album.locationLabel?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !label.isEmpty
+        else { return nil }
+        return label
+    }
+
     static func accessibilityLabel(
         for album: Album,
         isSelected: Bool,
@@ -78,16 +89,5 @@ struct HomeAlbumCardView: View {
         return [album.name, countText, selectionText]
             .compactMap(\.self)
             .joined(separator: ", ")
-    }
-
-    private var displayName: String {
-        album.name.isEmpty ? String(localized: "home_album_untitled") : album.name
-    }
-
-    private var trimmedLocation: String? {
-        guard let label = album.locationLabel?.trimmingCharacters(in: .whitespacesAndNewlines),
-              !label.isEmpty
-        else { return nil }
-        return label
     }
 }

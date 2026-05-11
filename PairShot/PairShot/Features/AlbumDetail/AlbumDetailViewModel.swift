@@ -318,5 +318,4 @@ final class AlbumDetailViewModel {
     func requestAlbumDeletion(album: Album) {
         pendingAlbumDelete = album
     }
-
 }

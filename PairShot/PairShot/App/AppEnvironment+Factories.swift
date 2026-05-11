@@ -14,28 +14,81 @@ struct AppEnvironmentFoundationOverrides {
     let motionService: MotionService?
 }
 
+struct AppEnvironmentFoundation {
+    let appSettings: AppSettings
+    let snackbarQueue: SnackbarQueue
+    let appSettingsRepo: AppSettingsRepository
+    let adFreeStore: AdFreeStore
+    let trackingService: TrackingAuthorizationService
+    let settingsRedirectCoordinator: SettingsRedirectCoordinator
+    let permissionStatusService: PermissionStatusService
+    let thumbnailCache: PhotoLibraryThumbnailCache
+    let hapticService: HapticService
+    let motionService: MotionService
+    let apiConfig: CouponApiConfig
+    let deviceHashProvider: DeviceHashProvider
+    let adFreeStatusFetcher: AdFreeStatusFetcher
+}
+
+struct AdServicesOverrides {
+    let interstitial: InterstitialAdManager?
+    let rewarded: RewardedAdManager?
+    let nativeAd: NativeAdLoader?
+    let appOpen: AppOpenAdManager?
+    let fullscreen: FullscreenAdCoordinator?
+    let consent: ConsentManager?
+}
+
+struct AdServicesBundle {
+    let interstitial: InterstitialAdManager
+    let rewarded: RewardedAdManager
+    let nativeAd: NativeAdLoader
+    let appOpen: AppOpenAdManager
+    let fullscreen: FullscreenAdCoordinator
+    let consent: ConsentManager
+}
+
+struct DataServicesBundle {
+    let location: CoreLocationService
+    let photoLibraryExporter: PhotoLibraryExport
+    let photoLibrary: PhotoLibraryService
+    let photoLibrarySync: PhotoLibrarySyncService
+    let pairRepo: PhotoPairRepository
+    let albumRepo: AlbumRepository
+    let zipExporter: ZipExporterAdapter
+}
+
+struct UseCasesDependencies {
+    let pairRepo: PhotoPairRepository
+    let albumRepo: AlbumRepository
+    let photoLibrary: PhotoLibraryService
+    let photoLibraryExporter: PhotoLibraryExport
+    let location: CoreLocationService
+    let zipExporter: ZipExporterAdapter
+    let snackbarQueue: SnackbarQueue
+    let appSettings: AppSettings
+}
+
+struct UseCasesBundle {
+    let createPair: CreatePairUseCase
+    let captureAfter: CaptureAfterUseCase
+    let recaptureAfter: RecaptureAfterUseCase
+    let deletePairs: DeletePairsUseCase
+    let deleteCombinedExports: DeleteCombinedExportsUseCase
+    let deletePairsKeepingCombined: DeletePairsKeepingCombinedUseCase
+    let exportPairs: ExportPairsUseCase
+    let toggleAlbumMembership: ToggleAlbumMembershipUseCase
+    let immediateExport: ImmediateExportService
+}
+
 extension AppEnvironment {
     static func makeFoundation(
         overrides: AppEnvironmentFoundationOverrides
-    ) -> (
-        appSettings: AppSettings,
-        snackbarQueue: SnackbarQueue,
-        appSettingsRepo: AppSettingsRepository,
-        adFreeStore: AdFreeStore,
-        trackingService: TrackingAuthorizationService,
-        settingsRedirectCoordinator: SettingsRedirectCoordinator,
-        permissionStatusService: PermissionStatusService,
-        thumbnailCache: PhotoLibraryThumbnailCache,
-        hapticService: HapticService,
-        motionService: MotionService,
-        apiConfig: CouponApiConfig,
-        deviceHashProvider: DeviceHashProvider,
-        adFreeStatusFetcher: AdFreeStatusFetcher
-    ) {
+    ) -> AppEnvironmentFoundation {
         let apiConfig = CouponApiConfig.resolve()
         let hashProvider = DeviceHashProvider()
         let statusFetcher = AdFreeStatusFetcher(config: apiConfig)
-        return (
+        return AppEnvironmentFoundation(
             appSettings: overrides.appSettings ?? AppSettings(),
             snackbarQueue: overrides.snackbarQueue ?? SnackbarQueue(),
             appSettingsRepo: overrides.appSettingsRepo ?? UserDefaultsAppSettingsRepository(),
@@ -55,21 +108,13 @@ extension AppEnvironment {
     static func makeDataServices(
         modelContainer: ModelContainer,
         appSettings: AppSettings
-    ) -> (
-        location: CoreLocationService,
-        photoLibraryExporter: PhotoLibraryExport,
-        photoLibrary: PhotoLibraryService,
-        photoLibrarySync: PhotoLibrarySyncService,
-        pairRepo: PhotoPairRepository,
-        albumRepo: AlbumRepository,
-        zipExporter: ZipExporterAdapter
-    ) {
+    ) -> DataServicesBundle {
         let location = CoreLocationService()
         let photoLibraryExporter = PhotoLibraryExport()
         let photoLibrary = PhotoLibraryService()
         let pairRepo = SwiftDataPhotoPairRepository(container: modelContainer)
         let albumRepo = SwiftDataAlbumRepository(container: modelContainer)
-        return (
+        return DataServicesBundle(
             location: location,
             photoLibraryExporter: photoLibraryExporter,
             photoLibrary: photoLibrary,
@@ -86,23 +131,9 @@ extension AppEnvironment {
 
     static func makeAdServices(
         trackingService: TrackingAuthorizationService,
-        overrides: (
-            interstitial: InterstitialAdManager?,
-            rewarded: RewardedAdManager?,
-            nativeAd: NativeAdLoader?,
-            appOpen: AppOpenAdManager?,
-            fullscreen: FullscreenAdCoordinator?,
-            consent: ConsentManager?
-        )
-    ) -> (
-        interstitial: InterstitialAdManager,
-        rewarded: RewardedAdManager,
-        nativeAd: NativeAdLoader,
-        appOpen: AppOpenAdManager,
-        fullscreen: FullscreenAdCoordinator,
-        consent: ConsentManager
-    ) {
-        (
+        overrides: AdServicesOverrides
+    ) -> AdServicesBundle {
+        AdServicesBundle(
             interstitial: overrides.interstitial ?? InterstitialAdManager(trackingService: trackingService),
             rewarded: overrides.rewarded ?? RewardedAdManager(trackingService: trackingService),
             nativeAd: overrides.nativeAd ?? NativeAdLoader(trackingService: trackingService),
@@ -113,42 +144,40 @@ extension AppEnvironment {
     }
 
     static func makeUseCases(
-        pairRepo: PhotoPairRepository,
-        albumRepo: AlbumRepository,
-        photoLibrary: PhotoLibraryService,
-        photoLibraryExporter: PhotoLibraryExport,
-        location: CoreLocationService,
-        zipExporter: ZipExporterAdapter,
-        snackbarQueue: SnackbarQueue,
-        appSettings: AppSettings
-    ) -> (
-        createPair: CreatePairUseCase,
-        captureAfter: CaptureAfterUseCase,
-        recaptureAfter: RecaptureAfterUseCase,
-        deletePairs: DeletePairsUseCase,
-        deleteCombinedExports: DeleteCombinedExportsUseCase,
-        deletePairsKeepingCombined: DeletePairsKeepingCombinedUseCase,
-        exportPairs: ExportPairsUseCase,
-        toggleAlbumMembership: ToggleAlbumMembershipUseCase,
-        immediateExport: ImmediateExportService
-    ) {
+        dependencies: UseCasesDependencies
+    ) -> UseCasesBundle {
+        let pairRepo = dependencies.pairRepo
+        let photoLibrary = dependencies.photoLibrary
         let captureAfter = CaptureAfterUseCase(pairRepo: pairRepo, photoLibrary: photoLibrary)
-        let exportPairs = ExportPairsUseCase(pairRepo: pairRepo, zipExporter: zipExporter)
-        return (
-            createPair: CreatePairUseCase(pairRepo: pairRepo, photoLibrary: photoLibrary, location: location),
+        let exportPairs = ExportPairsUseCase(pairRepo: pairRepo, zipExporter: dependencies.zipExporter)
+        let recaptureAfter = RecaptureAfterUseCase(
+            pairRepo: pairRepo,
+            photoLibrary: photoLibrary,
+            captureAfter: captureAfter
+        )
+        let deletePairsKeepingCombined = DeletePairsKeepingCombinedUseCase(
+            pairRepo: pairRepo,
+            photoLibrary: photoLibrary
+        )
+        return UseCasesBundle(
+            createPair: CreatePairUseCase(
+                pairRepo: pairRepo,
+                photoLibrary: photoLibrary,
+                location: dependencies.location
+            ),
             captureAfter: captureAfter,
-            recaptureAfter: RecaptureAfterUseCase(pairRepo: pairRepo, photoLibrary: photoLibrary, captureAfter: captureAfter),
+            recaptureAfter: recaptureAfter,
             deletePairs: DeletePairsUseCase(pairRepo: pairRepo, photoLibrary: photoLibrary),
             deleteCombinedExports: DeleteCombinedExportsUseCase(pairRepo: pairRepo, photoLibrary: photoLibrary),
-            deletePairsKeepingCombined: DeletePairsKeepingCombinedUseCase(pairRepo: pairRepo, photoLibrary: photoLibrary),
+            deletePairsKeepingCombined: deletePairsKeepingCombined,
             exportPairs: exportPairs,
-            toggleAlbumMembership: ToggleAlbumMembershipUseCase(albumRepo: albumRepo),
+            toggleAlbumMembership: ToggleAlbumMembershipUseCase(albumRepo: dependencies.albumRepo),
             immediateExport: ImmediateExportService(
                 photoLibrary: photoLibrary,
                 exportPairs: exportPairs,
-                photoLibraryExporter: photoLibraryExporter,
-                snackbarQueue: snackbarQueue,
-                appSettings: appSettings,
+                photoLibraryExporter: dependencies.photoLibraryExporter,
+                snackbarQueue: dependencies.snackbarQueue,
+                appSettings: dependencies.appSettings,
                 pairRepo: pairRepo
             )
         )

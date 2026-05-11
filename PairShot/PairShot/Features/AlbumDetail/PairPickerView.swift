@@ -19,12 +19,6 @@ struct PairPickerView: View {
         GridItem(.flexible(), spacing: 8),
     ]
 
-    init(albumId: UUID) {
-        self.albumId = albumId
-        let predicate = #Predicate<AlbumEntity> { $0.id == albumId }
-        _albums = Query(filter: predicate)
-    }
-
     var body: some View {
         ZStack {
             if let viewModel {
@@ -40,6 +34,27 @@ struct PairPickerView: View {
         .onChange(of: viewModel?.didFinish ?? false) { _, finished in
             if finished { dismiss() }
         }
+    }
+
+    @ToolbarContentBuilder
+    private var toolbar: some ToolbarContent {
+        ToolbarItem(placement: .topBarLeading) {
+            Button(
+                action: { dismiss() },
+                label: { Image(systemName: "xmark") }
+            )
+            .accessibilityLabel(String(localized: "common_button_close"))
+        }
+        ToolbarItem(placement: .principal) {
+            Text(viewModel?.titleText ?? String(localized: "pair_picker_title"))
+                .font(.headline)
+        }
+    }
+
+    init(albumId: UUID) {
+        self.albumId = albumId
+        let predicate = #Predicate<AlbumEntity> { $0.id == albumId }
+        _albums = Query(filter: predicate)
     }
 
     private func ensureViewModel() {
@@ -107,21 +122,6 @@ struct PairPickerView: View {
                 .padding(.horizontal, 12)
                 .padding(.vertical, 12)
             }
-        }
-    }
-
-    @ToolbarContentBuilder
-    private var toolbar: some ToolbarContent {
-        ToolbarItem(placement: .topBarLeading) {
-            Button(
-                action: { dismiss() },
-                label: { Image(systemName: "xmark") }
-            )
-            .accessibilityLabel(String(localized: "common_button_close"))
-        }
-        ToolbarItem(placement: .principal) {
-            Text(viewModel?.titleText ?? String(localized: "pair_picker_title"))
-                .font(.headline)
         }
     }
 

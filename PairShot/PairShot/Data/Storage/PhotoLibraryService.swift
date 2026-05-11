@@ -2,7 +2,7 @@ import Foundation
 import Photos
 import UIKit
 
-nonisolated final class PhotoLibraryService: Sendable {
+final nonisolated class PhotoLibraryService: Sendable {
     enum LibraryError: Error, Equatable {
         case notAuthorized
         case saveFailed(String)
@@ -119,11 +119,11 @@ nonisolated final class PhotoLibraryService: Sendable {
     }
 }
 
-nonisolated private final class PhotoLibraryPlaceholderBox: @unchecked Sendable {
+private final nonisolated class PhotoLibraryPlaceholderBox: @unchecked Sendable {
     var placeholder: PHObjectPlaceholder?
 }
 
-nonisolated private final class PhotoLibraryAssetsBox: @unchecked Sendable {
+private final nonisolated class PhotoLibraryAssetsBox: @unchecked Sendable {
     let value: PHFetchResult<PHAsset>
     init(value: PHFetchResult<PHAsset>) {
         self.value = value

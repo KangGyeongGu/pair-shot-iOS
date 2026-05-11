@@ -26,12 +26,6 @@ final class MotionService {
         motionQueue.maxConcurrentOperationCount = 1
     }
 
-    deinit {
-        if manager.isDeviceMotionActive {
-            manager.stopDeviceMotionUpdates()
-        }
-    }
-
     func start() {
         subscriberCount += 1
         guard !isStreaming else { return }
@@ -66,5 +60,11 @@ final class MotionService {
 
     func isLevel(tolerance: Double = 1.5) -> Bool {
         abs(rollDegrees) <= tolerance
+    }
+
+    deinit {
+        if manager.isDeviceMotionActive {
+            manager.stopDeviceMotionUpdates()
+        }
     }
 }

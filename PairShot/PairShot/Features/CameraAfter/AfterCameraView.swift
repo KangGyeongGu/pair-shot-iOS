@@ -20,18 +20,6 @@ struct AfterCameraView: View {
     @State private var didStartViewModel = false
     @State private var didSubscribeMotion = false
 
-    init(
-        albumId: UUID? = nil,
-        initialPairId: UUID? = nil,
-        sortOrder: HomeSortOrder = .newest,
-        recaptureTargetPair: PhotoPair? = nil
-    ) {
-        self.albumId = albumId
-        self.initialPairId = initialPairId
-        self.sortOrder = sortOrder
-        self.recaptureTargetPair = recaptureTargetPair
-    }
-
     var body: some View {
         ZStack {
             Color.appCameraBackground.ignoresSafeArea()
@@ -99,6 +87,18 @@ struct AfterCameraView: View {
             )
             .animation(.spring(response: 0.3, dampingFraction: 0.85), value: showSettingsSheet)
         }
+    }
+
+    init(
+        albumId: UUID? = nil,
+        initialPairId: UUID? = nil,
+        sortOrder: HomeSortOrder = .newest,
+        recaptureTargetPair: PhotoPair? = nil
+    ) {
+        self.albumId = albumId
+        self.initialPairId = initialPairId
+        self.sortOrder = sortOrder
+        self.recaptureTargetPair = recaptureTargetPair
     }
 
     @ViewBuilder
@@ -240,7 +240,7 @@ private struct DecodedGhost {
     let captureOrientation: CameraOrientation
 }
 
-nonisolated private func decodeGhostImage(data: Data) -> DecodedGhost? {
+private nonisolated func decodeGhostImage(data: Data) -> DecodedGhost? {
     guard let source = UIImage(data: data), let cgImage = source.cgImage else {
         return nil
     }
@@ -254,7 +254,7 @@ nonisolated private func decodeGhostImage(data: Data) -> DecodedGhost? {
     )
 }
 
-nonisolated private func captureOrientationFromEXIF(
+private nonisolated func captureOrientationFromEXIF(
     _ orientation: UIImage.Orientation
 ) -> CameraOrientation {
     switch orientation {
@@ -266,6 +266,6 @@ nonisolated private func captureOrientationFromEXIF(
     }
 }
 
-nonisolated private func ghostRotationDegrees() -> Double {
+private nonisolated func ghostRotationDegrees() -> Double {
     90
 }

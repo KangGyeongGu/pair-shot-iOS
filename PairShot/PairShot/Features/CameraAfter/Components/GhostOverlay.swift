@@ -23,6 +23,19 @@ struct GhostOverlayView: View {
     let width: CGFloat?
     let height: CGFloat?
 
+    var body: some View {
+        Group {
+            if isEnabled, let image, let width, let height {
+                rotatedImage(image: image, width: width, height: height)
+            } else {
+                Color.black.opacity(0.001)
+                    .frame(width: width, height: height)
+            }
+        }
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+
     init(
         image: UIImage?,
         alpha: Double,
@@ -37,19 +50,6 @@ struct GhostOverlayView: View {
         self.rotationDegrees = rotationDegrees
         self.width = width
         self.height = height
-    }
-
-    var body: some View {
-        Group {
-            if isEnabled, let image, let width, let height {
-                rotatedImage(image: image, width: width, height: height)
-            } else {
-                Color.black.opacity(0.001)
-                    .frame(width: width, height: height)
-            }
-        }
-        .allowsHitTesting(false)
-        .accessibilityHidden(true)
     }
 
     @ViewBuilder

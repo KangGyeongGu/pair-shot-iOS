@@ -1,8 +1,6 @@
 import Foundation
 
 enum AdsConfig {
-    static let productionPlaceholder = "INSERT_PRODUCTION_ID_HERE"
-
     enum TestUnitID {
         static let banner = "ca-app-pub-3940256099942544/2934735716"
         static let interstitial = "ca-app-pub-3940256099942544/4411468910"
@@ -18,6 +16,8 @@ enum AdsConfig {
         static let native = "AdUnitID_Native"
         static let appOpen = "AdUnitID_AppOpen"
     }
+
+    static let productionPlaceholder = "INSERT_PRODUCTION_ID_HERE"
 
     static var banner: String {
         resolve(testID: TestUnitID.banner, infoKey: InfoPlistKey.banner)

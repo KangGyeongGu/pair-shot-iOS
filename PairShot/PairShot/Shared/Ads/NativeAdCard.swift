@@ -94,6 +94,20 @@ struct NativeAdCard: View {
             return adView
         }
 
+        func updateUIView(_ adView: GADNativeAdView, context _: Context) {
+            adView.nativeAd = nativeAd
+            (adView.headlineView as? UILabel)?.text = nativeAd.headline
+            (adView.bodyView as? UILabel)?.text = nativeAd.body
+            if let cta = adView.callToActionView as? UIButton {
+                var config = cta.configuration ?? UIButton.Configuration.filled()
+                config.title = nativeAd.callToAction
+                cta.configuration = config
+            }
+            if let iconView = adView.iconView as? UIImageView {
+                iconView.image = nativeAd.icon?.image
+            }
+        }
+
         private static func makeIconView() -> UIImageView {
             let icon = UIImageView()
             icon.translatesAutoresizingMaskIntoConstraints = false
@@ -179,20 +193,6 @@ struct NativeAdCard: View {
                 cta.centerYAnchor.constraint(equalTo: adView.centerYAnchor),
                 cta.trailingAnchor.constraint(equalTo: adView.trailingAnchor, constant: -10),
             ])
-        }
-
-        func updateUIView(_ adView: GADNativeAdView, context _: Context) {
-            adView.nativeAd = nativeAd
-            (adView.headlineView as? UILabel)?.text = nativeAd.headline
-            (adView.bodyView as? UILabel)?.text = nativeAd.body
-            if let cta = adView.callToActionView as? UIButton {
-                var config = cta.configuration ?? UIButton.Configuration.filled()
-                config.title = nativeAd.callToAction
-                cta.configuration = config
-            }
-            if let iconView = adView.iconView as? UIImageView {
-                iconView.image = nativeAd.icon?.image
-            }
         }
     }
 #endif

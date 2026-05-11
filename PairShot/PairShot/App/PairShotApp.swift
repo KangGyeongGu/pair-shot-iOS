@@ -6,6 +6,8 @@ import SwiftUI
 
 @main
 struct PairShotApp: App {
+    private static let backgroundDwellThreshold: TimeInterval = 30
+
     let containerBootstrap: ModelContainerBootstrap = .bootstrap()
 
     var sharedModelContainer: ModelContainer {
@@ -17,15 +19,6 @@ struct PairShotApp: App {
     @State private var showFallbackAlert: Bool
     @State private var enteredBackgroundAt: Date?
     @Environment(\.scenePhase) private var scenePhase
-
-    private static let backgroundDwellThreshold: TimeInterval = 30
-
-    init() {
-        _showFallbackAlert = State(initialValue: containerBootstrap.fallbackActive)
-        let environment = AppEnvironment(modelContainer: containerBootstrap.container)
-        AppLanguageBundleSync.apply(environment.appSettings.language)
-        _env = State(initialValue: environment)
-    }
 
     var body: some Scene {
         WindowGroup {
@@ -58,6 +51,13 @@ struct PairShotApp: App {
         .onChange(of: scenePhase) { _, newPhase in
             handleScenePhaseChange(newPhase)
         }
+    }
+
+    init() {
+        _showFallbackAlert = State(initialValue: containerBootstrap.fallbackActive)
+        let environment = AppEnvironment(modelContainer: containerBootstrap.container)
+        AppLanguageBundleSync.apply(environment.appSettings.language)
+        _env = State(initialValue: environment)
     }
 
     func bootstrapAds() async {

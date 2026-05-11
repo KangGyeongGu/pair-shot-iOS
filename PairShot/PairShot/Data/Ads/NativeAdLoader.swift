@@ -23,6 +23,10 @@ final class NativeAdLoader: NSObject {
         private var inflightLoader: GADAdLoader?
     #endif
 
+    var loadedCount: Int {
+        loadedAds.count
+    }
+
     init(trackingService: TrackingAuthorizationService? = nil) {
         self.trackingService = trackingService
         super.init()
@@ -69,10 +73,6 @@ final class NativeAdLoader: NSObject {
             prefetch(count: 5, adFreeStore: adFreeStore)
         }
         return ad
-    }
-
-    var loadedCount: Int {
-        loadedAds.count
     }
 }
 

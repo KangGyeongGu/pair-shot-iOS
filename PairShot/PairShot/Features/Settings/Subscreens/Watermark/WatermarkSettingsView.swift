@@ -27,32 +27,6 @@ struct WatermarkSettingsView: View {
         }
     }
 
-    private func basicSection(bindable: Binding<Bool>) -> some View {
-        Section {
-            Toggle(isOn: bindable) {
-                Label(
-                    String(localized: "settings_item_watermark_use"),
-                    systemImage: "signature"
-                )
-            }
-            HStack {
-                Text(String(localized: "watermark_field_type"))
-                Spacer()
-                Picker(String(localized: "watermark_field_type"), selection: $viewModel.settings.type) {
-                    Text(verbatim: "TEXT")
-                        .tag(WatermarkSettings.WatermarkType.text)
-                    Text(verbatim: "LOGO")
-                        .tag(WatermarkSettings.WatermarkType.logo)
-                }
-                .labelsHidden()
-                .pickerStyle(.segmented)
-                .frame(width: 200)
-            }
-        } header: {
-            Text(String(localized: "watermark_section_basic"))
-        }
-    }
-
     private var textSection: some View {
         Section {
             WatermarkTextField(text: $viewModel.settings.text)
@@ -93,6 +67,32 @@ struct WatermarkSettingsView: View {
         }
         .padding(.top, 8)
         .padding(.horizontal, -16)
+    }
+
+    private func basicSection(bindable: Binding<Bool>) -> some View {
+        Section {
+            Toggle(isOn: bindable) {
+                Label(
+                    String(localized: "settings_item_watermark_use"),
+                    systemImage: "signature"
+                )
+            }
+            HStack {
+                Text(String(localized: "watermark_field_type"))
+                Spacer()
+                Picker(String(localized: "watermark_field_type"), selection: $viewModel.settings.type) {
+                    Text(verbatim: "TEXT")
+                        .tag(WatermarkSettings.WatermarkType.text)
+                    Text(verbatim: "LOGO")
+                        .tag(WatermarkSettings.WatermarkType.logo)
+                }
+                .labelsHidden()
+                .pickerStyle(.segmented)
+                .frame(width: 200)
+            }
+        } header: {
+            Text(String(localized: "watermark_section_basic"))
+        }
     }
 }
 
@@ -242,13 +242,13 @@ private struct WatermarkLogoSizeSlider: View {
 }
 
 private struct WatermarkLogoPositionPicker: View {
-    @Binding var selection: LogoPosition
-
     private static let layout: [[LogoPosition]] = [
         [.topLeft, .topCenter, .topRight],
         [.centerLeft, .center, .centerRight],
         [.bottomLeft, .bottomCenter, .bottomRight],
     ]
+
+    @Binding var selection: LogoPosition
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -362,7 +362,6 @@ private struct WatermarkLogoPickerRow: View {
         }
     }
 }
-
 
 private struct WatermarkSettingsViewPreviewWrapper: View {
     private static let previewDefaults: UserDefaults = .init(suiteName: "preview-watermark") ?? .standard

@@ -2,7 +2,7 @@
 import Foundation
 import OSLog
 
-nonisolated final class InterruptionObserverBox: @unchecked Sendable {
+final nonisolated class InterruptionObserverBox: @unchecked Sendable {
     var observers: [NSObjectProtocol] = []
     init() {}
 

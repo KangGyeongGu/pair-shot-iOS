@@ -25,13 +25,6 @@ nonisolated enum CompositeLayout: String, CaseIterable, Identifiable {
 }
 
 nonisolated struct CompositeOptions: Equatable {
-    var layout: CompositeLayout
-    var jpegQuality: CGFloat
-    var watermarkEnabled: Bool
-    var watermark: WatermarkSettings?
-    var combineSettings: CombineSettings?
-    var includeGPS: Bool
-
     static let `default` = Self(
         layout: .horizontal,
         jpegQuality: 0.9,
@@ -40,4 +33,11 @@ nonisolated struct CompositeOptions: Equatable {
         combineSettings: nil,
         includeGPS: true
     )
+
+    var layout: CompositeLayout
+    var jpegQuality: CGFloat
+    var watermarkEnabled: Bool
+    var watermark: WatermarkSettings?
+    var combineSettings: CombineSettings?
+    var includeGPS: Bool
 }

@@ -6,18 +6,6 @@ struct ZoomDialOverlay: View {
     let maxRatio: Double
     let displayMultiplier: Double
 
-    init(
-        currentRatio: Double,
-        minRatio: Double,
-        maxRatio: Double,
-        displayMultiplier: Double = 1.0
-    ) {
-        self.currentRatio = currentRatio
-        self.minRatio = minRatio
-        self.maxRatio = maxRatio
-        self.displayMultiplier = displayMultiplier
-    }
-
     var body: some View {
         VStack(spacing: 4) {
             zoomCaption
@@ -59,6 +47,18 @@ struct ZoomDialOverlay: View {
 
     private var displayedMax: Double {
         maxRatio * displayMultiplier
+    }
+
+    init(
+        currentRatio: Double,
+        minRatio: Double,
+        maxRatio: Double,
+        displayMultiplier: Double = 1.0
+    ) {
+        self.currentRatio = currentRatio
+        self.minRatio = minRatio
+        self.maxRatio = maxRatio
+        self.displayMultiplier = displayMultiplier
     }
 
     private func drawTicksAndLabels(ctx: GraphicsContext, size: CGSize) {

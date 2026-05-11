@@ -3,6 +3,34 @@ import SwiftUI
 struct AlbumDeletePairsDialog: ViewModifier {
     @Bindable var viewModel: AlbumDetailViewModel
 
+    private var pairDeleteBinding: Binding<Bool> {
+        Binding(
+            get: { viewModel.pendingPairDelete != nil },
+            set: { if !$0 { viewModel.pendingPairDelete = nil } }
+        )
+    }
+
+    private var pairDestructiveBinding: Binding<Bool> {
+        Binding(
+            get: { viewModel.pendingPairDestructive != nil },
+            set: { if !$0 { viewModel.pendingPairDestructive = nil } }
+        )
+    }
+
+    private var singlePairDeleteBinding: Binding<Bool> {
+        Binding(
+            get: { viewModel.pendingSinglePairDelete != nil },
+            set: { if !$0 { viewModel.pendingSinglePairDelete = nil } }
+        )
+    }
+
+    private var singlePairDestructiveBinding: Binding<Bool> {
+        Binding(
+            get: { viewModel.pendingSinglePairDestructive != nil },
+            set: { if !$0 { viewModel.pendingSinglePairDestructive = nil } }
+        )
+    }
+
     func body(content: Content) -> some View {
         content
             .confirmationDialog(
@@ -129,33 +157,5 @@ struct AlbumDeletePairsDialog: ViewModifier {
         Button(String(localized: "common_button_cancel"), role: .cancel) {
             viewModel.pendingSinglePairDestructive = nil
         }
-    }
-
-    private var pairDeleteBinding: Binding<Bool> {
-        Binding(
-            get: { viewModel.pendingPairDelete != nil },
-            set: { if !$0 { viewModel.pendingPairDelete = nil } }
-        )
-    }
-
-    private var pairDestructiveBinding: Binding<Bool> {
-        Binding(
-            get: { viewModel.pendingPairDestructive != nil },
-            set: { if !$0 { viewModel.pendingPairDestructive = nil } }
-        )
-    }
-
-    private var singlePairDeleteBinding: Binding<Bool> {
-        Binding(
-            get: { viewModel.pendingSinglePairDelete != nil },
-            set: { if !$0 { viewModel.pendingSinglePairDelete = nil } }
-        )
-    }
-
-    private var singlePairDestructiveBinding: Binding<Bool> {
-        Binding(
-            get: { viewModel.pendingSinglePairDestructive != nil },
-            set: { if !$0 { viewModel.pendingSinglePairDestructive = nil } }
-        )
     }
 }

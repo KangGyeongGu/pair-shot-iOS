@@ -17,16 +17,6 @@ struct HomeView: View {
         GridItem(.flexible(), spacing: 8),
     ]
 
-    init(
-        onOpenAlbum: ((UUID) -> Void)? = nil,
-        onPushExportSettings: (([UUID]) -> Void)? = nil,
-        onPushSettings: (() -> Void)? = nil
-    ) {
-        self.onOpenAlbum = onOpenAlbum
-        self.onPushExportSettings = onPushExportSettings
-        self.onPushSettings = onPushSettings
-    }
-
     var body: some View {
         ZStack {
             Color(.systemGroupedBackground).ignoresSafeArea()
@@ -44,6 +34,29 @@ struct HomeView: View {
         .onChange(of: env.settingsRedirectCoordinator.pendingPulse) { _, _ in
             consumePendingSettingsRedirectIfNeeded()
         }
+    }
+
+    @ToolbarContentBuilder
+    private var toolbar: some ToolbarContent {
+        if let viewModel, viewModel.isSelectionMode {
+            HomeSelectionToolbar(
+                viewModel: viewModel,
+                sortedPairs: viewModel.sortedPairs(from: allPairs.map { $0.toDomain() }),
+                sortedAlbums: viewModel.sortedAlbums(from: allAlbums.map { Self.toDomain($0) })
+            )
+        } else {
+            HomeDefaultToolbar(viewModel: viewModel, onPushSettings: onPushSettings)
+        }
+    }
+
+    init(
+        onOpenAlbum: ((UUID) -> Void)? = nil,
+        onPushExportSettings: (([UUID]) -> Void)? = nil,
+        onPushSettings: (() -> Void)? = nil
+    ) {
+        self.onOpenAlbum = onOpenAlbum
+        self.onPushExportSettings = onPushExportSettings
+        self.onPushSettings = onPushSettings
     }
 
     private func ensureViewModel() {
@@ -240,10 +253,6 @@ struct HomeView: View {
         }
     }
 
-    static func formatDateHeader(_ date: Date, now _: Date = .now, calendar: Calendar = .current) -> String {
-        HomeDateFormatter.base(for: date, calendar: calendar)
-    }
-
     private func albumsGrid(viewModel: HomeViewModel, albums: [Album]) -> some View {
         List {
             ForEach(viewModel.groupedAlbums(from: albums), id: \.date) { group in
@@ -287,17 +296,8 @@ struct HomeView: View {
         }
     }
 
-    @ToolbarContentBuilder
-    private var toolbar: some ToolbarContent {
-        if let viewModel, viewModel.isSelectionMode {
-            HomeSelectionToolbar(
-                viewModel: viewModel,
-                sortedPairs: viewModel.sortedPairs(from: allPairs.map { $0.toDomain() }),
-                sortedAlbums: viewModel.sortedAlbums(from: allAlbums.map { Self.toDomain($0) })
-            )
-        } else {
-            HomeDefaultToolbar(viewModel: viewModel, onPushSettings: onPushSettings)
-        }
+    static func formatDateHeader(_ date: Date, now _: Date = .now, calendar: Calendar = .current) -> String {
+        HomeDateFormatter.base(for: date, calendar: calendar)
     }
 
     static func toDomain(_ entity: AlbumEntity) -> Album {

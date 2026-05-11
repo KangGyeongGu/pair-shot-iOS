@@ -96,6 +96,20 @@ struct AlbumDetailRenameAlert: ViewModifier {
 struct AlbumDetailDeleteAlbumAlert: ViewModifier {
     @Bindable var viewModel: AlbumDetailViewModel
 
+    private var albumDeleteBinding: Binding<Bool> {
+        Binding(
+            get: { viewModel.pendingAlbumDelete != nil },
+            set: { if !$0 { viewModel.pendingAlbumDelete = nil } }
+        )
+    }
+
+    private var albumDestructiveBinding: Binding<Bool> {
+        Binding(
+            get: { viewModel.pendingAlbumDestructive != nil },
+            set: { if !$0 { viewModel.pendingAlbumDestructive = nil } }
+        )
+    }
+
     func body(content: Content) -> some View {
         content
             .confirmationDialog(
@@ -150,19 +164,5 @@ struct AlbumDetailDeleteAlbumAlert: ViewModifier {
             } message: { _ in
                 Text(String(localized: "album_dialog_delete_message"))
             }
-    }
-
-    private var albumDeleteBinding: Binding<Bool> {
-        Binding(
-            get: { viewModel.pendingAlbumDelete != nil },
-            set: { if !$0 { viewModel.pendingAlbumDelete = nil } }
-        )
-    }
-
-    private var albumDestructiveBinding: Binding<Bool> {
-        Binding(
-            get: { viewModel.pendingAlbumDestructive != nil },
-            set: { if !$0 { viewModel.pendingAlbumDestructive = nil } }
-        )
     }
 }

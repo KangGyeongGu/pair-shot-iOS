@@ -18,10 +18,6 @@ struct BannerAdSlot: View {
 
     let adUnitID: String
 
-    init(adUnitID: String = AdsConfig.banner) {
-        self.adUnitID = adUnitID
-    }
-
     var body: some View {
         if BannerAdGate.shouldShow(isAdFree: adFreeStore.isAdFree) {
             let width = BannerAdView.currentBannerWidth()
@@ -36,9 +32,20 @@ struct BannerAdSlot: View {
             .clipped()
         }
     }
+
+    init(adUnitID: String = AdsConfig.banner) {
+        self.adUnitID = adUnitID
+    }
 }
 
 struct BannerAdView: UIViewRepresentable {
+    #if canImport(GoogleMobileAds)
+        @MainActor
+        final class Coordinator {
+            var lastWidth: CGFloat = 0
+        }
+    #endif
+
     let adUnitID: String
     let width: CGFloat
     let attStatus: ATTrackingManager.AuthorizationStatus
@@ -81,12 +88,15 @@ struct BannerAdView: UIViewRepresentable {
         func makeCoordinator() -> Coordinator {
             Coordinator()
         }
-
-        @MainActor
-        final class Coordinator {
-            var lastWidth: CGFloat = 0
+    #else
+        func makeUIView(context _: Context) -> UIView {
+            UIView()
         }
 
+        func updateUIView(_: UIView, context _: Context) {}
+    #endif
+
+    #if canImport(GoogleMobileAds)
         @MainActor
         static func resolveRootViewController() -> UIViewController? {
             UIApplication.shared.connectedScenes
@@ -123,12 +133,6 @@ struct BannerAdView: UIViewRepresentable {
             }
             return BannerAdSize.fallbackWidth
         }
-    #else
-        func makeUIView(context _: Context) -> UIView {
-            UIView()
-        }
-
-        func updateUIView(_: UIView, context _: Context) {}
     #endif
 }
 

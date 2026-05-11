@@ -14,30 +14,6 @@ struct ZoomControl: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    init(
-        presets: [ZoomPresetSpec],
-        displayMultiplier: Double,
-        activePreset: ZoomPresetSpec?,
-        isDragging: Bool = false,
-        currentRatio: Double = 1.0,
-        minRatio: Double = 1.0,
-        maxRatio: Double = 1.0,
-        onSelect: @escaping (ZoomPresetSpec) -> Void,
-        onDragChanged: @escaping (Double) -> Void = { _ in },
-        onDragEnded: @escaping () -> Void = {}
-    ) {
-        self.presets = presets
-        self.displayMultiplier = displayMultiplier
-        self.activePreset = activePreset
-        self.isDragging = isDragging
-        self.currentRatio = currentRatio
-        self.minRatio = minRatio
-        self.maxRatio = maxRatio
-        self.onSelect = onSelect
-        self.onDragChanged = onDragChanged
-        self.onDragEnded = onDragEnded
-    }
-
     var body: some View {
         if presets.isEmpty {
             EmptyView()
@@ -78,6 +54,40 @@ struct ZoomControl: View {
         .adaptiveGlass(in: Capsule())
     }
 
+    private var dragGesture: some Gesture {
+        DragGesture(minimumDistance: 4)
+            .onChanged { value in
+                onDragChanged(Double(value.translation.width))
+            }
+            .onEnded { _ in
+                onDragEnded()
+            }
+    }
+
+    init(
+        presets: [ZoomPresetSpec],
+        displayMultiplier: Double,
+        activePreset: ZoomPresetSpec?,
+        isDragging: Bool = false,
+        currentRatio: Double = 1.0,
+        minRatio: Double = 1.0,
+        maxRatio: Double = 1.0,
+        onSelect: @escaping (ZoomPresetSpec) -> Void,
+        onDragChanged: @escaping (Double) -> Void = { _ in },
+        onDragEnded: @escaping () -> Void = {}
+    ) {
+        self.presets = presets
+        self.displayMultiplier = displayMultiplier
+        self.activePreset = activePreset
+        self.isDragging = isDragging
+        self.currentRatio = currentRatio
+        self.minRatio = minRatio
+        self.maxRatio = maxRatio
+        self.onSelect = onSelect
+        self.onDragChanged = onDragChanged
+        self.onDragEnded = onDragEnded
+    }
+
     @ViewBuilder
     private func button(for preset: ZoomPresetSpec) -> some View {
         let isActive = preset == activePreset
@@ -102,16 +112,6 @@ struct ZoomControl: View {
         guard isActive else { return preset.label }
         if abs(preset.factor - currentRatio) < 0.05 { return preset.label }
         return ZoomPresetBuilder.formatLabel(currentRatio * displayMultiplier)
-    }
-
-    private var dragGesture: some Gesture {
-        DragGesture(minimumDistance: 4)
-            .onChanged { value in
-                onDragChanged(Double(value.translation.width))
-            }
-            .onEnded { _ in
-                onDragEnded()
-            }
     }
 }
 

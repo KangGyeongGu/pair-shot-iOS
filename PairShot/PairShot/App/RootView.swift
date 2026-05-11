@@ -8,10 +8,6 @@ struct RootView: View {
 
     @State private var path: [Route] = []
 
-    init(showFallbackAlert: Binding<Bool> = .constant(false)) {
-        _showFallbackAlert = showFallbackAlert
-    }
-
     var body: some View {
         ZStack {
             if env.permissionStatusService.isBlocked {
@@ -43,6 +39,10 @@ struct RootView: View {
         .snackbarOverlay(env.snackbarQueue)
     }
 
+    init(showFallbackAlert: Binding<Bool> = .constant(false)) {
+        _showFallbackAlert = showFallbackAlert
+    }
+
     @ViewBuilder
     private func destination(for route: Route) -> some View {
         switch route {
@@ -61,7 +61,6 @@ struct RootView: View {
         }
     }
 
-    @ViewBuilder
     private func homeDestination() -> some View {
         HomeView(
             onOpenAlbum: { albumId in
@@ -76,7 +75,6 @@ struct RootView: View {
         )
     }
 
-    @ViewBuilder
     private func albumDetailDestination(albumId: UUID) -> some View {
         AlbumDetailView(
             albumId: albumId,
@@ -86,7 +84,6 @@ struct RootView: View {
         )
     }
 
-    @ViewBuilder
     private func exportSettingsDestination(pairIds: [UUID], albumId: UUID?) -> some View {
         ExportSettingsView(
             viewModel: env.makeExportSettingsViewModel(

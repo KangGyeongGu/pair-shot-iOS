@@ -43,11 +43,6 @@ struct CompositionSettingsView: View {
         )
     }
 
-    private func percentLabel(_ value: Double) -> String {
-        let pct = Int((CompositionDefaults.clampAlpha(value) * 100).rounded())
-        return "\(pct)%"
-    }
-
     private var layoutSection: some View {
         Section {
             Picker(String(localized: "composition_section_layout"), selection: layoutBinding) {
@@ -101,6 +96,11 @@ struct CompositionSettingsView: View {
             get: { appSettings.watermarkEnabled },
             set: { appSettings.watermarkEnabled = $0 }
         )
+    }
+
+    private func percentLabel(_ value: Double) -> String {
+        let pct = Int((CompositionDefaults.clampAlpha(value) * 100).rounded())
+        return "\(pct)%"
     }
 }
 

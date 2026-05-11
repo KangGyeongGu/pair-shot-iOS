@@ -19,6 +19,16 @@ struct SnackbarItem: Identifiable, Equatable {
     let isActionable: Bool
     let createdAt: Date
 
+    var isProgress: Bool {
+        switch variant {
+            case .progress, .indeterminateProgress:
+                true
+
+            default:
+                false
+        }
+    }
+
     init(
         message: LocalizedStringResource,
         variant: SnackbarVariant,
@@ -37,16 +47,6 @@ struct SnackbarItem: Identifiable, Equatable {
 
     static func == (lhs: Self, rhs: Self) -> Bool {
         lhs.id == rhs.id && lhs.variant == rhs.variant && lhs.message == rhs.message
-    }
-
-    var isProgress: Bool {
-        switch variant {
-            case .progress, .indeterminateProgress:
-                true
-
-            default:
-                false
-        }
     }
 }
 

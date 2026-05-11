@@ -89,6 +89,10 @@ final class AfterCameraViewModel {
     private let eventsContinuation: AsyncStream<Event>.Continuation
     private var allCompletedDismissTask: Task<Void, Never>?
 
+    nonisolated var captureSession: AVCaptureSession {
+        session.captureSession
+    }
+
     init(
         albumId: UUID?,
         captureAfter: CaptureAfterUseCase,
@@ -125,10 +129,6 @@ final class AfterCameraViewModel {
         isLevelOn = appSettings.cameraLevelEnabled
         isNightModeOn = appSettings.cameraNightMode
         flashMode = CameraFlashModeMapping.flashMode(from: appSettings.cameraFlashMode)
-    }
-
-    nonisolated var captureSession: AVCaptureSession {
-        session.captureSession
     }
 
     func onAppear() async {

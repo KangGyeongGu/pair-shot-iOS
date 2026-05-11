@@ -68,22 +68,6 @@ final class AppSettings {
         }
     }
 
-    private static func decodeWatermarkSettings(defaults: UserDefaults) -> WatermarkSettings {
-        guard let raw = defaults.string(forKey: AppSettingsKeys.watermarkSettings),
-              let data = raw.data(using: .utf8),
-              let decoded = try? JSONDecoder().decode(WatermarkSettings.self, from: data)
-        else { return .default }
-        return decoded
-    }
-
-    private static func decodeCombineSettings(defaults: UserDefaults) -> CombineSettings {
-        guard let raw = defaults.string(forKey: AppSettingsKeys.combineSettings),
-              let data = raw.data(using: .utf8),
-              let decoded = try? JSONDecoder().decode(CombineSettings.self, from: data)
-        else { return .default }
-        return decoded
-    }
-
     var language: AppLanguage {
         get {
             let raw = defaults.string(forKey: AppSettingsKeys.language) ?? AppLanguage.system.rawValue
@@ -192,6 +176,22 @@ final class AppSettings {
             defaults.string(forKey: AppSettingsKeys.albumSortOrder)
                 ?? SortOrderPersistence.defaultRawValue
         albumSortOrder = SortOrderPersistence.normalize(storedAlbum)
+    }
+
+    private static func decodeWatermarkSettings(defaults: UserDefaults) -> WatermarkSettings {
+        guard let raw = defaults.string(forKey: AppSettingsKeys.watermarkSettings),
+              let data = raw.data(using: .utf8),
+              let decoded = try? JSONDecoder().decode(WatermarkSettings.self, from: data)
+        else { return .default }
+        return decoded
+    }
+
+    private static func decodeCombineSettings(defaults: UserDefaults) -> CombineSettings {
+        guard let raw = defaults.string(forKey: AppSettingsKeys.combineSettings),
+              let data = raw.data(using: .utf8),
+              let decoded = try? JSONDecoder().decode(CombineSettings.self, from: data)
+        else { return .default }
+        return decoded
     }
 }
 

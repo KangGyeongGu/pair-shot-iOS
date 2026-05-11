@@ -9,16 +9,6 @@ struct ExportSettingsView: View {
     @Environment(AdFreeStore.self) private var adFreeStore
     @Environment(\.fullscreenAdCoordinator) private var coordinator
 
-    init(
-        viewModel: ExportSettingsViewModel,
-        onPushWatermarkSettings: (() -> Void)? = nil,
-        onPushCombineSettings: (() -> Void)? = nil
-    ) {
-        self.viewModel = viewModel
-        self.onPushWatermarkSettings = onPushWatermarkSettings
-        self.onPushCombineSettings = onPushCombineSettings
-    }
-
     var body: some View {
         VStack(spacing: 0) {
             BannerAdSlot()
@@ -97,30 +87,6 @@ struct ExportSettingsView: View {
             Button(String(localized: "common_button_cancel"), role: .cancel) {}
         } message: {
             Text(String(localized: "rewarded_gate_body_combine_detail"))
-        }
-    }
-
-    @MainActor
-    private func confirmWatermarkGate() async {
-        let result = await viewModel.confirmWatermarkGateAd(
-            rewardedManager: rewardedManager,
-            coordinator: coordinator,
-            rootViewController: BannerAdView.resolveTopPresentedViewController()
-        )
-        if case .proceed = result {
-            onPushWatermarkSettings?()
-        }
-    }
-
-    @MainActor
-    private func confirmCombineGate() async {
-        let result = await viewModel.confirmCombineGateAd(
-            rewardedManager: rewardedManager,
-            coordinator: coordinator,
-            rootViewController: BannerAdView.resolveTopPresentedViewController()
-        )
-        if case .proceed = result {
-            onPushCombineSettings?()
         }
     }
 
@@ -265,6 +231,40 @@ struct ExportSettingsView: View {
                 }
             }
         )
+    }
+
+    init(
+        viewModel: ExportSettingsViewModel,
+        onPushWatermarkSettings: (() -> Void)? = nil,
+        onPushCombineSettings: (() -> Void)? = nil
+    ) {
+        self.viewModel = viewModel
+        self.onPushWatermarkSettings = onPushWatermarkSettings
+        self.onPushCombineSettings = onPushCombineSettings
+    }
+
+    @MainActor
+    private func confirmWatermarkGate() async {
+        let result = await viewModel.confirmWatermarkGateAd(
+            rewardedManager: rewardedManager,
+            coordinator: coordinator,
+            rootViewController: BannerAdView.resolveTopPresentedViewController()
+        )
+        if case .proceed = result {
+            onPushWatermarkSettings?()
+        }
+    }
+
+    @MainActor
+    private func confirmCombineGate() async {
+        let result = await viewModel.confirmCombineGateAd(
+            rewardedManager: rewardedManager,
+            coordinator: coordinator,
+            rootViewController: BannerAdView.resolveTopPresentedViewController()
+        )
+        if case .proceed = result {
+            onPushCombineSettings?()
+        }
     }
 
     private func observeEvents() async {

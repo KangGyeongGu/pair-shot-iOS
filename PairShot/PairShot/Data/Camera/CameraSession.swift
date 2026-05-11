@@ -46,14 +46,6 @@ nonisolated enum CameraSessionError: Error {
 }
 
 nonisolated struct CameraZoomSnapshot {
-    let minFactor: Double
-    let maxFactor: Double
-    let currentFactor: Double
-    let firstSwitchOver: Double
-    let displayMultiplier: Double
-    let presets: [ZoomPresetSpec]
-    let exposureBiasRange: ClosedRange<Float>?
-
     static let empty = Self(
         minFactor: 1,
         maxFactor: 1,
@@ -63,6 +55,14 @@ nonisolated struct CameraZoomSnapshot {
         presets: [],
         exposureBiasRange: nil
     )
+
+    let minFactor: Double
+    let maxFactor: Double
+    let currentFactor: Double
+    let firstSwitchOver: Double
+    let displayMultiplier: Double
+    let presets: [ZoomPresetSpec]
+    let exposureBiasRange: ClosedRange<Float>?
 }
 
 nonisolated enum CameraZoomCapabilities {
@@ -87,14 +87,14 @@ nonisolated enum CameraZoomCapabilities {
     }
 }
 
-nonisolated final class CaptureSessionBox: @unchecked Sendable {
+final nonisolated class CaptureSessionBox: @unchecked Sendable {
     let session: AVCaptureSession
     init() {
         session = AVCaptureSession()
     }
 }
 
-nonisolated final class CameraSession: @unchecked Sendable {
+final nonisolated class CameraSession: @unchecked Sendable {
     let box = CaptureSessionBox()
     let observerBox = InterruptionObserverBox()
     let sessionQueue = DispatchQueue(label: "com.pairshot.camera.session", qos: .userInitiated)
@@ -122,10 +122,6 @@ nonisolated final class CameraSession: @unchecked Sendable {
     ) {
         self.permissionResolver = permissionResolver
         registerInterruptionObservers()
-    }
-
-    deinit {
-        observerBox.cleanup()
     }
 
     func start() async {
@@ -309,6 +305,10 @@ nonisolated final class CameraSession: @unchecked Sendable {
                 cont.resume()
             }
         }
+    }
+
+    deinit {
+        observerBox.cleanup()
     }
 }
 

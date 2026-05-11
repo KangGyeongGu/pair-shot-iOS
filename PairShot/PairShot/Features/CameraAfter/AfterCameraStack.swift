@@ -93,41 +93,6 @@ struct AfterCameraStack: View {
         .ignoresSafeArea(edges: .bottom)
     }
 
-    private func previewArea(width: CGFloat, height previewHeight: CGFloat) -> some View {
-        ZStack {
-            AfterCameraPreviewLayer(
-                session: captureSession,
-                onMakeView: onMakePreviewView
-            )
-            .clipped()
-
-            GhostOverlayView(
-                image: ghostImage,
-                alpha: alpha,
-                isEnabled: overlayEnabled,
-                rotationDegrees: ghostRotationDegrees,
-                width: width,
-                height: previewHeight
-            )
-
-            if isGridOn {
-                GridOverlay()
-                    .allowsHitTesting(false)
-            }
-
-            Color.clear
-                .contentShape(Rectangle())
-                .gesture(pinchGesture)
-
-            RotationGuideOverlay(direction: rotationGuideDirection)
-                .allowsHitTesting(false)
-
-            zoomBottomOverlay
-        }
-        .frame(width: width, height: previewHeight)
-        .background(Color.appCameraBackground)
-    }
-
     private var zoomBottomOverlay: some View {
         VStack {
             Spacer()
@@ -168,6 +133,41 @@ struct AfterCameraStack: View {
                 .accessibilityLabel(String(localized: "camera_desc_switch"))
         }
         .buttonStyle(.plain)
+    }
+
+    private func previewArea(width: CGFloat, height previewHeight: CGFloat) -> some View {
+        ZStack {
+            AfterCameraPreviewLayer(
+                session: captureSession,
+                onMakeView: onMakePreviewView
+            )
+            .clipped()
+
+            GhostOverlayView(
+                image: ghostImage,
+                alpha: alpha,
+                isEnabled: overlayEnabled,
+                rotationDegrees: ghostRotationDegrees,
+                width: width,
+                height: previewHeight
+            )
+
+            if isGridOn {
+                GridOverlay()
+                    .allowsHitTesting(false)
+            }
+
+            Color.clear
+                .contentShape(Rectangle())
+                .gesture(pinchGesture)
+
+            RotationGuideOverlay(direction: rotationGuideDirection)
+                .allowsHitTesting(false)
+
+            zoomBottomOverlay
+        }
+        .frame(width: width, height: previewHeight)
+        .background(Color.appCameraBackground)
     }
 }
 

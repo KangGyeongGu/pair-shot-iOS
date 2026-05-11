@@ -39,7 +39,8 @@ final class PhotoLibraryExport: Sendable {
             throw PhotoLibraryExportError.notAuthorized
         }
         do {
-            let identifier: String = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<String, Error>) in
+            typealias StringContinuation = CheckedContinuation<String, Error>
+            let identifier: String = try await withCheckedThrowingContinuation { (continuation: StringContinuation) in
                 let placeholderBox = PlaceholderBox()
                 let resourceType: PHAssetResourceType =
                     switch type {
@@ -76,6 +77,6 @@ final class PhotoLibraryExport: Sendable {
     }
 }
 
-nonisolated private final class PlaceholderBox: @unchecked Sendable {
+private final nonisolated class PlaceholderBox: @unchecked Sendable {
     var placeholder: PHObjectPlaceholder?
 }

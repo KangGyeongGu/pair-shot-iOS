@@ -41,23 +41,6 @@ struct HomePairCardView: View {
             .background(Color.accentColor, in: RoundedRectangle(cornerRadius: 8))
     }
 
-    static func accessibilityLabel(
-        for pair: PhotoPair,
-        isSelected: Bool,
-        isSelectionMode: Bool
-    ) -> String {
-        let statusText = statusLabel(for: pair)
-        let selectionText: String? =
-            isSelectionMode
-                ?
-                (isSelected ? String(localized: "common_state_selected") :
-                    String(localized: "common_state_unselected"))
-                : nil
-        return [statusText, selectionText]
-            .compactMap(\.self)
-            .joined(separator: ", ")
-    }
-
     private var splitContainer: some View {
         HStack(spacing: 0) {
             beforeSide
@@ -127,6 +110,23 @@ struct HomePairCardView: View {
                 .fill(Color.accentColor.opacity(0.15))
                 .allowsHitTesting(false)
         }
+    }
+
+    static func accessibilityLabel(
+        for pair: PhotoPair,
+        isSelected: Bool,
+        isSelectionMode: Bool
+    ) -> String {
+        let statusText = statusLabel(for: pair)
+        let selectionText: String? =
+            isSelectionMode
+                ?
+                (isSelected ? String(localized: "common_state_selected") :
+                    String(localized: "common_state_unselected"))
+                : nil
+        return [statusText, selectionText]
+            .compactMap(\.self)
+            .joined(separator: ", ")
     }
 
     private static func statusLabel(for pair: PhotoPair) -> String {

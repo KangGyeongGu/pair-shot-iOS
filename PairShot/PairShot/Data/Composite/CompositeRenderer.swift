@@ -14,6 +14,8 @@ nonisolated enum CompositeRenderer {
         case encodeFailed
     }
 
+    static let referenceImageWidth: CGFloat = 1024
+
     @MainActor
     static func makeComposite(
         for pair: PhotoPair,
@@ -77,8 +79,6 @@ nonisolated enum CompositeRenderer {
             }
         }.value
     }
-
-    static let referenceImageWidth: CGFloat = 1024
 
     nonisolated static func renderComposite(
         before: UIImage,

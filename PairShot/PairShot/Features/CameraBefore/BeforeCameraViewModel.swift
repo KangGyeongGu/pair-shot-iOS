@@ -70,6 +70,10 @@ final class BeforeCameraViewModel {
     private var zoomRampTask: Task<Void, Never>?
     private var pinchRampTask: Task<Void, Never>?
 
+    nonisolated var captureSession: AVCaptureSession {
+        session.captureSession
+    }
+
     init(
         albumId: UUID?,
         createPair: CreatePairUseCase,
@@ -98,10 +102,6 @@ final class BeforeCameraViewModel {
         isLevelOn = appSettings.cameraLevelEnabled
         isNightModeOn = appSettings.cameraNightMode
         flashMode = CameraFlashModeMapping.flashMode(from: appSettings.cameraFlashMode)
-    }
-
-    nonisolated var captureSession: AVCaptureSession {
-        session.captureSession
     }
 
     func onAppear() async {

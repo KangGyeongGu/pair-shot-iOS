@@ -18,6 +18,19 @@ nonisolated struct WatermarkSettings: Codable, Equatable {
         case logo
     }
 
+    enum CodingKeys: String, CodingKey {
+        case type
+        case text
+        case opacity
+        case lineCount
+        case repeatCount
+        case textSizeRatio
+        case logoImageData
+        case logoPosition
+        case logoWidthRatio
+        case logoAlpha
+    }
+
     static let `default` = Self()
 
     static let opacityRange: ClosedRange<Double> = 0.0 ... 1.0
@@ -60,19 +73,6 @@ nonisolated struct WatermarkSettings: Codable, Equatable {
         self.logoPosition = logoPosition
         self.logoWidthRatio = logoWidthRatio
         self.logoAlpha = logoAlpha
-    }
-
-    enum CodingKeys: String, CodingKey {
-        case type
-        case text
-        case opacity
-        case lineCount
-        case repeatCount
-        case textSizeRatio
-        case logoImageData
-        case logoPosition
-        case logoWidthRatio
-        case logoAlpha
     }
 
     init(from decoder: Decoder) throws {

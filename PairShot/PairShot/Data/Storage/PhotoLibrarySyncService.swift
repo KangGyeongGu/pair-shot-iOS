@@ -14,10 +14,6 @@ final class PhotoLibrarySyncService: NSObject, PHPhotoLibraryChangeObserver {
         PHPhotoLibrary.shared().register(self)
     }
 
-    deinit {
-        PHPhotoLibrary.shared().unregisterChangeObserver(self)
-    }
-
     nonisolated func photoLibraryDidChange(_: PHChange) {
         Task { @MainActor [weak self] in
             await self?.reconcile()
@@ -50,5 +46,9 @@ final class PhotoLibrarySyncService: NSObject, PHPhotoLibraryChangeObserver {
         if didChange {
             try? context.save()
         }
+    }
+
+    deinit {
+        PHPhotoLibrary.shared().unregisterChangeObserver(self)
     }
 }

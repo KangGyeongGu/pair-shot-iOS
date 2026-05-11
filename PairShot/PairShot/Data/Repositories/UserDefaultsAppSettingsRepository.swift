@@ -1,30 +1,11 @@
 import Foundation
 
-nonisolated final class UserDefaultsAppSettingsRepository: AppSettingsRepository, @unchecked Sendable {
+final nonisolated class UserDefaultsAppSettingsRepository: AppSettingsRepository, @unchecked Sendable {
     private let defaults: UserDefaults
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         defaults.register(defaults: Self.makeRegisteredDefaults())
-    }
-
-    private static func makeRegisteredDefaults() -> [String: Any] {
-        [
-            AppSettingsKeys.jpegQuality: AppSettingsSnapshot.defaultJpegQuality,
-            AppSettingsKeys.fileNamePrefix: AppSettingsSnapshot.defaultFileNamePrefix,
-            AppSettingsKeys.defaultOverlayAlpha: AppSettingsSnapshot.defaultOverlayAlphaValue,
-            AppSettingsKeys.defaultCompositeLayout: AppSettingsSnapshot.defaultCompositeLayoutFallback,
-            AppSettingsKeys.watermarkEnabled: AppSettingsSnapshot.defaultWatermarkEnabled,
-            AppSettingsKeys.language: AppSettingsSnapshot.defaultLanguage.rawValue,
-            AppSettingsKeys.theme: AppSettingsSnapshot.defaultTheme.rawValue,
-            AppSettingsKeys.cameraGridEnabled: AppSettingsHandoffDefaults.cameraGridEnabled,
-            AppSettingsKeys.cameraLevelEnabled: AppSettingsHandoffDefaults.cameraLevelEnabled,
-            AppSettingsKeys.cameraFlashMode: AppSettingsHandoffDefaults.cameraFlashMode,
-            AppSettingsKeys.cameraNightMode: AppSettingsHandoffDefaults.cameraNightMode,
-            AppSettingsKeys.overlayEnabled: AppSettingsHandoffDefaults.overlayEnabled,
-            AppSettingsKeys.homeSortOrder: AppSettingsHandoffDefaults.homeSortOrder,
-            AppSettingsKeys.albumSortOrder: AppSettingsHandoffDefaults.albumSortOrder,
-        ]
     }
 
     func load() -> AppSettingsSnapshot {
@@ -130,9 +111,28 @@ nonisolated final class UserDefaultsAppSettingsRepository: AppSettingsRepository
         }
         defaults.set(raw, forKey: AppSettingsKeys.combineSettings)
     }
+
+    private static func makeRegisteredDefaults() -> [String: Any] {
+        [
+            AppSettingsKeys.jpegQuality: AppSettingsSnapshot.defaultJpegQuality,
+            AppSettingsKeys.fileNamePrefix: AppSettingsSnapshot.defaultFileNamePrefix,
+            AppSettingsKeys.defaultOverlayAlpha: AppSettingsSnapshot.defaultOverlayAlphaValue,
+            AppSettingsKeys.defaultCompositeLayout: AppSettingsSnapshot.defaultCompositeLayoutFallback,
+            AppSettingsKeys.watermarkEnabled: AppSettingsSnapshot.defaultWatermarkEnabled,
+            AppSettingsKeys.language: AppSettingsSnapshot.defaultLanguage.rawValue,
+            AppSettingsKeys.theme: AppSettingsSnapshot.defaultTheme.rawValue,
+            AppSettingsKeys.cameraGridEnabled: AppSettingsHandoffDefaults.cameraGridEnabled,
+            AppSettingsKeys.cameraLevelEnabled: AppSettingsHandoffDefaults.cameraLevelEnabled,
+            AppSettingsKeys.cameraFlashMode: AppSettingsHandoffDefaults.cameraFlashMode,
+            AppSettingsKeys.cameraNightMode: AppSettingsHandoffDefaults.cameraNightMode,
+            AppSettingsKeys.overlayEnabled: AppSettingsHandoffDefaults.overlayEnabled,
+            AppSettingsKeys.homeSortOrder: AppSettingsHandoffDefaults.homeSortOrder,
+            AppSettingsKeys.albumSortOrder: AppSettingsHandoffDefaults.albumSortOrder,
+        ]
+    }
 }
 
-nonisolated private final class NotificationObserverTokenBox: @unchecked Sendable {
+private final nonisolated class NotificationObserverTokenBox: @unchecked Sendable {
     var token: (any NSObjectProtocol)?
     init() {}
 }

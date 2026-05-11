@@ -14,6 +14,24 @@ final class PairPickerViewModel {
 
     private let toggleAlbumMembership: ToggleAlbumMembershipUseCase
 
+    var titleText: String {
+        if selection.isEmpty {
+            return String(localized: "pair_picker_title")
+        }
+        let format = String(localized: "pair_picker_selection_count_template")
+        return String(format: format, selection.count)
+    }
+
+    var buttonLabel: String {
+        isConfirming
+            ? String(localized: "pair_picker_button_adding")
+            : String(localized: "pair_picker_button_add")
+    }
+
+    var isConfirmDisabled: Bool {
+        selection.isEmpty || isConfirming
+    }
+
     init(
         albumId: UUID,
         toggleAlbumMembership: ToggleAlbumMembershipUseCase,
@@ -58,23 +76,5 @@ final class PairPickerViewModel {
         } else {
             didFinish = true
         }
-    }
-
-    var titleText: String {
-        if selection.isEmpty {
-            return String(localized: "pair_picker_title")
-        }
-        let format = String(localized: "pair_picker_selection_count_template")
-        return String(format: format, selection.count)
-    }
-
-    var buttonLabel: String {
-        isConfirming
-            ? String(localized: "pair_picker_button_adding")
-            : String(localized: "pair_picker_button_add")
-    }
-
-    var isConfirmDisabled: Bool {
-        selection.isEmpty || isConfirming
     }
 }

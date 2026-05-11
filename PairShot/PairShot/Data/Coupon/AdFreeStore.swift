@@ -4,6 +4,8 @@ import Observation
 @MainActor
 @Observable
 final class AdFreeStore {
+    private static let snapshotKey = "pairshot.adFreeStore.snapshot"
+
     private(set) var isAdFree: Bool
     private(set) var expiresAt: Date?
     private(set) var remainingDays: Int?
@@ -40,8 +42,6 @@ final class AdFreeStore {
         activeCoupons = result.activeCoupons
         Self.saveSnapshot(result, to: defaults)
     }
-
-    private static let snapshotKey = "pairshot.adFreeStore.snapshot"
 
     private static func loadSnapshot(from defaults: UserDefaults) -> AdFreeStatusResult? {
         guard let data = defaults.data(forKey: snapshotKey) else { return nil }

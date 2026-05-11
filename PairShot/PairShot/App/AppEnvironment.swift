@@ -102,7 +102,7 @@ final class AppEnvironment {
 
         let adServices = Self.makeAdServices(
             trackingService: self.trackingService,
-            overrides: (
+            overrides: AdServicesOverrides(
                 interstitial: interstitialAdManager,
                 rewarded: rewardedAdManager,
                 nativeAd: nativeAdLoader,
@@ -131,14 +131,16 @@ final class AppEnvironment {
         zipExporter = dataServices.zipExporter
 
         let useCases = Self.makeUseCases(
-            pairRepo: dataServices.pairRepo,
-            albumRepo: dataServices.albumRepo,
-            photoLibrary: dataServices.photoLibrary,
-            photoLibraryExporter: dataServices.photoLibraryExporter,
-            location: dataServices.location,
-            zipExporter: dataServices.zipExporter,
-            snackbarQueue: resolvedSnackbarQueue,
-            appSettings: resolvedAppSettings
+            dependencies: UseCasesDependencies(
+                pairRepo: dataServices.pairRepo,
+                albumRepo: dataServices.albumRepo,
+                photoLibrary: dataServices.photoLibrary,
+                photoLibraryExporter: dataServices.photoLibraryExporter,
+                location: dataServices.location,
+                zipExporter: dataServices.zipExporter,
+                snackbarQueue: resolvedSnackbarQueue,
+                appSettings: resolvedAppSettings
+            )
         )
         createPair = useCases.createPair
         captureAfter = useCases.captureAfter

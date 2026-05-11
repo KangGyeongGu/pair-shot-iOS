@@ -17,16 +17,6 @@ struct AlbumDetailView: View {
         GridItem(.flexible(), spacing: 8),
     ]
 
-    init(
-        albumId: UUID,
-        onPushExportSettings: (([UUID]) -> Void)? = nil
-    ) {
-        self.albumId = albumId
-        self.onPushExportSettings = onPushExportSettings
-        let predicate = #Predicate<AlbumEntity> { $0.id == albumId }
-        _albums = Query(filter: predicate)
-    }
-
     var body: some View {
         ZStack {
             Color(.systemGroupedBackground).ignoresSafeArea()
@@ -53,12 +43,6 @@ struct AlbumDetailView: View {
         }
     }
 
-    private func ensureViewModel() {
-        if viewModel == nil {
-            viewModel = env.makeAlbumDetailViewModel(albumId: albumId)
-        }
-    }
-
     private var pairPickerSheetBinding: Binding<Bool> {
         Binding(
             get: { viewModel?.navigateToPairPicker ?? false },
@@ -66,6 +50,57 @@ struct AlbumDetailView: View {
                 if !newValue { viewModel?.navigateToPairPicker = false }
             }
         )
+    }
+
+    @ToolbarContentBuilder
+    private var toolbar: some ToolbarContent {
+        if let viewModel, let album = albums.first {
+            let domainPairs = album.pairs.map { $0.toDomain() }
+            let sorted = viewModel.sortedPairs(from: domainPairs)
+            let domainAlbum = Self.toDomain(album)
+            if viewModel.isSelectionMode {
+                AlbumDetailSelectionToolbar(
+                    selectionCount: viewModel.selectedPairIds.count,
+                    allSelected: viewModel.areAllPairsSelected(from: sorted),
+                    onCancel: viewModel.cancelSelection,
+                    onToggleSelectAll: { viewModel.selectAllPairs(from: sorted) }
+                )
+            } else {
+                AlbumDetailDefaultToolbar(
+                    onSelect: viewModel.enterSelectionMode,
+                    onRename: { viewModel.beginRename(currentName: album.name) },
+                    onDelete: { viewModel.requestAlbumDeletion(album: domainAlbum) }
+                )
+            }
+        }
+    }
+
+    private var missingAlbumView: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "exclamationmark.triangle")
+                .font(.largeTitle.weight(.light))
+                .foregroundStyle(.secondary)
+            Text(String(localized: "album_error_not_found"))
+                .font(.headline)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    init(
+        albumId: UUID,
+        onPushExportSettings: (([UUID]) -> Void)? = nil
+    ) {
+        self.albumId = albumId
+        self.onPushExportSettings = onPushExportSettings
+        let predicate = #Predicate<AlbumEntity> { $0.id == albumId }
+        _albums = Query(filter: predicate)
+    }
+
+    private func ensureViewModel() {
+        if viewModel == nil {
+            viewModel = env.makeAlbumDetailViewModel(albumId: albumId)
+        }
     }
 
     @ViewBuilder
@@ -91,19 +126,6 @@ struct AlbumDetailView: View {
         .modifier(AlbumDetailRenameAlert(viewModel: viewModel, album: domainAlbum))
         .modifier(AlbumDetailDeleteAlbumAlert(viewModel: viewModel))
         .modifier(AlbumDetailShareSheet(viewModel: viewModel))
-    }
-
-    static func toDomain(_ entity: AlbumEntity) -> Album {
-        Album(
-            name: entity.name,
-            id: entity.id,
-            latitude: entity.latitude,
-            longitude: entity.longitude,
-            locationLabel: entity.locationLabel,
-            createdAt: entity.createdAt,
-            updatedAt: entity.updatedAt,
-            pairIds: entity.pairs.map(\.id)
-        )
     }
 
     @ViewBuilder
@@ -193,39 +215,17 @@ struct AlbumDetailView: View {
         }
     }
 
-    @ToolbarContentBuilder
-    private var toolbar: some ToolbarContent {
-        if let viewModel, let album = albums.first {
-            let domainPairs = album.pairs.map { $0.toDomain() }
-            let sorted = viewModel.sortedPairs(from: domainPairs)
-            let domainAlbum = Self.toDomain(album)
-            if viewModel.isSelectionMode {
-                AlbumDetailSelectionToolbar(
-                    selectionCount: viewModel.selectedPairIds.count,
-                    allSelected: viewModel.areAllPairsSelected(from: sorted),
-                    onCancel: viewModel.cancelSelection,
-                    onToggleSelectAll: { viewModel.selectAllPairs(from: sorted) }
-                )
-            } else {
-                AlbumDetailDefaultToolbar(
-                    onSelect: viewModel.enterSelectionMode,
-                    onRename: { viewModel.beginRename(currentName: album.name) },
-                    onDelete: { viewModel.requestAlbumDeletion(album: domainAlbum) }
-                )
-            }
-        }
-    }
-
-    private var missingAlbumView: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "exclamationmark.triangle")
-                .font(.largeTitle.weight(.light))
-                .foregroundStyle(.secondary)
-            Text(String(localized: "album_error_not_found"))
-                .font(.headline)
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    static func toDomain(_ entity: AlbumEntity) -> Album {
+        Album(
+            name: entity.name,
+            id: entity.id,
+            latitude: entity.latitude,
+            longitude: entity.longitude,
+            locationLabel: entity.locationLabel,
+            createdAt: entity.createdAt,
+            updatedAt: entity.updatedAt,
+            pairIds: entity.pairs.map(\.id)
+        )
     }
 }
 

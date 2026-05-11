@@ -37,13 +37,7 @@ nonisolated struct AdFreeStatusResult: Equatable, Codable {
     let activeCoupons: [AdFreeCouponInfo]
 }
 
-nonisolated private struct AdFreeStatusDto: Decodable {
-    let active: Bool
-    let expiresAt: Date?
-    let remainingDays: Int?
-    let couponCount: Int
-    let activeCoupons: [AdFreeCouponItemDto]
-
+private nonisolated struct AdFreeStatusDto: Decodable {
     enum CodingKeys: String, CodingKey {
         case active
         case expiresAt = "expires_at"
@@ -51,6 +45,12 @@ nonisolated private struct AdFreeStatusDto: Decodable {
         case couponCount = "coupon_count"
         case activeCoupons = "active_coupons"
     }
+
+    let active: Bool
+    let expiresAt: Date?
+    let remainingDays: Int?
+    let couponCount: Int
+    let activeCoupons: [AdFreeCouponItemDto]
 
     func toResult() -> AdFreeStatusResult {
         AdFreeStatusResult(
@@ -63,18 +63,18 @@ nonisolated private struct AdFreeStatusDto: Decodable {
     }
 }
 
-nonisolated private struct AdFreeCouponItemDto: Decodable {
-    let shortCode: String
-    let durationDays: Int?
-    let activatedAt: Date
-    let expiresAt: Date?
-
+private nonisolated struct AdFreeCouponItemDto: Decodable {
     enum CodingKeys: String, CodingKey {
         case shortCode = "short_code"
         case durationDays = "duration_days"
         case activatedAt = "activated_at"
         case expiresAt = "expires_at"
     }
+
+    let shortCode: String
+    let durationDays: Int?
+    let activatedAt: Date
+    let expiresAt: Date?
 
     func toInfo() -> AdFreeCouponInfo {
         AdFreeCouponInfo(

@@ -8,18 +8,6 @@ struct PermissionDeniedView: View {
 
     private let opener: @MainActor () -> Void
 
-    init(
-        title: String,
-        message: String,
-        systemImage: String = "exclamationmark.triangle.fill",
-        opener: @MainActor @escaping () -> Void = PermissionDeniedSettingsURL.openSystemSettings
-    ) {
-        self.title = title
-        self.message = message
-        self.systemImage = systemImage
-        self.opener = opener
-    }
-
     var body: some View {
         ContentUnavailableView {
             Label(title, systemImage: systemImage)
@@ -35,6 +23,18 @@ struct PermissionDeniedView: View {
             }
             .buttonStyle(.borderedProminent)
         }
+    }
+
+    init(
+        title: String,
+        message: String,
+        systemImage: String = "exclamationmark.triangle.fill",
+        opener: @MainActor @escaping () -> Void = PermissionDeniedSettingsURL.openSystemSettings
+    ) {
+        self.title = title
+        self.message = message
+        self.systemImage = systemImage
+        self.opener = opener
     }
 }
 

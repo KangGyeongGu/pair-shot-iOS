@@ -89,39 +89,6 @@ struct BeforeCameraStack: View {
         .ignoresSafeArea(edges: .bottom)
     }
 
-    private func previewArea(width: CGFloat, height previewHeight: CGFloat) -> some View {
-        ZStack {
-            BeforeCameraPreviewLayer(
-                session: captureSession,
-                onMakeView: onMakePreviewView
-            )
-            .clipped()
-
-            if isGridOn {
-                GridOverlay()
-                    .allowsHitTesting(false)
-            }
-
-            FocusGestureView(
-                previewLayerProvider: previewLayerProvider,
-                onTapFocus: onTapFocus,
-                onExposureBias: onExposureBias,
-                exposureRangeProvider: exposureRangeProvider,
-                indicator: focusIndicator
-            )
-            .gesture(pinchGesture)
-
-            if let indicator = focusIndicator.wrappedValue {
-                FocusReticleView(state: indicator)
-            }
-
-            levelOverlay
-            zoomBottomOverlay
-        }
-        .frame(width: width, height: previewHeight)
-        .background(Color.appCameraBackground)
-    }
-
     @ViewBuilder
     private var levelOverlay: some View {
         if isLevelOn {
@@ -175,6 +142,39 @@ struct BeforeCameraStack: View {
                 .accessibilityLabel(String(localized: "camera_desc_switch"))
         }
         .buttonStyle(.plain)
+    }
+
+    private func previewArea(width: CGFloat, height previewHeight: CGFloat) -> some View {
+        ZStack {
+            BeforeCameraPreviewLayer(
+                session: captureSession,
+                onMakeView: onMakePreviewView
+            )
+            .clipped()
+
+            if isGridOn {
+                GridOverlay()
+                    .allowsHitTesting(false)
+            }
+
+            FocusGestureView(
+                previewLayerProvider: previewLayerProvider,
+                onTapFocus: onTapFocus,
+                onExposureBias: onExposureBias,
+                exposureRangeProvider: exposureRangeProvider,
+                indicator: focusIndicator
+            )
+            .gesture(pinchGesture)
+
+            if let indicator = focusIndicator.wrappedValue {
+                FocusReticleView(state: indicator)
+            }
+
+            levelOverlay
+            zoomBottomOverlay
+        }
+        .frame(width: width, height: previewHeight)
+        .background(Color.appCameraBackground)
     }
 }
 

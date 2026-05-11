@@ -20,16 +20,6 @@ struct BeforeCameraView: View {
     @State private var afterCameraTarget: AfterCameraTarget?
     @State private var showSettingsSheet = false
 
-    init(
-        albumId: UUID? = nil,
-        refillPairId: UUID? = nil,
-        onHome: (() -> Void)? = nil
-    ) {
-        self.albumId = albumId
-        self.refillPairId = refillPairId
-        self.onHome = onHome
-    }
-
     var body: some View {
         ZStack {
             Color.appCameraBackground.ignoresSafeArea()
@@ -110,6 +100,16 @@ struct BeforeCameraView: View {
             )
             .animation(.spring(response: 0.3, dampingFraction: 0.85), value: showSettingsSheet)
         }
+    }
+
+    init(
+        albumId: UUID? = nil,
+        refillPairId: UUID? = nil,
+        onHome: (() -> Void)? = nil
+    ) {
+        self.albumId = albumId
+        self.refillPairId = refillPairId
+        self.onHome = onHome
     }
 
     @ViewBuilder

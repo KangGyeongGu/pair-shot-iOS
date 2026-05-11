@@ -43,14 +43,6 @@ final class PermissionStatusService: NSObject {
         locationManager.delegate = self
     }
 
-    private static func isBlockingStatus(_ status: AVAuthorizationStatus) -> Bool {
-        status == .denied || status == .restricted
-    }
-
-    private static func isBlockingPhotoStatus(_ status: PHAuthorizationStatus) -> Bool {
-        status == .denied || status == .restricted
-    }
-
     func refreshAll() async {
         cameraStatus = AVCaptureDevice.authorizationStatus(for: .video)
         photoLibraryStatus = PHPhotoLibrary.authorizationStatus(for: .readWrite)
@@ -114,6 +106,14 @@ final class PermissionStatusService: NSObject {
             self.locationManager.requestWhenInUseAuthorization()
         }
         locationStatus = locationManager.authorizationStatus
+    }
+
+    private static func isBlockingStatus(_ status: AVAuthorizationStatus) -> Bool {
+        status == .denied || status == .restricted
+    }
+
+    private static func isBlockingPhotoStatus(_ status: PHAuthorizationStatus) -> Bool {
+        status == .denied || status == .restricted
     }
 }
 

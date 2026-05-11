@@ -262,6 +262,48 @@ struct HomeSheets: ViewModifier {
 struct HomeDeleteDialogs: ViewModifier {
     @Bindable var viewModel: HomeViewModel
 
+    private var pairDeleteBinding: Binding<Bool> {
+        Binding(
+            get: { viewModel.pendingPairDelete != nil },
+            set: { if !$0 { viewModel.pendingPairDelete = nil } }
+        )
+    }
+
+    private var albumDeleteBinding: Binding<Bool> {
+        Binding(
+            get: { viewModel.pendingAlbumDelete != nil },
+            set: { if !$0 { viewModel.pendingAlbumDelete = nil } }
+        )
+    }
+
+    private var albumDestructiveBinding: Binding<Bool> {
+        Binding(
+            get: { viewModel.pendingAlbumDestructive != nil },
+            set: { if !$0 { viewModel.pendingAlbumDestructive = nil } }
+        )
+    }
+
+    private var singlePairDeleteBinding: Binding<Bool> {
+        Binding(
+            get: { viewModel.pendingSinglePairDelete != nil },
+            set: { if !$0 { viewModel.pendingSinglePairDelete = nil } }
+        )
+    }
+
+    private var singleAlbumDeleteBinding: Binding<Bool> {
+        Binding(
+            get: { viewModel.pendingSingleAlbumDelete != nil },
+            set: { if !$0 { viewModel.pendingSingleAlbumDelete = nil } }
+        )
+    }
+
+    private var singleAlbumDestructiveBinding: Binding<Bool> {
+        Binding(
+            get: { viewModel.pendingSingleAlbumDestructive != nil },
+            set: { if !$0 { viewModel.pendingSingleAlbumDestructive = nil } }
+        )
+    }
+
     func body(content: Content) -> some View {
         content
             .confirmationDialog(
@@ -459,48 +501,6 @@ struct HomeDeleteDialogs: ViewModifier {
         Button(String(localized: "common_button_cancel"), role: .cancel) {
             viewModel.pendingSingleAlbumDestructive = nil
         }
-    }
-
-    private var pairDeleteBinding: Binding<Bool> {
-        Binding(
-            get: { viewModel.pendingPairDelete != nil },
-            set: { if !$0 { viewModel.pendingPairDelete = nil } }
-        )
-    }
-
-    private var albumDeleteBinding: Binding<Bool> {
-        Binding(
-            get: { viewModel.pendingAlbumDelete != nil },
-            set: { if !$0 { viewModel.pendingAlbumDelete = nil } }
-        )
-    }
-
-    private var albumDestructiveBinding: Binding<Bool> {
-        Binding(
-            get: { viewModel.pendingAlbumDestructive != nil },
-            set: { if !$0 { viewModel.pendingAlbumDestructive = nil } }
-        )
-    }
-
-    private var singlePairDeleteBinding: Binding<Bool> {
-        Binding(
-            get: { viewModel.pendingSinglePairDelete != nil },
-            set: { if !$0 { viewModel.pendingSinglePairDelete = nil } }
-        )
-    }
-
-    private var singleAlbumDeleteBinding: Binding<Bool> {
-        Binding(
-            get: { viewModel.pendingSingleAlbumDelete != nil },
-            set: { if !$0 { viewModel.pendingSingleAlbumDelete = nil } }
-        )
-    }
-
-    private var singleAlbumDestructiveBinding: Binding<Bool> {
-        Binding(
-            get: { viewModel.pendingSingleAlbumDestructive != nil },
-            set: { if !$0 { viewModel.pendingSingleAlbumDestructive = nil } }
-        )
     }
 }
 

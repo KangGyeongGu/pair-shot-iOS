@@ -352,7 +352,6 @@ final class HomeViewModel {
         )
         try? await albumRepo.add(album)
     }
-
 }
 
 enum HomeReverseGeocoder {

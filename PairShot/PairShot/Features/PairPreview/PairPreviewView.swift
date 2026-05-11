@@ -9,10 +9,6 @@ struct PairPreviewView: View {
 
     @State private var viewModel: PairPreviewViewModel?
 
-    init(pair: PhotoPair) {
-        self.pair = pair
-    }
-
     var body: some View {
         NavigationStack {
             ZStack {
@@ -28,6 +24,22 @@ struct PairPreviewView: View {
         }
         .task { ensureViewModel() }
         .task { await observeEvents() }
+    }
+
+    @ToolbarContentBuilder
+    private var toolbar: some ToolbarContent {
+        ToolbarItem(placement: .topBarLeading) {
+            Button {
+                viewModel?.dismiss()
+            } label: {
+                Image(systemName: "xmark")
+            }
+            .accessibilityLabel(String(localized: "common_button_close"))
+        }
+    }
+
+    init(pair: PhotoPair) {
+        self.pair = pair
     }
 
     private func ensureViewModel() {
@@ -68,18 +80,6 @@ struct PairPreviewView: View {
             ProgressView()
         } else {
             PairPreviewEmptyState()
-        }
-    }
-
-    @ToolbarContentBuilder
-    private var toolbar: some ToolbarContent {
-        ToolbarItem(placement: .topBarLeading) {
-            Button {
-                viewModel?.dismiss()
-            } label: {
-                Image(systemName: "xmark")
-            }
-            .accessibilityLabel(String(localized: "common_button_close"))
         }
     }
 }
@@ -127,6 +127,13 @@ private struct PairPreviewEmptyState: View {
 private struct PairPreviewSheetModifiers: ViewModifier {
     @Bindable var viewModel: PairPreviewViewModel
 
+    private var errorBinding: Binding<Bool> {
+        Binding(
+            get: { viewModel.errorMessage != nil },
+            set: { if !$0 { viewModel.clearError() } }
+        )
+    }
+
     func body(content: Content) -> some View {
         content
             .alert(
@@ -140,12 +147,5 @@ private struct PairPreviewSheetModifiers: ViewModifier {
             } message: { message in
                 Text(message)
             }
-    }
-
-    private var errorBinding: Binding<Bool> {
-        Binding(
-            get: { viewModel.errorMessage != nil },
-            set: { if !$0 { viewModel.clearError() } }
-        )
     }
 }

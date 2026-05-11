@@ -16,8 +16,8 @@ nonisolated enum ExportFormat: String, Equatable, CaseIterable {
 }
 
 nonisolated struct ExportRenderOptions: Equatable {
+    static let disabled = Self(applyCombineSettings: false, applyWatermark: false)
+
     let applyCombineSettings: Bool
     let applyWatermark: Bool
-
-    static let disabled = Self(applyCombineSettings: false, applyWatermark: false)
 }

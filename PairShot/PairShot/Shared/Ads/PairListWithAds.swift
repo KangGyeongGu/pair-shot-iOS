@@ -1,9 +1,6 @@
 import Foundation
 
 enum PairListWithAdsBuilder {
-    static let pairsPerAd = 4
-    static let minPairsForAds = 3
-
     struct PairChunk: Identifiable {
         let id: Int
         let pairs: [PhotoPair]
@@ -14,6 +11,9 @@ enum PairListWithAdsBuilder {
         let chunks: [PairChunk]
         let nextSlotIndex: Int
     }
+
+    static let pairsPerAd = 4
+    static let minPairsForAds = 3
 
     static func buildChunks(
         pairs: [PhotoPair],

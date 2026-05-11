@@ -9,6 +9,9 @@ final class PairPreviewViewModel {
         case dismiss
     }
 
+    static let minZoom: CGFloat = 1.0
+    static let maxZoom: CGFloat = 4.0
+
     let pair: PhotoPair
 
     var livePreviewImage: UIImage?
@@ -22,9 +25,6 @@ final class PairPreviewViewModel {
     private let photoLibrary: PhotoLibraryService
     private let appSettings: AppSettings
     private let eventsContinuation: AsyncStream<Event>.Continuation
-
-    static let minZoom: CGFloat = 1.0
-    static let maxZoom: CGFloat = 4.0
 
     init(
         pair: PhotoPair,
