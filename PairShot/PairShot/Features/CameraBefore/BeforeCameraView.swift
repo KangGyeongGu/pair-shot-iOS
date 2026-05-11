@@ -55,6 +55,7 @@ struct BeforeCameraView: View {
                             return
                         }
                         hasPresentedColdStartAppOpen = true
+                        await env.adFreeStore.refresh()
                         await env.appOpenAdManager.presentIfReady(
                             from: BannerAdView.resolveRootViewController(),
                             coordinator: env.fullscreenAdCoordinator,
