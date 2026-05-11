@@ -69,33 +69,36 @@ final class AppEnvironment {
         hapticService: HapticService? = nil,
         motionService: MotionService? = nil
     ) {
-        let resolvedAppSettings = appSettings ?? AppSettings()
-        let resolvedSnackbarQueue = snackbarQueue ?? SnackbarQueue()
-
-        let apiConfig = CouponApiConfig.resolve()
-        let hashProvider = DeviceHashProvider()
-        let statusFetcher = AdFreeStatusFetcher(config: apiConfig)
-
+        let foundation = Self.makeFoundation(
+            overrides: AppEnvironmentFoundationOverrides(
+                appSettings: appSettings,
+                snackbarQueue: snackbarQueue,
+                appSettingsRepo: appSettingsRepo,
+                adFreeStore: adFreeStore,
+                trackingService: trackingService,
+                settingsRedirectCoordinator: settingsRedirectCoordinator,
+                permissionStatusService: permissionStatusService,
+                thumbnailCache: thumbnailCache,
+                hapticService: hapticService,
+                motionService: motionService
+            )
+        )
+        let resolvedAppSettings = foundation.appSettings
+        let resolvedSnackbarQueue = foundation.snackbarQueue
         self.modelContainer = modelContainer
         self.appSettings = resolvedAppSettings
-        self.appSettingsRepo = appSettingsRepo ?? UserDefaultsAppSettingsRepository()
-        self.adFreeStore =
-            adFreeStore
-                ?? AdFreeStore(
-                    fetcher: statusFetcher,
-                    deviceHashProvider: hashProvider
-                )
-        self.trackingService = trackingService ?? TrackingAuthorizationService()
+        self.appSettingsRepo = foundation.appSettingsRepo
+        self.adFreeStore = foundation.adFreeStore
+        self.trackingService = foundation.trackingService
         self.snackbarQueue = resolvedSnackbarQueue
-        self.settingsRedirectCoordinator = settingsRedirectCoordinator ?? SettingsRedirectCoordinator()
-        self.permissionStatusService = permissionStatusService ?? PermissionStatusService()
-        self.thumbnailCache = thumbnailCache ?? PhotoLibraryThumbnailCache()
-        self.hapticService = hapticService ?? HapticService()
-        self.motionService = motionService ?? MotionService()
-
-        couponApiConfig = apiConfig
-        deviceHashProvider = hashProvider
-        adFreeStatusFetcher = statusFetcher
+        self.settingsRedirectCoordinator = foundation.settingsRedirectCoordinator
+        self.permissionStatusService = foundation.permissionStatusService
+        self.thumbnailCache = foundation.thumbnailCache
+        self.hapticService = foundation.hapticService
+        self.motionService = foundation.motionService
+        couponApiConfig = foundation.apiConfig
+        deviceHashProvider = foundation.deviceHashProvider
+        adFreeStatusFetcher = foundation.adFreeStatusFetcher
 
         let adServices = Self.makeAdServices(
             trackingService: self.trackingService,

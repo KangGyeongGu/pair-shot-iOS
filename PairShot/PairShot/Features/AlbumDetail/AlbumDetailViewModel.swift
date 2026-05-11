@@ -51,7 +51,7 @@ final class AlbumDetailViewModel {
     var pendingZipExport: DocumentExporterItem?
     var isExporting: Bool = false
 
-    private var pendingZipProgress: SnackbarProgressHandle?
+    var pendingZipProgress: SnackbarProgressHandle?
 
     var showBeforeCamera: Bool = false
     var showAfterCamera: Bool = false
@@ -59,18 +59,18 @@ final class AlbumDetailViewModel {
     var beforeCameraTargetPairId: UUID?
     var navigateToPairPicker: Bool = false
 
-    private let pairRepo: PhotoPairRepository
-    private let albumRepo: AlbumRepository
-    private let deletePairs: DeletePairsUseCase
-    private let deleteCombinedExports: DeleteCombinedExportsUseCase?
-    private let deletePairsKeepingCombined: DeletePairsKeepingCombinedUseCase?
-    private let toggleAlbumMembership: ToggleAlbumMembershipUseCase
-    private let thumbnailCache: PhotoLibraryThumbnailCache
-    private let immediateExport: ImmediateExportService
-    private let appSettings: AppSettings
-    private let interstitialAdManager: InterstitialAdManager?
-    private let adFreeStore: AdFreeStore?
-    private let fullscreenAdCoordinator: FullscreenAdCoordinator?
+    let pairRepo: PhotoPairRepository
+    let albumRepo: AlbumRepository
+    let deletePairs: DeletePairsUseCase
+    let deleteCombinedExports: DeleteCombinedExportsUseCase?
+    let deletePairsKeepingCombined: DeletePairsKeepingCombinedUseCase?
+    let toggleAlbumMembership: ToggleAlbumMembershipUseCase
+    let thumbnailCache: PhotoLibraryThumbnailCache
+    let immediateExport: ImmediateExportService
+    let appSettings: AppSettings
+    let interstitialAdManager: InterstitialAdManager?
+    let adFreeStore: AdFreeStore?
+    let fullscreenAdCoordinator: FullscreenAdCoordinator?
 
     init(
         albumId: UUID,
@@ -102,22 +102,6 @@ final class AlbumDetailViewModel {
         self.interstitialAdManager = interstitialAdManager
         self.adFreeStore = adFreeStore
         self.fullscreenAdCoordinator = fullscreenAdCoordinator
-    }
-
-    func deleteCombinedExports(for pair: PhotoPair) async {
-        guard let useCase = deleteCombinedExports else { return }
-        try? await useCase(ids: [pair.id])
-    }
-
-    func confirmCombinedDeletion(pairs: [PhotoPair]) async {
-        guard let useCase = deleteCombinedExports else { return }
-        try? await useCase(ids: Set(pairs.map(\.id)))
-        cancelSelection()
-    }
-
-    func confirmSingleCombinedDeletion(_ pair: PhotoPair) async {
-        guard let useCase = deleteCombinedExports else { return }
-        try? await useCase(ids: [pair.id])
     }
 
     func sortedPairs(from pairs: [PhotoPair]) -> [PhotoPair] {
@@ -317,46 +301,6 @@ final class AlbumDetailViewModel {
         cancelSelection()
     }
 
-    func confirmPairDeletion(pairs: [PhotoPair]) async {
-        let snapshots: [(before: String?, after: String?)] = pairs.map {
-            ($0.beforePhotoLocalIdentifier, $0.afterPhotoLocalIdentifier)
-        }
-        let ids = Set(pairs.map(\.id))
-        try? await deletePairs(ids: ids)
-        for snapshot in snapshots {
-            evictThumbnails(beforeIdentifier: snapshot.before, afterIdentifier: snapshot.after)
-        }
-        cancelSelection()
-    }
-
-    func confirmOriginalOnlyDeletion(pairs: [PhotoPair]) async {
-        guard let useCase = deletePairsKeepingCombined else { return }
-        let snapshots: [(before: String?, after: String?)] = pairs.map {
-            ($0.beforePhotoLocalIdentifier, $0.afterPhotoLocalIdentifier)
-        }
-        let ids = Set(pairs.map(\.id))
-        try? await useCase(ids: ids)
-        for snapshot in snapshots {
-            evictThumbnails(beforeIdentifier: snapshot.before, afterIdentifier: snapshot.after)
-        }
-        cancelSelection()
-    }
-
-    func confirmSinglePairDeletion(_ pair: PhotoPair) async {
-        let beforeId = pair.beforePhotoLocalIdentifier
-        let afterId = pair.afterPhotoLocalIdentifier
-        try? await deletePairs(ids: [pair.id])
-        evictThumbnails(beforeIdentifier: beforeId, afterIdentifier: afterId)
-    }
-
-    func confirmSingleOriginalOnlyDeletion(_ pair: PhotoPair) async {
-        guard let useCase = deletePairsKeepingCombined else { return }
-        let beforeId = pair.beforePhotoLocalIdentifier
-        let afterId = pair.afterPhotoLocalIdentifier
-        try? await useCase(ids: [pair.id])
-        evictThumbnails(beforeIdentifier: beforeId, afterIdentifier: afterId)
-    }
-
     func beginRename(currentName: String) {
         renameDraft = currentName
         showRenameAlert = true
@@ -375,47 +319,4 @@ final class AlbumDetailViewModel {
         pendingAlbumDelete = album
     }
 
-    func confirmAlbumDeletion() async {
-        try? await albumRepo.delete(id: albumId)
-        albumDeleted = true
-    }
-
-    func confirmAlbumDeletionAllPairs(album: Album) async {
-        let pairIds = Set(album.pairIds)
-        if !pairIds.isEmpty {
-            try? await deletePairs(ids: pairIds)
-        }
-        try? await albumRepo.delete(id: albumId)
-        albumDeleted = true
-    }
-
-    func confirmAlbumDeletionOriginalOnly(album: Album) async {
-        guard let useCase = deletePairsKeepingCombined else { return }
-        let pairIds = Set(album.pairIds)
-        if !pairIds.isEmpty {
-            try? await useCase(ids: pairIds)
-        }
-        try? await albumRepo.delete(id: albumId)
-        albumDeleted = true
-    }
-
-    func confirmAlbumDeletionCombinedOnly(album: Album) async {
-        if let useCase = deleteCombinedExports {
-            let pairIds = Set(album.pairIds)
-            if !pairIds.isEmpty {
-                try? await useCase(ids: pairIds)
-            }
-        }
-        try? await albumRepo.delete(id: albumId)
-        albumDeleted = true
-    }
-
-    private func evictThumbnails(beforeIdentifier: String?, afterIdentifier: String?) {
-        if let beforeIdentifier {
-            thumbnailCache.evict(localIdentifier: beforeIdentifier)
-        }
-        if let afterIdentifier {
-            thumbnailCache.evict(localIdentifier: afterIdentifier)
-        }
-    }
 }

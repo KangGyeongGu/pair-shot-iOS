@@ -1,7 +1,57 @@
 import Foundation
 import SwiftData
 
+struct AppEnvironmentFoundationOverrides {
+    let appSettings: AppSettings?
+    let snackbarQueue: SnackbarQueue?
+    let appSettingsRepo: AppSettingsRepository?
+    let adFreeStore: AdFreeStore?
+    let trackingService: TrackingAuthorizationService?
+    let settingsRedirectCoordinator: SettingsRedirectCoordinator?
+    let permissionStatusService: PermissionStatusService?
+    let thumbnailCache: PhotoLibraryThumbnailCache?
+    let hapticService: HapticService?
+    let motionService: MotionService?
+}
+
 extension AppEnvironment {
+    static func makeFoundation(
+        overrides: AppEnvironmentFoundationOverrides
+    ) -> (
+        appSettings: AppSettings,
+        snackbarQueue: SnackbarQueue,
+        appSettingsRepo: AppSettingsRepository,
+        adFreeStore: AdFreeStore,
+        trackingService: TrackingAuthorizationService,
+        settingsRedirectCoordinator: SettingsRedirectCoordinator,
+        permissionStatusService: PermissionStatusService,
+        thumbnailCache: PhotoLibraryThumbnailCache,
+        hapticService: HapticService,
+        motionService: MotionService,
+        apiConfig: CouponApiConfig,
+        deviceHashProvider: DeviceHashProvider,
+        adFreeStatusFetcher: AdFreeStatusFetcher
+    ) {
+        let apiConfig = CouponApiConfig.resolve()
+        let hashProvider = DeviceHashProvider()
+        let statusFetcher = AdFreeStatusFetcher(config: apiConfig)
+        return (
+            appSettings: overrides.appSettings ?? AppSettings(),
+            snackbarQueue: overrides.snackbarQueue ?? SnackbarQueue(),
+            appSettingsRepo: overrides.appSettingsRepo ?? UserDefaultsAppSettingsRepository(),
+            adFreeStore: overrides.adFreeStore ?? AdFreeStore(fetcher: statusFetcher, deviceHashProvider: hashProvider),
+            trackingService: overrides.trackingService ?? TrackingAuthorizationService(),
+            settingsRedirectCoordinator: overrides.settingsRedirectCoordinator ?? SettingsRedirectCoordinator(),
+            permissionStatusService: overrides.permissionStatusService ?? PermissionStatusService(),
+            thumbnailCache: overrides.thumbnailCache ?? PhotoLibraryThumbnailCache(),
+            hapticService: overrides.hapticService ?? HapticService(),
+            motionService: overrides.motionService ?? MotionService(),
+            apiConfig: apiConfig,
+            deviceHashProvider: hashProvider,
+            adFreeStatusFetcher: statusFetcher
+        )
+    }
+
     static func makeDataServices(
         modelContainer: ModelContainer,
         appSettings: AppSettings

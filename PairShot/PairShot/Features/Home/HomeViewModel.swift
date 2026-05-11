@@ -81,26 +81,26 @@ final class HomeViewModel {
     var pendingZipExport: DocumentExporterItem?
     var isExporting: Bool = false
 
-    private var pendingZipProgress: SnackbarProgressHandle?
+    var pendingZipProgress: SnackbarProgressHandle?
     var showCreateAlbum: Bool = false
     var albumNameInput: String = ""
     var resolvedAlbumLatitude: Double?
     var resolvedAlbumLongitude: Double?
     var resolvedAlbumLabel: String?
 
-    private let pairRepo: PhotoPairRepository
-    private let albumRepo: AlbumRepository
-    private let deletePairs: DeletePairsUseCase
-    private let deleteCombinedExports: DeleteCombinedExportsUseCase?
-    private let deletePairsKeepingCombined: DeletePairsKeepingCombinedUseCase?
-    private let toggleAlbumMembership: ToggleAlbumMembershipUseCase
-    private let location: CoreLocationService
-    private let thumbnailCache: PhotoLibraryThumbnailCache
-    private let immediateExport: ImmediateExportService
-    private let appSettings: AppSettings
-    private let interstitialAdManager: InterstitialAdManager?
-    private let adFreeStore: AdFreeStore?
-    private let fullscreenAdCoordinator: FullscreenAdCoordinator?
+    let pairRepo: PhotoPairRepository
+    let albumRepo: AlbumRepository
+    let deletePairs: DeletePairsUseCase
+    let deleteCombinedExports: DeleteCombinedExportsUseCase?
+    let deletePairsKeepingCombined: DeletePairsKeepingCombinedUseCase?
+    let toggleAlbumMembership: ToggleAlbumMembershipUseCase
+    let location: CoreLocationService
+    let thumbnailCache: PhotoLibraryThumbnailCache
+    let immediateExport: ImmediateExportService
+    let appSettings: AppSettings
+    let interstitialAdManager: InterstitialAdManager?
+    let adFreeStore: AdFreeStore?
+    let fullscreenAdCoordinator: FullscreenAdCoordinator?
 
     init(
         pairRepo: PhotoPairRepository,
@@ -132,11 +132,6 @@ final class HomeViewModel {
         self.interstitialAdManager = interstitialAdManager
         self.adFreeStore = adFreeStore
         self.fullscreenAdCoordinator = fullscreenAdCoordinator
-    }
-
-    func deleteCombinedExports(for pair: PhotoPair) async {
-        guard let useCase = deleteCombinedExports else { return }
-        try? await useCase(ids: [pair.id])
     }
 
     func sortedPairs(from all: [PhotoPair]) -> [PhotoPair] {
@@ -270,109 +265,6 @@ final class HomeViewModel {
         showBeforeCamera = true
     }
 
-    func shareSelectedPairs(from all: [PhotoPair]) async {
-        let chosen = all.filter { selectedPairIds.contains($0.id) }
-        guard !chosen.isEmpty else { return }
-        guard !isExporting else { return }
-        await InterstitialAdManager.runGated(
-            manager: interstitialAdManager,
-            adFreeStore: adFreeStore,
-            coordinator: fullscreenAdCoordinator
-        ) { [weak self] in
-            await self?.performShare(pairs: chosen)
-        }
-    }
-
-    func saveSelectedPairsToDevice(from all: [PhotoPair]) async {
-        let chosen = all.filter { selectedPairIds.contains($0.id) }
-        guard !chosen.isEmpty else { return }
-        guard !isExporting else { return }
-        await InterstitialAdManager.runGated(
-            manager: interstitialAdManager,
-            adFreeStore: adFreeStore,
-            coordinator: fullscreenAdCoordinator
-        ) { [weak self] in
-            await self?.performSaveToDevice(pairs: chosen)
-        }
-    }
-
-    func shareSelectedAlbumPairs(from albums: [Album], allPairs: [PhotoPair]) async {
-        let pairIds = Set(
-            albums.filter { selectedAlbumIds.contains($0.id) }.flatMap(\.pairIds)
-        )
-        guard !pairIds.isEmpty else { return }
-        let chosen = allPairs.filter { pairIds.contains($0.id) }
-        guard !chosen.isEmpty, !isExporting else { return }
-        await InterstitialAdManager.runGated(
-            manager: interstitialAdManager,
-            adFreeStore: adFreeStore,
-            coordinator: fullscreenAdCoordinator
-        ) { [weak self] in
-            await self?.performShare(pairs: chosen)
-        }
-    }
-
-    func saveSelectedAlbumPairsToDevice(from albums: [Album], allPairs: [PhotoPair]) async {
-        let pairIds = Set(
-            albums.filter { selectedAlbumIds.contains($0.id) }.flatMap(\.pairIds)
-        )
-        guard !pairIds.isEmpty else { return }
-        let chosen = allPairs.filter { pairIds.contains($0.id) }
-        guard !chosen.isEmpty, !isExporting else { return }
-        await InterstitialAdManager.runGated(
-            manager: interstitialAdManager,
-            adFreeStore: adFreeStore,
-            coordinator: fullscreenAdCoordinator
-        ) { [weak self] in
-            await self?.performSaveToDevice(pairs: chosen)
-        }
-    }
-
-    private func performShare(pairs: [PhotoPair]) async {
-        isExporting = true
-        defer { isExporting = false }
-        do {
-            let items = try await immediateExport.makeShareItems(for: pairs)
-            guard !items.values.isEmpty else { return }
-            pendingShareItems = items
-        } catch {
-            immediateExport.notifyShareFailure()
-        }
-    }
-
-    private func performSaveToDevice(pairs: [PhotoPair]) async {
-        isExporting = true
-        defer { isExporting = false }
-        let outcome = await immediateExport.saveToDevice(pairs: pairs)
-        switch outcome {
-            case .completed:
-                cancelSelection()
-
-            case let .zipPendingExport(url, progress):
-                pendingZipProgress = progress
-                pendingZipExport = DocumentExporterItem(url: url)
-        }
-    }
-
-    func handleZipExportCompleted(_ saved: Bool) {
-        let url = pendingZipExport?.url
-        let progress = pendingZipProgress
-        pendingZipExport = nil
-        pendingZipProgress = nil
-        if let url, let progress {
-            immediateExport.finishZipExport(url: url, progress: progress, saved: saved)
-            cancelSelection()
-        }
-    }
-
-    func clearShareItems() {
-        if let items = pendingShareItems {
-            immediateExport.cleanup(items: items)
-        }
-        pendingShareItems = nil
-        cancelSelection()
-    }
-
     func openCreateAlbum() {
         albumNameInput = ""
         resolvedAlbumLatitude = nil
@@ -439,157 +331,9 @@ final class HomeViewModel {
         pendingRecaptureAfter = HomeRecaptureAfterRequest(pair: pair)
     }
 
-    func sharePair(_ pair: PhotoPair) async {
-        guard !isExporting else { return }
-        await InterstitialAdManager.runGated(
-            manager: interstitialAdManager,
-            adFreeStore: adFreeStore,
-            coordinator: fullscreenAdCoordinator
-        ) { [weak self] in
-            await self?.performShare(pairs: [pair])
-        }
-    }
-
-    func exportPair(_ pair: PhotoPair) async {
-        guard !isExporting else { return }
-        await InterstitialAdManager.runGated(
-            manager: interstitialAdManager,
-            adFreeStore: adFreeStore,
-            coordinator: fullscreenAdCoordinator
-        ) { [weak self] in
-            await self?.performSaveToDevice(pairs: [pair])
-        }
-    }
-
     func requestSingleAlbumDeletion(_ album: Album) {
         guard !isSelectionMode else { return }
         pendingSingleAlbumDelete = HomeSingleAlbumDeleteRequest(album: album)
-    }
-
-    func confirmPairDeletion(pairs: [PhotoPair]) async {
-        let snapshots: [(before: String?, after: String?)] = pairs.map {
-            ($0.beforePhotoLocalIdentifier, $0.afterPhotoLocalIdentifier)
-        }
-        let ids = Set(pairs.map(\.id))
-        try? await deletePairs(ids: ids)
-        for snapshot in snapshots {
-            evictThumbnails(beforeIdentifier: snapshot.before, afterIdentifier: snapshot.after)
-        }
-        cancelSelection()
-    }
-
-    func confirmCombinedDeletion(pairs: [PhotoPair]) async {
-        guard let useCase = deleteCombinedExports else { return }
-        let ids = Set(pairs.map(\.id))
-        try? await useCase(ids: ids)
-        cancelSelection()
-    }
-
-    func confirmOriginalOnlyPairDeletion(pairs: [PhotoPair]) async {
-        guard let useCase = deletePairsKeepingCombined else { return }
-        let snapshots: [(before: String?, after: String?)] = pairs.map {
-            ($0.beforePhotoLocalIdentifier, $0.afterPhotoLocalIdentifier)
-        }
-        let ids = Set(pairs.map(\.id))
-        try? await useCase(ids: ids)
-        for snapshot in snapshots {
-            evictThumbnails(beforeIdentifier: snapshot.before, afterIdentifier: snapshot.after)
-        }
-        cancelSelection()
-    }
-
-    func confirmSinglePairDeletion(_ pair: PhotoPair) async {
-        let beforeId = pair.beforePhotoLocalIdentifier
-        let afterId = pair.afterPhotoLocalIdentifier
-        try? await deletePairs(ids: [pair.id])
-        evictThumbnails(beforeIdentifier: beforeId, afterIdentifier: afterId)
-    }
-
-    func confirmSingleOriginalOnlyPairDeletion(_ pair: PhotoPair) async {
-        guard let useCase = deletePairsKeepingCombined else { return }
-        let beforeId = pair.beforePhotoLocalIdentifier
-        let afterId = pair.afterPhotoLocalIdentifier
-        try? await useCase(ids: [pair.id])
-        evictThumbnails(beforeIdentifier: beforeId, afterIdentifier: afterId)
-    }
-
-    func confirmSingleCombinedDeletion(_ pair: PhotoPair) async {
-        guard let useCase = deleteCombinedExports else { return }
-        try? await useCase(ids: [pair.id])
-    }
-
-    func confirmAlbumDeletion(albums: [Album]) async {
-        for album in albums {
-            try? await albumRepo.delete(id: album.id)
-        }
-        cancelSelection()
-    }
-
-    func confirmAlbumDeletionAllPairs(albums: [Album]) async {
-        let pairIds = Set(albums.flatMap(\.pairIds))
-        if !pairIds.isEmpty {
-            try? await deletePairs(ids: pairIds)
-        }
-        for album in albums {
-            try? await albumRepo.delete(id: album.id)
-        }
-        cancelSelection()
-    }
-
-    func confirmAlbumDeletionOriginalOnly(albums: [Album]) async {
-        guard let useCase = deletePairsKeepingCombined else { return }
-        let pairIds = Set(albums.flatMap(\.pairIds))
-        if !pairIds.isEmpty {
-            try? await useCase(ids: pairIds)
-        }
-        for album in albums {
-            try? await albumRepo.delete(id: album.id)
-        }
-        cancelSelection()
-    }
-
-    func confirmAlbumDeletionCombinedOnly(albums: [Album]) async {
-        if let useCase = deleteCombinedExports {
-            let pairIds = Set(albums.flatMap(\.pairIds))
-            if !pairIds.isEmpty {
-                try? await useCase(ids: pairIds)
-            }
-        }
-        for album in albums {
-            try? await albumRepo.delete(id: album.id)
-        }
-        cancelSelection()
-    }
-
-    func confirmSingleAlbumDeletion(_ album: Album) async {
-        try? await albumRepo.delete(id: album.id)
-    }
-
-    func confirmSingleAlbumDeletionAllPairs(_ album: Album) async {
-        let pairIds = Set(album.pairIds)
-        if !pairIds.isEmpty {
-            try? await deletePairs(ids: pairIds)
-        }
-        try? await albumRepo.delete(id: album.id)
-    }
-
-    func confirmSingleAlbumDeletionOriginalOnly(_ album: Album) async {
-        guard let useCase = deletePairsKeepingCombined else { return }
-        let pairIds = Set(album.pairIds)
-        if !pairIds.isEmpty {
-            try? await useCase(ids: pairIds)
-        }
-        try? await albumRepo.delete(id: album.id)
-    }
-
-    func confirmSingleAlbumDeletionCombinedOnly(_ album: Album) async {
-        if let useCase = deleteCombinedExports {
-            let pairIds = Set(album.pairIds)
-            if !pairIds.isEmpty {
-                try? await useCase(ids: pairIds)
-            }
-        }
-        try? await albumRepo.delete(id: album.id)
     }
 
     func createAlbum(
@@ -609,14 +353,6 @@ final class HomeViewModel {
         try? await albumRepo.add(album)
     }
 
-    private func evictThumbnails(beforeIdentifier: String?, afterIdentifier: String?) {
-        if let beforeIdentifier {
-            thumbnailCache.evict(localIdentifier: beforeIdentifier)
-        }
-        if let afterIdentifier {
-            thumbnailCache.evict(localIdentifier: afterIdentifier)
-        }
-    }
 }
 
 enum HomeReverseGeocoder {
