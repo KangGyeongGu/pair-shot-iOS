@@ -37,7 +37,7 @@ struct PairShotActionBar: View {
         .padding(.horizontal, 20)
         .background {
             Color.clear
-                .adaptiveGlass(in: Rectangle(), kind: .regular, legacyFill: .appSurfaceContainer)
+                .adaptiveGlass(in: Rectangle(), legacyFill: .appSurfaceContainer, kind: .regular)
                 .ignoresSafeArea(edges: .bottom)
         }
     }

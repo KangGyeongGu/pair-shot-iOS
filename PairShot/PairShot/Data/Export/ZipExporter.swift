@@ -85,10 +85,10 @@ nonisolated struct ZipExporterAdapter {
     let appSettings: AppSettings
 
     init(
-        exporter: ZipExporter = ZipExporter(),
         photoLibrary: PhotoLibraryService,
         pairRepo: PhotoPairRepository,
-        appSettings: AppSettings
+        appSettings: AppSettings,
+        exporter: ZipExporter = ZipExporter()
     ) {
         self.exporter = exporter
         self.photoLibrary = photoLibrary
@@ -119,14 +119,16 @@ nonisolated struct ZipExporterAdapter {
                 prefix: prefix
             )
             for entry in entries {
-                guard let data = await ExportEntryRenderer.render(
-                    entry: entry,
-                    pair: pair,
-                    photoLibrary: photoLibrary,
-                    appSettings: appSettings,
-                    renderOptions: renderOptions,
-                    now: now
-                ) else { continue }
+                guard
+                    let data = await ExportEntryRenderer.render(
+                        entry: entry,
+                        pair: pair,
+                        photoLibrary: photoLibrary,
+                        appSettings: appSettings,
+                        renderOptions: renderOptions,
+                        now: now
+                    )
+                else { continue }
                 payloads.append(ZipEntryPayload(relativeName: entry.relativeName, data: data))
             }
         }
@@ -168,12 +170,14 @@ nonisolated enum ExportSelection {
                 timestamp: pair.createdAt,
                 sequenceNumber: sequenceNumber
             )
-            out.append(Entry(
-                relativeName: "\(folder)/COMBINED/\(fileName)",
-                kind: .combined,
-                pairId: pair.id,
-                localIdentifier: nil
-            ))
+            out.append(
+                Entry(
+                    relativeName: "\(folder)/COMBINED/\(fileName)",
+                    kind: .combined,
+                    pairId: pair.id,
+                    localIdentifier: nil
+                )
+            )
         }
         if selection.includeBefore, let beforeId, !beforeId.isEmpty {
             let fileName = FileNameBuilder.before(
@@ -181,12 +185,14 @@ nonisolated enum ExportSelection {
                 timestamp: pair.createdAt,
                 sequenceNumber: sequenceNumber
             )
-            out.append(Entry(
-                relativeName: "\(folder)/BEFORE/\(fileName)",
-                kind: .before,
-                pairId: pair.id,
-                localIdentifier: beforeId
-            ))
+            out.append(
+                Entry(
+                    relativeName: "\(folder)/BEFORE/\(fileName)",
+                    kind: .before,
+                    pairId: pair.id,
+                    localIdentifier: beforeId
+                )
+            )
         }
         if selection.includeAfter, let afterId, !afterId.isEmpty {
             let fileName = FileNameBuilder.after(
@@ -194,12 +200,14 @@ nonisolated enum ExportSelection {
                 timestamp: pair.createdAt,
                 sequenceNumber: sequenceNumber
             )
-            out.append(Entry(
-                relativeName: "\(folder)/AFTER/\(fileName)",
-                kind: .after,
-                pairId: pair.id,
-                localIdentifier: afterId
-            ))
+            out.append(
+                Entry(
+                    relativeName: "\(folder)/AFTER/\(fileName)",
+                    kind: .after,
+                    pairId: pair.id,
+                    localIdentifier: afterId
+                )
+            )
         }
         return out
     }
@@ -209,7 +217,13 @@ nonisolated enum ExportSelection {
         guard !trimmed.isEmpty else { return "PairShot" }
         var allowed = CharacterSet.alphanumerics
         allowed.insert(charactersIn: "_-")
-        allowed.insert(charactersIn: Unicode.Scalar(0xAC00)! ... Unicode.Scalar(0xD7A3)!)
+        guard
+            let hangulStart = Unicode.Scalar(0xAC00),
+            let hangulEnd = Unicode.Scalar(0xD7A3)
+        else {
+            return trimmed
+        }
+        allowed.insert(charactersIn: hangulStart ... hangulEnd)
         var out = ""
         out.reserveCapacity(trimmed.count)
         for scalar in trimmed.unicodeScalars {

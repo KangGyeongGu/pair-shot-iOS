@@ -39,11 +39,13 @@ nonisolated enum ExportEntryRenderer {
         renderOptions: ExportRenderOptions,
         now: Date
     ) async -> Data? {
-        let combineSettings: CombineSettings? = renderOptions.applyCombineSettings
-            ? appSettings.combineSettings
-            : nil
-        let layout: CompositeLayout = combineSettings.map(CompositeLayoutResolver.layout(from:))
-            ?? appSettings.defaultCompositeLayout
+        let combineSettings: CombineSettings? =
+            renderOptions.applyCombineSettings
+                ? appSettings.combineSettings
+                : nil
+        let layout: CompositeLayout =
+            combineSettings.map(CompositeLayoutResolver.layout(from:))
+                ?? appSettings.defaultCompositeLayout
         let watermark = activeWatermark(appSettings: appSettings, renderOptions: renderOptions)
         let options = CompositeOptions(
             layout: layout,
@@ -55,8 +57,8 @@ nonisolated enum ExportEntryRenderer {
         )
         return try? await CompositeRenderer.makeComposite(
             for: pair,
-            options: options,
             photoLibrary: photoLibrary,
+            options: options,
             now: now
         )
     }

@@ -6,7 +6,9 @@ struct SettingsGeneralSection: View {
 
     var body: some View {
         Section {
-            Button { path.append(.languagePicker) } label: {
+            Button {
+                path.append(.languagePicker)
+            } label: {
                 SettingsNavigationRow(
                     icon: SettingsRowIcon(systemImage: "globe", color: .blue),
                     title: String(localized: "settings_item_language"),
@@ -15,7 +17,9 @@ struct SettingsGeneralSection: View {
             }
             .buttonStyle(.plain)
 
-            Button { path.append(.themePicker) } label: {
+            Button {
+                path.append(.themePicker)
+            } label: {
                 SettingsNavigationRow(
                     icon: SettingsRowIcon(systemImage: "circle.lefthalf.filled", color: .indigo),
                     title: String(localized: "settings_item_theme"),
@@ -35,7 +39,9 @@ struct SettingsCaptureFileSection: View {
 
     var body: some View {
         Section {
-            Button { path.append(.imageQualityPicker) } label: {
+            Button {
+                path.append(.imageQualityPicker)
+            } label: {
                 SettingsNavigationRow(
                     icon: SettingsRowIcon(systemImage: "photo", color: .blue),
                     title: String(localized: "settings_item_image_quality"),
@@ -46,7 +52,9 @@ struct SettingsCaptureFileSection: View {
 
             overlayOpacityRow
 
-            Button { path.append(.filenamePrefixEditor) } label: {
+            Button {
+                path.append(.filenamePrefixEditor)
+            } label: {
                 SettingsNavigationRow(
                     icon: SettingsRowIcon(systemImage: "textformat", color: .gray),
                     title: String(localized: "settings_item_file_name_prefix"),
@@ -61,10 +69,12 @@ struct SettingsCaptureFileSection: View {
 
     private var overlayOpacityRow: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Toggle(isOn: Binding(
-                get: { viewModel.overlayAlphaEnabled },
-                set: { viewModel.overlayAlphaEnabled = $0 }
-            )) {
+            Toggle(
+                isOn: Binding(
+                    get: { viewModel.overlayAlphaEnabled },
+                    set: { viewModel.overlayAlphaEnabled = $0 }
+                )
+            ) {
                 HStack(spacing: 12) {
                     SettingsIconBadge(
                         icon: SettingsRowIcon(systemImage: "square.on.square", color: .indigo)
@@ -108,10 +118,12 @@ struct SettingsWatermarkSection: View {
     var body: some View {
         Section {
             HighlightableCard(isHighlighted: viewModel.shouldPulseWatermark) {
-                Toggle(isOn: Binding(
-                    get: { viewModel.watermarkEnabled },
-                    set: { viewModel.watermarkEnabled = $0 }
-                )) {
+                Toggle(
+                    isOn: Binding(
+                        get: { viewModel.watermarkEnabled },
+                        set: { viewModel.watermarkEnabled = $0 }
+                    )
+                ) {
                     HStack(spacing: 12) {
                         SettingsIconBadge(
                             icon: SettingsRowIcon(systemImage: "signature", color: .blue)
@@ -184,10 +196,12 @@ struct SettingsPrivacySection: View {
 
     var body: some View {
         Section {
-            Toggle(isOn: Binding(
-                get: { viewModel.embedGPSInPhoto },
-                set: { viewModel.embedGPSInPhoto = $0 }
-            )) {
+            Toggle(
+                isOn: Binding(
+                    get: { viewModel.embedGPSInPhoto },
+                    set: { viewModel.embedGPSInPhoto = $0 }
+                )
+            ) {
                 HStack(spacing: 12) {
                     SettingsIconBadge(
                         icon: SettingsRowIcon(systemImage: "location.fill", color: .blue)
@@ -331,5 +345,10 @@ struct SettingsStorageInfoSection: View {
 }
 
 enum SettingsExternalLinks {
-    static let privacyPolicy: URL = .init(string: "https://pairshot.kangkyeonggu.com/privacy")!
+    static let privacyPolicy: URL = {
+        guard let url = URL(string: "https://pairshot.kangkyeonggu.com/privacy") else {
+            fatalError("Invalid static URL")
+        }
+        return url
+    }()
 }

@@ -143,9 +143,9 @@ final class SettingsViewModel {
         self.appSettingsRepo = appSettingsRepo
         self.thumbnailCache = thumbnailCache
         self.hapticService = hapticService
-        var continuation: AsyncStream<Event>.Continuation!
-        events = AsyncStream { continuation = $0 }
-        eventsContinuation = continuation
+        let stream = AsyncStream<Event>.makeStream()
+        events = stream.stream
+        eventsContinuation = stream.continuation
         overlayAlphaValue = CompositionDefaults.clampAlpha(appSettings.defaultOverlayAlpha)
         overlayAlphaEnabled = appSettings.overlayEnabled
     }

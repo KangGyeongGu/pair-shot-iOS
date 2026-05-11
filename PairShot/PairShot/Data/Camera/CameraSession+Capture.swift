@@ -47,12 +47,14 @@ nonisolated extension CameraSession {
                 }
                 switch result {
                     case let .success(rawJpeg):
-                        cont.resume(returning: CapturedPhoto(
-                            jpegData: rawJpeg,
-                            zoomFactor: captureContext.zoom,
-                            lensIdentifier: captureContext.lens,
-                            capturedAt: .now
-                        ))
+                        cont.resume(
+                            returning: CapturedPhoto(
+                                jpegData: rawJpeg,
+                                zoomFactor: captureContext.zoom,
+                                lensIdentifier: captureContext.lens,
+                                capturedAt: .now
+                            )
+                        )
 
                     case let .failure(err):
                         AppLogger.camera
@@ -68,12 +70,13 @@ nonisolated extension CameraSession {
     }
 
     nonisolated static func lensIdentifier(for device: AVCaptureDevice) -> String {
-        let position = switch device.position {
-            case .back: "back"
-            case .front: "front"
-            case .unspecified: "unspecified"
-            @unknown default: "unknown"
-        }
+        let position =
+            switch device.position {
+                case .back: "back"
+                case .front: "front"
+                case .unspecified: "unspecified"
+                @unknown default: "unknown"
+            }
         return "\(device.deviceType.rawValue).\(position)"
     }
 }

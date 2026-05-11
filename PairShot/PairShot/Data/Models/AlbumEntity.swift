@@ -15,8 +15,8 @@ final class AlbumEntity {
     var pairs: [PhotoPairEntity] = []
 
     init(
-        id: UUID = UUID(),
         name: String,
+        id: UUID = UUID(),
         latitude: Double? = nil,
         longitude: Double? = nil,
         locationLabel: String? = nil,

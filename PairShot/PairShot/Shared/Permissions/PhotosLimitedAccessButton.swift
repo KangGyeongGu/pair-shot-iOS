@@ -27,19 +27,23 @@ struct PhotosLimitedAccessButton: View {
     }
 
     private func presentLimitedLibraryPicker() {
-        guard let scene = UIApplication.shared.connectedScenes
+        guard
+            let scene = UIApplication.shared.connectedScenes
             .compactMap({ $0 as? UIWindowScene })
             .first(where: { $0.activationState == .foregroundActive })
             ?? UIApplication.shared.connectedScenes
             .compactMap({ $0 as? UIWindowScene })
             .first,
-            let viewController = topViewController(in: scene) else { return }
+            let viewController = topViewController(in: scene)
+        else { return }
         PHPhotoLibrary.shared().presentLimitedLibraryPicker(from: viewController)
     }
 
     private func topViewController(in scene: UIWindowScene) -> UIViewController? {
-        guard let root = scene.windows.first(where: \.isKeyWindow)?.rootViewController
-            ?? scene.windows.first?.rootViewController else { return nil }
+        guard
+            let root = scene.windows.first(where: \.isKeyWindow)?.rootViewController
+            ?? scene.windows.first?.rootViewController
+        else { return nil }
         var current = root
         while let presented = current.presentedViewController {
             current = presented

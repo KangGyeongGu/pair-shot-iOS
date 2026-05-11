@@ -46,7 +46,7 @@ final class BeforeCameraViewModel {
     }
 
     var isCapturing: Bool = false
-    var cameraPermissionGranted: Bool?
+    var cameraPermissionState: CameraPermissionState = .unknown
     var captureErrorMessage: String?
     var cachedExposureRange: ClosedRange<Float>?
 
@@ -72,12 +72,12 @@ final class BeforeCameraViewModel {
 
     init(
         albumId: UUID?,
-        refillPairId: UUID? = nil,
         createPair: CreatePairUseCase,
         pairRepo: PhotoPairRepository,
         albumRepo: AlbumRepository,
         appSettings: AppSettings,
         hapticService: HapticService,
+        refillPairId: UUID? = nil,
         session: CameraSession? = nil,
         permissionProbe: @escaping @Sendable () async -> Bool = CameraPermissionProbe.resolve
     ) {
@@ -91,9 +91,9 @@ final class BeforeCameraViewModel {
         let resolvedSession = session ?? CameraSession()
         self.session = resolvedSession
         self.permissionProbe = permissionProbe
-        var continuation: AsyncStream<Event>.Continuation!
-        events = AsyncStream { continuation = $0 }
-        eventsContinuation = continuation
+        let stream = AsyncStream<Event>.makeStream()
+        events = stream.stream
+        eventsContinuation = stream.continuation
         isGridOn = appSettings.cameraGridEnabled
         isLevelOn = appSettings.cameraLevelEnabled
         isNightModeOn = appSettings.cameraNightMode
@@ -109,8 +109,8 @@ final class BeforeCameraViewModel {
         pendingPairs = []
         async let permission = permissionProbe()
         async let startTask: Void = session.start()
-        cameraPermissionGranted = await permission
-        guard cameraPermissionGranted == true else { return }
+        cameraPermissionState = await permission ? .granted : .denied
+        guard cameraPermissionState == .granted else { return }
         _ = await startTask
         let snapshot = await session.zoomSnapshot()
         applyZoomSnapshot(snapshot)
@@ -289,15 +289,17 @@ final class BeforeCameraViewModel {
 
     private func refreshPendingPairs() async {
         let all = await (try? pairRepo.fetchAll()) ?? []
-        let scoped: [PhotoPair] = if let albumId {
-            all.filter { $0.albumIds.contains(albumId) }
-        } else {
-            all
-        }
-        pendingPairs = scoped
-            .filter { $0.afterPhotoLocalIdentifier == nil }
-            .filter { $0.createdAt >= sessionStartedAt }
-            .sorted { $0.createdAt < $1.createdAt }
+        let scoped: [PhotoPair] =
+            if let albumId {
+                all.filter { $0.albumIds.contains(albumId) }
+            } else {
+                all
+            }
+        pendingPairs =
+            scoped
+                .filter { $0.afterPhotoLocalIdentifier == nil }
+                .filter { $0.createdAt >= sessionStartedAt }
+                .sorted { $0.createdAt < $1.createdAt }
     }
 
     private func emitTickHaptics(for ratio: Double) {

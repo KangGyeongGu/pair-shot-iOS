@@ -163,14 +163,16 @@ final class ImmediateExportService {
                 prefix: appSettings.fileNamePrefix
             )
             for entry in entries {
-                guard let data = await ExportEntryRenderer.render(
-                    entry: entry,
-                    pair: pair,
-                    photoLibrary: photoLibrary,
-                    appSettings: appSettings,
-                    renderOptions: renderOptions,
-                    now: now
-                ) else { continue }
+                guard
+                    let data = await ExportEntryRenderer.render(
+                        entry: entry,
+                        pair: pair,
+                        photoLibrary: photoLibrary,
+                        appSettings: appSettings,
+                        renderOptions: renderOptions,
+                        now: now
+                    )
+                else { continue }
                 let fileName = ExportTempFileWriter.sanitizedName(from: entry.relativeName)
                 if let url = ExportTempFileWriter.write(
                     data: data,
@@ -187,39 +189,55 @@ final class ImmediateExportService {
     private func saveImagesToPhotoLibrary(pairs: [PhotoPair], progress: SnackbarProgressHandle) async {
         let status = await photoLibraryExporter.authorize()
         guard status == .authorized || status == .limited else {
-            snackbarQueue.cancelProgress(progress)
-            snackbarQueue.enqueue(
-                "snackbar_error_save_failed",
-                variant: .error,
-                debounceKey: "save-failure"
-            )
+            enqueueSaveFailure(progress: progress)
             return
         }
         let selection = currentSelection()
         let renderOptions = currentRenderOptions()
-        let now = Date()
-        let allEntries: [(pair: PhotoPair, entry: ExportSelection.Entry)] = pairs.enumerated()
-            .flatMap { offset, pair in
-                ExportSelection.relativePaths(
-                    for: pair,
-                    selection: selection,
-                    sequenceNumber: offset + 1,
-                    prefix: appSettings.fileNamePrefix
-                )
-                .map { (pair: pair, entry: $0) }
-            }
+        let allEntries = collectExportEntries(pairs: pairs, selection: selection)
+        let saved = await processEntries(
+            allEntries,
+            renderOptions: renderOptions,
+            progress: progress
+        )
+        finalizeProgress(progress, savedCount: saved)
+    }
+
+    private func collectExportEntries(
+        pairs: [PhotoPair],
+        selection: ExportContents
+    ) -> [(pair: PhotoPair, entry: ExportSelection.Entry)] {
+        pairs.enumerated().flatMap { offset, pair in
+            ExportSelection.relativePaths(
+                for: pair,
+                selection: selection,
+                sequenceNumber: offset + 1,
+                prefix: appSettings.fileNamePrefix
+            )
+            .map { (pair: pair, entry: $0) }
+        }
+    }
+
+    private func processEntries(
+        _ allEntries: [(pair: PhotoPair, entry: ExportSelection.Entry)],
+        renderOptions: ExportRenderOptions,
+        progress: SnackbarProgressHandle
+    ) async -> Int {
         let total = max(1, allEntries.count)
+        let now = Date()
         var saved = 0
         var processed = 0
         for item in allEntries {
-            guard let data = await ExportEntryRenderer.render(
-                entry: item.entry,
-                pair: item.pair,
-                photoLibrary: photoLibrary,
-                appSettings: appSettings,
-                renderOptions: renderOptions,
-                now: now
-            ) else {
+            guard
+                let data = await ExportEntryRenderer.render(
+                    entry: item.entry,
+                    pair: item.pair,
+                    photoLibrary: photoLibrary,
+                    appSettings: appSettings,
+                    renderOptions: renderOptions,
+                    now: now
+                )
+            else {
                 processed += 1
                 snackbarQueue.updateProgress(progress, value: Double(processed) / Double(total))
                 continue
@@ -236,16 +254,15 @@ final class ImmediateExportService {
                 processed += 1
                 snackbarQueue.updateProgress(progress, value: Double(processed) / Double(total))
             } catch {
-                snackbarQueue.cancelProgress(progress)
-                snackbarQueue.enqueue(
-                    "snackbar_error_save_failed",
-                    variant: .error,
-                    debounceKey: "save-failure"
-                )
-                return
+                enqueueSaveFailure(progress: progress)
+                return saved
             }
         }
-        if saved == 0 {
+        return saved
+    }
+
+    private func finalizeProgress(_ progress: SnackbarProgressHandle, savedCount: Int) {
+        if savedCount == 0 {
             snackbarQueue.completeProgress(
                 progress,
                 finalMessage: "snackbar_warning_nothing_to_save",
@@ -260,6 +277,15 @@ final class ImmediateExportService {
         }
     }
 
+    private func enqueueSaveFailure(progress: SnackbarProgressHandle) {
+        snackbarQueue.cancelProgress(progress)
+        snackbarQueue.enqueue(
+            "snackbar_error_save_failed",
+            variant: .error,
+            debounceKey: "save-failure"
+        )
+    }
+
     private func recordExportHistory(
         identifier: String,
         pair: PhotoPair,
@@ -267,13 +293,15 @@ final class ImmediateExportService {
         renderOptions: ExportRenderOptions
     ) async {
         guard let pairRepo else { return }
-        guard let kind = await MainActor.run(body: {
-            ExportHistoryKindResolver.resolve(
-                entryKind: entry.kind,
-                renderOptions: renderOptions,
-                appSettings: appSettings
-            )
-        }) else { return }
+        guard
+            let kind = await MainActor.run(body: {
+                ExportHistoryKindResolver.resolve(
+                    entryKind: entry.kind,
+                    renderOptions: renderOptions,
+                    appSettings: appSettings
+                )
+            })
+        else { return }
         do {
             try await pairRepo.recordExportHistory(
                 pairId: pair.id,

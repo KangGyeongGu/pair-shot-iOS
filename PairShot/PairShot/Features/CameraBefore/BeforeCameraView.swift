@@ -51,7 +51,7 @@ struct BeforeCameraView: View {
                 Task {
                     await vm.onAppear()
                     Task { @MainActor in
-                        guard !hasPresentedColdStartAppOpen, vm.cameraPermissionGranted == true else {
+                        guard !hasPresentedColdStartAppOpen, vm.cameraPermissionState == .granted else {
                             return
                         }
                         hasPresentedColdStartAppOpen = true
@@ -86,10 +86,12 @@ struct BeforeCameraView: View {
                 )
             }
         }
-        .captureErrorAlert(message: Binding(
-            get: { viewModel?.captureErrorMessage },
-            set: { viewModel?.captureErrorMessage = $0 }
-        ))
+        .captureErrorAlert(
+            message: Binding(
+                get: { viewModel?.captureErrorMessage },
+                set: { viewModel?.captureErrorMessage = $0 }
+            )
+        )
     }
 
     @ViewBuilder
@@ -112,7 +114,7 @@ struct BeforeCameraView: View {
 
     @ViewBuilder
     private func content(for viewModel: BeforeCameraViewModel) -> some View {
-        if viewModel.cameraPermissionGranted == false {
+        if viewModel.cameraPermissionState == .denied {
             PermissionDeniedView(forCamera: ())
                 .padding(.horizontal, 32)
         } else {

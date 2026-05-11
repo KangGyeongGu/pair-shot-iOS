@@ -14,9 +14,9 @@ final class ExportHistoryEntity {
     }
 
     init(
-        id: UUID = UUID(),
         kind: ExportHistoryKind,
         photoLocalIdentifier: String,
+        id: UUID = UUID(),
         createdAt: Date = .now,
         pair: PhotoPairEntity? = nil
     ) {

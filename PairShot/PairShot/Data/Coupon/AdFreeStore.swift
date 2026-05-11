@@ -57,4 +57,3 @@ final class AdFreeStore {
         defaults.set(data, forKey: snapshotKey)
     }
 }
-

@@ -47,8 +47,9 @@ nonisolated extension CameraSession {
             queue: nil
         ) { [weak self] notification in
             guard let self else { return }
-            let description = (notification.userInfo?[AVCaptureSessionErrorKey] as? Error)?
-                .localizedDescription ?? "unknown"
+            let description =
+                (notification.userInfo?[AVCaptureSessionErrorKey] as? Error)?
+                    .localizedDescription ?? "unknown"
             AppLogger.camera.error("Capture session runtime error: \(description, privacy: .public)")
             Task { await self.resumeAfterRuntimeError() }
         }

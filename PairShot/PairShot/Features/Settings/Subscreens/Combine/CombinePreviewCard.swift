@@ -27,21 +27,24 @@ struct CombinePreviewCard: View {
     }
 
     private var labelBackgroundColor: Color {
-        let base = settings.labelBackground.matchBorderColor
-            ? settings.border.color
-            : settings.labelBackground.color
+        let base =
+            settings.labelBackground.matchBorderColor
+                ? settings.border.color
+                : settings.labelBackground.color
         return Color(rgba: base).opacity(settings.labelBackground.opacity)
     }
 
     @ViewBuilder
     private func content(scaleFactor: CGFloat, size: CGSize) -> some View {
-        let borderPx = settings.border.isEnabled
-            ? CGFloat(settings.border.thickness) * scaleFactor
-            : 0
+        let borderPx =
+            settings.border.isEnabled
+                ? CGFloat(settings.border.thickness) * scaleFactor
+                : 0
         let paneHeight = paneHeight(in: size, borderPx: borderPx)
-        let borderColor = settings.border.isEnabled
-            ? Color(rgba: settings.border.color)
-            : Color.clear
+        let borderColor =
+            settings.border.isEnabled
+                ? Color(rgba: settings.border.color)
+                : Color.clear
         contentStack(scaleFactor: scaleFactor, paneHeight: paneHeight, spacing: borderPx * 2)
             .padding(borderPx)
             .background(borderColor)
@@ -150,26 +153,28 @@ struct CombinePreviewCard: View {
     }
 
     private func alignment(for position: CombineSettings.LabelPosition) -> Alignment {
-        let horizontal: HorizontalAlignment = switch position.horizontal {
-            case .leading:
-                .leading
+        let horizontal: HorizontalAlignment =
+            switch position.horizontal {
+                case .leading:
+                    .leading
 
-            case .center:
-                .center
+                case .center:
+                    .center
 
-            case .trailing:
-                .trailing
-        }
-        let vertical: VerticalAlignment = switch position.vertical {
-            case .top:
-                .top
+                case .trailing:
+                    .trailing
+            }
+        let vertical: VerticalAlignment =
+            switch position.vertical {
+                case .top:
+                    .top
 
-            case .middle:
-                .center
+                case .middle:
+                    .center
 
-            case .bottom:
-                .bottom
-        }
+                case .bottom:
+                    .bottom
+            }
         return Alignment(horizontal: horizontal, vertical: vertical)
     }
 }

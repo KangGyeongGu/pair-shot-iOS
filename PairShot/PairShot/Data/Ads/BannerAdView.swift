@@ -27,8 +27,8 @@ struct BannerAdSlot: View {
             let width = BannerAdView.currentBannerWidth()
             let height = BannerAdSize.adaptiveHeight(width: width)
             BannerAdView(
-                adUnitID: adUnitID,
                 width: width,
+                adUnitID: adUnitID,
                 attStatus: tracking.currentStatus
             )
             .frame(width: width, height: height)
@@ -44,8 +44,8 @@ struct BannerAdView: UIViewRepresentable {
     let attStatus: ATTrackingManager.AuthorizationStatus
 
     init(
-        adUnitID: String = AdsConfig.banner,
         width: CGFloat,
+        adUnitID: String = AdsConfig.banner,
         attStatus: ATTrackingManager.AuthorizationStatus = .notDetermined
     ) {
         self.adUnitID = adUnitID
@@ -107,12 +107,13 @@ struct BannerAdView: UIViewRepresentable {
 
         @MainActor
         static func currentBannerWidth() -> CGFloat {
-            let scene = UIApplication.shared.connectedScenes
-                .compactMap { $0 as? UIWindowScene }
-                .first { $0.activationState == .foregroundActive }
-                ?? UIApplication.shared.connectedScenes
-                .compactMap { $0 as? UIWindowScene }
-                .first
+            let scene =
+                UIApplication.shared.connectedScenes
+                    .compactMap { $0 as? UIWindowScene }
+                    .first { $0.activationState == .foregroundActive }
+                    ?? UIApplication.shared.connectedScenes
+                    .compactMap { $0 as? UIWindowScene }
+                    .first
             let window = scene?.windows.first(where: \.isKeyWindow) ?? scene?.windows.first
             if let width = window?.bounds.width, width > 0 {
                 return width

@@ -44,71 +44,62 @@ struct RootView: View {
     }
 
     @ViewBuilder
-
     private func destination(for route: Route) -> some View {
         switch route {
-            case .home:
-                HomeView(
-                    onOpenAlbum: { albumId in
-                        path.append(.albumDetail(albumId: albumId))
-                    },
-                    onPushExportSettings: { pairIds in
-                        path.append(.exportSettings(pairIds: pairIds, albumId: nil))
-                    },
-                    onPushSettings: {
-                        path.append(.settings)
-                    }
-                )
-
-            case let .albumDetail(albumId):
-                AlbumDetailView(
-                    albumId: albumId,
-                    onPushExportSettings: { pairIds in
-                        path.append(.exportSettings(pairIds: pairIds, albumId: albumId))
-                    }
-                )
-
-            case .settings:
-                SettingsView(path: $path)
-
-            case .watermarkSettings:
-                WatermarkSettingsView(viewModel: env.makeWatermarkSettingsViewModel())
-
-            case .combineSettings:
-                CombineSettingsView(viewModel: env.makeCombineSettingsViewModel())
-
-            case .license:
-                LicenseView()
-
-            case .languagePicker:
-                LanguagePickerView(viewModel: env.makeSettingsViewModel())
-
-            case .themePicker:
-                ThemePickerView(viewModel: env.makeSettingsViewModel())
-
-            case .imageQualityPicker:
-                ImageQualityPickerView(viewModel: env.makeSettingsViewModel())
-
-            case .filenamePrefixEditor:
-                FilenamePrefixView(viewModel: env.makeSettingsViewModel())
-
-            case let .exportSettings(pairIds, albumId):
-                ExportSettingsView(
-                    viewModel: env.makeExportSettingsViewModel(
-                        pairIds: pairIds,
-                        albumId: albumId
-                    ),
-                    onPushWatermarkSettings: {
-                        path.append(.watermarkSettings)
-                    },
-                    onPushCombineSettings: {
-                        path.append(.combineSettings)
-                    }
-                )
-
-            case .pairPreview:
-                EmptyView()
+            case .home: homeDestination()
+            case let .albumDetail(albumId): albumDetailDestination(albumId: albumId)
+            case .settings: SettingsView(path: $path)
+            case .watermarkSettings: WatermarkSettingsView(viewModel: env.makeWatermarkSettingsViewModel())
+            case .combineSettings: CombineSettingsView(viewModel: env.makeCombineSettingsViewModel())
+            case .license: LicenseView()
+            case .languagePicker: LanguagePickerView(viewModel: env.makeSettingsViewModel())
+            case .themePicker: ThemePickerView(viewModel: env.makeSettingsViewModel())
+            case .imageQualityPicker: ImageQualityPickerView(viewModel: env.makeSettingsViewModel())
+            case .filenamePrefixEditor: FilenamePrefixView(viewModel: env.makeSettingsViewModel())
+            case let .exportSettings(pairIds, albumId): exportSettingsDestination(pairIds: pairIds, albumId: albumId)
+            case .pairPreview: EmptyView()
         }
+    }
+
+    @ViewBuilder
+    private func homeDestination() -> some View {
+        HomeView(
+            onOpenAlbum: { albumId in
+                path.append(.albumDetail(albumId: albumId))
+            },
+            onPushExportSettings: { pairIds in
+                path.append(.exportSettings(pairIds: pairIds, albumId: nil))
+            },
+            onPushSettings: {
+                path.append(.settings)
+            }
+        )
+    }
+
+    @ViewBuilder
+    private func albumDetailDestination(albumId: UUID) -> some View {
+        AlbumDetailView(
+            albumId: albumId,
+            onPushExportSettings: { pairIds in
+                path.append(.exportSettings(pairIds: pairIds, albumId: albumId))
+            }
+        )
+    }
+
+    @ViewBuilder
+    private func exportSettingsDestination(pairIds: [UUID], albumId: UUID?) -> some View {
+        ExportSettingsView(
+            viewModel: env.makeExportSettingsViewModel(
+                pairIds: pairIds,
+                albumId: albumId
+            ),
+            onPushWatermarkSettings: {
+                path.append(.watermarkSettings)
+            },
+            onPushCombineSettings: {
+                path.append(.combineSettings)
+            }
+        )
     }
 }
 

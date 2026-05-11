@@ -112,8 +112,9 @@ final class AppSettings {
 
     var cameraFlashMode: String {
         get {
-            let raw = defaults.string(forKey: AppSettingsKeys.cameraFlashMode)
-                ?? CameraFlashModePersistence.defaultRawValue
+            let raw =
+                defaults.string(forKey: AppSettingsKeys.cameraFlashMode)
+                    ?? CameraFlashModePersistence.defaultRawValue
             return CameraFlashModePersistence.normalize(raw)
         }
         set {
@@ -183,11 +184,13 @@ final class AppSettings {
             AppSettingsKeys.albumSortOrder: SortOrderPersistence.defaultRawValue,
         ])
         watermarkEnabled = defaults.bool(forKey: AppSettingsKeys.watermarkEnabled)
-        let storedHome = defaults.string(forKey: AppSettingsKeys.homeSortOrder)
-            ?? SortOrderPersistence.defaultRawValue
+        let storedHome =
+            defaults.string(forKey: AppSettingsKeys.homeSortOrder)
+                ?? SortOrderPersistence.defaultRawValue
         homeSortOrder = SortOrderPersistence.normalize(storedHome)
-        let storedAlbum = defaults.string(forKey: AppSettingsKeys.albumSortOrder)
-            ?? SortOrderPersistence.defaultRawValue
+        let storedAlbum =
+            defaults.string(forKey: AppSettingsKeys.albumSortOrder)
+                ?? SortOrderPersistence.defaultRawValue
         albumSortOrder = SortOrderPersistence.normalize(storedAlbum)
     }
 }

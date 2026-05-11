@@ -95,8 +95,8 @@ struct AlbumDetailView: View {
 
     static func toDomain(_ entity: AlbumEntity) -> Album {
         Album(
-            id: entity.id,
             name: entity.name,
+            id: entity.id,
             latitude: entity.latitude,
             longitude: entity.longitude,
             locationLabel: entity.locationLabel,
@@ -276,14 +276,16 @@ struct AlbumDetailShareSheet: ViewModifier {
             }
             .background(
                 Color.clear
-                    .sheet(item: Binding(
-                        get: { viewModel.pendingZipExport },
-                        set: { newValue in
-                            if newValue == nil, viewModel.pendingZipExport != nil {
-                                viewModel.handleZipExportCompleted(false)
+                    .sheet(
+                        item: Binding(
+                            get: { viewModel.pendingZipExport },
+                            set: { newValue in
+                                if newValue == nil, viewModel.pendingZipExport != nil {
+                                    viewModel.handleZipExportCompleted(false)
+                                }
                             }
-                        }
-                    )) { item in
+                        )
+                    ) { item in
                         DocumentExporter(url: item.url) { saved in
                             viewModel.handleZipExportCompleted(saved)
                         }

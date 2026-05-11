@@ -78,9 +78,10 @@ extension AppSettings {
     var compositionSummary: String {
         let alphaPct = Int((CompositionDefaults.clampAlpha(defaultOverlayAlpha) * 100).rounded())
         let layoutLabel = defaultCompositeLayout.label
-        let watermark = watermarkEnabled
-            ? String(localized: "settings_summary_watermark_on")
-            : String(localized: "settings_summary_watermark_off")
+        let watermark =
+            watermarkEnabled
+                ? String(localized: "settings_summary_watermark_on")
+                : String(localized: "settings_summary_watermark_off")
         return String(
             format: String(localized: "settings_summary_overlay_template"),
             alphaPct,

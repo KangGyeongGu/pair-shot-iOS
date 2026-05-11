@@ -27,8 +27,8 @@ extension View {
 
     func adaptiveGlass(
         in shape: some Shape,
-        kind: AdaptiveGlassKind = .regular,
-        legacyFill: Color
+        legacyFill: Color,
+        kind: AdaptiveGlassKind = .regular
     ) -> some View {
         modifier(AdaptiveGlassFillModifier(shape: shape, kind: kind, legacyFill: legacyFill))
     }

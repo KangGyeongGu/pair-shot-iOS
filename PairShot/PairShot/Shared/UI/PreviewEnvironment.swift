@@ -5,10 +5,16 @@ struct PreviewEnvironment<Content: View>: View {
     let suiteName: String
     @ViewBuilder let content: () -> Content
 
-    private let container = try! ModelContainer(
-        for: Schema([AlbumEntity.self, PhotoPairEntity.self, ExportHistoryEntity.self]),
-        configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-    )
+    private let container: ModelContainer = {
+        do {
+            return try ModelContainer(
+                for: Schema([AlbumEntity.self, PhotoPairEntity.self, ExportHistoryEntity.self]),
+                configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+            )
+        } catch {
+            fatalError("PreviewEnvironment failed to create in-memory ModelContainer: \(error)")
+        }
+    }()
 
     var body: some View {
         let appSettings = AppSettings(defaults: UserDefaults(suiteName: suiteName) ?? .standard)

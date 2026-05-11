@@ -16,9 +16,11 @@ enum CouponRedemptionLink {
     }
 
     private static func topViewController() -> UIViewController? {
-        guard let scene = UIApplication.shared.connectedScenes
+        guard
+            let scene = UIApplication.shared.connectedScenes
             .compactMap({ $0 as? UIWindowScene }).first,
-            let root = scene.windows.first(where: { $0.isKeyWindow })?.rootViewController else { return nil }
+            let root = scene.windows.first(where: \.isKeyWindow)?.rootViewController
+        else { return nil }
         var current = root
         while let presented = current.presentedViewController {
             current = presented

@@ -52,11 +52,12 @@ struct AfterCameraScopeFetch {
     ) async -> AfterCameraScopeSnapshot {
         let fetched = try? await pairRepo.fetchAll()
         let all = fetched ?? []
-        let albumScoped: [PhotoPair] = if let albumId {
-            all.filter { $0.albumIds.contains(albumId) }
-        } else {
-            all
-        }
+        let albumScoped: [PhotoPair] =
+            if let albumId {
+                all.filter { $0.albumIds.contains(albumId) }
+            } else {
+                all
+            }
         let pending = albumScoped.filter { $0.afterPhotoLocalIdentifier == nil }
         let dayScoped: [PhotoPair]
         if let initialPairId,

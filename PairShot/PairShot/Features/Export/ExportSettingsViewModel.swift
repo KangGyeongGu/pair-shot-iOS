@@ -59,7 +59,7 @@ final class ExportSettingsViewModel {
     var showCombineGateDialog: Bool = false
     var lastGateFailureReason: String?
 
-    private var zipSaveProgress: SnackbarProgressHandle?
+    var zipSaveProgress: SnackbarProgressHandle?
 
     var hasAnyInclude: Bool {
         includeCombined || includeBefore || includeAfter
@@ -69,20 +69,20 @@ final class ExportSettingsViewModel {
         !isExporting && hasAnyInclude && !pairIds.isEmpty
     }
 
-    private let pairRepo: PhotoPairRepository
-    private let photoLibrary: PhotoLibraryService
-    private let exportPairs: ExportPairsUseCase
-    private let photoLibraryExporter: PhotoLibraryExport
-    private let snackbarQueue: SnackbarQueue
-    private let tempDirectoryProvider: @Sendable () -> URL
-    private let eventsContinuation: AsyncStream<Event>.Continuation
-    private let appSettings: AppSettings
-    private var preferences: ExportPreferences
-    private let interstitialAdManager: InterstitialAdManager?
-    private let adFreeStore: AdFreeStore?
-    private let fullscreenAdCoordinator: FullscreenAdCoordinator?
+    let pairRepo: PhotoPairRepository
+    let photoLibrary: PhotoLibraryService
+    let exportPairs: ExportPairsUseCase
+    let photoLibraryExporter: PhotoLibraryExport
+    let snackbarQueue: SnackbarQueue
+    let tempDirectoryProvider: @Sendable () -> URL
+    let eventsContinuation: AsyncStream<Event>.Continuation
+    let appSettings: AppSettings
+    var preferences: ExportPreferences
+    let interstitialAdManager: InterstitialAdManager?
+    let adFreeStore: AdFreeStore?
+    let fullscreenAdCoordinator: FullscreenAdCoordinator?
 
-    private var pendingZipURL: URL?
+    var pendingZipURL: URL?
 
     init(
         pairIds: [UUID],
@@ -92,9 +92,9 @@ final class ExportSettingsViewModel {
         exportPairs: ExportPairsUseCase,
         photoLibraryExporter: PhotoLibraryExport,
         snackbarQueue: SnackbarQueue,
+        appSettings: AppSettings,
         tempDirectoryProvider: @escaping @Sendable () -> URL = { FileManager.default.temporaryDirectory },
         preferences: ExportPreferences = ExportPreferences(),
-        appSettings: AppSettings,
         interstitialAdManager: InterstitialAdManager? = nil,
         adFreeStore: AdFreeStore? = nil,
         fullscreenAdCoordinator: FullscreenAdCoordinator? = nil
@@ -118,9 +118,9 @@ final class ExportSettingsViewModel {
         format = preferences.format
         applyWatermark = preferences.applyWatermark
         applyCombineSettings = preferences.applyCombineSettings
-        var continuation: AsyncStream<Event>.Continuation!
-        events = AsyncStream { continuation = $0 }
-        eventsContinuation = continuation
+        let stream = AsyncStream<Event>.makeStream()
+        events = stream.stream
+        eventsContinuation = stream.continuation
     }
 
     func cleanupPendingZip() {
@@ -133,112 +133,6 @@ final class ExportSettingsViewModel {
         shareItems = nil
         cleanupPendingZip()
         eventsContinuation.yield(.dismiss)
-    }
-
-    func requestWatermarkGate(rewardedManager: RewardedAdManager) -> Bool {
-        requestGate(
-            unlockID: .watermarkSettings,
-            rewardedManager: rewardedManager,
-            dialogFlag: \.showWatermarkGateDialog
-        )
-    }
-
-    func requestCombineGate(rewardedManager: RewardedAdManager) -> Bool {
-        requestGate(
-            unlockID: .compositionSettings,
-            rewardedManager: rewardedManager,
-            dialogFlag: \.showCombineGateDialog
-        )
-    }
-
-    func confirmWatermarkGateAd(
-        rewardedManager: RewardedAdManager,
-        coordinator: FullscreenAdCoordinator,
-        rootViewController: UIViewController?
-    ) async -> GateResult {
-        await presentGateAd(
-            unlockID: .watermarkSettings,
-            rewardedManager: rewardedManager,
-            coordinator: coordinator,
-            rootViewController: rootViewController
-        )
-    }
-
-    func confirmCombineGateAd(
-        rewardedManager: RewardedAdManager,
-        coordinator: FullscreenAdCoordinator,
-        rootViewController: UIViewController?
-    ) async -> GateResult {
-        await presentGateAd(
-            unlockID: .compositionSettings,
-            rewardedManager: rewardedManager,
-            coordinator: coordinator,
-            rootViewController: rootViewController
-        )
-    }
-
-    private func requestGate(
-        unlockID: RewardedAdManager.UnlockID,
-        rewardedManager: RewardedAdManager,
-        dialogFlag: ReferenceWritableKeyPath<ExportSettingsViewModel, Bool>
-    ) -> Bool {
-        lastGateFailureReason = nil
-        if !RewardedSessionGate.shouldShowGate(
-            unlockID: unlockID,
-            sessionUnlocks: rewardedManager.sessionUnlocks,
-            isAdFree: adFreeStore?.isAdFree ?? false
-        ) {
-            return true
-        }
-        rewardedManager.loadIfNeeded(adFreeStore: adFreeStore)
-        self[keyPath: dialogFlag] = true
-        return false
-    }
-
-    private func presentGateAd(
-        unlockID: RewardedAdManager.UnlockID,
-        rewardedManager: RewardedAdManager,
-        coordinator: FullscreenAdCoordinator,
-        rootViewController: UIViewController?
-    ) async -> GateResult {
-        lastGateFailureReason = nil
-        if !RewardedSessionGate.shouldShowGate(
-            unlockID: unlockID,
-            sessionUnlocks: rewardedManager.sessionUnlocks,
-            isAdFree: adFreeStore?.isAdFree ?? false
-        ) {
-            return .proceed
-        }
-        if !rewardedManager.isLoaded {
-            rewardedManager.loadIfNeeded(adFreeStore: adFreeStore)
-            lastGateFailureReason = String(localized: "rewarded_gate_load_failed")
-            return .adNotReady
-        }
-        let outcome = await rewardedManager.presentForReward(
-            unlockID,
-            from: rootViewController,
-            coordinator: coordinator,
-            adFreeStore: adFreeStore
-        )
-        return mapOutcome(outcome)
-    }
-
-    private func mapOutcome(_ outcome: RewardedAdManager.RewardOutcome) -> GateResult {
-        switch outcome {
-            case .granted:
-                return .proceed
-
-            case .userClosed:
-                lastGateFailureReason = String(localized: "rewarded_gate_failure_not_completed")
-                return .userClosed
-
-            case let .failed(reason):
-                lastGateFailureReason = String(
-                    format: String(localized: "rewarded_gate_failure_show_failed_template"),
-                    reason
-                )
-                return .failed(reason: reason)
-        }
     }
 
     func share() async {
@@ -263,153 +157,6 @@ final class ExportSettingsViewModel {
         }
     }
 
-    private func performShare() async {
-        isExporting = true
-        defer { isExporting = false }
-        let token = "export-share-\(UUID().uuidString)"
-        let handle = snackbarQueue.enqueueProgress(
-            "snackbar_progress_share",
-            token: token,
-            initialValue: 0
-        )
-        do {
-            switch format {
-                case .zip:
-                    snackbarQueue.updateProgress(handle, value: 0.3)
-                    let url = try await exportPairs(
-                        ids: pairIds,
-                        selection: makeSelection(),
-                        renderOptions: makeRenderOptions(),
-                        tempDirectory: tempDirectoryProvider()
-                    )
-                    pendingZipURL = url
-                    snackbarQueue.completeProgress(handle, finalMessage: nil)
-                    shareItems = ExportShareItems(values: [url])
-
-                case .individualImages:
-                    snackbarQueue.updateProgress(handle, value: 0.3)
-                    let urls = try await collectIndividualSourceURLs()
-                    guard !urls.isEmpty else {
-                        snackbarQueue.cancelProgress(handle)
-                        errorMessage = "snackbar_error_share_failed"
-                        return
-                    }
-                    snackbarQueue.completeProgress(handle, finalMessage: nil)
-                    shareItems = ExportShareItems(values: urls)
-            }
-        } catch {
-            snackbarQueue.cancelProgress(handle)
-            errorMessage = "snackbar_error_share_failed"
-        }
-    }
-
-    private func performSaveToDevice() async {
-        isExporting = true
-        defer { isExporting = false }
-        let token = "export-save-\(UUID().uuidString)"
-        let handle = snackbarQueue.enqueueProgress(
-            "snackbar_progress_save_to_device",
-            token: token,
-            initialValue: 0
-        )
-        switch format {
-            case .individualImages:
-                await saveImagesToPhotoLibrary(progress: handle)
-
-            case .zip:
-                await saveZipToTemporaryAndNotify(progress: handle)
-        }
-    }
-
-    private func saveImagesToPhotoLibrary(progress: SnackbarProgressHandle) async {
-        let status = await photoLibraryExporter.authorize()
-        guard status == .authorized || status == .limited else {
-            snackbarQueue.cancelProgress(progress)
-            errorMessage = "snackbar_error_save_failed"
-            return
-        }
-        var saved = 0
-        var processed = 0
-        let now = Date()
-        let renderOptions = makeRenderOptions()
-        let selection = makeSelection()
-        do {
-            let pairs = try await loadPairs()
-            let allEntries: [(pair: PhotoPair, entry: ExportSelection.Entry)] = pairs.enumerated()
-                .flatMap { offset, pair in
-                    ExportSelection.relativePaths(
-                        for: pair,
-                        selection: selection,
-                        sequenceNumber: offset + 1,
-                        prefix: appSettings.fileNamePrefix
-                    )
-                    .map { (pair: pair, entry: $0) }
-                }
-            let total = max(1, allEntries.count)
-            for item in allEntries {
-                guard let data = await ExportEntryRenderer.render(
-                    entry: item.entry,
-                    pair: item.pair,
-                    photoLibrary: photoLibrary,
-                    appSettings: appSettings,
-                    renderOptions: renderOptions,
-                    now: now
-                ) else {
-                    processed += 1
-                    snackbarQueue.updateProgress(progress, value: Double(processed) / Double(total))
-                    continue
-                }
-                let identifier = try await photoLibraryExporter.saveImageData(data, type: .photo)
-                await recordExportHistory(
-                    identifier: identifier,
-                    pair: item.pair,
-                    entry: item.entry,
-                    renderOptions: renderOptions
-                )
-                saved += 1
-                processed += 1
-                snackbarQueue.updateProgress(progress, value: Double(processed) / Double(total))
-            }
-        } catch {
-            snackbarQueue.cancelProgress(progress)
-            errorMessage = "snackbar_error_save_failed"
-            return
-        }
-        if saved == 0 {
-            snackbarQueue.completeProgress(
-                progress,
-                finalMessage: "snackbar_warning_nothing_to_save",
-                finalVariant: .warning
-            )
-        } else {
-            snackbarQueue.completeProgress(
-                progress,
-                finalMessage: "snackbar_success_saved_to_device",
-                finalVariant: .success
-            )
-        }
-        eventsContinuation.yield(.dismiss)
-    }
-
-    private func saveZipToTemporaryAndNotify(progress: SnackbarProgressHandle) async {
-        do {
-            snackbarQueue.updateProgress(progress, value: 0.3)
-            let url = try await exportPairs(
-                ids: pairIds,
-                selection: makeSelection(),
-                renderOptions: makeRenderOptions(),
-                tempDirectory: tempDirectoryProvider()
-            )
-            pendingZipURL = url
-            snackbarQueue.updateProgress(progress, value: 1.0)
-            zipSaveProgress = progress
-            zipExportItem = DocumentExporterItem(url: url)
-        } catch {
-            snackbarQueue.cancelProgress(progress)
-            errorMessage = "snackbar_error_save_failed"
-        }
-    }
-
     func handleZipExportCompleted(_ saved: Bool) {
         zipExportItem = nil
         if let progress = zipSaveProgress {
@@ -430,77 +177,7 @@ final class ExportSettingsViewModel {
         }
     }
 
-    private func collectIndividualSourceURLs() async throws -> [URL] {
-        let pairs = try await loadPairs()
-        let selection = makeSelection()
-        let renderOptions = makeRenderOptions()
-        let tempDir = tempDirectoryProvider()
-        var urls: [URL] = []
-        let now = Date()
-        for (offset, pair) in pairs.enumerated() {
-            let entries = ExportSelection.relativePaths(
-                for: pair,
-                selection: selection,
-                sequenceNumber: offset + 1,
-                prefix: appSettings.fileNamePrefix
-            )
-            for entry in entries {
-                guard let data = await ExportEntryRenderer.render(
-                    entry: entry,
-                    pair: pair,
-                    photoLibrary: photoLibrary,
-                    appSettings: appSettings,
-                    renderOptions: renderOptions,
-                    now: now
-                ) else { continue }
-                let fileName = ExportTempFileWriter.sanitizedName(from: entry.relativeName)
-                if let url = ExportTempFileWriter.write(
-                    data: data,
-                    fileName: fileName,
-                    tempDirectory: tempDir
-                ) {
-                    urls.append(url)
-                }
-            }
-        }
-        return urls
-    }
-
-    private func loadPairs() async throws -> [PhotoPair] {
-        var resolved: [PhotoPair] = []
-        for id in pairIds {
-            if let pair = try await pairRepo.fetch(id: id) {
-                resolved.append(pair)
-            }
-        }
-        return resolved
-    }
-
-    private func recordExportHistory(
-        identifier: String,
-        pair: PhotoPair,
-        entry: ExportSelection.Entry,
-        renderOptions: ExportRenderOptions
-    ) async {
-        guard let kind = ExportHistoryKindResolver.resolve(
-            entryKind: entry.kind,
-            renderOptions: renderOptions,
-            appSettings: appSettings
-        ) else { return }
-        do {
-            try await pairRepo.recordExportHistory(
-                pairId: pair.id,
-                kind: kind,
-                photoLocalIdentifier: identifier
-            )
-        } catch {
-            AppLogger.storage.error(
-                "ExportHistory persist failed: \(error.localizedDescription, privacy: .public)"
-            )
-        }
-    }
-
-    private func makeSelection() -> ExportContents {
+    func makeSelection() -> ExportContents {
         ExportContents(
             includeCombined: includeCombined,
             includeBefore: includeBefore,
@@ -508,66 +185,10 @@ final class ExportSettingsViewModel {
         )
     }
 
-    private func makeRenderOptions() -> ExportRenderOptions {
+    func makeRenderOptions() -> ExportRenderOptions {
         ExportRenderOptions(
             applyCombineSettings: applyCombineSettings,
             applyWatermark: applyWatermark
         )
-    }
-}
-
-nonisolated final class ExportPreferences: @unchecked Sendable {
-    static let includeCombinedKey = "pairshot.exportIncludeCombined"
-    static let includeBeforeKey = "pairshot.exportIncludeBefore"
-    static let includeAfterKey = "pairshot.exportIncludeAfter"
-    static let formatKey = "pairshot.exportFormat"
-    static let applyWatermarkKey = "pairshot.exportApplyWatermark"
-    static let applyCombineKey = "pairshot.exportApplyCombine"
-
-    private let defaults: UserDefaults
-
-    var includeCombined: Bool {
-        get { defaults.bool(forKey: Self.includeCombinedKey) }
-        set { defaults.set(newValue, forKey: Self.includeCombinedKey) }
-    }
-
-    var includeBefore: Bool {
-        get { defaults.bool(forKey: Self.includeBeforeKey) }
-        set { defaults.set(newValue, forKey: Self.includeBeforeKey) }
-    }
-
-    var includeAfter: Bool {
-        get { defaults.bool(forKey: Self.includeAfterKey) }
-        set { defaults.set(newValue, forKey: Self.includeAfterKey) }
-    }
-
-    var format: ExportFormat {
-        get {
-            let raw = defaults.string(forKey: Self.formatKey) ?? ExportFormat.individualImages.rawValue
-            return ExportFormat(rawValue: raw) ?? .individualImages
-        }
-        set { defaults.set(newValue.rawValue, forKey: Self.formatKey) }
-    }
-
-    var applyWatermark: Bool {
-        get { defaults.bool(forKey: Self.applyWatermarkKey) }
-        set { defaults.set(newValue, forKey: Self.applyWatermarkKey) }
-    }
-
-    var applyCombineSettings: Bool {
-        get { defaults.bool(forKey: Self.applyCombineKey) }
-        set { defaults.set(newValue, forKey: Self.applyCombineKey) }
-    }
-
-    init(defaults: UserDefaults = .standard) {
-        self.defaults = defaults
-        defaults.register(defaults: [
-            Self.includeCombinedKey: true,
-            Self.includeBeforeKey: false,
-            Self.includeAfterKey: false,
-            Self.formatKey: ExportFormat.individualImages.rawValue,
-            Self.applyWatermarkKey: false,
-            Self.applyCombineKey: true,
-        ])
     }
 }

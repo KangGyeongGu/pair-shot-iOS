@@ -39,14 +39,12 @@ final class PhotoLibraryExport: Sendable {
             throw PhotoLibraryExportError.notAuthorized
         }
         do {
-            let identifier: String = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<
-                String,
-                Error
-            >) in
+            let identifier: String = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<String, Error>) in
                 let placeholderBox = PlaceholderBox()
-                let resourceType: PHAssetResourceType = switch type {
-                    case .photo: .photo
-                }
+                let resourceType: PHAssetResourceType =
+                    switch type {
+                        case .photo: .photo
+                    }
                 let changesBlock: @Sendable () -> Void = {
                     let request = PHAssetCreationRequest.forAsset()
                     request.addResource(with: resourceType, data: data, options: nil)
@@ -56,9 +54,11 @@ final class PhotoLibraryExport: Sendable {
                     if success, let id = placeholderBox.placeholder?.localIdentifier {
                         continuation.resume(returning: id)
                     } else if let error {
-                        continuation.resume(throwing: PhotoLibraryExportError.writeFailed(
-                            String(describing: error)
-                        ))
+                        continuation.resume(
+                            throwing: PhotoLibraryExportError.writeFailed(
+                                String(describing: error)
+                            )
+                        )
                     } else {
                         continuation.resume(throwing: PhotoLibraryExportError.writeFailed("unknown"))
                     }

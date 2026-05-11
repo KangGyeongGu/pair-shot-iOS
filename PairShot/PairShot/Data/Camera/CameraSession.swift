@@ -80,8 +80,9 @@ nonisolated enum CameraZoomCapabilities {
             let raw = Double(device.displayVideoZoomFactorMultiplier)
             return raw > 0 ? raw : 1.0
         }
-        let firstSwitch = device.virtualDeviceSwitchOverVideoZoomFactors
-            .first.map { Double(truncating: $0) } ?? 1.0
+        let firstSwitch =
+            device.virtualDeviceSwitchOverVideoZoomFactors
+                .first.map { Double(truncating: $0) } ?? 1.0
         return firstSwitch > 0 ? 1.0 / firstSwitch : 1.0
     }
 }

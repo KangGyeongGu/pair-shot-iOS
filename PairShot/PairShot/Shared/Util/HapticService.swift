@@ -8,7 +8,7 @@ enum HapticImpactStyle: Equatable {
     case soft
     case rigid
 
-    fileprivate var uikit: UIImpactFeedbackGenerator.FeedbackStyle {
+    var uikit: UIImpactFeedbackGenerator.FeedbackStyle {
         switch self {
             case .light: .light
             case .medium: .medium
@@ -24,7 +24,7 @@ enum HapticNotificationKind: Equatable {
     case warning
     case error
 
-    fileprivate var uikit: UINotificationFeedbackGenerator.FeedbackType {
+    var uikit: UINotificationFeedbackGenerator.FeedbackType {
         switch self {
             case .success: .success
             case .warning: .warning

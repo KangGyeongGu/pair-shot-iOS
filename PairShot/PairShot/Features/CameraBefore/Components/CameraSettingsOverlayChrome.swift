@@ -26,16 +26,17 @@ struct CameraSettingsOverlayChrome<Content: View>: View {
             cornerRadius: CameraSettingsOverlayMetrics.panelCornerRadius,
             style: .continuous
         )
-        return content
-            .padding(CameraSettingsOverlayMetrics.panelPadding)
-            .frame(maxWidth: CameraSettingsOverlayMetrics.panelMaxWidth)
-            .adaptiveGlass(in: panelShape)
-            .clipShape(panelShape)
-            .overlay(
-                panelShape.strokeBorder(Color.white.opacity(0.18), lineWidth: 0.5)
-            )
-            .shadow(color: Color.black.opacity(0.45), radius: 24, y: 8)
-            .accessibilityAddTraits(.isModal)
+        return
+            content
+                .padding(CameraSettingsOverlayMetrics.panelPadding)
+                .frame(maxWidth: CameraSettingsOverlayMetrics.panelMaxWidth)
+                .adaptiveGlass(in: panelShape)
+                .clipShape(panelShape)
+                .overlay(
+                    panelShape.strokeBorder(Color.white.opacity(0.18), lineWidth: 0.5)
+                )
+                .shadow(color: Color.black.opacity(0.45), radius: 24, y: 8)
+                .accessibilityAddTraits(.isModal)
     }
 
     private func dismiss() {

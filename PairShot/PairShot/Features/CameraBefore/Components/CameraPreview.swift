@@ -2,12 +2,15 @@
 import UIKit
 
 final class CameraPreviewView: UIView {
-    override class var layerClass: AnyClass {
+    override static var layerClass: AnyClass {
         AVCaptureVideoPreviewLayer.self
     }
 
     var previewLayer: AVCaptureVideoPreviewLayer {
-        layer as! AVCaptureVideoPreviewLayer
+        guard let previewLayer = layer as? AVCaptureVideoPreviewLayer else {
+            fatalError("CameraPreviewView.layer is not AVCaptureVideoPreviewLayer despite layerClass override")
+        }
+        return previewLayer
     }
 
     init(session: AVCaptureSession) {

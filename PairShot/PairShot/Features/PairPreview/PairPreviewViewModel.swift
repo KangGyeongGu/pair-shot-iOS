@@ -34,9 +34,9 @@ final class PairPreviewViewModel {
         self.pair = pair
         self.photoLibrary = photoLibrary
         self.appSettings = appSettings
-        var continuation: AsyncStream<Event>.Continuation!
-        events = AsyncStream { continuation = $0 }
-        eventsContinuation = continuation
+        let stream = AsyncStream<Event>.makeStream()
+        events = stream.stream
+        eventsContinuation = stream.continuation
     }
 
     func loadPreview() async {
@@ -46,9 +46,10 @@ final class PairPreviewViewModel {
         isRendering = true
         defer { isRendering = false }
         do {
-            let watermark: WatermarkSettings? = appSettings.watermarkEnabled
-                ? appSettings.watermarkSettings
-                : nil
+            let watermark: WatermarkSettings? =
+                appSettings.watermarkEnabled
+                    ? appSettings.watermarkSettings
+                    : nil
             let combineSettings = appSettings.combineSettings
             let layout = CompositeLayoutResolver.layout(from: combineSettings)
             let options = CompositeOptions(
@@ -61,8 +62,8 @@ final class PairPreviewViewModel {
             )
             let data = try await CompositeRenderer.makeComposite(
                 for: pair,
-                options: options,
                 photoLibrary: photoLibrary,
+                options: options,
                 now: .now
             )
             livePreviewImage = UIImage(data: data)

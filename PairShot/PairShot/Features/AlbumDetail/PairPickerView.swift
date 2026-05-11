@@ -113,9 +113,10 @@ struct PairPickerView: View {
     @ToolbarContentBuilder
     private var toolbar: some ToolbarContent {
         ToolbarItem(placement: .topBarLeading) {
-            Button(action: { dismiss() }) {
-                Image(systemName: "xmark")
-            }
+            Button(
+                action: { dismiss() },
+                label: { Image(systemName: "xmark") }
+            )
             .accessibilityLabel(String(localized: "common_button_close"))
         }
         ToolbarItem(placement: .principal) {
@@ -127,8 +128,8 @@ struct PairPickerView: View {
     private func membershipPairIds() -> Set<UUID> {
         guard let album = albums.first else { return [] }
         let domain = Album(
-            id: album.id,
             name: album.name,
+            id: album.id,
             latitude: album.latitude,
             longitude: album.longitude,
             locationLabel: album.locationLabel,

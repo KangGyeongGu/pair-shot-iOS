@@ -11,8 +11,8 @@ struct Album: Identifiable, Equatable {
     var pairIds: [UUID]
 
     init(
-        id: UUID = UUID(),
         name: String,
+        id: UUID = UUID(),
         latitude: Double? = nil,
         longitude: Double? = nil,
         locationLabel: String? = nil,

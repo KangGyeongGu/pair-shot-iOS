@@ -190,8 +190,10 @@ private struct WatermarkLineCountSlider: View {
             }
             Slider(
                 value: doubleBinding,
-                in: Double(WatermarkSettings.lineCountRange.lowerBound)
-                    ... Double(WatermarkSettings.lineCountRange.upperBound),
+                in: Double(
+                    WatermarkSettings.lineCountRange.lowerBound
+                ) ...
+                    Double(WatermarkSettings.lineCountRange.upperBound),
                 step: 1
             )
         }
@@ -304,9 +306,10 @@ private struct WatermarkLogoPickerRow: View {
     @Binding var pickerItem: PhotosPickerItem?
 
     var body: some View {
-        let pickerTitle = imageData == nil
-            ? String(localized: "watermark_logo_pick_action")
-            : String(localized: "watermark_logo_replace_action")
+        let pickerTitle =
+            imageData == nil
+                ? String(localized: "watermark_logo_pick_action")
+                : String(localized: "watermark_logo_replace_action")
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 12) {
                 logoThumbnail

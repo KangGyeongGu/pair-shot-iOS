@@ -17,7 +17,9 @@ final class AfterCameraViewModel {
     let sortOrder: HomeSortOrder
     let recaptureTargetPair: PhotoPair?
 
-    var isRecaptureMode: Bool { recaptureTargetPair != nil }
+    var isRecaptureMode: Bool {
+        recaptureTargetPair != nil
+    }
 
     let session: CameraSession
 
@@ -44,7 +46,7 @@ final class AfterCameraViewModel {
     var isDraggingZoom: Bool = false
     var isCapturing: Bool = false
     var hasRestoredZoom: Bool = false
-    var cameraPermissionGranted: Bool?
+    var cameraPermissionState: CameraPermissionState = .unknown
     var captureErrorMessage: String?
     var ghostWarningToast: String?
 
@@ -89,15 +91,15 @@ final class AfterCameraViewModel {
 
     init(
         albumId: UUID?,
-        initialPairId: UUID? = nil,
-        sortOrder: HomeSortOrder = .newest,
-        recaptureTargetPair: PhotoPair? = nil,
         captureAfter: CaptureAfterUseCase,
         recaptureAfter: RecaptureAfterUseCase,
         pairRepo: PhotoPairRepository,
         photoLibrary: PhotoLibraryService,
         appSettings: AppSettings,
         hapticService: HapticService,
+        initialPairId: UUID? = nil,
+        sortOrder: HomeSortOrder = .newest,
+        recaptureTargetPair: PhotoPair? = nil,
         session: CameraSession? = nil,
         permissionProbe: @escaping @Sendable () async -> Bool = CameraPermissionProbe.resolve
     ) {
@@ -114,9 +116,9 @@ final class AfterCameraViewModel {
         let resolvedSession = session ?? CameraSession()
         self.session = resolvedSession
         self.permissionProbe = permissionProbe
-        var continuation: AsyncStream<Event>.Continuation!
-        events = AsyncStream { continuation = $0 }
-        eventsContinuation = continuation
+        let stream = AsyncStream<Event>.makeStream()
+        events = stream.stream
+        eventsContinuation = stream.continuation
         alpha = GhostOverlayMath.clamp(appSettings.defaultOverlayAlpha)
         overlayEnabled = appSettings.overlayEnabled
         isGridOn = appSettings.cameraGridEnabled
@@ -133,8 +135,8 @@ final class AfterCameraViewModel {
         alpha = GhostOverlayMath.clamp(appSettings.defaultOverlayAlpha)
         async let permission = permissionProbe()
         async let startTask: Void = session.start()
-        cameraPermissionGranted = await permission
-        guard cameraPermissionGranted == true else { return }
+        cameraPermissionState = await permission ? .granted : .denied
+        guard cameraPermissionState == .granted else { return }
         _ = await startTask
         let snapshot = await session.zoomSnapshot()
         applyZoomSnapshot(snapshot)
@@ -198,10 +200,12 @@ final class AfterCameraViewModel {
             return
         }
         await refreshPairs()
-        guard let initialPair = AfterCameraInitialPairResolver.resolve(
-            initialPairId: initialPairId,
-            pending: pairs
-        ) else {
+        guard
+            let initialPair = AfterCameraInitialPairResolver.resolve(
+                initialPairId: initialPairId,
+                pending: pairs
+            )
+        else {
             eventsContinuation.yield(.dismiss)
             return
         }

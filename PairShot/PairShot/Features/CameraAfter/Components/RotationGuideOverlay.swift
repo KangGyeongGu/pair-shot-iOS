@@ -34,8 +34,8 @@ struct RotationGuideOverlay: View {
             .padding(.vertical, AppSpacing.md)
             .adaptiveGlass(
                 in: RoundedRectangle(cornerRadius: 12, style: .continuous),
-                kind: .regular,
-                legacyFill: .black.opacity(0.6)
+                legacyFill: .black.opacity(0.6),
+                kind: .regular
             )
             .accessibilityElement(children: .combine)
             .accessibilityLabel(label)

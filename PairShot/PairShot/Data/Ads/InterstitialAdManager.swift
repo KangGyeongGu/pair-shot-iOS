@@ -98,11 +98,13 @@ final class InterstitialAdManager {
     ) async -> Bool {
         if let adFreeStore, adFreeStore.isAdFree { return false }
         guard isLoaded else { return false }
-        guard InterstitialFrequencyGate.shouldPresent(
-            now: now,
-            lastShownAt: lastShownAt,
-            minimumInterval: minimumInterval
-        ) else { return false }
+        guard
+            InterstitialFrequencyGate.shouldPresent(
+                now: now,
+                lastShownAt: lastShownAt,
+                minimumInterval: minimumInterval
+            )
+        else { return false }
         guard await coordinator.tryAcquire() else { return false }
 
         #if canImport(GoogleMobileAds)
@@ -139,28 +141,54 @@ final class InterstitialAdManager {
         now: Date = .now,
         onFinished: @escaping @MainActor () -> Void
     ) async -> Bool {
+        guard shouldShow(adFreeStore: adFreeStore, now: now, onFinished: onFinished, adUnitID: adUnitID) else {
+            return false
+        }
+        guard await coordinator.tryAcquire() else {
+            onFinished()
+            return false
+        }
+        return await presentAd(
+            rootViewController: rootViewController,
+            coordinator: coordinator,
+            adFreeStore: adFreeStore,
+            adUnitID: adUnitID,
+            now: now,
+            onFinished: onFinished
+        )
+    }
+
+    private func shouldShow(
+        adFreeStore: AdFreeStore?,
+        now: Date,
+        onFinished: @escaping @MainActor () -> Void,
+        adUnitID: String?
+    ) -> Bool {
         if let adFreeStore, adFreeStore.isAdFree {
             onFinished()
             return false
         }
-
         if let lastShownAt, now.timeIntervalSince(lastShownAt) < Self.cooldownSeconds {
             onFinished()
             loadIfNeeded(adUnitID: adUnitID, adFreeStore: adFreeStore)
             return false
         }
-
         guard isLoaded else {
             onFinished()
             loadIfNeeded(adUnitID: adUnitID, adFreeStore: adFreeStore)
             return false
         }
+        return true
+    }
 
-        guard await coordinator.tryAcquire() else {
-            onFinished()
-            return false
-        }
-
+    private func presentAd(
+        rootViewController: UIViewController?,
+        coordinator: FullscreenAdCoordinator,
+        adFreeStore: AdFreeStore?,
+        adUnitID: String?,
+        now: Date,
+        onFinished: @escaping @MainActor () -> Void
+    ) async -> Bool {
         #if canImport(GoogleMobileAds)
             guard let ad else {
                 await coordinator.release()

@@ -79,10 +79,12 @@ final class AppEnvironment {
         self.modelContainer = modelContainer
         self.appSettings = resolvedAppSettings
         self.appSettingsRepo = appSettingsRepo ?? UserDefaultsAppSettingsRepository()
-        self.adFreeStore = adFreeStore ?? AdFreeStore(
-            fetcher: statusFetcher,
-            deviceHashProvider: hashProvider
-        )
+        self.adFreeStore =
+            adFreeStore
+                ?? AdFreeStore(
+                    fetcher: statusFetcher,
+                    deviceHashProvider: hashProvider
+                )
         self.trackingService = trackingService ?? TrackingAuthorizationService()
         self.snackbarQueue = resolvedSnackbarQueue
         self.settingsRedirectCoordinator = settingsRedirectCoordinator ?? SettingsRedirectCoordinator()
@@ -95,85 +97,55 @@ final class AppEnvironment {
         deviceHashProvider = hashProvider
         adFreeStatusFetcher = statusFetcher
 
-        let resolvedTrackingService = self.trackingService
-        self.interstitialAdManager = interstitialAdManager
-            ?? InterstitialAdManager(trackingService: resolvedTrackingService)
-        self.rewardedAdManager = rewardedAdManager
-            ?? RewardedAdManager(trackingService: resolvedTrackingService)
-        self.nativeAdLoader = nativeAdLoader
-            ?? NativeAdLoader(trackingService: resolvedTrackingService)
-        self.appOpenAdManager = appOpenAdManager
-            ?? AppOpenAdManager(trackingService: resolvedTrackingService)
-        self.fullscreenAdCoordinator = fullscreenAdCoordinator ?? FullscreenAdCoordinator()
-        self.consentManager = consentManager ?? ConsentManager()
-
-        let resolvedLocation = CoreLocationService()
-        let resolvedPhotoLibraryExporter = PhotoLibraryExport()
-        let resolvedPhotoLibrary = PhotoLibraryService()
-
-        location = resolvedLocation
-        photoLibraryExporter = resolvedPhotoLibraryExporter
-        photoLibrary = resolvedPhotoLibrary
-        photoLibrarySync = PhotoLibrarySyncService(
-            container: modelContainer,
-            photoLibrary: resolvedPhotoLibrary
+        let adServices = Self.makeAdServices(
+            trackingService: self.trackingService,
+            overrides: (
+                interstitial: interstitialAdManager,
+                rewarded: rewardedAdManager,
+                nativeAd: nativeAdLoader,
+                appOpen: appOpenAdManager,
+                fullscreen: fullscreenAdCoordinator,
+                consent: consentManager
+            )
         )
+        self.interstitialAdManager = adServices.interstitial
+        self.rewardedAdManager = adServices.rewarded
+        self.nativeAdLoader = adServices.nativeAd
+        self.appOpenAdManager = adServices.appOpen
+        self.fullscreenAdCoordinator = adServices.fullscreen
+        self.consentManager = adServices.consent
 
-        let resolvedPairRepo = SwiftDataPhotoPairRepository(container: modelContainer)
-        let resolvedAlbumRepo = SwiftDataAlbumRepository(container: modelContainer)
-        pairRepo = resolvedPairRepo
-        albumRepo = resolvedAlbumRepo
-
-        let resolvedZipExporter = ZipExporterAdapter(
-            photoLibrary: resolvedPhotoLibrary,
-            pairRepo: resolvedPairRepo,
+        let dataServices = Self.makeDataServices(
+            modelContainer: modelContainer,
             appSettings: resolvedAppSettings
         )
-        zipExporter = resolvedZipExporter
+        location = dataServices.location
+        photoLibraryExporter = dataServices.photoLibraryExporter
+        photoLibrary = dataServices.photoLibrary
+        photoLibrarySync = dataServices.photoLibrarySync
+        pairRepo = dataServices.pairRepo
+        albumRepo = dataServices.albumRepo
+        zipExporter = dataServices.zipExporter
 
-        createPair = CreatePairUseCase(
-            pairRepo: resolvedPairRepo,
-            photoLibrary: resolvedPhotoLibrary,
-            location: resolvedLocation
-        )
-        let resolvedCaptureAfter = CaptureAfterUseCase(
-            pairRepo: resolvedPairRepo,
-            photoLibrary: resolvedPhotoLibrary
-        )
-        captureAfter = resolvedCaptureAfter
-        recaptureAfter = RecaptureAfterUseCase(
-            pairRepo: resolvedPairRepo,
-            photoLibrary: resolvedPhotoLibrary,
-            captureAfter: resolvedCaptureAfter
-        )
-        deletePairs = DeletePairsUseCase(
-            pairRepo: resolvedPairRepo,
-            photoLibrary: resolvedPhotoLibrary
-        )
-        deleteCombinedExports = DeleteCombinedExportsUseCase(
-            pairRepo: resolvedPairRepo,
-            photoLibrary: resolvedPhotoLibrary
-        )
-        deletePairsKeepingCombined = DeletePairsKeepingCombinedUseCase(
-            pairRepo: resolvedPairRepo,
-            photoLibrary: resolvedPhotoLibrary
-        )
-        let resolvedExportPairs = ExportPairsUseCase(
-            pairRepo: resolvedPairRepo,
-            zipExporter: resolvedZipExporter
-        )
-        exportPairs = resolvedExportPairs
-        toggleAlbumMembership = ToggleAlbumMembershipUseCase(
-            albumRepo: resolvedAlbumRepo
-        )
-        immediateExport = ImmediateExportService(
-            photoLibrary: resolvedPhotoLibrary,
-            exportPairs: resolvedExportPairs,
-            photoLibraryExporter: resolvedPhotoLibraryExporter,
+        let useCases = Self.makeUseCases(
+            pairRepo: dataServices.pairRepo,
+            albumRepo: dataServices.albumRepo,
+            photoLibrary: dataServices.photoLibrary,
+            photoLibraryExporter: dataServices.photoLibraryExporter,
+            location: dataServices.location,
+            zipExporter: dataServices.zipExporter,
             snackbarQueue: resolvedSnackbarQueue,
-            appSettings: resolvedAppSettings,
-            pairRepo: resolvedPairRepo
+            appSettings: resolvedAppSettings
         )
+        createPair = useCases.createPair
+        captureAfter = useCases.captureAfter
+        recaptureAfter = useCases.recaptureAfter
+        deletePairs = useCases.deletePairs
+        deleteCombinedExports = useCases.deleteCombinedExports
+        deletePairsKeepingCombined = useCases.deletePairsKeepingCombined
+        exportPairs = useCases.exportPairs
+        toggleAlbumMembership = useCases.toggleAlbumMembership
+        immediateExport = useCases.immediateExport
     }
 
     func makeBeforeCameraViewModel(
@@ -182,12 +154,12 @@ final class AppEnvironment {
     ) -> BeforeCameraViewModel {
         BeforeCameraViewModel(
             albumId: albumId,
-            refillPairId: refillPairId,
             createPair: createPair,
             pairRepo: pairRepo,
             albumRepo: albumRepo,
             appSettings: appSettings,
             hapticService: hapticService,
+            refillPairId: refillPairId,
             session: makeCameraSession(),
             permissionProbe: makeCameraPermissionProbe()
         )
@@ -201,15 +173,15 @@ final class AppEnvironment {
     ) -> AfterCameraViewModel {
         AfterCameraViewModel(
             albumId: albumId,
-            initialPairId: initialPairId,
-            sortOrder: sortOrder,
-            recaptureTargetPair: recaptureTargetPair,
             captureAfter: captureAfter,
             recaptureAfter: recaptureAfter,
             pairRepo: pairRepo,
             photoLibrary: photoLibrary,
             appSettings: appSettings,
             hapticService: hapticService,
+            initialPairId: initialPairId,
+            sortOrder: sortOrder,
+            recaptureTargetPair: recaptureTargetPair,
             session: makeCameraSession(),
             permissionProbe: makeCameraPermissionProbe()
         )

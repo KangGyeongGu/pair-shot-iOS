@@ -65,14 +65,18 @@ struct AfterCameraView: View {
         .onChange(of: viewModel?.ghostImageData) { _, newData in
             updateCachedGhostImage(from: newData)
         }
-        .captureErrorAlert(message: Binding(
-            get: { viewModel?.captureErrorMessage },
-            set: { viewModel?.captureErrorMessage = $0 }
-        ))
-        .ghostWarningToast(message: Binding(
-            get: { viewModel?.ghostWarningToast },
-            set: { viewModel?.ghostWarningToast = $0 }
-        ))
+        .captureErrorAlert(
+            message: Binding(
+                get: { viewModel?.captureErrorMessage },
+                set: { viewModel?.captureErrorMessage = $0 }
+            )
+        )
+        .ghostWarningToast(
+            message: Binding(
+                get: { viewModel?.ghostWarningToast },
+                set: { viewModel?.ghostWarningToast = $0 }
+            )
+        )
     }
 
     @ViewBuilder
@@ -99,7 +103,7 @@ struct AfterCameraView: View {
 
     @ViewBuilder
     private func content(for viewModel: AfterCameraViewModel) -> some View {
-        if viewModel.cameraPermissionGranted == false {
+        if viewModel.cameraPermissionState == .denied {
             PermissionDeniedView(forCamera: ())
                 .padding(.horizontal, 32)
         } else {

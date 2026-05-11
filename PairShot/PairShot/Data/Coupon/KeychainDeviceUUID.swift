@@ -24,7 +24,8 @@ nonisolated enum KeychainDeviceUUID {
         let status = SecItemCopyMatching(query as CFDictionary, &item)
         guard status == errSecSuccess,
               let data = item as? Data,
-              let value = String(data: data, encoding: .utf8) else { return nil }
+              let value = String(data: data, encoding: .utf8)
+        else { return nil }
         return value
     }
 

@@ -59,9 +59,10 @@ struct AlbumDetailSelectionToolbar: ToolbarContent {
         }
         ToolbarItem(placement: .topBarTrailing) {
             Button(action: onToggleSelectAll) {
-                Text(allSelected
-                    ? String(localized: "home_button_deselect_all")
-                    : String(localized: "home_button_select_all")
+                Text(
+                    allSelected
+                        ? String(localized: "home_button_deselect_all")
+                        : String(localized: "home_button_select_all")
                 )
             }
         }

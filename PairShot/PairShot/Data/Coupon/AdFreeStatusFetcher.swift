@@ -37,7 +37,7 @@ nonisolated struct AdFreeStatusResult: Equatable, Codable {
     let activeCoupons: [AdFreeCouponInfo]
 }
 
-private nonisolated struct AdFreeStatusDto: Decodable {
+nonisolated private struct AdFreeStatusDto: Decodable {
     let active: Bool
     let expiresAt: Date?
     let remainingDays: Int?
@@ -63,7 +63,7 @@ private nonisolated struct AdFreeStatusDto: Decodable {
     }
 }
 
-private nonisolated struct AdFreeCouponItemDto: Decodable {
+nonisolated private struct AdFreeCouponItemDto: Decodable {
     let shortCode: String
     let durationDays: Int?
     let activatedAt: Date

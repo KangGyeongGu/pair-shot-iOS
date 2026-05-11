@@ -17,8 +17,8 @@ nonisolated enum CompositeRenderer {
     @MainActor
     static func makeComposite(
         for pair: PhotoPair,
-        options: CompositeOptions = .default,
         photoLibrary: PhotoLibraryService,
+        options: CompositeOptions = .default,
         now: Date = .now
     ) async throws -> Data {
         guard
@@ -61,9 +61,11 @@ nonisolated enum CompositeRenderer {
                     layout: options.layout,
                     combineSettings: options.combineSettings
                 )
-                guard let baseJPEG = composite.jpegData(
-                    compressionQuality: options.jpegQuality
-                ) else {
+                guard
+                    let baseJPEG = composite.jpegData(
+                        compressionQuality: options.jpegQuality
+                    )
+                else {
                     throw RenderError.encodeFailed
                 }
                 return ExifEmbedder.embed(
@@ -221,12 +223,14 @@ nonisolated enum ExifEmbedder {
         }
         guard CGImageSourceGetType(source) != nil else { return nil }
         let destinationData = NSMutableData()
-        guard let destination = CGImageDestinationCreateWithData(
-            destinationData,
-            UTType.jpeg.identifier as CFString,
-            1,
-            nil
-        ) else { return nil }
+        guard
+            let destination = CGImageDestinationCreateWithData(
+                destinationData,
+                UTType.jpeg.identifier as CFString,
+                1,
+                nil
+            )
+        else { return nil }
 
         let metadata = makeMetadata(
             capturedAt: capturedAt,

@@ -78,9 +78,10 @@ struct AlbumDetailBottomBarHost: View {
     }
 
     private func pushExport() {
-        let chosen = sortedPairs
-            .filter { viewModel.selectedPairIds.contains($0.id) }
-            .map(\.id)
+        let chosen =
+            sortedPairs
+                .filter { viewModel.selectedPairIds.contains($0.id) }
+                .map(\.id)
         guard !chosen.isEmpty else { return }
         onPushExportSettings?(chosen)
     }

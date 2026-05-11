@@ -92,11 +92,13 @@ struct HomeView: View {
                 onPushExportSettings: onPushExportSettings
             )
         }
-        .modifier(HomeViewSheetModifiers(
-            viewModel: viewModel,
-            sortedPairs: sortedPairs,
-            sortedAlbums: sortedAlbums
-        ))
+        .modifier(
+            HomeViewSheetModifiers(
+                viewModel: viewModel,
+                sortedPairs: sortedPairs,
+                sortedAlbums: sortedAlbums
+            )
+        )
     }
 
     @ViewBuilder
@@ -125,16 +127,17 @@ struct HomeView: View {
     private func pairsGrid(viewModel: HomeViewModel, pairs: [PhotoPair]) -> some View {
         let groups = viewModel.groupedPairs(from: pairs)
         var slotIndex = 0
-        let groupChunks: [(date: Date, pairs: [PhotoPair], chunks: [PairListWithAdsBuilder.PairChunk])] = groups
-            .map { group in
-                let result = PairListWithAdsBuilder.buildChunks(
-                    pairs: group.pairs,
-                    adFree: adFreeStore.isAdFree,
-                    startingAdSlotIndex: slotIndex
-                )
-                slotIndex = result.nextSlotIndex
-                return (group.date, group.pairs, result.chunks)
-            }
+        let groupChunks: [(date: Date, pairs: [PhotoPair], chunks: [PairListWithAdsBuilder.PairChunk])] =
+            groups
+                .map { group in
+                    let result = PairListWithAdsBuilder.buildChunks(
+                        pairs: group.pairs,
+                        adFree: adFreeStore.isAdFree,
+                        startingAdSlotIndex: slotIndex
+                    )
+                    slotIndex = result.nextSlotIndex
+                    return (group.date, group.pairs, result.chunks)
+                }
         return ScrollView {
             LazyVStack(alignment: .leading, spacing: 16) {
                 ForEach(groupChunks, id: \.date) { group in
@@ -299,8 +302,8 @@ struct HomeView: View {
 
     static func toDomain(_ entity: AlbumEntity) -> Album {
         Album(
-            id: entity.id,
             name: entity.name,
+            id: entity.id,
             latitude: entity.latitude,
             longitude: entity.longitude,
             locationLabel: entity.locationLabel,

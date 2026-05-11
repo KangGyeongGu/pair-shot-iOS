@@ -86,8 +86,8 @@ final class SwiftDataAlbumRepository: AlbumRepository {
 
     private func toDomain(_ entity: AlbumEntity) -> Album {
         Album(
-            id: entity.id,
             name: entity.name,
+            id: entity.id,
             latitude: entity.latitude,
             longitude: entity.longitude,
             locationLabel: entity.locationLabel,
@@ -99,8 +99,8 @@ final class SwiftDataAlbumRepository: AlbumRepository {
 
     private func makeEntity(from domain: Album) -> AlbumEntity {
         AlbumEntity(
-            id: domain.id,
             name: domain.name,
+            id: domain.id,
             latitude: domain.latitude,
             longitude: domain.longitude,
             locationLabel: domain.locationLabel,

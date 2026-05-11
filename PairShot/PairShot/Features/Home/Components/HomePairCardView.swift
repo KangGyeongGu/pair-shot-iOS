@@ -15,11 +15,13 @@ struct HomePairCardView: View {
             .overlay(borderOverlay)
             .overlay(selectionTint)
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel(Self.accessibilityLabel(
-                for: pair,
-                isSelected: isSelected,
-                isSelectionMode: isSelectionMode
-            ))
+            .accessibilityLabel(
+                Self.accessibilityLabel(
+                    for: pair,
+                    isSelected: isSelected,
+                    isSelectionMode: isSelectionMode
+                )
+            )
     }
 
     @ViewBuilder
@@ -45,9 +47,12 @@ struct HomePairCardView: View {
         isSelectionMode: Bool
     ) -> String {
         let statusText = statusLabel(for: pair)
-        let selectionText: String? = isSelectionMode
-            ? (isSelected ? String(localized: "common_state_selected") : String(localized: "common_state_unselected"))
-            : nil
+        let selectionText: String? =
+            isSelectionMode
+                ?
+                (isSelected ? String(localized: "common_state_selected") :
+                    String(localized: "common_state_unselected"))
+                : nil
         return [statusText, selectionText]
             .compactMap(\.self)
             .joined(separator: ", ")

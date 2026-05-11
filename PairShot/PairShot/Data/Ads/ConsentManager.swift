@@ -55,8 +55,9 @@ final class ConsentManager {
     private func refreshFlags() {
         #if canImport(UserMessagingPlatform)
             canRequestAds = UMPConsentInformation.sharedInstance.canRequestAds
-            canShowPrivacyOptionsButton = UMPConsentInformation.sharedInstance
-                .privacyOptionsRequirementStatus == .required
+            canShowPrivacyOptionsButton =
+                UMPConsentInformation.sharedInstance
+                    .privacyOptionsRequirementStatus == .required
         #else
             canRequestAds = true
             canShowPrivacyOptionsButton = false
@@ -66,11 +67,13 @@ final class ConsentManager {
     private func topViewController() -> UIViewController? {
         guard
             let scene = UIApplication.shared.connectedScenes
-                .compactMap({ $0 as? UIWindowScene }).first,
-            let root = scene.windows.first(where: { $0.isKeyWindow })?.rootViewController
+            .compactMap({ $0 as? UIWindowScene }).first,
+            let root = scene.windows.first(where: \.isKeyWindow)?.rootViewController
         else { return nil }
         var current = root
-        while let presented = current.presentedViewController { current = presented }
+        while let presented = current.presentedViewController {
+            current = presented
+        }
         return current
     }
 }

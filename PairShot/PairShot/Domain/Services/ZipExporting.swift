@@ -19,5 +19,5 @@ nonisolated struct ExportRenderOptions: Equatable {
     let applyCombineSettings: Bool
     let applyWatermark: Bool
 
-    static let none = Self(applyCombineSettings: false, applyWatermark: false)
+    static let disabled = Self(applyCombineSettings: false, applyWatermark: false)
 }

@@ -106,11 +106,13 @@ final class AppOpenAdManager {
             }
             guard isLoaded else { return false }
         }
-        guard AppOpenAdGate.shouldPresent(
-            lastShownAt: lastShownAt,
-            now: now,
-            minimumInterval: minimumInterval
-        ) else { return false }
+        guard
+            AppOpenAdGate.shouldPresent(
+                lastShownAt: lastShownAt,
+                now: now,
+                minimumInterval: minimumInterval
+            )
+        else { return false }
         guard await coordinator.tryAcquire() else { return false }
 
         #if canImport(GoogleMobileAds)

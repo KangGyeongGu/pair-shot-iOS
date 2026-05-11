@@ -27,22 +27,26 @@ nonisolated enum CompositeLabelDrawer {
         scaleFactor: CGFloat = 1
     ) {
         guard let settings = combineSettings, settings.label.isEnabled else { return }
-        drawLabel(LabelDrawContext(
-            text: settings.label.beforeText,
-            imageRect: beforeRect,
-            settings: settings,
-            isBefore: true,
-            cgContext: context.cgContext,
-            scaleFactor: scaleFactor
-        ))
-        drawLabel(LabelDrawContext(
-            text: settings.label.afterText,
-            imageRect: afterRect,
-            settings: settings,
-            isBefore: false,
-            cgContext: context.cgContext,
-            scaleFactor: scaleFactor
-        ))
+        drawLabel(
+            LabelDrawContext(
+                text: settings.label.beforeText,
+                imageRect: beforeRect,
+                settings: settings,
+                isBefore: true,
+                cgContext: context.cgContext,
+                scaleFactor: scaleFactor
+            )
+        )
+        drawLabel(
+            LabelDrawContext(
+                text: settings.label.afterText,
+                imageRect: afterRect,
+                settings: settings,
+                isBefore: false,
+                cgContext: context.cgContext,
+                scaleFactor: scaleFactor
+            )
+        )
     }
 
     static func resolveBorderPx(_ combineSettings: CombineSettings?) -> CGFloat {
@@ -55,11 +59,12 @@ nonisolated enum CompositeLabelDrawer {
         canvas: CGSize,
         combineSettings: CombineSettings?
     ) {
-        let fill: UIColor = if let settings = combineSettings, settings.border.isEnabled {
-            UIColor(rgba: settings.border.color)
-        } else {
-            .black
-        }
+        let fill: UIColor =
+            if let settings = combineSettings, settings.border.isEnabled {
+                UIColor(rgba: settings.border.color)
+            } else {
+                .black
+            }
         fill.setFill()
         context.fill(CGRect(origin: .zero, size: canvas))
     }
@@ -164,16 +169,17 @@ nonisolated enum CompositeLabelDrawer {
         vertical: CombineSettings.LabelPosition.Vertical
     ) -> CGRect {
         let rectHeight = fontSize * LabelMetrics.rectHeightFactor
-        let top: CGFloat = switch vertical {
-            case .top:
-                imageRect.minY
+        let top: CGFloat =
+            switch vertical {
+                case .top:
+                    imageRect.minY
 
-            case .middle:
-                imageRect.midY - rectHeight / 2
+                case .middle:
+                    imageRect.midY - rectHeight / 2
 
-            case .bottom:
-                imageRect.maxY - rectHeight
-        }
+                case .bottom:
+                    imageRect.maxY - rectHeight
+            }
         return CGRect(x: imageRect.minX, y: top, width: imageRect.width, height: rectHeight)
     }
 

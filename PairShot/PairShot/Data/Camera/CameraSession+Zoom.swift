@@ -7,8 +7,9 @@ nonisolated extension CameraSession {
         await runOnSessionQueue { [weak self] in
             guard let device = self?.activeDevice else { return CameraZoomSnapshot.empty }
             let presets = ZoomPresetBuilder.build(for: device)
-            let firstSwitch = device.virtualDeviceSwitchOverVideoZoomFactors
-                .first.map { Double(truncating: $0) } ?? 1.0
+            let firstSwitch =
+                device.virtualDeviceSwitchOverVideoZoomFactors
+                    .first.map { Double(truncating: $0) } ?? 1.0
             return CameraZoomSnapshot(
                 minFactor: Double(device.minAvailableVideoZoomFactor),
                 maxFactor: CameraZoomCapabilities.recommendedMaxFactor(for: device),

@@ -236,8 +236,8 @@ final class PhotoLibraryThumbnailCache {
 
     static func estimatedByteCost(_ image: UIImage) -> Int {
         let scale = image.scale
-        let w = Int(image.size.width * scale)
-        let h = Int(image.size.height * scale)
-        return max(0, w * h * 4)
+        let width = Int(image.size.width * scale)
+        let height = Int(image.size.height * scale)
+        return max(0, width * height * 4)
     }
 }

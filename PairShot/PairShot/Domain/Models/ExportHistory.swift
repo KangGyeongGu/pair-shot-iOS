@@ -18,9 +18,9 @@ struct ExportHistory: Identifiable, Equatable {
     }
 
     init(
-        id: UUID = UUID(),
         kind: ExportHistoryKind,
         photoLocalIdentifier: String,
+        id: UUID = UUID(),
         createdAt: Date = .now,
         pairId: UUID? = nil
     ) {

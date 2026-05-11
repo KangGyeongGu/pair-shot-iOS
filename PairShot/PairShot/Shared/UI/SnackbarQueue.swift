@@ -20,12 +20,12 @@ struct SnackbarItem: Identifiable, Equatable {
     let createdAt: Date
 
     init(
-        id: UUID = UUID(),
-        token: String? = nil,
         message: LocalizedStringResource,
         variant: SnackbarVariant,
         isActionable: Bool,
-        createdAt: Date
+        createdAt: Date,
+        id: UUID = UUID(),
+        token: String? = nil
     ) {
         self.id = id
         self.token = token
@@ -107,14 +107,15 @@ final class SnackbarQueue {
         initialValue: Double? = nil
     ) -> SnackbarProgressHandle {
         let now = clock()
-        let variant: SnackbarVariant = initialValue
-            .map { .progress(value: max(0, min(1, $0))) } ?? .indeterminateProgress
+        let variant: SnackbarVariant =
+            initialValue
+                .map { .progress(value: max(0, min(1, $0))) } ?? .indeterminateProgress
         let item = SnackbarItem(
-            token: token,
             message: message,
             variant: variant,
             isActionable: false,
-            createdAt: now
+            createdAt: now,
+            token: token
         )
         if current?.token == token {
             current = item
@@ -135,22 +136,22 @@ final class SnackbarQueue {
         let now = clock()
         if let active = current, active.token == handle.token {
             current = SnackbarItem(
-                id: active.id,
-                token: active.token,
                 message: message ?? active.message,
                 variant: .progress(value: clamped),
                 isActionable: false,
-                createdAt: active.createdAt
+                createdAt: active.createdAt,
+                id: active.id,
+                token: active.token
             )
         } else if let index = pending.firstIndex(where: { $0.token == handle.token }) {
             let existing = pending[index]
             pending[index] = SnackbarItem(
-                id: existing.id,
-                token: existing.token,
                 message: message ?? existing.message,
                 variant: .progress(value: clamped),
                 isActionable: false,
-                createdAt: now
+                createdAt: now,
+                id: existing.id,
+                token: existing.token
             )
         }
     }
@@ -165,14 +166,15 @@ final class SnackbarQueue {
             dismissTask = nil
             if let message = finalMessage {
                 let now = clock()
-                current = SnackbarItem(
-                    token: nil,
+                let replacement = SnackbarItem(
                     message: message,
                     variant: finalVariant,
                     isActionable: false,
-                    createdAt: now
+                    createdAt: now,
+                    token: nil
                 )
-                scheduleDismiss(for: current!)
+                current = replacement
+                scheduleDismiss(for: replacement)
             } else {
                 current = nil
                 advance()

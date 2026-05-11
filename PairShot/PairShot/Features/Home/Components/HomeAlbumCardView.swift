@@ -54,11 +54,13 @@ struct HomeAlbumCardView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .contentShape(.rect)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(Self.accessibilityLabel(
-            for: album,
-            isSelected: isSelected,
-            isSelectionMode: isSelectionMode
-        ))
+        .accessibilityLabel(
+            Self.accessibilityLabel(
+                for: album,
+                isSelected: isSelected,
+                isSelectionMode: isSelectionMode
+            )
+        )
     }
 
     static func accessibilityLabel(
@@ -67,9 +69,12 @@ struct HomeAlbumCardView: View {
         isSelectionMode: Bool
     ) -> String {
         let countText = String(format: String(localized: "home_pair_count_int"), album.pairIds.count)
-        let selectionText: String? = isSelectionMode
-            ? (isSelected ? String(localized: "common_state_selected") : String(localized: "common_state_unselected"))
-            : nil
+        let selectionText: String? =
+            isSelectionMode
+                ?
+                (isSelected ? String(localized: "common_state_selected") :
+                    String(localized: "common_state_unselected"))
+                : nil
         return [album.name, countText, selectionText]
             .compactMap(\.self)
             .joined(separator: ", ")
