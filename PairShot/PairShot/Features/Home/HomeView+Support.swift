@@ -163,8 +163,6 @@ struct HomeDefaultToolbar: ToolbarContent {
 
 struct HomeViewSheetModifiers: ViewModifier {
     let viewModel: HomeViewModel
-    let sortedPairs: [PhotoPair]
-    let sortedAlbums: [Album]
 
     func body(content: Content) -> some View {
         content

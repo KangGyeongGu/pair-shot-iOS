@@ -127,8 +127,6 @@ struct BeforeCameraView: View {
                 previewLayerProvider: { previewView?.previewLayer },
                 isGridOn: viewModel.isGridOn,
                 isLevelOn: viewModel.isLevelOn,
-                isNightModeOn: viewModel.isNightModeOn,
-                flashMode: viewModel.flashMode,
                 rollDegrees: env.motionService.rollDegrees,
                 presets: viewModel.availablePresets,
                 displayMultiplier: viewModel.displayMultiplier,
@@ -151,10 +149,6 @@ struct BeforeCameraView: View {
                 onShutter: { handleShutter(viewModel: viewModel) },
                 onLeadingTap: handleLeadingTap,
                 onToggleLens: viewModel.toggleLens,
-                onToggleGrid: viewModel.toggleGrid,
-                onToggleLevel: viewModel.toggleLevel,
-                onToggleNightMode: viewModel.toggleNightMode,
-                onCycleFlash: viewModel.cycleFlash,
                 onSettingsTap: { showSettingsSheet = true }
             )
         }

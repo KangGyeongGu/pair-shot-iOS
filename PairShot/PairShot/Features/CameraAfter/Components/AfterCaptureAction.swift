@@ -3,31 +3,10 @@ import SwiftData
 import SwiftUI
 import UIKit
 
-enum AfterCaptureActionError: Error {
-    case session(CameraSessionError)
-    case storage(Error)
-    case persistence(Error)
-    case alreadyComplete
-}
-
-struct AfterCaptureOutcome {
-    let completedPair: PhotoPair
-    let nextPendingPair: PhotoPair?
-}
-
 enum AfterCameraPairLoader {
     static func pendingPairs(in pairs: [PhotoPair], sortOrder: HomeSortOrder = .newest) -> [PhotoPair] {
         let pending = pairs.filter { $0.afterPhotoLocalIdentifier == nil }
         return sort(pending, sortOrder: sortOrder)
-    }
-
-    static func nextPendingPair(
-        after current: PhotoPair,
-        in pairs: [PhotoPair],
-        sortOrder: HomeSortOrder = .newest
-    ) -> PhotoPair? {
-        let remaining = pairs.filter { $0.id != current.id && $0.afterPhotoLocalIdentifier == nil }
-        return sort(remaining, sortOrder: sortOrder).first
     }
 
     private static func sort(_ pairs: [PhotoPair], sortOrder: HomeSortOrder) -> [PhotoPair] {

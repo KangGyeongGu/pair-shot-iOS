@@ -152,7 +152,6 @@ private struct HomePairCardEmptySlot: View {
 private struct HomePairCardSide: View {
     enum Placeholder {
         case image
-        case empty
     }
 
     static let longLoadThresholdNanoseconds: UInt64 = 350_000_000

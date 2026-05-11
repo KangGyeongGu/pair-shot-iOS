@@ -2,7 +2,6 @@ import SwiftUI
 
 struct SettingsView: View {
     @Binding var path: [Route]
-    @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
     @Environment(AppEnvironment.self) private var env
     @State private var viewModel: SettingsViewModel?
@@ -23,7 +22,6 @@ struct SettingsView: View {
         .navigationTitle(String(localized: "settings_title"))
         .navigationBarTitleDisplayMode(.inline)
         .task { ensureViewModel() }
-        .task { await observeEvents() }
         .task { await initialStorageRefresh() }
     }
 
@@ -41,16 +39,6 @@ struct SettingsView: View {
         switch target {
             case .watermark: viewModel.triggerPulse(\.shouldPulseWatermark)
             case .combine: viewModel.triggerPulse(\.shouldPulseCombine)
-        }
-    }
-
-    private func observeEvents() async {
-        guard let viewModel else { return }
-        for await event in viewModel.events {
-            switch event {
-                case .dismiss:
-                    dismiss()
-            }
         }
     }
 

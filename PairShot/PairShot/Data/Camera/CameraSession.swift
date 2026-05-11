@@ -35,12 +35,10 @@ nonisolated struct CapturedPhoto {
     let jpegData: Data
     let zoomFactor: Double
     let lensIdentifier: String
-    let capturedAt: Date
 }
 
 nonisolated enum CameraSessionError: Error {
     case notConfigured
-    case deviceUnavailable
     case captureFailed(String)
     case noPhotoData
 }
@@ -171,12 +169,6 @@ final nonisolated class CameraSession: @unchecked Sendable {
             session.stopRunning()
         }
         AppLogger.camera.debug("Camera session stopped")
-    }
-
-    func lensPosition() async -> CameraLensPosition {
-        await runOnSessionQueue { [weak self] in
-            self?.lensPositionStorage ?? .back
-        }
     }
 
     private func configureInitialInput() async {

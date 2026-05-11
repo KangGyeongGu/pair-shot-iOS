@@ -9,7 +9,6 @@ struct AfterCameraView: View {
     let recaptureTargetPair: PhotoPair?
 
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.scenePhase) private var scenePhase
     @Environment(AppEnvironment.self) private var env
 
     @State private var viewModel: AfterCameraViewModel?
@@ -123,9 +122,6 @@ struct AfterCameraView: View {
                 pairs: viewModel.pairs,
                 selectedPairId: selectedPairIdBinding(for: viewModel),
                 isGridOn: viewModel.isGridOn,
-                isLevelOn: viewModel.isLevelOn,
-                isNightModeOn: viewModel.isNightModeOn,
-                flashMode: viewModel.flashMode,
                 presets: viewModel.availablePresets,
                 displayMultiplier: viewModel.displayMultiplier,
                 activePreset: viewModel.activePreset,
@@ -142,12 +138,6 @@ struct AfterCameraView: View {
                 onShutter: { handleShutter(viewModel: viewModel) },
                 onLeadingTap: { dismiss() },
                 onToggleLens: viewModel.toggleLens,
-                onToggleGrid: viewModel.toggleGrid,
-                onToggleLevel: viewModel.toggleLevel,
-                onToggleNightMode: viewModel.toggleNightMode,
-                onCycleFlash: viewModel.cycleFlash,
-                onToggleOverlay: viewModel.toggleOverlay,
-                onAlphaChange: viewModel.setAlpha,
                 onSettingsTap: { showSettingsSheet = true }
             )
         }

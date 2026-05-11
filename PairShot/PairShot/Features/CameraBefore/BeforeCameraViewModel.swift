@@ -163,13 +163,6 @@ final class BeforeCameraViewModel {
         }
     }
 
-    func setFlashMode(_ mode: CameraFlashMode) {
-        let current = flashMode
-        guard mode != current else { return }
-        flashMode = mode
-        Task { await session.setFlashMode(mode) }
-    }
-
     func toggleLens() {
         let next: CameraLensPosition = lensPosition == .back ? .front : .back
         Task {
@@ -239,10 +232,6 @@ final class BeforeCameraViewModel {
         zoomRampTask = nil
     }
 
-    func dismiss() {
-        eventsContinuation.yield(.dismiss)
-    }
-
     func shutter() async {
         guard !isCapturing else { return }
         isCapturing = true
@@ -251,10 +240,7 @@ final class BeforeCameraViewModel {
             let captured = try await session.capturePhoto()
             let cameraSettings = CameraSettings(
                 zoomFactor: captured.zoomFactor,
-                lensPosition: LensPosition.resolve(identifier: captured.lensIdentifier),
-                flashMode: CameraFlashModeMapping.cameraSettingsFlashMode(from: flashMode),
-                useGrid: isGridOn,
-                useNightMode: isNightModeOn
+                lensPosition: LensPosition.resolve(identifier: captured.lensIdentifier)
             )
             if let refillPairId {
                 _ = try await createPair.refillBefore(
@@ -372,15 +358,6 @@ nonisolated enum CameraFlashModeMapping {
 
             case .torch:
                 CameraFlashModePersistence.torch
-        }
-    }
-
-    static func cameraSettingsFlashMode(from camera: CameraFlashMode) -> FlashMode {
-        switch camera {
-            case .off: .off
-            case .on: .on
-            case .auto: .auto
-            case .torch: .torch
         }
     }
 }

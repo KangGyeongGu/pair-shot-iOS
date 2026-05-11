@@ -5,7 +5,6 @@ import Observation
 @Observable
 final class PairPickerViewModel {
     let albumId: UUID
-    let photoLibrary: PhotoLibraryService
 
     var selection: Set<UUID> = []
     var isConfirming: Bool = false
@@ -35,11 +34,10 @@ final class PairPickerViewModel {
     init(
         albumId: UUID,
         toggleAlbumMembership: ToggleAlbumMembershipUseCase,
-        photoLibrary: PhotoLibraryService
+        photoLibrary _: PhotoLibraryService
     ) {
         self.albumId = albumId
         self.toggleAlbumMembership = toggleAlbumMembership
-        self.photoLibrary = photoLibrary
     }
 
     func toggleSelection(_ pairId: UUID, isAlreadyInAlbum: Bool) {

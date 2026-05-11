@@ -51,8 +51,7 @@ nonisolated extension CameraSession {
                             returning: CapturedPhoto(
                                 jpegData: rawJpeg,
                                 zoomFactor: captureContext.zoom,
-                                lensIdentifier: captureContext.lens,
-                                capturedAt: .now
+                                lensIdentifier: captureContext.lens
                             )
                         )
 

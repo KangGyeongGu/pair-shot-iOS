@@ -53,8 +53,6 @@ struct HomeRecaptureAfterRequest: Identifiable {
 @MainActor
 @Observable
 final class HomeViewModel {
-    let photoLibrary: PhotoLibraryService
-
     var contentMode: HomeContentMode = .pairs
     var sortOrder: HomeSortOrder {
         get { HomeSortOrderMapping.sortOrder(from: appSettings.homeSortOrder) }
@@ -88,12 +86,10 @@ final class HomeViewModel {
     var resolvedAlbumLongitude: Double?
     var resolvedAlbumLabel: String?
 
-    let pairRepo: PhotoPairRepository
     let albumRepo: AlbumRepository
     let deletePairs: DeletePairsUseCase
     let deleteCombinedExports: DeleteCombinedExportsUseCase?
     let deletePairsKeepingCombined: DeletePairsKeepingCombinedUseCase?
-    let toggleAlbumMembership: ToggleAlbumMembershipUseCase
     let location: CoreLocationService
     let thumbnailCache: PhotoLibraryThumbnailCache
     let immediateExport: ImmediateExportService
@@ -103,11 +99,11 @@ final class HomeViewModel {
     let fullscreenAdCoordinator: FullscreenAdCoordinator?
 
     init(
-        pairRepo: PhotoPairRepository,
+        pairRepo _: PhotoPairRepository,
         albumRepo: AlbumRepository,
         deletePairs: DeletePairsUseCase,
-        toggleAlbumMembership: ToggleAlbumMembershipUseCase,
-        photoLibrary: PhotoLibraryService,
+        toggleAlbumMembership _: ToggleAlbumMembershipUseCase,
+        photoLibrary _: PhotoLibraryService,
         location: CoreLocationService,
         immediateExport: ImmediateExportService,
         appSettings: AppSettings,
@@ -118,13 +114,10 @@ final class HomeViewModel {
         deleteCombinedExports: DeleteCombinedExportsUseCase? = nil,
         deletePairsKeepingCombined: DeletePairsKeepingCombinedUseCase? = nil
     ) {
-        self.pairRepo = pairRepo
         self.albumRepo = albumRepo
         self.deletePairs = deletePairs
         self.deleteCombinedExports = deleteCombinedExports
         self.deletePairsKeepingCombined = deletePairsKeepingCombined
-        self.toggleAlbumMembership = toggleAlbumMembership
-        self.photoLibrary = photoLibrary
         self.location = location
         self.immediateExport = immediateExport
         self.appSettings = appSettings
@@ -209,12 +202,6 @@ final class HomeViewModel {
         } else {
             selectedAlbumIds.insert(id)
         }
-    }
-
-    func longPressPair(_ pair: PhotoPair) {
-        guard !isSelectionMode else { return }
-        isSelectionMode = true
-        selectedPairIds = [pair.id]
     }
 
     func tapPair(_ pair: PhotoPair, allPairs _: [PhotoPair]) {

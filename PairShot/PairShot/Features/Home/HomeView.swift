@@ -105,13 +105,7 @@ struct HomeView: View {
                 onPushExportSettings: onPushExportSettings
             )
         }
-        .modifier(
-            HomeViewSheetModifiers(
-                viewModel: viewModel,
-                sortedPairs: sortedPairs,
-                sortedAlbums: sortedAlbums
-            )
-        )
+        .modifier(HomeViewSheetModifiers(viewModel: viewModel))
     }
 
     @ViewBuilder

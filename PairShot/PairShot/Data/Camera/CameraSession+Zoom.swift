@@ -3,58 +3,11 @@ import Foundation
 import OSLog
 
 nonisolated extension CameraSession {
-    var minZoomFactor: Double {
-        get async {
-            await runOnSessionQueue { [weak self] in
-                guard let device = self?.activeDevice else { return 1.0 }
-                return Double(device.minAvailableVideoZoomFactor)
-            }
-        }
-    }
-
-    var maxZoomFactor: Double {
-        get async {
-            await runOnSessionQueue { [weak self] in
-                guard let device = self?.activeDevice else { return 1.0 }
-                return CameraZoomCapabilities.recommendedMaxFactor(for: device)
-            }
-        }
-    }
-
     var currentZoomFactor: Double {
         get async {
             await runOnSessionQueue { [weak self] in
                 guard let device = self?.activeDevice else { return 1.0 }
                 return Double(device.videoZoomFactor)
-            }
-        }
-    }
-
-    var ultraWideSwitchOverFactor: Double? {
-        get async {
-            await runOnSessionQueue { [weak self] in
-                guard let device = self?.activeDevice else { return nil }
-                return device.virtualDeviceSwitchOverVideoZoomFactors
-                    .first.map { Double(truncating: $0) }
-            }
-        }
-    }
-
-    var firstSwitchOver: Double {
-        get async {
-            await runOnSessionQueue { [weak self] in
-                guard let device = self?.activeDevice else { return 1.0 }
-                return device.virtualDeviceSwitchOverVideoZoomFactors
-                    .first.map { Double(truncating: $0) } ?? 1.0
-            }
-        }
-    }
-
-    var availablePresets: [ZoomPresetSpec] {
-        get async {
-            await runOnSessionQueue { [weak self] in
-                guard let device = self?.activeDevice else { return [] }
-                return ZoomPresetBuilder.build(for: device)
             }
         }
     }

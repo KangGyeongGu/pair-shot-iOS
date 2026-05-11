@@ -1,5 +1,20 @@
 import SwiftUI
 
+enum FlashChipPresentation {
+    static func iconName(for mode: CameraFlashMode) -> String {
+        switch mode {
+            case .off: "bolt.slash.fill"
+            case .on: "bolt.fill"
+            case .auto: "bolt.badge.a.fill"
+            case .torch: "flashlight.on.fill"
+        }
+    }
+
+    static func isActive(_ mode: CameraFlashMode) -> Bool {
+        mode != .off
+    }
+}
+
 enum CameraSettingsOverlayMetrics {
     static let panelMaxWidth: CGFloat = 420
     static let panelPadding: CGFloat = 24

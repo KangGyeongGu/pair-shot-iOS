@@ -53,12 +53,6 @@ extension AfterCameraViewModel {
         Task { await session.setLowLightBoost(enabled: enabled) }
     }
 
-    func setFlashMode(_ mode: CameraFlashMode) {
-        guard mode != flashMode else { return }
-        flashMode = mode
-        Task { await session.setFlashMode(mode) }
-    }
-
     func cycleFlash() {
         Task {
             let next = await session.cycleFlashMode()
@@ -93,7 +87,6 @@ extension AfterCameraViewModel {
     }
 
     private func applyZoomDragDelta(_ deltaPx: Double) {
-        zoomDragState.dragAccumulatorPx = deltaPx
         let span = max(maxZoom - minZoom, 0.0001)
         let pxPerZoom = ZoomDialMetrics.dragRangeSpanPt / span
         let zoomDelta = deltaPx / pxPerZoom
@@ -126,7 +119,6 @@ extension AfterCameraViewModel {
 }
 
 final class AfterCameraZoomDragState {
-    var dragAccumulatorPx: Double = 0
     var dragStartRatio: Double = 1.0
     var lastMinorTickIndex: Int?
     var lastMajorTickIndex: Int?
@@ -134,7 +126,6 @@ final class AfterCameraZoomDragState {
     var pinchRampTask: Task<Void, Never>?
 
     func begin(currentRatio: Double) {
-        dragAccumulatorPx = 0
         dragStartRatio = currentRatio
         lastMinorTickIndex = Int((currentRatio * 10).rounded())
         lastMajorTickIndex = Int(currentRatio.rounded())

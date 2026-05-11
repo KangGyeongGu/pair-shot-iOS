@@ -25,7 +25,6 @@ struct AlbumDetailRecaptureAfterRequest: Identifiable {
 @Observable
 final class AlbumDetailViewModel {
     let albumId: UUID
-    let photoLibrary: PhotoLibraryService
 
     var sortOrder: HomeSortOrder {
         get { HomeSortOrderMapping.sortOrder(from: appSettings.albumSortOrder) }
@@ -59,7 +58,6 @@ final class AlbumDetailViewModel {
     var beforeCameraTargetPairId: UUID?
     var navigateToPairPicker: Bool = false
 
-    let pairRepo: PhotoPairRepository
     let albumRepo: AlbumRepository
     let deletePairs: DeletePairsUseCase
     let deleteCombinedExports: DeleteCombinedExportsUseCase?
@@ -74,11 +72,11 @@ final class AlbumDetailViewModel {
 
     init(
         albumId: UUID,
-        pairRepo: PhotoPairRepository,
+        pairRepo _: PhotoPairRepository,
         albumRepo: AlbumRepository,
         deletePairs: DeletePairsUseCase,
         toggleAlbumMembership: ToggleAlbumMembershipUseCase,
-        photoLibrary: PhotoLibraryService,
+        photoLibrary _: PhotoLibraryService,
         immediateExport: ImmediateExportService,
         appSettings: AppSettings,
         thumbnailCache: PhotoLibraryThumbnailCache,
@@ -89,13 +87,11 @@ final class AlbumDetailViewModel {
         deletePairsKeepingCombined: DeletePairsKeepingCombinedUseCase? = nil
     ) {
         self.albumId = albumId
-        self.pairRepo = pairRepo
         self.albumRepo = albumRepo
         self.deletePairs = deletePairs
         self.deleteCombinedExports = deleteCombinedExports
         self.deletePairsKeepingCombined = deletePairsKeepingCombined
         self.toggleAlbumMembership = toggleAlbumMembership
-        self.photoLibrary = photoLibrary
         self.immediateExport = immediateExport
         self.appSettings = appSettings
         self.thumbnailCache = thumbnailCache
@@ -112,10 +108,6 @@ final class AlbumDetailViewModel {
             case .oldest:
                 pairs.sorted { $0.createdAt < $1.createdAt }
         }
-    }
-
-    func setSortOrder(_ order: HomeSortOrder) {
-        sortOrder = order
     }
 
     func reload() async {}

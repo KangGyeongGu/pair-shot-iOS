@@ -11,8 +11,6 @@ struct BeforeCameraStack: View {
 
     let isGridOn: Bool
     let isLevelOn: Bool
-    let isNightModeOn: Bool
-    let flashMode: CameraFlashMode
     let rollDegrees: Double
 
     let presets: [ZoomPresetSpec]
@@ -40,10 +38,6 @@ struct BeforeCameraStack: View {
     let onShutter: () -> Void
     let onLeadingTap: () -> Void
     let onToggleLens: () -> Void
-    let onToggleGrid: () -> Void
-    let onToggleLevel: () -> Void
-    let onToggleNightMode: () -> Void
-    let onCycleFlash: () -> Void
     let onSettingsTap: () -> Void
 
     var body: some View {

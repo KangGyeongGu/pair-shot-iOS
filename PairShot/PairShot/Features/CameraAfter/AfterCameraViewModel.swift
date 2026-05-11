@@ -165,10 +165,6 @@ final class AfterCameraViewModel {
         adopt(pair: pair)
     }
 
-    func dismiss() {
-        eventsContinuation.yield(.dismiss)
-    }
-
     func shutter() async {
         guard !isCapturing, let pair = currentPair else { return }
         isCapturing = true

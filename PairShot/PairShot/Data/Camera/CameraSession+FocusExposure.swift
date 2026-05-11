@@ -3,15 +3,6 @@ import Foundation
 import OSLog
 
 nonisolated extension CameraSession {
-    var exposureBiasRange: ClosedRange<Float>? {
-        get async {
-            await runOnSessionQueue { [weak self] in
-                guard let device = self?.activeDevice else { return nil }
-                return device.minExposureTargetBias ... device.maxExposureTargetBias
-            }
-        }
-    }
-
     func focus(at point: CGPoint) async {
         await runOnSessionQueueVoid { [weak self] in
             guard let device = self?.activeDevice else { return }
@@ -59,13 +50,6 @@ nonisolated extension CameraSession {
                 }
             }
         }
-    }
-
-    func setFlashMode(_ mode: CameraFlashMode) async {
-        await runOnSessionQueueVoid { [weak self] in
-            self?.flashMode = mode
-        }
-        await applyTorchState()
     }
 
     func cycleFlashMode() async -> CameraFlashMode {

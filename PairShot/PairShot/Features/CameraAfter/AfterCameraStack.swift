@@ -18,9 +18,6 @@ struct AfterCameraStack: View {
     let selectedPairId: Binding<UUID?>
 
     let isGridOn: Bool
-    let isLevelOn: Bool
-    let isNightModeOn: Bool
-    let flashMode: CameraFlashMode
 
     let presets: [ZoomPresetSpec]
     let displayMultiplier: Double
@@ -40,12 +37,6 @@ struct AfterCameraStack: View {
     let onShutter: () -> Void
     let onLeadingTap: () -> Void
     let onToggleLens: () -> Void
-    let onToggleGrid: () -> Void
-    let onToggleLevel: () -> Void
-    let onToggleNightMode: () -> Void
-    let onCycleFlash: () -> Void
-    let onToggleOverlay: () -> Void
-    let onAlphaChange: (Double) -> Void
     let onSettingsTap: () -> Void
 
     var body: some View {

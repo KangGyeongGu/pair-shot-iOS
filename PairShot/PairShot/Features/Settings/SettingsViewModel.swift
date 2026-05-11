@@ -5,15 +5,9 @@ import UIKit
 @MainActor
 @Observable
 final class SettingsViewModel {
-    enum Event {
-        case dismiss
-    }
-
     let appSettings: AppSettings
-    let appSettingsRepo: AppSettingsRepository
     let thumbnailCache: PhotoLibraryThumbnailCache
     let hapticService: HapticService
-    let events: AsyncStream<Event>
 
     var showCacheClearConfirm: Bool = false
     var showLanguageRestartAlert: Bool = false
@@ -25,24 +19,6 @@ final class SettingsViewModel {
     private(set) var lastStorageError: String?
     private(set) var isCalculatingStorage: Bool = false
     private(set) var isClearingCache: Bool = false
-
-    private let eventsContinuation: AsyncStream<Event>.Continuation
-
-    var captureSummary: String {
-        appSettings.captureSummary
-    }
-
-    var compositionSummary: String {
-        appSettings.compositionSummary
-    }
-
-    var appVersionLabel: String {
-        SettingsBundleMetadata.appVersionLabel
-    }
-
-    var buildNumberLabel: String {
-        SettingsBundleMetadata.buildNumberLabel
-    }
 
     var appVersionText: String {
         let version = SettingsBundleMetadata.appVersionLabel
@@ -135,23 +111,15 @@ final class SettingsViewModel {
 
     init(
         appSettings: AppSettings,
-        appSettingsRepo: AppSettingsRepository,
+        appSettingsRepo _: AppSettingsRepository,
         thumbnailCache: PhotoLibraryThumbnailCache,
         hapticService: HapticService
     ) {
         self.appSettings = appSettings
-        self.appSettingsRepo = appSettingsRepo
         self.thumbnailCache = thumbnailCache
         self.hapticService = hapticService
-        let stream = AsyncStream<Event>.makeStream()
-        events = stream.stream
-        eventsContinuation = stream.continuation
         overlayAlphaValue = CompositionDefaults.clampAlpha(appSettings.defaultOverlayAlpha)
         overlayAlphaEnabled = appSettings.overlayEnabled
-    }
-
-    func dismiss() {
-        eventsContinuation.yield(.dismiss)
     }
 
     func setLanguage(_ language: AppLanguage) {
