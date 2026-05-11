@@ -4,12 +4,20 @@ project.md
 research.md
 architecture.md
 research-appstore-review.md
+before-production.md
+git-rules.md
+refactor.md
+temp.md
 
 # Xcode
+**/xcuserdata/
 *.xcodeproj/project.xcworkspace/xcuserdata/
 *.xcodeproj/xcuserdata/
 *.xcworkspace/xcuserdata/
 DerivedData/
+
+# Instruments traces
+*.trace/
 *.moved-aside
 *.hmap
 *.ipa
