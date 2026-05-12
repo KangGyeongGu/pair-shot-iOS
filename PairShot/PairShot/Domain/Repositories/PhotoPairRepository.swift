@@ -5,7 +5,6 @@ protocol PhotoPairRepository: Sendable {
     func fetch(id: UUID) async throws -> PhotoPair?
     func add(_ pair: PhotoPair) async throws
     func update(_ pair: PhotoPair) async throws
-    func delete(id: UUID) async throws
     func delete(ids: Set<UUID>) async throws
     func deleteCombinedExportRecords(forPairIds ids: Set<UUID>) async throws
     func combinedExportPhotoIdentifiers(forPairIds ids: Set<UUID>) async throws -> [String]

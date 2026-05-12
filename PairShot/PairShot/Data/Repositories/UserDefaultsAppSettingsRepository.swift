@@ -35,29 +35,6 @@ final nonisolated class UserDefaultsAppSettingsRepository: AppSettingsRepository
         encodeCombine(settings.combine)
     }
 
-    func observe() -> AsyncStream<AppSettingsSnapshot> {
-        let observed = defaults
-        let load: @Sendable () -> AppSettingsSnapshot = { [weak self] in
-            self?.load() ?? AppSettingsSnapshot.default
-        }
-        return AsyncStream { continuation in
-            continuation.yield(load())
-            let tokenBox = NotificationObserverTokenBox()
-            tokenBox.token = NotificationCenter.default.addObserver(
-                forName: UserDefaults.didChangeNotification,
-                object: observed,
-                queue: nil
-            ) { _ in
-                continuation.yield(load())
-            }
-            continuation.onTermination = { _ in
-                if let token = tokenBox.token {
-                    NotificationCenter.default.removeObserver(token)
-                }
-            }
-        }
-    }
-
     private func decodeLanguage() -> AppLanguage {
         let raw = defaults.string(forKey: AppSettingsKeys.language) ?? AppSettingsSnapshot.defaultLanguage.rawValue
         return AppLanguage(rawValue: raw) ?? AppSettingsSnapshot.defaultLanguage
@@ -130,11 +107,6 @@ final nonisolated class UserDefaultsAppSettingsRepository: AppSettingsRepository
             AppSettingsKeys.albumSortOrder: AppSettingsHandoffDefaults.albumSortOrder,
         ]
     }
-}
-
-private final nonisolated class NotificationObserverTokenBox: @unchecked Sendable {
-    var token: (any NSObjectProtocol)?
-    init() {}
 }
 
 nonisolated enum AppSettingsHandoffDefaults {

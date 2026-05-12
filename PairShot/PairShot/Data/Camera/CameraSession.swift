@@ -104,7 +104,6 @@ final nonisolated class CameraSession: @unchecked Sendable {
     var activeInput: AVCaptureDeviceInput?
     var photoOutput: AVCapturePhotoOutput?
     var inFlightDelegates: [UUID: PhotoCaptureDelegate] = [:]
-    var lensPositionStorage: CameraLensPosition = .back
     var flashMode: CameraFlashMode = .off
     weak var managedPreviewLayer: AVCaptureVideoPreviewLayer?
     var rotationCoordinator: AVCaptureDevice.RotationCoordinator?
@@ -224,7 +223,6 @@ final nonisolated class CameraSession: @unchecked Sendable {
             activeInput = input
             photoOutput = output
             hasInputInternal = true
-            lensPositionStorage = .back
             didConfigure = true
         }
     }

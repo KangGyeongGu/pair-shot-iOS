@@ -58,10 +58,6 @@ final class MotionService {
         orientation = nil
     }
 
-    func isLevel(tolerance: Double = 1.5) -> Bool {
-        abs(rollDegrees) <= tolerance
-    }
-
     deinit {
         if manager.isDeviceMotionActive {
             manager.stopDeviceMotionUpdates()

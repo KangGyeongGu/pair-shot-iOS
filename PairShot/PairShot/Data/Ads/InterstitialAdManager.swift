@@ -7,21 +7,9 @@ import UIKit
     @preconcurrency import GoogleMobileAds
 #endif
 
-enum InterstitialFrequencyGate {
-    static func shouldPresent(
-        now: Date,
-        lastShownAt: Date?,
-        minimumInterval: TimeInterval
-    ) -> Bool {
-        guard let lastShownAt else { return true }
-        return now.timeIntervalSince(lastShownAt) >= minimumInterval
-    }
-}
-
 @MainActor
 @Observable
 final class InterstitialAdManager {
-    nonisolated static let defaultMinimumInterval: TimeInterval = 300
     nonisolated static let cooldownSeconds: TimeInterval = 5.0
 
     private(set) var isLoaded: Bool = false
@@ -30,7 +18,6 @@ final class InterstitialAdManager {
 
     private(set) var lastShownAt: Date?
 
-    private let minimumInterval: TimeInterval
     private let trackingService: TrackingAuthorizationService?
 
     #if canImport(GoogleMobileAds)
@@ -39,10 +26,8 @@ final class InterstitialAdManager {
     #endif
 
     init(
-        minimumInterval: TimeInterval = InterstitialAdManager.defaultMinimumInterval,
         trackingService: TrackingAuthorizationService? = nil
     ) {
-        self.minimumInterval = minimumInterval
         self.trackingService = trackingService
         #if canImport(GoogleMobileAds)
             presentationDelegate = InterstitialPresentationDelegate()
@@ -85,50 +70,6 @@ final class InterstitialAdManager {
                     }
                 }
             }
-        #endif
-    }
-
-    @discardableResult
-    func presentIfReady(
-        from rootViewController: UIViewController?,
-        coordinator: FullscreenAdCoordinator,
-        adFreeStore: AdFreeStore? = nil,
-        adUnitID: String? = nil,
-        now: Date = .now
-    ) async -> Bool {
-        if let adFreeStore, adFreeStore.isAdFree { return false }
-        guard isLoaded else { return false }
-        guard
-            InterstitialFrequencyGate.shouldPresent(
-                now: now,
-                lastShownAt: lastShownAt,
-                minimumInterval: minimumInterval
-            )
-        else { return false }
-        guard await coordinator.tryAcquire() else { return false }
-
-        #if canImport(GoogleMobileAds)
-            guard let ad else {
-                await coordinator.release()
-                return false
-            }
-            presentationDelegate.onDismiss = { [weak coordinator] in
-                Task { await coordinator?.release() }
-            }
-            presentationDelegate.onFailToPresent = { [weak coordinator] in
-                Task { await coordinator?.release() }
-            }
-            ad.present(fromRootViewController: rootViewController)
-            AppLogger.ads.debug("Interstitial presented")
-            lastShownAt = now
-            self.ad = nil
-            isLoaded = false
-            loadIfNeeded(adUnitID: adUnitID ?? AdsConfig.interstitial, adFreeStore: adFreeStore)
-            return true
-        #else
-            lastShownAt = now
-            await coordinator.release()
-            return true
         #endif
     }
 

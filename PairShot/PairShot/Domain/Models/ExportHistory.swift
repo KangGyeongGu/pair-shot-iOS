@@ -6,32 +6,6 @@ enum ExportHistoryKind: String, Codable, Equatable {
     case watermarkedAfter = "WATERMARKED_AFTER"
 }
 
-struct ExportHistory: Identifiable, Equatable {
-    var id: UUID
-    var kindRaw: String
-    var photoLocalIdentifier: String
-    var createdAt: Date
-    var pairId: UUID?
-
-    var kind: ExportHistoryKind {
-        ExportHistoryKind(rawValue: kindRaw) ?? .combined
-    }
-
-    init(
-        kind: ExportHistoryKind,
-        photoLocalIdentifier: String,
-        id: UUID = UUID(),
-        createdAt: Date = .now,
-        pairId: UUID? = nil
-    ) {
-        self.id = id
-        kindRaw = kind.rawValue
-        self.photoLocalIdentifier = photoLocalIdentifier
-        self.createdAt = createdAt
-        self.pairId = pairId
-    }
-}
-
 nonisolated enum ExportHistoryKindResolver {
     @MainActor
     static func resolve(

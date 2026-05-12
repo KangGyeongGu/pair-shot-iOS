@@ -302,7 +302,6 @@ struct HomeView: View {
             longitude: entity.longitude,
             locationLabel: entity.locationLabel,
             createdAt: entity.createdAt,
-            updatedAt: entity.updatedAt,
             pairIds: entity.pairs.map(\.id)
         )
     }

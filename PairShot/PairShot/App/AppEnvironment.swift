@@ -5,19 +5,14 @@ import SwiftData
 @MainActor
 @Observable
 final class AppEnvironment {
-    let modelContainer: ModelContainer
-
     let pairRepo: PhotoPairRepository
     let albumRepo: AlbumRepository
 
     let location: CoreLocationService
     let couponApiConfig: CouponApiConfig
     let deviceHashProvider: DeviceHashProvider
-    let adFreeStatusFetcher: AdFreeStatusFetcher
-    let zipExporter: ZipExporterAdapter
     let photoLibraryExporter: PhotoLibraryExport
     let photoLibrary: PhotoLibraryService
-    let photoLibrarySync: PhotoLibrarySyncService
 
     let createPair: CreatePairUseCase
     let captureAfter: CaptureAfterUseCase
@@ -85,7 +80,6 @@ final class AppEnvironment {
         )
         let resolvedAppSettings = foundation.appSettings
         let resolvedSnackbarQueue = foundation.snackbarQueue
-        self.modelContainer = modelContainer
         self.appSettings = resolvedAppSettings
         self.appSettingsRepo = foundation.appSettingsRepo
         self.adFreeStore = foundation.adFreeStore
@@ -98,7 +92,6 @@ final class AppEnvironment {
         self.motionService = foundation.motionService
         couponApiConfig = foundation.apiConfig
         deviceHashProvider = foundation.deviceHashProvider
-        adFreeStatusFetcher = foundation.adFreeStatusFetcher
 
         let adServices = Self.makeAdServices(
             trackingService: self.trackingService,
@@ -125,10 +118,8 @@ final class AppEnvironment {
         location = dataServices.location
         photoLibraryExporter = dataServices.photoLibraryExporter
         photoLibrary = dataServices.photoLibrary
-        photoLibrarySync = dataServices.photoLibrarySync
         pairRepo = dataServices.pairRepo
         albumRepo = dataServices.albumRepo
-        zipExporter = dataServices.zipExporter
 
         let useCases = Self.makeUseCases(
             dependencies: UseCasesDependencies(
@@ -279,13 +270,9 @@ final class AppEnvironment {
         CombineSettingsViewModel(appSettingsRepo: appSettingsRepo, appSettings: appSettings)
     }
 
-    func makeExportSettingsViewModel(
-        pairIds: [UUID],
-        albumId: UUID?
-    ) -> ExportSettingsViewModel {
+    func makeExportSettingsViewModel(pairIds: [UUID]) -> ExportSettingsViewModel {
         ExportSettingsViewModel(
             pairIds: pairIds,
-            albumId: albumId,
             pairRepo: pairRepo,
             photoLibrary: photoLibrary,
             exportPairs: exportPairs,

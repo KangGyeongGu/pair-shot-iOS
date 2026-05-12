@@ -13,10 +13,6 @@ final class SettingsRedirectCoordinator {
 
     init() {}
 
-    func request(_ target: SettingsPulseTarget) {
-        pendingPulse = target
-    }
-
     func consume() -> SettingsPulseTarget? {
         let value = pendingPulse
         pendingPulse = nil

@@ -10,7 +10,6 @@ final class AdFreeStore {
     private(set) var expiresAt: Date?
     private(set) var remainingDays: Int?
     private(set) var couponCount: Int
-    private(set) var activeCoupons: [AdFreeCouponInfo]
 
     private let fetcher: AdFreeStatusFetcher
     private let deviceHashProvider: DeviceHashProvider
@@ -29,7 +28,6 @@ final class AdFreeStore {
         expiresAt = snapshot?.expiresAt
         remainingDays = snapshot?.remainingDays
         couponCount = snapshot?.couponCount ?? 0
-        activeCoupons = snapshot?.activeCoupons ?? []
     }
 
     func refresh() async {
@@ -39,7 +37,6 @@ final class AdFreeStore {
         expiresAt = result.expiresAt
         remainingDays = result.remainingDays
         couponCount = result.couponCount
-        activeCoupons = result.activeCoupons
         Self.saveSnapshot(result, to: defaults)
     }
 

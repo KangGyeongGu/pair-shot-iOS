@@ -4,7 +4,6 @@ struct Album: Identifiable, Equatable {
     var id: UUID
     var name: String
     var createdAt: Date
-    var updatedAt: Date
     var latitude: Double?
     var longitude: Double?
     var locationLabel: String?
@@ -17,13 +16,11 @@ struct Album: Identifiable, Equatable {
         longitude: Double? = nil,
         locationLabel: String? = nil,
         createdAt: Date = .now,
-        updatedAt: Date? = nil,
         pairIds: [UUID] = []
     ) {
         self.id = id
         self.name = name
         self.createdAt = createdAt
-        self.updatedAt = updatedAt ?? createdAt
         self.latitude = latitude
         self.longitude = longitude
         self.locationLabel = locationLabel

@@ -22,18 +22,10 @@ struct SystemTrackingAuthorizationProvider {
 final class TrackingAuthorizationService {
     private(set) var currentStatus: ATTrackingManager.AuthorizationStatus
 
-    var isAuthorized: Bool {
-        currentStatus == .authorized
-    }
-
     private let provider: SystemTrackingAuthorizationProvider
 
     init(provider: SystemTrackingAuthorizationProvider = SystemTrackingAuthorizationProvider()) {
         self.provider = provider
-        currentStatus = provider.currentStatus
-    }
-
-    func refresh() {
         currentStatus = provider.currentStatus
     }
 

@@ -2,7 +2,6 @@ import AppTrackingTransparency
 import Foundation
 import Observation
 import OSLog
-import SwiftUI
 import UIKit
 #if canImport(GoogleMobileAds)
     @preconcurrency import GoogleMobileAds
@@ -22,10 +21,6 @@ final class NativeAdLoader: NSObject {
     #if canImport(GoogleMobileAds)
         private var inflightLoader: GADAdLoader?
     #endif
-
-    var loadedCount: Int {
-        loadedAds.count
-    }
 
     init(trackingService: TrackingAuthorizationService? = nil) {
         self.trackingService = trackingService
@@ -104,92 +99,6 @@ final class NativeAdLoader: NSObject {
             Task { @MainActor [weak self] in
                 self?.isLoading = false
                 self?.inflightLoader = nil
-            }
-        }
-    }
-#endif
-
-#if canImport(GoogleMobileAds)
-    private struct NativeAdRepresentable: UIViewRepresentable {
-        let nativeAd: GADNativeAd
-
-        func makeUIView(context _: Context) -> GADNativeAdView {
-            let adView = GADNativeAdView()
-
-            let icon = UIImageView()
-            icon.translatesAutoresizingMaskIntoConstraints = false
-            icon.contentMode = .scaleAspectFit
-            icon.layer.cornerRadius = 6
-            icon.clipsToBounds = true
-
-            let headline = UILabel()
-            headline.translatesAutoresizingMaskIntoConstraints = false
-            headline.font = .preferredFont(forTextStyle: .headline)
-            headline.numberOfLines = 2
-
-            let body = UILabel()
-            body.translatesAutoresizingMaskIntoConstraints = false
-            body.font = .preferredFont(forTextStyle: .footnote)
-            body.numberOfLines = 3
-            body.textColor = .secondaryLabel
-
-            var ctaConfig = UIButton.Configuration.filled()
-            ctaConfig.baseBackgroundColor = .systemBlue
-            ctaConfig.baseForegroundColor = .white
-            ctaConfig.cornerStyle = .small
-            ctaConfig.contentInsets = NSDirectionalEdgeInsets(
-                top: 6, leading: 10, bottom: 6, trailing: 10
-            )
-            let cta = UIButton(configuration: ctaConfig)
-            cta.translatesAutoresizingMaskIntoConstraints = false
-            cta.isUserInteractionEnabled = false
-
-            adView.addSubview(icon)
-            adView.addSubview(headline)
-            adView.addSubview(body)
-            adView.addSubview(cta)
-
-            adView.iconView = icon
-            adView.headlineView = headline
-            adView.bodyView = body
-            adView.callToActionView = cta
-
-            NSLayoutConstraint.activate([
-                icon.topAnchor.constraint(equalTo: adView.topAnchor, constant: 8),
-                icon.leadingAnchor.constraint(equalTo: adView.leadingAnchor, constant: 8),
-                icon.widthAnchor.constraint(equalToConstant: 36),
-                icon.heightAnchor.constraint(equalToConstant: 36),
-
-                headline.topAnchor.constraint(equalTo: adView.topAnchor, constant: 8),
-                headline.leadingAnchor.constraint(equalTo: icon.trailingAnchor, constant: 8),
-                headline.trailingAnchor.constraint(
-                    equalTo: adView.trailingAnchor,
-                    constant: -8
-                ),
-
-                body.topAnchor.constraint(equalTo: headline.bottomAnchor, constant: 4),
-                body.leadingAnchor.constraint(equalTo: adView.leadingAnchor, constant: 8),
-                body.trailingAnchor.constraint(equalTo: adView.trailingAnchor, constant: -8),
-
-                cta.bottomAnchor.constraint(equalTo: adView.bottomAnchor, constant: -8),
-                cta.trailingAnchor.constraint(equalTo: adView.trailingAnchor, constant: -8),
-            ])
-
-            adView.nativeAd = nativeAd
-            return adView
-        }
-
-        func updateUIView(_ adView: GADNativeAdView, context _: Context) {
-            adView.nativeAd = nativeAd
-            (adView.headlineView as? UILabel)?.text = nativeAd.headline
-            (adView.bodyView as? UILabel)?.text = nativeAd.body
-            if let cta = adView.callToActionView as? UIButton {
-                var config = cta.configuration ?? UIButton.Configuration.filled()
-                config.title = nativeAd.callToAction
-                cta.configuration = config
-            }
-            if let iconView = adView.iconView as? UIImageView {
-                iconView.image = nativeAd.icon?.image
             }
         }
     }

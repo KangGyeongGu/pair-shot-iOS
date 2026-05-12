@@ -27,7 +27,6 @@ struct AppEnvironmentFoundation {
     let motionService: MotionService
     let apiConfig: CouponApiConfig
     let deviceHashProvider: DeviceHashProvider
-    let adFreeStatusFetcher: AdFreeStatusFetcher
 }
 
 struct AdServicesOverrides {
@@ -52,7 +51,6 @@ struct DataServicesBundle {
     let location: CoreLocationService
     let photoLibraryExporter: PhotoLibraryExport
     let photoLibrary: PhotoLibraryService
-    let photoLibrarySync: PhotoLibrarySyncService
     let pairRepo: PhotoPairRepository
     let albumRepo: AlbumRepository
     let zipExporter: ZipExporterAdapter
@@ -100,8 +98,7 @@ extension AppEnvironment {
             hapticService: overrides.hapticService ?? HapticService(),
             motionService: overrides.motionService ?? MotionService(),
             apiConfig: apiConfig,
-            deviceHashProvider: hashProvider,
-            adFreeStatusFetcher: statusFetcher
+            deviceHashProvider: hashProvider
         )
     }
 
@@ -118,7 +115,6 @@ extension AppEnvironment {
             location: location,
             photoLibraryExporter: photoLibraryExporter,
             photoLibrary: photoLibrary,
-            photoLibrarySync: PhotoLibrarySyncService(container: modelContainer, photoLibrary: photoLibrary),
             pairRepo: pairRepo,
             albumRepo: albumRepo,
             zipExporter: ZipExporterAdapter(
@@ -149,7 +145,7 @@ extension AppEnvironment {
         let pairRepo = dependencies.pairRepo
         let photoLibrary = dependencies.photoLibrary
         let captureAfter = CaptureAfterUseCase(pairRepo: pairRepo, photoLibrary: photoLibrary)
-        let exportPairs = ExportPairsUseCase(pairRepo: pairRepo, zipExporter: dependencies.zipExporter)
+        let exportPairs = ExportPairsUseCase(zipExporter: dependencies.zipExporter)
         let recaptureAfter = RecaptureAfterUseCase(
             pairRepo: pairRepo,
             photoLibrary: photoLibrary,

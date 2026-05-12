@@ -24,7 +24,6 @@ final class ExportSettingsViewModel {
     }
 
     let pairIds: [UUID]
-    let albumId: UUID?
     let events: AsyncStream<Event>
 
     var includeCombined: Bool {
@@ -86,7 +85,6 @@ final class ExportSettingsViewModel {
 
     init(
         pairIds: [UUID],
-        albumId: UUID?,
         pairRepo: PhotoPairRepository,
         photoLibrary: PhotoLibraryService,
         exportPairs: ExportPairsUseCase,
@@ -100,7 +98,6 @@ final class ExportSettingsViewModel {
         fullscreenAdCoordinator: FullscreenAdCoordinator? = nil
     ) {
         self.pairIds = pairIds
-        self.albumId = albumId
         self.pairRepo = pairRepo
         self.photoLibrary = photoLibrary
         self.exportPairs = exportPairs

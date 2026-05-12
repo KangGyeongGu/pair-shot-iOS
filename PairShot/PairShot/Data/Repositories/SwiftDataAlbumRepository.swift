@@ -12,14 +12,6 @@ final class SwiftDataAlbumRepository: AlbumRepository {
         self.container = container
     }
 
-    func fetchAll() async throws -> [Album] {
-        try fetchAllSync().map(toDomain)
-    }
-
-    func fetch(id: UUID) async throws -> Album? {
-        try fetchAlbumEntity(id: id).map(toDomain)
-    }
-
     func add(_ album: Album) async throws {
         let entity = makeEntity(from: album)
         context.insert(entity)
@@ -63,13 +55,6 @@ final class SwiftDataAlbumRepository: AlbumRepository {
         try context.save()
     }
 
-    private func fetchAllSync() throws -> [AlbumEntity] {
-        let descriptor = FetchDescriptor<AlbumEntity>(
-            sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
-        )
-        return try context.fetch(descriptor)
-    }
-
     private func fetchAlbumEntity(id: UUID) throws -> AlbumEntity? {
         let descriptor = FetchDescriptor<AlbumEntity>(
             predicate: #Predicate { $0.id == id }
@@ -82,19 +67,6 @@ final class SwiftDataAlbumRepository: AlbumRepository {
             predicate: #Predicate { $0.id == id }
         )
         return try context.fetch(descriptor).first
-    }
-
-    private func toDomain(_ entity: AlbumEntity) -> Album {
-        Album(
-            name: entity.name,
-            id: entity.id,
-            latitude: entity.latitude,
-            longitude: entity.longitude,
-            locationLabel: entity.locationLabel,
-            createdAt: entity.createdAt,
-            updatedAt: entity.updatedAt,
-            pairIds: entity.pairs.map(\.id)
-        )
     }
 
     private func makeEntity(from domain: Album) -> AlbumEntity {

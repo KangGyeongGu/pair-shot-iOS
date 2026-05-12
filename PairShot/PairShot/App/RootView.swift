@@ -56,7 +56,7 @@ struct RootView: View {
             case .themePicker: ThemePickerView(viewModel: env.makeSettingsViewModel())
             case .imageQualityPicker: ImageQualityPickerView(viewModel: env.makeSettingsViewModel())
             case .filenamePrefixEditor: FilenamePrefixView(viewModel: env.makeSettingsViewModel())
-            case let .exportSettings(pairIds, albumId): exportSettingsDestination(pairIds: pairIds, albumId: albumId)
+            case let .exportSettings(pairIds): exportSettingsDestination(pairIds: pairIds)
             case .pairPreview: EmptyView()
         }
     }
@@ -67,7 +67,7 @@ struct RootView: View {
                 path.append(.albumDetail(albumId: albumId))
             },
             onPushExportSettings: { pairIds in
-                path.append(.exportSettings(pairIds: pairIds, albumId: nil))
+                path.append(.exportSettings(pairIds: pairIds))
             },
             onPushSettings: {
                 path.append(.settings)
@@ -79,17 +79,14 @@ struct RootView: View {
         AlbumDetailView(
             albumId: albumId,
             onPushExportSettings: { pairIds in
-                path.append(.exportSettings(pairIds: pairIds, albumId: albumId))
+                path.append(.exportSettings(pairIds: pairIds))
             }
         )
     }
 
-    private func exportSettingsDestination(pairIds: [UUID], albumId: UUID?) -> some View {
+    private func exportSettingsDestination(pairIds: [UUID]) -> some View {
         ExportSettingsView(
-            viewModel: env.makeExportSettingsViewModel(
-                pairIds: pairIds,
-                albumId: albumId
-            ),
+            viewModel: env.makeExportSettingsViewModel(pairIds: pairIds),
             onPushWatermarkSettings: {
                 path.append(.watermarkSettings)
             },

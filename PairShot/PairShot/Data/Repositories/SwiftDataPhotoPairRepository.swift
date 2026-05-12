@@ -33,12 +33,6 @@ final class SwiftDataPhotoPairRepository: PhotoPairRepository {
         try context.save()
     }
 
-    func delete(id: UUID) async throws {
-        guard let entity = try fetchEntity(id: id) else { return }
-        context.delete(entity)
-        try context.save()
-    }
-
     func delete(ids: Set<UUID>) async throws {
         guard !ids.isEmpty else { return }
         let descriptor = FetchDescriptor<PhotoPairEntity>(

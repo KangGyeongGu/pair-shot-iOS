@@ -9,18 +9,6 @@ nonisolated struct AppSettingsSnapshot: Equatable {
     static let defaultTheme: AppTheme = .system
     static let defaultFileNamePrefix: String = "PAIRSHOT"
 
-    static let `default` = Self(
-        jpegQuality: Self.defaultJpegQuality,
-        fileNamePrefix: Self.defaultFileNamePrefix,
-        defaultOverlayAlpha: Self.defaultOverlayAlphaValue,
-        defaultCompositeLayoutRawValue: Self.defaultCompositeLayoutFallback,
-        watermarkEnabled: Self.defaultWatermarkEnabled,
-        language: Self.defaultLanguage,
-        theme: Self.defaultTheme,
-        watermark: nil,
-        combine: nil
-    )
-
     var jpegQuality: Double
     var fileNamePrefix: String
     var defaultOverlayAlpha: Double
@@ -35,5 +23,4 @@ nonisolated struct AppSettingsSnapshot: Equatable {
 nonisolated protocol AppSettingsRepository: Sendable {
     func load() -> AppSettingsSnapshot
     func save(_ settings: AppSettingsSnapshot) async throws
-    func observe() -> AsyncStream<AppSettingsSnapshot>
 }

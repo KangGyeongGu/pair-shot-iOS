@@ -28,7 +28,6 @@ nonisolated extension CameraSession {
                 }
                 activeDevice = device
                 activeInput = input
-                lensPositionStorage = position
                 hasInputInternal = true
                 AppLogger.camera.debug("Camera lens switched to \(position.rawValue, privacy: .public)")
             } catch {

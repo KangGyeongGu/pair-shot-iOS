@@ -134,7 +134,6 @@ struct PairPickerView: View {
             longitude: album.longitude,
             locationLabel: album.locationLabel,
             createdAt: album.createdAt,
-            updatedAt: album.updatedAt,
             pairIds: album.pairs.map(\.id)
         )
         return Set(domain.pairIds)

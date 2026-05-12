@@ -8,7 +8,7 @@ enum Route: Hashable, Codable {
     case watermarkSettings
     case combineSettings
     case license
-    case exportSettings(pairIds: [UUID], albumId: UUID?)
+    case exportSettings(pairIds: [UUID])
     case languagePicker
     case themePicker
     case imageQualityPicker

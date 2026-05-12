@@ -5,7 +5,6 @@ import ZIPFoundation
 actor ZipExporter {
     enum ExportError: Error, Equatable {
         case noPairs
-        case sourceMissing(String)
         case archiveFailed
     }
 
@@ -146,7 +145,6 @@ nonisolated enum ExportSelection {
     nonisolated struct Entry: Equatable {
         let relativeName: String
         let kind: ExportPhotoKind
-        let pairId: UUID
         let localIdentifier: String?
     }
 
@@ -174,7 +172,6 @@ nonisolated enum ExportSelection {
                 Entry(
                     relativeName: "\(folder)/COMBINED/\(fileName)",
                     kind: .combined,
-                    pairId: pair.id,
                     localIdentifier: nil
                 )
             )
@@ -189,7 +186,6 @@ nonisolated enum ExportSelection {
                 Entry(
                     relativeName: "\(folder)/BEFORE/\(fileName)",
                     kind: .before,
-                    pairId: pair.id,
                     localIdentifier: beforeId
                 )
             )
@@ -204,7 +200,6 @@ nonisolated enum ExportSelection {
                 Entry(
                     relativeName: "\(folder)/AFTER/\(fileName)",
                     kind: .after,
-                    pairId: pair.id,
                     localIdentifier: afterId
                 )
             )

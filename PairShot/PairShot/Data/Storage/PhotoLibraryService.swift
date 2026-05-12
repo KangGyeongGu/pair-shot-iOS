@@ -6,7 +6,6 @@ final nonisolated class PhotoLibraryService: Sendable {
     enum LibraryError: Error, Equatable {
         case notAuthorized
         case saveFailed(String)
-        case fetchFailed(String)
         case deleteFailed(String)
     }
 

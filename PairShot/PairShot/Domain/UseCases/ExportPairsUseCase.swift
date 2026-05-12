@@ -5,16 +5,13 @@ struct ExportPairsUseCase {
         case noPairs
     }
 
-    let pairRepo: PhotoPairRepository
     let zipExporter: ZipExporterAdapter
     let now: @Sendable () -> Date
 
     init(
-        pairRepo: PhotoPairRepository,
         zipExporter: ZipExporterAdapter,
         now: @escaping @Sendable () -> Date = { .now }
     ) {
-        self.pairRepo = pairRepo
         self.zipExporter = zipExporter
         self.now = now
     }

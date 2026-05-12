@@ -303,7 +303,6 @@ final class AlbumDetailViewModel {
         guard !trimmed.isEmpty else { return }
         var updated = album
         updated.name = trimmed
-        updated.updatedAt = .now
         try? await albumRepo.update(updated)
     }
 
