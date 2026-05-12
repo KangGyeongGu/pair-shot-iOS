@@ -30,7 +30,7 @@ final class CreatePairUseCase {
         let timestamp = now()
         let pairId = UUID()
         let localIdentifier = try await photoLibrary.saveImage(beforeJPEG)
-        let resolvedLocation = await location.fetchOnce()
+        let resolvedLocation = location.currentLocation
         let pair = PhotoPair(
             id: pairId,
             beforePhotoLocalIdentifier: localIdentifier,

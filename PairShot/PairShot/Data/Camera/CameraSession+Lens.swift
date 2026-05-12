@@ -3,6 +3,8 @@ import Foundation
 import OSLog
 
 nonisolated extension CameraSession {
+    static let targetPhotoDimensions = CMVideoDimensions(width: 5712, height: 4284)
+
     func switchLens(to position: CameraLensPosition) async {
         let avPosition: AVCaptureDevice.Position = position == .back ? .back : .front
         let session = box.session
@@ -24,7 +26,7 @@ nonisolated extension CameraSession {
                 session.addInput(input)
                 Self.applyDefaultZoom(to: device)
                 if let currentPhotoOutput = photoOutput {
-                    Self.applyMaxPhotoDimensions(to: currentPhotoOutput, device: device)
+                    Self.applyTargetPhotoDimensions(to: currentPhotoOutput, device: device)
                 }
                 activeDevice = device
                 activeInput = input
@@ -67,23 +69,14 @@ nonisolated extension CameraSession {
         }
     }
 
-    nonisolated static func applyMaxPhotoDimensions(
+    nonisolated static func applyTargetPhotoDimensions(
         to output: AVCapturePhotoOutput,
         device: AVCaptureDevice
     ) {
-        guard let largest = resolveMaxPhotoDimensions(for: device) else { return }
-        output.maxPhotoDimensions = largest
-    }
-
-    nonisolated static func resolveMaxPhotoDimensions(
-        for device: AVCaptureDevice
-    ) -> CMVideoDimensions? {
+        let target = targetPhotoDimensions
         let supported = device.activeFormat.supportedMaxPhotoDimensions
-        guard !supported.isEmpty else { return nil }
-        let valid = supported.filter { $0.width > 0 && $0.height > 0 }
-        guard !valid.isEmpty else { return nil }
-        return valid.max { lhs, rhs in
-            Int64(lhs.width) * Int64(lhs.height) < Int64(rhs.width) * Int64(rhs.height)
+        if let match = supported.first(where: { $0.width == target.width && $0.height == target.height }) {
+            output.maxPhotoDimensions = match
         }
     }
 }

@@ -1,6 +1,7 @@
 @preconcurrency import AVFoundation
 import Foundation
 import Observation
+import SwiftUI
 import UIKit
 
 @MainActor
@@ -52,7 +53,9 @@ final class BeforeCameraViewModel {
 
     var lastThumbnail: UIImage?
     var pendingPairs: [PhotoPair] = []
+    var selectedPairId: UUID?
 
+    let sortOrder: HomeSortOrder
     let events: AsyncStream<Event>
 
     private let createPair: CreatePairUseCase
@@ -60,6 +63,7 @@ final class BeforeCameraViewModel {
     private let albumRepo: AlbumRepository
     private let appSettings: AppSettings
     let hapticService: HapticService
+    private let location: CoreLocationService
     private let permissionProbe: @Sendable () async -> Bool
     private let eventsContinuation: AsyncStream<Event>.Continuation
     private var dragAccumulatorPx: Double = 0
@@ -81,6 +85,8 @@ final class BeforeCameraViewModel {
         albumRepo: AlbumRepository,
         appSettings: AppSettings,
         hapticService: HapticService,
+        location: CoreLocationService,
+        sortOrder: HomeSortOrder = .newest,
         refillPairId: UUID? = nil,
         session: CameraSession? = nil,
         permissionProbe: @escaping @Sendable () async -> Bool = CameraPermissionProbe.resolve
@@ -92,6 +98,8 @@ final class BeforeCameraViewModel {
         self.albumRepo = albumRepo
         self.appSettings = appSettings
         self.hapticService = hapticService
+        self.location = location
+        self.sortOrder = sortOrder
         let resolvedSession = session ?? CameraSession()
         self.session = resolvedSession
         self.permissionProbe = permissionProbe
@@ -105,6 +113,7 @@ final class BeforeCameraViewModel {
     }
 
     func onAppear() async {
+        location.start()
         sessionStartedAt = .now
         pendingPairs = []
         async let permission = permissionProbe()
@@ -128,6 +137,7 @@ final class BeforeCameraViewModel {
     }
 
     func onDisappear() {
+        location.stop()
         Task { await session.stop() }
     }
 
@@ -233,23 +243,31 @@ final class BeforeCameraViewModel {
     }
 
     func shutter() async {
-        guard !isCapturing else { return }
+        guard !isCapturing, session.captureReadiness == .ready else { return }
         isCapturing = true
-        defer { isCapturing = false }
+        let captured: CapturedPhoto
         do {
-            let captured = try await session.capturePhoto()
-            let cameraSettings = CameraSettings(
-                zoomFactor: captured.zoomFactor,
-                lensPosition: LensPosition.resolve(identifier: captured.lensIdentifier)
-            )
+            let metadata = ExifGPSBuilder.metadata(from: location.currentLocation)
+            captured = try await session.capturePhoto(metadata: metadata)
+        } catch {
+            captureErrorMessage = Self.captureErrorText(for: error)
+            isCapturing = false
+            return
+        }
+        updateLastThumbnail(from: captured.jpegData)
+        eventsContinuation.yield(.snackbarSuccess)
+        isCapturing = false
+        let cameraSettings = CameraSettings(
+            zoomFactor: captured.zoomFactor,
+            lensPosition: LensPosition.resolve(identifier: captured.lensIdentifier)
+        )
+        do {
             if let refillPairId {
                 _ = try await createPair.refillBefore(
                     pairId: refillPairId,
                     beforeJPEG: captured.jpegData,
                     cameraSettings: cameraSettings
                 )
-                updateLastThumbnail(from: captured.jpegData)
-                eventsContinuation.yield(.snackbarSuccess)
                 eventsContinuation.yield(.dismiss)
                 return
             }
@@ -261,8 +279,7 @@ final class BeforeCameraViewModel {
                 try? await albumRepo.addPair(pairId: pair.id, toAlbum: albumId)
             }
             await refreshPendingPairs()
-            updateLastThumbnail(from: captured.jpegData)
-            eventsContinuation.yield(.snackbarSuccess)
+            withAnimation(.smooth) { selectedPairId = pair.id }
         } catch {
             captureErrorMessage = Self.captureErrorText(for: error)
         }
@@ -281,11 +298,13 @@ final class BeforeCameraViewModel {
             } else {
                 all
             }
-        pendingPairs =
+        let filtered =
             scoped
                 .filter { $0.afterPhotoLocalIdentifier == nil }
                 .filter { $0.createdAt >= sessionStartedAt }
-                .sorted { $0.createdAt < $1.createdAt }
+        pendingPairs = filtered.sorted { lhs, rhs in
+            sortOrder == .newest ? lhs.createdAt > rhs.createdAt : lhs.createdAt < rhs.createdAt
+        }
     }
 
     private func emitTickHaptics(for ratio: Double) {

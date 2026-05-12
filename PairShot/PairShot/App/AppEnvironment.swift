@@ -155,6 +155,8 @@ final class AppEnvironment {
             albumRepo: albumRepo,
             appSettings: appSettings,
             hapticService: hapticService,
+            location: location,
+            sortOrder: HomeSortOrderMapping.sortOrder(from: appSettings.homeSortOrder),
             refillPairId: refillPairId,
             session: makeCameraSession(),
             permissionProbe: makeCameraPermissionProbe()
@@ -175,6 +177,7 @@ final class AppEnvironment {
             photoLibrary: photoLibrary,
             appSettings: appSettings,
             hapticService: hapticService,
+            location: location,
             initialPairId: initialPairId,
             sortOrder: sortOrder,
             recaptureTargetPair: recaptureTargetPair,

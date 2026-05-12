@@ -3,7 +3,8 @@ import Foundation
 import OSLog
 
 nonisolated extension CameraSession {
-    func capturePhoto() async throws -> CapturedPhoto {
+    func capturePhoto(metadata: [String: Any] = [:]) async throws -> CapturedPhoto {
+        let metadataBox = CaptureMetadataBox(metadata)
         let captureContext = await runOnSessionQueue { [weak self] () -> CaptureContext? in
             guard let self,
                   let photoOutput,
@@ -16,6 +17,9 @@ nonisolated extension CameraSession {
             let outputMax = photoOutput.maxPhotoDimensions
             if outputMax.width > 0, outputMax.height > 0 {
                 settings.maxPhotoDimensions = outputMax
+            }
+            if !metadataBox.value.isEmpty {
+                settings.metadata = metadataBox.value
             }
             if device.hasFlash {
                 switch flashMode {
@@ -38,12 +42,21 @@ nonisolated extension CameraSession {
         }
 
         let queue = sessionQueue
+        let trackedSettings = captureContext.settings
+        let settingsUniqueID = trackedSettings.uniqueID
+
+        await MainActor.run { [weak self] in
+            self?.readinessCoordinator?.startTrackingCaptureRequest(using: trackedSettings)
+        }
 
         return try await withCheckedThrowingContinuation { cont in
             let id = UUID()
             let delegate = PhotoCaptureDelegate { [weak self] result in
                 queue.async { [weak self] in
                     self?.inFlightDelegates.removeValue(forKey: id)
+                }
+                Task { @MainActor [weak self] in
+                    self?.readinessCoordinator?.stopTrackingCaptureRequest(using: settingsUniqueID)
                 }
                 switch result {
                     case let .success(rawJpeg):
@@ -94,8 +107,16 @@ private final nonisolated class CaptureContext: @unchecked Sendable {
     }
 }
 
+private final nonisolated class CaptureMetadataBox: @unchecked Sendable {
+    let value: [String: Any]
+    init(_ value: [String: Any]) {
+        self.value = value
+    }
+}
+
 final nonisolated class PhotoCaptureDelegate: NSObject, AVCapturePhotoCaptureDelegate, @unchecked Sendable {
     private let completion: @Sendable (Result<Data, CameraSessionError>) -> Void
+    private var didDeliver = false
 
     init(completion: @escaping @Sendable (Result<Data, CameraSessionError>) -> Void) {
         self.completion = completion
@@ -106,14 +127,38 @@ final nonisolated class PhotoCaptureDelegate: NSObject, AVCapturePhotoCaptureDel
         didFinishProcessingPhoto photo: AVCapturePhoto,
         error: Error?
     ) {
+        if didDeliver { return }
         if let error {
+            didDeliver = true
             completion(.failure(.captureFailed(error.localizedDescription)))
             return
         }
         guard let data = photo.fileDataRepresentation() else {
+            didDeliver = true
             completion(.failure(.noPhotoData))
             return
         }
+        didDeliver = true
+        completion(.success(data))
+    }
+
+    func photoOutput(
+        _: AVCapturePhotoOutput,
+        didFinishCapturingDeferredPhotoProxy proxy: AVCaptureDeferredPhotoProxy?,
+        error: Error?
+    ) {
+        if didDeliver { return }
+        if let error {
+            didDeliver = true
+            completion(.failure(.captureFailed(error.localizedDescription)))
+            return
+        }
+        guard let proxy, let data = proxy.fileDataRepresentation() else {
+            didDeliver = true
+            completion(.failure(.noPhotoData))
+            return
+        }
+        didDeliver = true
         completion(.success(data))
     }
 }

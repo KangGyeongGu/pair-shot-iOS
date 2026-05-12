@@ -140,6 +140,10 @@ struct BeforeCameraView: View {
                 isCapturing: viewModel.isCapturing,
                 lastThumbnail: viewModel.lastThumbnail,
                 pendingPairs: viewModel.pendingPairs,
+                selectedPairId: Binding(
+                    get: { viewModel.selectedPairId },
+                    set: { viewModel.selectedPairId = $0 }
+                ),
                 onTapFocus: viewModel.onTapFocus(devicePoint:),
                 onExposureBias: viewModel.onExposureBias(_:),
                 pinchGesture: AnyGesture(pinchGesture(for: viewModel).map { _ in () }),

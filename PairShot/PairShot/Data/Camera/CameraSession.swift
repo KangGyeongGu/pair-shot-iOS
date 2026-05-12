@@ -108,6 +108,9 @@ final nonisolated class CameraSession: @unchecked Sendable {
     weak var managedPreviewLayer: AVCaptureVideoPreviewLayer?
     var rotationCoordinator: AVCaptureDevice.RotationCoordinator?
     var rotationObservers: [NSKeyValueObservation] = []
+    var readinessCoordinator: AVCapturePhotoOutputReadinessCoordinator?
+    var readinessAdapter: CameraReadinessAdapter?
+    var captureReadiness: AVCapturePhotoOutput.CaptureReadiness = .sessionNotRunning
 
     var captureSession: AVCaptureSession {
         box.session
@@ -158,6 +161,7 @@ final nonisolated class CameraSession: @unchecked Sendable {
         AppLogger.camera.debug("Camera session started")
         await MainActor.run { [weak self] in
             self?.setupRotationCoordinator()
+            self?.setupReadinessCoordinator()
         }
     }
 
@@ -217,7 +221,9 @@ final nonisolated class CameraSession: @unchecked Sendable {
                 return
             }
             session.addOutput(output)
-            Self.applyMaxPhotoDimensions(to: output, device: device)
+            output.maxPhotoQualityPrioritization = .balanced
+            ResponsiveCaptureOptions.apply(to: output)
+            Self.applyTargetPhotoDimensions(to: output, device: device)
 
             activeDevice = device
             activeInput = input
@@ -231,6 +237,24 @@ final nonisolated class CameraSession: @unchecked Sendable {
     func attachPreviewLayer(_ layer: AVCaptureVideoPreviewLayer) {
         managedPreviewLayer = layer
         setupRotationCoordinator()
+    }
+
+    @MainActor
+    func setupReadinessCoordinator() {
+        let queue = sessionQueue
+        queue.async { [weak self] in
+            guard let output = self?.photoOutput else { return }
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                let coordinator = AVCapturePhotoOutputReadinessCoordinator(photoOutput: output)
+                let adapter = CameraReadinessAdapter { [weak self] readiness in
+                    self?.captureReadiness = readiness
+                }
+                coordinator.delegate = adapter
+                readinessCoordinator = coordinator
+                readinessAdapter = adapter
+            }
+        }
     }
 
     @MainActor
@@ -329,4 +353,37 @@ nonisolated struct ZoomPresetSpec: Identifiable, Hashable {
     let id: String
     let factor: Double
     let label: String
+}
+
+nonisolated enum ResponsiveCaptureOptions {
+    static func apply(to output: AVCapturePhotoOutput) {
+        if output.isZeroShutterLagSupported {
+            output.isZeroShutterLagEnabled = true
+        }
+        if output.isResponsiveCaptureSupported {
+            output.isResponsiveCaptureEnabled = true
+        }
+        if output.isFastCapturePrioritizationSupported {
+            output.isFastCapturePrioritizationEnabled = true
+        }
+        if output.isAutoDeferredPhotoDeliverySupported {
+            output.isAutoDeferredPhotoDeliveryEnabled = true
+        }
+    }
+}
+
+@MainActor
+final class CameraReadinessAdapter: NSObject, AVCapturePhotoOutputReadinessCoordinatorDelegate {
+    let onChange: @MainActor (AVCapturePhotoOutput.CaptureReadiness) -> Void
+
+    init(onChange: @escaping @MainActor (AVCapturePhotoOutput.CaptureReadiness) -> Void) {
+        self.onChange = onChange
+    }
+
+    nonisolated func readinessCoordinator(
+        _: AVCapturePhotoOutputReadinessCoordinator,
+        captureReadinessDidChange captureReadiness: AVCapturePhotoOutput.CaptureReadiness
+    ) {
+        Task { @MainActor in self.onChange(captureReadiness) }
+    }
 }

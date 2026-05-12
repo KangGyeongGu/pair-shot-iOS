@@ -85,6 +85,7 @@ final class AfterCameraViewModel {
     private let photoLibrary: PhotoLibraryService
     private let appSettings: AppSettings
     let hapticService: HapticService
+    private let location: CoreLocationService
     private let permissionProbe: @Sendable () async -> Bool
     private let eventsContinuation: AsyncStream<Event>.Continuation
     private var allCompletedDismissTask: Task<Void, Never>?
@@ -101,6 +102,7 @@ final class AfterCameraViewModel {
         photoLibrary: PhotoLibraryService,
         appSettings: AppSettings,
         hapticService: HapticService,
+        location: CoreLocationService,
         initialPairId: UUID? = nil,
         sortOrder: HomeSortOrder = .newest,
         recaptureTargetPair: PhotoPair? = nil,
@@ -117,6 +119,7 @@ final class AfterCameraViewModel {
         self.photoLibrary = photoLibrary
         self.appSettings = appSettings
         self.hapticService = hapticService
+        self.location = location
         let resolvedSession = session ?? CameraSession()
         self.session = resolvedSession
         self.permissionProbe = permissionProbe
@@ -132,6 +135,7 @@ final class AfterCameraViewModel {
     }
 
     func onAppear() async {
+        location.start()
         alpha = GhostOverlayMath.clamp(appSettings.defaultOverlayAlpha)
         async let permission = permissionProbe()
         async let startTask: Void = session.start()
@@ -153,6 +157,7 @@ final class AfterCameraViewModel {
     }
 
     func onDisappear() {
+        location.stop()
         allCompletedDismissTask?.cancel()
         allCompletedDismissTask = nil
         Task { await session.stop() }
@@ -166,18 +171,63 @@ final class AfterCameraViewModel {
     }
 
     func shutter() async {
-        guard !isCapturing, let pair = currentPair else { return }
+        guard !isCapturing, session.captureReadiness == .ready, let pair = currentPair else { return }
         isCapturing = true
-        defer { isCapturing = false }
+        let captured: CapturedPhoto
         do {
-            let captured = try await session.capturePhoto()
-            let updated = try await persistAfter(pairId: pair.id, afterJPEG: captured.jpegData)
-            currentPair = updated
-            eventsContinuation.yield(.snackbarSuccess)
-            await advanceToNextOrFinish(after: updated)
+            let metadata = ExifGPSBuilder.metadata(from: location.currentLocation)
+            captured = try await session.capturePhoto(metadata: metadata)
         } catch {
             captureErrorMessage = Self.captureErrorText(for: error)
+            isCapturing = false
+            return
         }
+        eventsContinuation.yield(.snackbarSuccess)
+        let capturedPairId = pair.id
+
+        contractPairsAndAdvance(removing: capturedPairId)
+        isCapturing = false
+
+        do {
+            _ = try await persistAfter(pairId: capturedPairId, afterJPEG: captured.jpegData)
+        } catch {
+            rollbackOnPersistFailure(pair)
+            captureErrorMessage = Self.captureErrorText(for: error)
+        }
+    }
+
+    private func contractPairsAndAdvance(removing capturedPairId: UUID) {
+        if isRecaptureMode {
+            currentPair = nil
+            ghostImageData = nil
+            allCompleted = true
+            eventsContinuation.yield(.dismiss)
+            return
+        }
+        let capturedIndex = pairs.firstIndex(where: { $0.id == capturedPairId })
+        pairs.removeAll { $0.id == capturedPairId }
+        pendingPairCount = max(0, pendingPairCount - 1)
+        completedPairCount += 1
+        if pairs.isEmpty {
+            currentPair = nil
+            ghostImageData = nil
+            allCompleted = true
+            eventsContinuation.yield(.snackbarAllCompleted)
+            scheduleAllCompletedDismiss()
+            return
+        }
+        let targetIndex: Int = {
+            guard let originalIndex = capturedIndex else { return 0 }
+            return min(originalIndex, pairs.count - 1)
+        }()
+        adopt(pair: pairs[targetIndex])
+    }
+
+    private func rollbackOnPersistFailure(_ pair: PhotoPair) {
+        guard !pairs.contains(where: { $0.id == pair.id }) else { return }
+        pairs.append(pair)
+        pendingPairCount += 1
+        completedPairCount = max(0, completedPairCount - 1)
     }
 
     private func persistAfter(pairId: UUID, afterJPEG: Data) async throws -> PhotoPair {
@@ -206,26 +256,6 @@ final class AfterCameraViewModel {
             return
         }
         adopt(pair: initialPair)
-    }
-
-    private func advanceToNextOrFinish(after _: PhotoPair) async {
-        if isRecaptureMode {
-            currentPair = nil
-            ghostImageData = nil
-            allCompleted = true
-            eventsContinuation.yield(.dismiss)
-            return
-        }
-        await refreshPairs()
-        if let next = pairs.first {
-            adopt(pair: next)
-        } else {
-            currentPair = nil
-            ghostImageData = nil
-            allCompleted = true
-            eventsContinuation.yield(.snackbarAllCompleted)
-            scheduleAllCompletedDismiss()
-        }
     }
 
     private func scheduleAllCompletedDismiss() {

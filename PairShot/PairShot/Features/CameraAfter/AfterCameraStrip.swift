@@ -6,8 +6,6 @@ struct AfterCameraStrip: View {
     let pairs: [PhotoPair]
     @Binding var selectedPairId: UUID?
 
-    @State private var scrolledId: UUID?
-
     var body: some View {
         GeometryReader { proxy in
             let sideInset = max(
@@ -19,12 +17,15 @@ struct AfterCameraStrip: View {
                     ForEach(pairs) { pair in
                         StripCard(
                             pair: pair,
-                            isActive: pair.id == scrolledId
+                            isActive: pair.id == selectedPairId
                         )
                         .id(pair.id)
                         .contentShape(Rectangle())
                         .onTapGesture {
-                            scrolledId = pair.id
+                            selectedPairId = pair.id
+                        }
+                        .scrollTransition(.interactive, axis: .horizontal) { effect, phase in
+                            effect.scaleEffect(phase.isIdentity ? 1.0 : 0.95)
                         }
                     }
                 }
@@ -33,21 +34,12 @@ struct AfterCameraStrip: View {
             .contentMargins(.horizontal, sideInset, for: .scrollContent)
             .contentMargins(.vertical, StripDesign.stripPaddingVertical, for: .scrollContent)
             .scrollTargetBehavior(.viewAligned)
-            .scrollPosition(id: $scrolledId, anchor: .center)
+            .scrollPosition(id: $selectedPairId, anchor: .center)
         }
         .frame(maxWidth: .infinity)
         .background(Color.appLetterbox)
-        .onAppear {
-            if scrolledId == nil { scrolledId = selectedPairId }
-        }
-        .onChange(of: selectedPairId) { _, newValue in
-            if scrolledId != newValue { scrolledId = newValue }
-        }
-        .onChange(of: scrolledId) { _, newValue in
-            if selectedPairId != newValue {
-                selectedPairId = newValue
-                env.hapticService.impact(.light)
-            }
+        .onChange(of: selectedPairId) {
+            env.hapticService.impact(.light)
         }
     }
 }

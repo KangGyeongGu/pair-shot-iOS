@@ -1,11 +1,15 @@
 import CoreLocation
 import Foundation
+import Observation
 import OSLog
 
 @MainActor
-final class CoreLocationService: NSObject, CLLocationManagerDelegate {
-    private let manager = CLLocationManager()
-    private var continuation: CheckedContinuation<CLLocation?, Never>?
+@Observable
+final class CoreLocationService: NSObject {
+    private(set) var currentLocation: DomainLocation?
+
+    @ObservationIgnored private let manager = CLLocationManager()
+    @ObservationIgnored private var isUpdating = false
 
     override init() {
         super.init()
@@ -13,35 +17,44 @@ final class CoreLocationService: NSObject, CLLocationManagerDelegate {
         manager.desiredAccuracy = kCLLocationAccuracyHundredMeters
     }
 
-    func fetchOnce() async -> DomainLocation? {
-        guard let cl = await requestSingleLocation() else { return nil }
-        return DomainLocation(latitude: cl.coordinate.latitude, longitude: cl.coordinate.longitude)
-    }
+    func start() {
+        guard !isUpdating else { return }
+        switch manager.authorizationStatus {
+            case .notDetermined:
+                manager.requestWhenInUseAuthorization()
 
-    private func requestSingleLocation() async -> CLLocation? {
-        guard continuation == nil else { return nil }
+            case .authorizedWhenInUse, .authorizedAlways:
+                manager.startUpdatingLocation()
+                isUpdating = true
 
-        return await withCheckedContinuation { (cont: CheckedContinuation<CLLocation?, Never>) in
-            self.continuation = cont
-            switch self.manager.authorizationStatus {
-                case .authorizedWhenInUse, .authorizedAlways:
-                    self.manager.requestLocation()
+            case .denied, .restricted:
+                return
 
-                case .notDetermined:
-                    self.manager.requestWhenInUseAuthorization()
-
-                case .denied, .restricted:
-                    self.finish(with: nil)
-
-                @unknown default:
-                    self.finish(with: nil)
-            }
+            @unknown default:
+                return
         }
     }
 
-    private func finish(with location: CLLocation?) {
-        continuation?.resume(returning: location)
-        continuation = nil
+    func stop() {
+        guard isUpdating else { return }
+        manager.stopUpdatingLocation()
+        isUpdating = false
+    }
+
+    func fetchOnce() async -> DomainLocation? {
+        if let cached = currentLocation { return cached }
+        start()
+        try? await Task.sleep(for: .seconds(2))
+        return currentLocation
+    }
+}
+
+extension CoreLocationService: CLLocationManagerDelegate {
+    nonisolated func locationManager(_: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        let latest = locations.last
+        Task { @MainActor [weak self] in
+            self?.applyLocation(latest)
+        }
     }
 
     nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
@@ -50,29 +63,32 @@ final class CoreLocationService: NSObject, CLLocationManagerDelegate {
             guard let self else { return }
             switch status {
                 case .authorizedWhenInUse, .authorizedAlways:
-                    self.manager.requestLocation()
-
-                case .denied, .restricted:
-                    finish(with: nil)
+                    if !isUpdating {
+                        self.manager.startUpdatingLocation()
+                        isUpdating = true
+                    }
 
                 default:
-                    break
+                    return
             }
-        }
-    }
-
-    nonisolated func locationManager(_: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-        let first = locations.first
-        Task { @MainActor [weak self] in
-            self?.finish(with: first)
         }
     }
 
     nonisolated func locationManager(_: CLLocationManager, didFailWithError error: Error) {
         let description = error.localizedDescription
-        Task { @MainActor [weak self] in
-            AppLogger.camera.error("Location request failed: \(description, privacy: .public)")
-            self?.finish(with: nil)
+        Task { @MainActor in
+            AppLogger.camera.error("Location update failed: \(description, privacy: .public)")
         }
+    }
+
+    @MainActor
+    private func applyLocation(_ location: CLLocation?) {
+        guard let location else { return }
+        guard location.horizontalAccuracy > 0, location.horizontalAccuracy <= 1000 else { return }
+        guard location.timestamp.timeIntervalSinceNow > -5 else { return }
+        currentLocation = DomainLocation(
+            latitude: location.coordinate.latitude,
+            longitude: location.coordinate.longitude
+        )
     }
 }
