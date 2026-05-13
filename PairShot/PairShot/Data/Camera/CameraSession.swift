@@ -35,6 +35,7 @@ nonisolated struct CapturedPhoto {
     let jpegData: Data
     let zoomFactor: Double
     let lensIdentifier: String
+    let isDeferredProxy: Bool
 }
 
 nonisolated enum CameraSessionError: Error {
@@ -221,9 +222,8 @@ final nonisolated class CameraSession: @unchecked Sendable {
                 return
             }
             session.addOutput(output)
-            output.maxPhotoQualityPrioritization = .balanced
+            output.maxPhotoQualityPrioritization = .quality
             ResponsiveCaptureOptions.apply(to: output)
-            Self.applyTargetPhotoDimensions(to: output, device: device)
 
             activeDevice = device
             activeInput = input

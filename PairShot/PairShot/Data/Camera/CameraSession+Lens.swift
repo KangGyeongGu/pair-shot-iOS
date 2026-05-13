@@ -3,8 +3,6 @@ import Foundation
 import OSLog
 
 nonisolated extension CameraSession {
-    static let targetPhotoDimensions = CMVideoDimensions(width: 5712, height: 4284)
-
     func switchLens(to position: CameraLensPosition) async {
         let avPosition: AVCaptureDevice.Position = position == .back ? .back : .front
         let session = box.session
@@ -25,9 +23,6 @@ nonisolated extension CameraSession {
                 guard session.canAddInput(input) else { return }
                 session.addInput(input)
                 Self.applyDefaultZoom(to: device)
-                if let currentPhotoOutput = photoOutput {
-                    Self.applyTargetPhotoDimensions(to: currentPhotoOutput, device: device)
-                }
                 activeDevice = device
                 activeInput = input
                 hasInputInternal = true
@@ -66,17 +61,6 @@ nonisolated extension CameraSession {
             device.videoZoomFactor = max(target, device.minAvailableVideoZoomFactor)
         } catch {
             AppLogger.camera.error("Default zoom set failed: \(error.localizedDescription, privacy: .public)")
-        }
-    }
-
-    nonisolated static func applyTargetPhotoDimensions(
-        to output: AVCapturePhotoOutput,
-        device: AVCaptureDevice
-    ) {
-        let target = targetPhotoDimensions
-        let supported = device.activeFormat.supportedMaxPhotoDimensions
-        if let match = supported.first(where: { $0.width == target.width && $0.height == target.height }) {
-            output.maxPhotoDimensions = match
         }
     }
 }

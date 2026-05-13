@@ -11,13 +11,6 @@ struct CameraInfraTests {
         #expect(output.isResponsiveCaptureEnabled == output.isResponsiveCaptureSupported)
     }
 
-    @Test("targetPhotoDimensions matches 24MP target")
-    func targetDimensionsAre24MP() {
-        let target = CameraSession.targetPhotoDimensions
-        #expect(target.width == 5712)
-        #expect(target.height == 4284)
-    }
-
     @MainActor
     @Test("CameraReadinessAdapter forwards captureReadiness changes")
     func readinessAdapterForwards() async {

@@ -1,7 +1,7 @@
 @preconcurrency import AVFoundation
 import Foundation
 import Observation
-import UIKit
+import SwiftUI
 
 @MainActor
 @Observable
@@ -189,7 +189,11 @@ final class AfterCameraViewModel {
         isCapturing = false
 
         do {
-            _ = try await persistAfter(pairId: capturedPairId, afterJPEG: captured.jpegData)
+            _ = try await persistAfter(
+                pairId: capturedPairId,
+                afterJPEG: captured.jpegData,
+                isDeferredProxy: captured.isDeferredProxy
+            )
         } catch {
             rollbackOnPersistFailure(pair)
             captureErrorMessage = Self.captureErrorText(for: error)
@@ -198,29 +202,32 @@ final class AfterCameraViewModel {
 
     private func contractPairsAndAdvance(removing capturedPairId: UUID) {
         if isRecaptureMode {
-            currentPair = nil
-            ghostImageData = nil
-            allCompleted = true
+            withAnimation(.smooth) {
+                currentPair = nil
+                ghostImageData = nil
+                allCompleted = true
+            }
             eventsContinuation.yield(.dismiss)
             return
         }
-        let capturedIndex = pairs.firstIndex(where: { $0.id == capturedPairId })
-        pairs.removeAll { $0.id == capturedPairId }
-        pendingPairCount = max(0, pendingPairCount - 1)
-        completedPairCount += 1
-        if pairs.isEmpty {
-            currentPair = nil
-            ghostImageData = nil
-            allCompleted = true
+        let capturedIndex = pairs.firstIndex(where: { $0.id == capturedPairId }) ?? 0
+        withAnimation(.smooth) {
+            pairs.removeAll { $0.id == capturedPairId }
+            pendingPairCount = max(0, pendingPairCount - 1)
+            completedPairCount += 1
+            if pairs.isEmpty {
+                currentPair = nil
+                ghostImageData = nil
+                allCompleted = true
+            } else {
+                let targetIndex = min(capturedIndex, pairs.count - 1)
+                adopt(pair: pairs[targetIndex])
+            }
+        }
+        if allCompleted {
             eventsContinuation.yield(.snackbarAllCompleted)
             scheduleAllCompletedDismiss()
-            return
         }
-        let targetIndex: Int = {
-            guard let originalIndex = capturedIndex else { return 0 }
-            return min(originalIndex, pairs.count - 1)
-        }()
-        adopt(pair: pairs[targetIndex])
     }
 
     private func rollbackOnPersistFailure(_ pair: PhotoPair) {
@@ -230,11 +237,23 @@ final class AfterCameraViewModel {
         completedPairCount = max(0, completedPairCount - 1)
     }
 
-    private func persistAfter(pairId: UUID, afterJPEG: Data) async throws -> PhotoPair {
+    private func persistAfter(
+        pairId: UUID,
+        afterJPEG: Data,
+        isDeferredProxy: Bool
+    ) async throws -> PhotoPair {
         if isRecaptureMode {
-            return try await recaptureAfter(pairId: pairId, afterJPEG: afterJPEG)
+            return try await recaptureAfter(
+                pairId: pairId,
+                afterJPEG: afterJPEG,
+                isDeferredProxy: isDeferredProxy
+            )
         }
-        return try await captureAfter(pairId: pairId, afterJPEG: afterJPEG)
+        return try await captureAfter(
+            pairId: pairId,
+            afterJPEG: afterJPEG,
+            isDeferredProxy: isDeferredProxy
+        )
     }
 
     private func loadPendingScopeAndStart() async {

@@ -29,7 +29,7 @@ final nonisolated class PhotoLibraryService: Sendable {
     }
 
     @discardableResult
-    nonisolated func saveImage(_ jpegData: Data) async throws -> String {
+    nonisolated func saveImage(_ jpegData: Data, isDeferredProxy: Bool = false) async throws -> String {
         let status = await authorize(level: .addOnly)
         guard status == .authorized || status == .limited else {
             throw LibraryError.notAuthorized
@@ -39,8 +39,11 @@ final nonisolated class PhotoLibraryService: Sendable {
             let changesBlock: @Sendable () -> Void = {
                 let request = PHAssetCreationRequest.forAsset()
                 let options = PHAssetResourceCreationOptions()
-                options.uniformTypeIdentifier = "public.jpeg"
-                request.addResource(with: .photo, data: jpegData, options: options)
+                let resourceType: PHAssetResourceType = isDeferredProxy ? .photoProxy : .photo
+                if !isDeferredProxy {
+                    options.uniformTypeIdentifier = "public.jpeg"
+                }
+                request.addResource(with: resourceType, data: jpegData, options: options)
                 placeholderBox.placeholder = request.placeholderForCreatedAsset
             }
             let completionBlock: @Sendable (Bool, Error?) -> Void = { success, error in

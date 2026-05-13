@@ -18,7 +18,8 @@ final class RecaptureAfterUseCase {
 
     func callAsFunction(
         pairId: UUID,
-        afterJPEG: Data
+        afterJPEG: Data,
+        isDeferredProxy: Bool = false
     ) async throws -> PhotoPair {
         guard let pair = try await pairRepo.fetch(id: pairId) else {
             throw CaptureAfterUseCase.CaptureAfterError.pairNotFound
@@ -30,7 +31,11 @@ final class RecaptureAfterUseCase {
         let combinedIds = try await pairRepo.combinedExportPhotoIdentifiers(forPairIds: [pairId])
         staleAssetIds.append(contentsOf: combinedIds)
 
-        let updated = try await captureAfter(pairId: pairId, afterJPEG: afterJPEG)
+        let updated = try await captureAfter(
+            pairId: pairId,
+            afterJPEG: afterJPEG,
+            isDeferredProxy: isDeferredProxy
+        )
 
         try await photoLibrary.deleteAssets(localIdentifiers: staleAssetIds)
         try await pairRepo.deleteCombinedExportRecords(forPairIds: [pairId])

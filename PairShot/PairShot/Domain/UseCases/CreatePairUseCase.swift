@@ -25,11 +25,12 @@ final class CreatePairUseCase {
 
     func callAsFunction(
         beforeJPEG: Data,
-        cameraSettings: CameraSettings
+        cameraSettings: CameraSettings,
+        isDeferredProxy: Bool = false
     ) async throws -> PhotoPair {
         let timestamp = now()
         let pairId = UUID()
-        let localIdentifier = try await photoLibrary.saveImage(beforeJPEG)
+        let localIdentifier = try await photoLibrary.saveImage(beforeJPEG, isDeferredProxy: isDeferredProxy)
         let resolvedLocation = location.currentLocation
         let pair = PhotoPair(
             id: pairId,
@@ -49,13 +50,14 @@ final class CreatePairUseCase {
     func refillBefore(
         pairId: UUID,
         beforeJPEG: Data,
-        cameraSettings: CameraSettings
+        cameraSettings: CameraSettings,
+        isDeferredProxy: Bool = false
     ) async throws -> PhotoPair {
         guard var pair = try await pairRepo.fetch(id: pairId) else {
             throw RefillError.pairNotFound
         }
         let timestamp = now()
-        let localIdentifier = try await photoLibrary.saveImage(beforeJPEG)
+        let localIdentifier = try await photoLibrary.saveImage(beforeJPEG, isDeferredProxy: isDeferredProxy)
         pair.beforePhotoLocalIdentifier = localIdentifier
         pair.beforeZoomFactor = cameraSettings.zoomFactor
         pair.beforeLensIdentifier = cameraSettings.lensPosition.rawValue

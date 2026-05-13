@@ -3,7 +3,9 @@ import Foundation
 import OSLog
 
 nonisolated extension CameraSession {
-    func capturePhoto(metadata: [String: Any] = [:]) async throws -> CapturedPhoto {
+    func capturePhoto(
+        metadata: [String: Any] = [:]
+    ) async throws -> CapturedPhoto {
         let metadataBox = CaptureMetadataBox(metadata)
         let captureContext = await runOnSessionQueue { [weak self] () -> CaptureContext? in
             guard let self,
@@ -14,10 +16,6 @@ nonisolated extension CameraSession {
             }
 
             let settings = AVCapturePhotoSettings()
-            let outputMax = photoOutput.maxPhotoDimensions
-            if outputMax.width > 0, outputMax.height > 0 {
-                settings.maxPhotoDimensions = outputMax
-            }
             if !metadataBox.value.isEmpty {
                 settings.metadata = metadataBox.value
             }
@@ -59,12 +57,13 @@ nonisolated extension CameraSession {
                     self?.readinessCoordinator?.stopTrackingCaptureRequest(using: settingsUniqueID)
                 }
                 switch result {
-                    case let .success(rawJpeg):
+                    case let .success(payload):
                         cont.resume(
                             returning: CapturedPhoto(
-                                jpegData: rawJpeg,
+                                jpegData: payload.data,
                                 zoomFactor: captureContext.zoom,
-                                lensIdentifier: captureContext.lens
+                                lensIdentifier: captureContext.lens,
+                                isDeferredProxy: payload.isDeferredProxy
                             )
                         )
 
@@ -114,11 +113,16 @@ private final nonisolated class CaptureMetadataBox: @unchecked Sendable {
     }
 }
 
+nonisolated struct CapturedPhotoPayload {
+    let data: Data
+    let isDeferredProxy: Bool
+}
+
 final nonisolated class PhotoCaptureDelegate: NSObject, AVCapturePhotoCaptureDelegate, @unchecked Sendable {
-    private let completion: @Sendable (Result<Data, CameraSessionError>) -> Void
+    private let completion: @Sendable (Result<CapturedPhotoPayload, CameraSessionError>) -> Void
     private var didDeliver = false
 
-    init(completion: @escaping @Sendable (Result<Data, CameraSessionError>) -> Void) {
+    init(completion: @escaping @Sendable (Result<CapturedPhotoPayload, CameraSessionError>) -> Void) {
         self.completion = completion
     }
 
@@ -139,7 +143,7 @@ final nonisolated class PhotoCaptureDelegate: NSObject, AVCapturePhotoCaptureDel
             return
         }
         didDeliver = true
-        completion(.success(data))
+        completion(.success(CapturedPhotoPayload(data: data, isDeferredProxy: false)))
     }
 
     func photoOutput(
@@ -159,6 +163,6 @@ final nonisolated class PhotoCaptureDelegate: NSObject, AVCapturePhotoCaptureDel
             return
         }
         didDeliver = true
-        completion(.success(data))
+        completion(.success(CapturedPhotoPayload(data: data, isDeferredProxy: true)))
     }
 }

@@ -27,6 +27,7 @@ struct AfterCameraStrip: View {
                         .scrollTransition(.interactive, axis: .horizontal) { effect, phase in
                             effect.scaleEffect(phase.isIdentity ? 1.0 : 0.95)
                         }
+                        .transition(.scale(scale: 0.7).combined(with: .opacity))
                     }
                 }
                 .scrollTargetLayout()

@@ -27,7 +27,7 @@ struct BeforeCameraStack: View {
     let lastThumbnail: UIImage?
 
     let pendingPairs: [PhotoPair]
-    @Binding var selectedPairId: UUID?
+    let activePairId: UUID?
 
     let onTapFocus: (CGPoint) -> Void
     let onExposureBias: (Float) -> Void
@@ -58,7 +58,7 @@ struct BeforeCameraStack: View {
 
                     BeforeCameraStrip(
                         pendingPairs: pendingPairs,
-                        selectedPairId: $selectedPairId
+                        activePairId: activePairId
                     )
                     .frame(height: layout.stripHeight)
                     .clipped()

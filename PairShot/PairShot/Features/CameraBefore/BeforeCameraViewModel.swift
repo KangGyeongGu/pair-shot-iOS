@@ -257,29 +257,32 @@ final class BeforeCameraViewModel {
         updateLastThumbnail(from: captured.jpegData)
         eventsContinuation.yield(.snackbarSuccess)
         isCapturing = false
-        let cameraSettings = CameraSettings(
-            zoomFactor: captured.zoomFactor,
-            lensPosition: LensPosition.resolve(identifier: captured.lensIdentifier)
-        )
+        let lensPosition = LensPosition.resolve(identifier: captured.lensIdentifier)
+        let cameraSettings = CameraSettings(zoomFactor: captured.zoomFactor, lensPosition: lensPosition)
         do {
             if let refillPairId {
                 _ = try await createPair.refillBefore(
                     pairId: refillPairId,
                     beforeJPEG: captured.jpegData,
-                    cameraSettings: cameraSettings
+                    cameraSettings: cameraSettings,
+                    isDeferredProxy: captured.isDeferredProxy
                 )
                 eventsContinuation.yield(.dismiss)
                 return
             }
             let pair = try await createPair(
                 beforeJPEG: captured.jpegData,
-                cameraSettings: cameraSettings
+                cameraSettings: cameraSettings,
+                isDeferredProxy: captured.isDeferredProxy
             )
             if let albumId {
                 try? await albumRepo.addPair(pairId: pair.id, toAlbum: albumId)
             }
-            await refreshPendingPairs()
-            withAnimation(.smooth) { selectedPairId = pair.id }
+            let nextPairs = await fetchSortedPendingPairs()
+            withAnimation(.smooth) {
+                pendingPairs = nextPairs
+                selectedPairId = pair.id
+            }
         } catch {
             captureErrorMessage = Self.captureErrorText(for: error)
         }
@@ -288,23 +291,6 @@ final class BeforeCameraViewModel {
     private func updateLastThumbnail(from jpegData: Data) {
         guard let image = UIImage(data: jpegData) else { return }
         lastThumbnail = image
-    }
-
-    private func refreshPendingPairs() async {
-        let all = await (try? pairRepo.fetchAll()) ?? []
-        let scoped: [PhotoPair] =
-            if let albumId {
-                all.filter { $0.albumIds.contains(albumId) }
-            } else {
-                all
-            }
-        let filtered =
-            scoped
-                .filter { $0.afterPhotoLocalIdentifier == nil }
-                .filter { $0.createdAt >= sessionStartedAt }
-        pendingPairs = filtered.sorted { lhs, rhs in
-            sortOrder == .newest ? lhs.createdAt > rhs.createdAt : lhs.createdAt < rhs.createdAt
-        }
     }
 
     private func emitTickHaptics(for ratio: Double) {
@@ -377,6 +363,21 @@ nonisolated enum CameraFlashModeMapping {
 
             case .torch:
                 CameraFlashModePersistence.torch
+        }
+    }
+}
+
+private extension BeforeCameraViewModel {
+    func fetchSortedPendingPairs() async -> [PhotoPair] {
+        let all = await (try? pairRepo.fetchAll()) ?? []
+        let scoped: [PhotoPair] = if let albumId {
+            all.filter { $0.albumIds.contains(albumId) }
+        } else { all }
+        let filtered = scoped
+            .filter { $0.afterPhotoLocalIdentifier == nil }
+            .filter { $0.createdAt >= sessionStartedAt }
+        return filtered.sorted { lhs, rhs in
+            sortOrder == .newest ? lhs.createdAt > rhs.createdAt : lhs.createdAt < rhs.createdAt
         }
     }
 }

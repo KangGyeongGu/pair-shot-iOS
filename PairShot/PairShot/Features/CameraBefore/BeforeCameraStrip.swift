@@ -2,7 +2,9 @@ import SwiftUI
 
 struct BeforeCameraStrip: View {
     let pendingPairs: [PhotoPair]
-    @Binding var selectedPairId: UUID?
+    let activePairId: UUID?
+
+    @State private var scrolledId: UUID?
 
     var body: some View {
         Group {
@@ -25,7 +27,7 @@ struct BeforeCameraStrip: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 LazyHStack(alignment: .center, spacing: StripDesign.cardSpacing) {
                     ForEach(pendingPairs) { pair in
-                        StripCard(pair: pair, isActive: pair.id == selectedPairId)
+                        StripCard(pair: pair, isActive: pair.id == activePairId)
                             .id(pair.id)
                             .scrollTransition(.interactive, axis: .horizontal) { effect, phase in
                                 effect.scaleEffect(phase.isIdentity ? 1.0 : 0.95)
@@ -37,7 +39,10 @@ struct BeforeCameraStrip: View {
             .contentMargins(.horizontal, sideInset, for: .scrollContent)
             .contentMargins(.vertical, StripDesign.stripPaddingVertical, for: .scrollContent)
             .scrollTargetBehavior(.viewAligned)
-            .scrollPosition(id: $selectedPairId, anchor: .center)
+            .scrollPosition(id: $scrolledId, anchor: .center)
+        }
+        .onChange(of: activePairId, initial: true) { _, newId in
+            withAnimation(.smooth) { scrolledId = newId }
         }
     }
 
