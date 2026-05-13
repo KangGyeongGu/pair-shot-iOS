@@ -43,10 +43,12 @@ struct BeforeCameraSettingsOverlay: View {
     let isLevelOn: Bool
     let isNightModeOn: Bool
     let flashMode: CameraFlashMode
+    let aspect: AspectRatio
     let onToggleGrid: () -> Void
     let onToggleLevel: () -> Void
     let onToggleNightMode: () -> Void
     let onCycleFlash: () -> Void
+    let onCycleAspect: () -> Void
 
     var body: some View {
         CameraSettingsOverlayChrome(isPresented: $isPresented) {
@@ -83,8 +85,53 @@ struct BeforeCameraSettingsOverlay: View {
                 label: String(localized: "camera_settings_level"),
                 action: onToggleLevel
             )
+            AspectRatioChip(
+                aspect: aspect,
+                action: onCycleAspect
+            )
         }
         .frame(maxWidth: .infinity)
+    }
+}
+
+struct AspectRatioChip: View {
+    @Environment(AppEnvironment.self) private var env
+
+    let aspect: AspectRatio
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: handleTap) {
+            VStack(spacing: CameraSettingsOverlayMetrics.chipLabelSpacing) {
+                Text(aspect.label)
+                    .font(.system(size: 11, weight: .semibold, design: .rounded))
+                    .monospacedDigit()
+                    .foregroundStyle(Color.black)
+                    .frame(
+                        width: CameraSettingsOverlayMetrics.chipSize,
+                        height: CameraSettingsOverlayMetrics.chipSize
+                    )
+                    .background(
+                        Circle().fill(Color.accentColor)
+                    )
+
+                Text(String(localized: "camera_settings_aspect_ratio"))
+                    .font(.caption2.weight(.medium))
+                    .foregroundStyle(Color.white.opacity(0.85))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            }
+            .contentShape(Rectangle())
+            .accessibilityLabel(String(localized: "camera_settings_aspect_ratio"))
+            .accessibilityValue(aspect.label)
+            .accessibilityAddTraits(.isButton)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func handleTap() {
+        env.hapticService.impact(.light)
+        action()
     }
 }
 
@@ -97,10 +144,12 @@ struct BeforeCameraSettingsOverlay: View {
             isLevelOn: false,
             isNightModeOn: false,
             flashMode: .auto,
+            aspect: .fourThree,
             onToggleGrid: {},
             onToggleLevel: {},
             onToggleNightMode: {},
-            onCycleFlash: {}
+            onCycleFlash: {},
+            onCycleAspect: {}
         )
     }
 }

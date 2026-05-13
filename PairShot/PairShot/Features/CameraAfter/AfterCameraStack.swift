@@ -8,6 +8,7 @@ struct AfterCameraStack: View {
     let captureSession: AVCaptureSession
     let onMakePreviewView: (CameraPreviewView) -> Void
 
+    let aspect: AspectRatio
     let ghostImage: UIImage?
     let ghostRotationDegrees: Double
     let rotationGuideDirection: RotationGuideDirection
@@ -43,41 +44,55 @@ struct AfterCameraStack: View {
         GeometryReader { geo in
             let layout = CameraLayoutMath.compute(
                 totalSize: geo.size,
-                isAdFree: adFreeStore.isAdFree
+                isAdFree: adFreeStore.isAdFree,
+                aspect: aspect
             )
 
             ZStack(alignment: .top) {
                 Color.appCameraBackground.ignoresSafeArea()
 
                 VStack(spacing: 0) {
-                    previewArea(width: layout.previewWidth, height: layout.previewHeight)
-                        .frame(width: layout.previewWidth, height: layout.previewHeight)
-                        .background(Color.appCameraBackground)
+                    ZStack(alignment: .topLeading) {
+                        Color.appLetterbox
+
+                        previewArea(width: layout.previewWidth, height: layout.previewHeight)
+                            .frame(width: layout.previewWidth, height: layout.previewHeight)
+                            .offset(
+                                x: layout.previewLeadingInsetInSlot,
+                                y: layout.previewTopInsetInSlot
+                            )
+                    }
+                    .frame(width: layout.slotWidth, height: layout.slotHeight)
 
                     AfterCameraStrip(
                         pairs: pairs,
-                        selectedPairId: selectedPairId
+                        selectedPairId: selectedPairId,
+                        stripZoneHeight: layout.stripHeight
                     )
+                    .frame(maxWidth: .infinity)
                     .frame(height: layout.stripHeight)
                     .clipped()
 
                     CameraBottomBar(
                         lastThumbnail: nil,
                         isCapturing: isCapturing,
+                        zoneHeight: layout.shutterHeight,
                         onLeadingTap: onLeadingTap,
                         onShutter: onShutter,
                         onSettingsTap: onSettingsTap
                     )
                     .opacity(canCapture ? 1.0 : 0.6)
-                    .frame(height: layout.bottomBarHeight)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: layout.shutterHeight)
                     .clipped()
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
 
                 if !layout.isAdFree {
                     BannerAdSlot()
-                        .frame(height: layout.bannerHeight)
-                        .frame(maxWidth: .infinity)
+                        .frame(maxWidth: .infinity, maxHeight: layout.bannerHeight, alignment: .top)
+                        .clipped()
+                        .allowsHitTesting(false)
                 }
             }
         }

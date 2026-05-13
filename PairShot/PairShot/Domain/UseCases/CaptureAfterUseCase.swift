@@ -23,6 +23,7 @@ final class CaptureAfterUseCase {
     func callAsFunction(
         pairId: UUID,
         afterJPEG: Data,
+        aspectRatio: AspectRatio = .default,
         isDeferredProxy: Bool = false
     ) async throws -> PhotoPair {
         guard var pair = try await pairRepo.fetch(id: pairId) else {
@@ -33,6 +34,12 @@ final class CaptureAfterUseCase {
         pair.afterPhotoLocalIdentifier = localIdentifier
         pair.afterCapturedAt = timestamp
         pair.updatedAt = timestamp
+        if var settings = pair.cameraSettings {
+            settings.aspectRatio = aspectRatio
+            pair.cameraSettings = settings
+        } else {
+            pair.cameraSettings = CameraSettings(aspectRatio: aspectRatio)
+        }
         try await pairRepo.update(pair)
         return pair
     }

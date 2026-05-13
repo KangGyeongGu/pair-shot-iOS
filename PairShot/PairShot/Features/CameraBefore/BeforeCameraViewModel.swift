@@ -46,6 +46,7 @@ final class BeforeCameraViewModel {
         didSet { appSettings.cameraNightMode = isNightModeOn }
     }
 
+    var currentAspect: AspectRatio = .default
     var isCapturing: Bool = false
     var cameraPermissionState: CameraPermissionState = .unknown
     var captureErrorMessage: String?
@@ -110,6 +111,7 @@ final class BeforeCameraViewModel {
         isLevelOn = appSettings.cameraLevelEnabled
         isNightModeOn = appSettings.cameraNightMode
         flashMode = CameraFlashModeMapping.flashMode(from: appSettings.cameraFlashMode)
+        currentAspect = appSettings.cameraAspectRatio
     }
 
     func onAppear() async {
@@ -121,6 +123,7 @@ final class BeforeCameraViewModel {
         cameraPermissionState = await permission ? .granted : .denied
         guard cameraPermissionState == .granted else { return }
         _ = await startTask
+        await session.setAspectRatio(currentAspect)
         let snapshot = await session.zoomSnapshot()
         applyZoomSnapshot(snapshot)
         activePreset = matchingPreset(for: currentZoomRatio)
@@ -258,13 +261,19 @@ final class BeforeCameraViewModel {
         eventsContinuation.yield(.snackbarSuccess)
         isCapturing = false
         let lensPosition = LensPosition.resolve(identifier: captured.lensIdentifier)
-        let cameraSettings = CameraSettings(zoomFactor: captured.zoomFactor, lensPosition: lensPosition)
+        let aspect = currentAspect
+        let cameraSettings = CameraSettings(
+            zoomFactor: captured.zoomFactor,
+            lensPosition: lensPosition,
+            aspectRatio: aspect
+        )
         do {
             if let refillPairId {
                 _ = try await createPair.refillBefore(
                     pairId: refillPairId,
                     beforeJPEG: captured.jpegData,
                     cameraSettings: cameraSettings,
+                    aspectRatio: aspect,
                     isDeferredProxy: captured.isDeferredProxy
                 )
                 eventsContinuation.yield(.dismiss)
@@ -273,6 +282,7 @@ final class BeforeCameraViewModel {
             let pair = try await createPair(
                 beforeJPEG: captured.jpegData,
                 cameraSettings: cameraSettings,
+                aspectRatio: aspect,
                 isDeferredProxy: captured.isDeferredProxy
             )
             if let albumId {
@@ -364,6 +374,15 @@ nonisolated enum CameraFlashModeMapping {
             case .torch:
                 CameraFlashModePersistence.torch
         }
+    }
+}
+
+extension BeforeCameraViewModel {
+    func cycleAspect() {
+        let next = currentAspect.next
+        currentAspect = next
+        appSettings.cameraAspectRatio = next
+        Task { await session.setAspectRatio(next) }
     }
 }
 

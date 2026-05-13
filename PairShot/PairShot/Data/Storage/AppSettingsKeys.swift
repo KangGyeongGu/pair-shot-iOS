@@ -14,6 +14,7 @@ nonisolated enum AppSettingsKeys {
     static let cameraLevelEnabled = "pairshot.cameraLevelEnabled"
     static let cameraFlashMode = "pairshot.cameraFlashMode"
     static let cameraNightMode = "pairshot.cameraNightMode"
+    static let cameraAspectRatio = "pairshot.cameraAspectRatio"
     static let overlayEnabled = "pairshot.overlayEnabled"
     static let homeSortOrder = "pairshot.homeSortOrder"
     static let albumSortOrder = "pairshot.albumSortOrder"

@@ -69,6 +69,7 @@ final class AfterCameraViewModel {
     }
 
     var lensPosition: CameraLensPosition = .back
+    var currentAspect: AspectRatio = .default
 
     var allCompleted: Bool = false
 
@@ -192,6 +193,7 @@ final class AfterCameraViewModel {
             _ = try await persistAfter(
                 pairId: capturedPairId,
                 afterJPEG: captured.jpegData,
+                aspectRatio: currentAspect,
                 isDeferredProxy: captured.isDeferredProxy
             )
         } catch {
@@ -240,18 +242,21 @@ final class AfterCameraViewModel {
     private func persistAfter(
         pairId: UUID,
         afterJPEG: Data,
+        aspectRatio: AspectRatio,
         isDeferredProxy: Bool
     ) async throws -> PhotoPair {
         if isRecaptureMode {
             return try await recaptureAfter(
                 pairId: pairId,
                 afterJPEG: afterJPEG,
+                aspectRatio: aspectRatio,
                 isDeferredProxy: isDeferredProxy
             )
         }
         return try await captureAfter(
             pairId: pairId,
             afterJPEG: afterJPEG,
+            aspectRatio: aspectRatio,
             isDeferredProxy: isDeferredProxy
         )
     }
@@ -292,6 +297,9 @@ final class AfterCameraViewModel {
         ghostImageData = nil
         alpha = GhostOverlayMath.clamp(appSettings.defaultOverlayAlpha)
         hasRestoredZoom = false
+        let resolvedAspect = pair.cameraSettings?.resolvedAspectRatio ?? .default
+        currentAspect = resolvedAspect
+        Task { await session.setAspectRatio(resolvedAspect) }
         Task { await loadGhost(for: pair) }
         Task { await restoreZoom(for: pair) }
     }

@@ -19,6 +19,7 @@ final class RecaptureAfterUseCase {
     func callAsFunction(
         pairId: UUID,
         afterJPEG: Data,
+        aspectRatio: AspectRatio = .default,
         isDeferredProxy: Bool = false
     ) async throws -> PhotoPair {
         guard let pair = try await pairRepo.fetch(id: pairId) else {
@@ -34,6 +35,7 @@ final class RecaptureAfterUseCase {
         let updated = try await captureAfter(
             pairId: pairId,
             afterJPEG: afterJPEG,
+            aspectRatio: aspectRatio,
             isDeferredProxy: isDeferredProxy
         )
 

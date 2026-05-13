@@ -7,12 +7,25 @@ struct StripCard: View {
 
     let pair: PhotoPair
     let isActive: Bool
+    let stripZoneHeight: CGFloat
 
     @State private var thumbnail: UIImage?
 
+    private var cardWidth: CGFloat {
+        StripDesign.cardWidth(stripHeight: stripZoneHeight)
+    }
+
+    private var cardHeight: CGFloat {
+        StripDesign.cardHeight(stripHeight: stripZoneHeight)
+    }
+
+    private var cornerRadius: CGFloat {
+        StripDesign.cornerRadius(stripHeight: stripZoneHeight)
+    }
+
     var body: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: StripDesign.cardCornerRadius)
+            RoundedRectangle(cornerRadius: cornerRadius)
                 .fill(Color.white.opacity(0.06))
 
             if let thumbnail {
@@ -25,10 +38,10 @@ struct StripCard: View {
                     .foregroundStyle(.white.opacity(0.45))
             }
         }
-        .frame(width: StripDesign.cardWidth, height: StripDesign.cardHeight)
-        .clipShape(RoundedRectangle(cornerRadius: StripDesign.cardCornerRadius))
+        .frame(width: cardWidth, height: cardHeight)
+        .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
         .overlay(
-            RoundedRectangle(cornerRadius: StripDesign.cardCornerRadius)
+            RoundedRectangle(cornerRadius: cornerRadius)
                 .stroke(
                     isActive ? StripDesign.activeBorderColor : StripDesign.inactiveBorderColor,
                     lineWidth: isActive ? StripDesign.activeBorderWidth : StripDesign.inactiveBorderWidth
@@ -46,7 +59,7 @@ struct StripCard: View {
         let scale = max(1, displayScale)
         thumbnail = await env.thumbnailCache.image(
             for: identifier,
-            pixelSize: StripDesign.cardWidth * scale
+            pixelSize: cardWidth * scale
         )
     }
 }

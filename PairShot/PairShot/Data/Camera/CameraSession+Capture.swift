@@ -30,7 +30,8 @@ nonisolated extension CameraSession {
                 photoOutput: photoOutput,
                 settings: settings,
                 zoom: Double(device.videoZoomFactor),
-                lens: Self.lensIdentifier(for: device)
+                lens: Self.lensIdentifier(for: device),
+                aspectRatio: currentAspectRatio
             )
         }
 
@@ -49,6 +50,7 @@ nonisolated extension CameraSession {
 
         return try await withCheckedThrowingContinuation { cont in
             let id = UUID()
+            let aspect = captureContext.aspectRatio
             let delegate = PhotoCaptureDelegate { [weak self] result in
                 queue.async { [weak self] in
                     self?.inFlightDelegates.removeValue(forKey: id)
@@ -58,12 +60,16 @@ nonisolated extension CameraSession {
                 }
                 switch result {
                     case let .success(payload):
+                        let finalData = AspectRatioCropper.cropJPEG(
+                            data: payload.data,
+                            targetAspect: aspect
+                        )
                         cont.resume(
                             returning: CapturedPhoto(
-                                jpegData: payload.data,
+                                jpegData: finalData,
                                 zoomFactor: captureContext.zoom,
                                 lensIdentifier: captureContext.lens,
-                                isDeferredProxy: payload.isDeferredProxy
+                                isDeferredProxy: payload.isDeferredProxy && aspect == .fourThree
                             )
                         )
 
@@ -97,12 +103,20 @@ private final nonisolated class CaptureContext: @unchecked Sendable {
     let settings: AVCapturePhotoSettings
     let zoom: Double
     let lens: String
+    let aspectRatio: AspectRatio
 
-    init(photoOutput: AVCapturePhotoOutput, settings: AVCapturePhotoSettings, zoom: Double, lens: String) {
+    init(
+        photoOutput: AVCapturePhotoOutput,
+        settings: AVCapturePhotoSettings,
+        zoom: Double,
+        lens: String,
+        aspectRatio: AspectRatio
+    ) {
         self.photoOutput = photoOutput
         self.settings = settings
         self.zoom = zoom
         self.lens = lens
+        self.aspectRatio = aspectRatio
     }
 }
 

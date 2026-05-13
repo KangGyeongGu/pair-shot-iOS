@@ -106,6 +106,7 @@ final nonisolated class CameraSession: @unchecked Sendable {
     var photoOutput: AVCapturePhotoOutput?
     var inFlightDelegates: [UUID: PhotoCaptureDelegate] = [:]
     var flashMode: CameraFlashMode = .off
+    var currentAspectRatio: AspectRatio = .default
     weak var managedPreviewLayer: AVCaptureVideoPreviewLayer?
     var rotationCoordinator: AVCaptureDevice.RotationCoordinator?
     var rotationObservers: [NSKeyValueObservation] = []

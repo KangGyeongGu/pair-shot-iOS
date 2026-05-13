@@ -3,6 +3,7 @@ import SwiftUI
 struct BeforeCameraStrip: View {
     let pendingPairs: [PhotoPair]
     let activePairId: UUID?
+    let stripZoneHeight: CGFloat
 
     @State private var scrolledId: UUID?
 
@@ -20,24 +21,36 @@ struct BeforeCameraStrip: View {
 
     private var strip: some View {
         GeometryReader { proxy in
+            let cardWidth = StripDesign.cardWidth(stripHeight: stripZoneHeight)
             let sideInset = max(
                 StripDesign.stripPaddingHorizontal,
-                (proxy.size.width - StripDesign.cardWidth) / 2
+                (proxy.size.width - cardWidth) / 2
             )
             ScrollView(.horizontal, showsIndicators: false) {
-                LazyHStack(alignment: .center, spacing: StripDesign.cardSpacing) {
+                LazyHStack(
+                    alignment: .center,
+                    spacing: StripDesign.cardSpacing(stripHeight: stripZoneHeight)
+                ) {
                     ForEach(pendingPairs) { pair in
-                        StripCard(pair: pair, isActive: pair.id == activePairId)
-                            .id(pair.id)
-                            .scrollTransition(.interactive, axis: .horizontal) { effect, phase in
-                                effect.scaleEffect(phase.isIdentity ? 1.0 : 0.95)
-                            }
+                        StripCard(
+                            pair: pair,
+                            isActive: pair.id == activePairId,
+                            stripZoneHeight: stripZoneHeight
+                        )
+                        .id(pair.id)
+                        .scrollTransition(.interactive, axis: .horizontal) { effect, phase in
+                            effect.scaleEffect(phase.isIdentity ? 1.0 : 0.95)
+                        }
                     }
                 }
                 .scrollTargetLayout()
             }
             .contentMargins(.horizontal, sideInset, for: .scrollContent)
-            .contentMargins(.vertical, StripDesign.stripPaddingVertical, for: .scrollContent)
+            .contentMargins(
+                .vertical,
+                StripDesign.paddingVertical(stripHeight: stripZoneHeight),
+                for: .scrollContent
+            )
             .scrollTargetBehavior(.viewAligned)
             .scrollPosition(id: $scrolledId, anchor: .center)
         }

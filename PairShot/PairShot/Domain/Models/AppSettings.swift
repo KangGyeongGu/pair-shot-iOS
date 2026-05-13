@@ -111,6 +111,16 @@ final class AppSettings {
         set { defaults.set(newValue, forKey: AppSettingsKeys.cameraNightMode) }
     }
 
+    var cameraAspectRatio: AspectRatio {
+        get {
+            let raw =
+                defaults.string(forKey: AppSettingsKeys.cameraAspectRatio)
+                    ?? AspectRatio.default.rawValue
+            return AspectRatio(rawValue: raw) ?? .default
+        }
+        set { defaults.set(newValue.rawValue, forKey: AppSettingsKeys.cameraAspectRatio) }
+    }
+
     var overlayEnabled: Bool {
         get { defaults.bool(forKey: AppSettingsKeys.overlayEnabled) }
         set { defaults.set(newValue, forKey: AppSettingsKeys.overlayEnabled) }
@@ -162,6 +172,7 @@ final class AppSettings {
             AppSettingsKeys.cameraLevelEnabled: false,
             AppSettingsKeys.cameraFlashMode: CameraFlashModePersistence.defaultRawValue,
             AppSettingsKeys.cameraNightMode: false,
+            AppSettingsKeys.cameraAspectRatio: AspectRatio.default.rawValue,
             AppSettingsKeys.overlayEnabled: true,
             AppSettingsKeys.embedGPSInPhoto: true,
             AppSettingsKeys.homeSortOrder: SortOrderPersistence.defaultRawValue,

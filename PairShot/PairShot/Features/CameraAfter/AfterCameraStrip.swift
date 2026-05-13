@@ -5,19 +5,25 @@ struct AfterCameraStrip: View {
 
     let pairs: [PhotoPair]
     @Binding var selectedPairId: UUID?
+    let stripZoneHeight: CGFloat
 
     var body: some View {
         GeometryReader { proxy in
+            let cardWidth = StripDesign.cardWidth(stripHeight: stripZoneHeight)
             let sideInset = max(
                 StripDesign.stripPaddingHorizontal,
-                (proxy.size.width - StripDesign.cardWidth) / 2
+                (proxy.size.width - cardWidth) / 2
             )
             ScrollView(.horizontal, showsIndicators: false) {
-                LazyHStack(alignment: .center, spacing: StripDesign.cardSpacing) {
+                LazyHStack(
+                    alignment: .center,
+                    spacing: StripDesign.cardSpacing(stripHeight: stripZoneHeight)
+                ) {
                     ForEach(pairs) { pair in
                         StripCard(
                             pair: pair,
-                            isActive: pair.id == selectedPairId
+                            isActive: pair.id == selectedPairId,
+                            stripZoneHeight: stripZoneHeight
                         )
                         .id(pair.id)
                         .contentShape(Rectangle())
@@ -33,7 +39,11 @@ struct AfterCameraStrip: View {
                 .scrollTargetLayout()
             }
             .contentMargins(.horizontal, sideInset, for: .scrollContent)
-            .contentMargins(.vertical, StripDesign.stripPaddingVertical, for: .scrollContent)
+            .contentMargins(
+                .vertical,
+                StripDesign.paddingVertical(stripHeight: stripZoneHeight),
+                for: .scrollContent
+            )
             .scrollTargetBehavior(.viewAligned)
             .scrollPosition(id: $selectedPairId, anchor: .center)
         }

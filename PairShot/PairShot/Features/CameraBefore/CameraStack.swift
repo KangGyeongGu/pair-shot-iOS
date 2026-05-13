@@ -9,6 +9,7 @@ struct BeforeCameraStack: View {
     let onMakePreviewView: (CameraPreviewView) -> Void
     let previewLayerProvider: () -> AVCaptureVideoPreviewLayer?
 
+    let aspect: AspectRatio
     let isGridOn: Bool
     let isLevelOn: Bool
     let rollDegrees: Double
@@ -45,32 +46,45 @@ struct BeforeCameraStack: View {
         GeometryReader { geo in
             let layout = CameraLayoutMath.compute(
                 totalSize: geo.size,
-                isAdFree: adFreeStore.isAdFree
+                isAdFree: adFreeStore.isAdFree,
+                aspect: aspect
             )
 
             ZStack(alignment: .top) {
                 Color.appCameraBackground.ignoresSafeArea()
 
                 VStack(spacing: 0) {
-                    previewArea(width: layout.previewWidth, height: layout.previewHeight)
-                        .frame(width: layout.previewWidth, height: layout.previewHeight)
-                        .background(Color.appCameraBackground)
+                    ZStack(alignment: .topLeading) {
+                        Color.appLetterbox
+
+                        previewArea(width: layout.previewWidth, height: layout.previewHeight)
+                            .frame(width: layout.previewWidth, height: layout.previewHeight)
+                            .offset(
+                                x: layout.previewLeadingInsetInSlot,
+                                y: layout.previewTopInsetInSlot
+                            )
+                    }
+                    .frame(width: layout.slotWidth, height: layout.slotHeight)
 
                     BeforeCameraStrip(
                         pendingPairs: pendingPairs,
-                        activePairId: activePairId
+                        activePairId: activePairId,
+                        stripZoneHeight: layout.stripHeight
                     )
+                    .frame(maxWidth: .infinity)
                     .frame(height: layout.stripHeight)
                     .clipped()
 
                     CameraBottomBar(
                         lastThumbnail: lastThumbnail,
                         isCapturing: isCapturing,
+                        zoneHeight: layout.shutterHeight,
                         onLeadingTap: onLeadingTap,
                         onShutter: onShutter,
                         onSettingsTap: onSettingsTap
                     )
-                    .frame(height: layout.bottomBarHeight)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: layout.shutterHeight)
                     .clipped()
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -79,6 +93,7 @@ struct BeforeCameraStack: View {
                     BannerAdSlot()
                         .frame(maxWidth: .infinity, maxHeight: layout.bannerHeight, alignment: .top)
                         .clipped()
+                        .allowsHitTesting(false)
                 }
             }
         }
@@ -190,45 +205,100 @@ struct BeforeCameraPreviewLayer: UIViewRepresentable {
 struct CameraLayoutResult {
     let isAdFree: Bool
     let bannerHeight: CGFloat
+    let slotWidth: CGFloat
+    let slotHeight: CGFloat
     let previewWidth: CGFloat
     let previewHeight: CGFloat
+    let previewLeadingInsetInSlot: CGFloat
+    let previewTopInsetInSlot: CGFloat
     let stripHeight: CGFloat
-    let bottomBarHeight: CGFloat
+    let shutterHeight: CGFloat
 }
 
 enum CameraLayoutMath {
-    static let preferredBottomBarHeight: CGFloat = 116
+    private struct PreviewPlacement {
+        let width: CGFloat
+        let height: CGFloat
+        let leadingInset: CGFloat
+        let topInset: CGFloat
+    }
+
+    static let stripZoneRatio: CGFloat = 168.0 / 284.0
+    static let slotAspectMultiplier: CGFloat = 4.0 / 3.0
 
     @MainActor
     static func compute(
         totalSize: CGSize,
-        isAdFree: Bool
+        isAdFree: Bool,
+        aspect: AspectRatio
     ) -> CameraLayoutResult {
-        let banner: CGFloat = isAdFree ? 0 : BannerAdSize.adaptiveHeight(width: totalSize.width)
-        let preferredPreview = totalSize.width * 4.0 / 3.0
-        let previewHeight = min(preferredPreview, max(0, totalSize.height))
-        let bottomTotal = max(0, totalSize.height - previewHeight)
-        let preferredStrip = StripDesign.stripHeight
-        let preferredBottomTotal = preferredStrip + preferredBottomBarHeight
+        let bannerHeight: CGFloat = isAdFree ? 0 : BannerAdSize.adaptiveHeight(width: totalSize.width)
 
-        let strip: CGFloat
-        let bottomBar: CGFloat
-        if bottomTotal >= preferredBottomTotal {
-            strip = preferredStrip
-            bottomBar = bottomTotal - preferredStrip
-        } else {
-            let stripRatio = preferredStrip / preferredBottomTotal
-            strip = bottomTotal * stripRatio
-            bottomBar = bottomTotal - strip
-        }
+        let slotWidth = max(0, totalSize.width)
+        let slotHeight = min(slotWidth * slotAspectMultiplier, max(0, totalSize.height))
+
+        let preview = previewPlacement(
+            slotWidth: slotWidth,
+            slotHeight: slotHeight,
+            aspect: aspect
+        )
+
+        let remaining = max(0, totalSize.height - slotHeight)
+        let stripHeight = remaining * stripZoneRatio
+        let shutterHeight = remaining - stripHeight
 
         return CameraLayoutResult(
             isAdFree: isAdFree,
-            bannerHeight: banner,
-            previewWidth: totalSize.width,
-            previewHeight: previewHeight,
-            stripHeight: strip,
-            bottomBarHeight: bottomBar
+            bannerHeight: bannerHeight,
+            slotWidth: slotWidth,
+            slotHeight: slotHeight,
+            previewWidth: preview.width,
+            previewHeight: preview.height,
+            previewLeadingInsetInSlot: preview.leadingInset,
+            previewTopInsetInSlot: preview.topInset,
+            stripHeight: stripHeight,
+            shutterHeight: shutterHeight
         )
+    }
+
+    private static func previewPlacement(
+        slotWidth: CGFloat,
+        slotHeight: CGFloat,
+        aspect: AspectRatio
+    ) -> PreviewPlacement {
+        switch aspect {
+            case .fourThree:
+                return PreviewPlacement(
+                    width: slotWidth,
+                    height: slotHeight,
+                    leadingInset: 0,
+                    topInset: 0
+                )
+
+            case .square:
+                let side = min(slotWidth, slotHeight)
+                let leading = max(0, (slotWidth - side) / 2)
+                let top = max(0, (slotHeight - side) / 2)
+                return PreviewPlacement(
+                    width: side,
+                    height: side,
+                    leadingInset: leading,
+                    topInset: top
+                )
+
+            case .sixteenNine:
+                let portraitMultiplier = aspect.portraitHeightMultiplier
+                let widthByHeight = slotHeight / portraitMultiplier
+                let width = min(slotWidth, widthByHeight)
+                let height = width * portraitMultiplier
+                let leading = max(0, (slotWidth - width) / 2)
+                let top = max(0, (slotHeight - height) / 2)
+                return PreviewPlacement(
+                    width: width,
+                    height: height,
+                    leadingInset: leading,
+                    topInset: top
+                )
+        }
     }
 }

@@ -93,10 +93,12 @@ struct BeforeCameraView: View {
                 isLevelOn: viewModel.isLevelOn,
                 isNightModeOn: viewModel.isNightModeOn,
                 flashMode: viewModel.flashMode,
+                aspect: viewModel.currentAspect,
                 onToggleGrid: viewModel.toggleGrid,
                 onToggleLevel: viewModel.toggleLevel,
                 onToggleNightMode: viewModel.toggleNightMode,
-                onCycleFlash: viewModel.cycleFlash
+                onCycleFlash: viewModel.cycleFlash,
+                onCycleAspect: viewModel.cycleAspect
             )
             .animation(.spring(response: 0.3, dampingFraction: 0.85), value: showSettingsSheet)
         }
@@ -125,6 +127,7 @@ struct BeforeCameraView: View {
                     viewModel.session.attachPreviewLayer(view.previewLayer)
                 },
                 previewLayerProvider: { previewView?.previewLayer },
+                aspect: viewModel.currentAspect,
                 isGridOn: viewModel.isGridOn,
                 isLevelOn: viewModel.isLevelOn,
                 rollDegrees: env.motionService.rollDegrees,

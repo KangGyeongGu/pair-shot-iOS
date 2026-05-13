@@ -111,6 +111,7 @@ struct AfterCameraView: View {
                 onMakePreviewView: { view in
                     viewModel.session.attachPreviewLayer(view.previewLayer)
                 },
+                aspect: viewModel.currentAspect,
                 ghostImage: cachedGhostImage,
                 ghostRotationDegrees: cachedGhostRotationDegrees,
                 rotationGuideDirection: RotationGuideDirection(
