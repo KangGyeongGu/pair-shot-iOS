@@ -1,4 +1,3 @@
-import SwiftData
 import SwiftUI
 
 struct HomeView: View {
@@ -7,9 +6,7 @@ struct HomeView: View {
     let onPushSettings: (() -> Void)?
 
     @Environment(AppEnvironment.self) private var env
-    @Environment(AdFreeStore.self) private var adFreeStore
-    @Query(sort: \PhotoPairEntity.createdAt, order: .reverse) private var allPairs: [PhotoPairEntity]
-    @Query(sort: \AlbumEntity.updatedAt, order: .reverse) private var allAlbums: [AlbumEntity]
+    @Environment(Entitlement.self) private var entitlement
     @State private var viewModel: HomeViewModel?
 
     private let columns: [GridItem] = [
@@ -18,34 +15,10 @@ struct HomeView: View {
     ]
 
     var body: some View {
-        ZStack {
-            Color(.systemGroupedBackground).ignoresSafeArea()
-            if let viewModel {
-                content(for: viewModel)
-            } else {
-                ProgressView()
+        PhotoPairQueryHost { domainPairs in
+            AlbumQueryHost { domainAlbums in
+                rootContent(domainPairs: domainPairs, domainAlbums: domainAlbums)
             }
-        }
-        .navigationBarTitleDisplayMode(.inline)
-        .navigationBarBackButtonHidden(true)
-        .toolbar { toolbar }
-        .task { ensureViewModel() }
-        .onAppear { consumePendingSettingsRedirectIfNeeded() }
-        .onChange(of: env.settingsRedirectCoordinator.pendingPulse) { _, _ in
-            consumePendingSettingsRedirectIfNeeded()
-        }
-    }
-
-    @ToolbarContentBuilder
-    private var toolbar: some ToolbarContent {
-        if let viewModel, viewModel.isSelectionMode {
-            HomeSelectionToolbar(
-                viewModel: viewModel,
-                sortedPairs: viewModel.sortedPairs(from: allPairs.map { $0.toDomain() }),
-                sortedAlbums: viewModel.sortedAlbums(from: allAlbums.map { Self.toDomain($0) })
-            )
-        } else {
-            HomeDefaultToolbar(viewModel: viewModel, onPushSettings: onPushSettings)
         }
     }
 
@@ -57,6 +30,42 @@ struct HomeView: View {
         self.onOpenAlbum = onOpenAlbum
         self.onPushExportSettings = onPushExportSettings
         self.onPushSettings = onPushSettings
+    }
+
+    private func rootContent(domainPairs: [PhotoPair], domainAlbums: [Album]) -> some View {
+        ZStack {
+            Color(.systemGroupedBackground).ignoresSafeArea()
+            if let viewModel {
+                content(for: viewModel, domainPairs: domainPairs, domainAlbums: domainAlbums)
+            } else {
+                ProgressView()
+            }
+        }
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(true)
+        .toolbar { toolbar(domainPairs: domainPairs, domainAlbums: domainAlbums) }
+        .task { ensureViewModel() }
+        .onAppear { consumePendingSettingsRedirectIfNeeded() }
+        .onChange(of: env.settingsRedirectCoordinator.pendingPulse) { _, _ in
+            consumePendingSettingsRedirectIfNeeded()
+        }
+    }
+
+    @ToolbarContentBuilder
+    private func toolbar(domainPairs: [PhotoPair], domainAlbums: [Album]) -> some ToolbarContent {
+        if let viewModel, viewModel.isSelectionMode {
+            HomeSelectionToolbar(
+                viewModel: viewModel,
+                sortedPairs: viewModel.sortedPairs(from: domainPairs),
+                sortedAlbums: viewModel.sortedAlbums(from: domainAlbums)
+            )
+        } else {
+            HomeDefaultToolbar(
+                viewModel: viewModel,
+                onPushSettings: onPushSettings,
+                isPro: entitlement.isPaidPro
+            )
+        }
     }
 
     private func ensureViewModel() {
@@ -75,10 +84,12 @@ struct HomeView: View {
     }
 
     @ViewBuilder
-    private func content(for viewModel: HomeViewModel) -> some View {
+    private func content(
+        for viewModel: HomeViewModel,
+        domainPairs: [PhotoPair],
+        domainAlbums: [Album]
+    ) -> some View {
         @Bindable var bindable = viewModel
-        let domainPairs = allPairs.map { $0.toDomain() }
-        let domainAlbums = allAlbums.map { Self.toDomain($0) }
         let sortedPairs = viewModel.sortedPairs(from: domainPairs)
         let sortedAlbums = viewModel.sortedAlbums(from: domainAlbums)
 
@@ -139,7 +150,7 @@ struct HomeView: View {
                 .map { group in
                     let result = PairListWithAdsBuilder.buildChunks(
                         pairs: group.pairs,
-                        adFree: adFreeStore.isAdFree,
+                        adFree: entitlement.isAdSuppressed,
                         startingAdSlotIndex: slotIndex
                     )
                     slotIndex = result.nextSlotIndex
@@ -292,18 +303,6 @@ struct HomeView: View {
 
     static func formatDateHeader(_ date: Date, now _: Date = .now, calendar: Calendar = .current) -> String {
         HomeDateFormatter.base(for: date, calendar: calendar)
-    }
-
-    static func toDomain(_ entity: AlbumEntity) -> Album {
-        Album(
-            name: entity.name,
-            id: entity.id,
-            latitude: entity.latitude,
-            longitude: entity.longitude,
-            locationLabel: entity.locationLabel,
-            createdAt: entity.createdAt,
-            pairIds: entity.pairs.map(\.id)
-        )
     }
 }
 

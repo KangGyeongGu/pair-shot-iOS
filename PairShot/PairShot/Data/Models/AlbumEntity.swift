@@ -31,3 +31,18 @@ final class AlbumEntity {
         self.locationLabel = locationLabel
     }
 }
+
+extension AlbumEntity {
+    @MainActor
+    func toDomain() -> Album {
+        Album(
+            name: name,
+            id: id,
+            latitude: latitude,
+            longitude: longitude,
+            locationLabel: locationLabel,
+            createdAt: createdAt,
+            pairIds: pairs.map(\.id)
+        )
+    }
+}

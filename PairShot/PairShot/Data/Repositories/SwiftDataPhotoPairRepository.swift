@@ -20,6 +20,13 @@ final class SwiftDataPhotoPairRepository: PhotoPairRepository {
         try fetchEntity(id: id)?.toDomain()
     }
 
+    func countCreated(since date: Date) async throws -> Int {
+        let descriptor = FetchDescriptor<PhotoPairEntity>(
+            predicate: #Predicate { $0.createdAt >= date }
+        )
+        return try context.fetchCount(descriptor)
+    }
+
     func add(_ pair: PhotoPair) async throws {
         let entity = makeEntity(from: pair)
         context.insert(entity)

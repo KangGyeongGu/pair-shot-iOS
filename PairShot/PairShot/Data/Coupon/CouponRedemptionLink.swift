@@ -5,14 +5,17 @@ import UIKit
 @MainActor
 enum CouponRedemptionLink {
     static func open(config: CouponApiConfig, deviceHashProvider: DeviceHashProvider) {
-        guard config.isEnabled else { return }
-        let hash = deviceHashProvider.deviceHash()
-        guard var components = URLComponents(string: config.baseUrl + "/redeem") else { return }
-        components.queryItems = [URLQueryItem(name: "d", value: hash)]
-        guard let url = components.url else { return }
+        guard let url = buildURL(config: config, deviceHash: deviceHashProvider.deviceHash()) else { return }
         guard let viewController = topViewController() else { return }
         let safari = SFSafariViewController(url: url)
         viewController.present(safari, animated: true)
+    }
+
+    nonisolated static func buildURL(config: CouponApiConfig, deviceHash: String) -> URL? {
+        guard config.isEnabled else { return nil }
+        guard var components = URLComponents(string: config.baseUrl + "/redeem") else { return nil }
+        components.queryItems = [URLQueryItem(name: "d", value: deviceHash)]
+        return components.url
     }
 
     private static func topViewController() -> UIViewController? {

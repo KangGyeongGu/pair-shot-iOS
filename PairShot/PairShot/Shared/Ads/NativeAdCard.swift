@@ -7,12 +7,12 @@ struct NativeAdCard: View {
     let slotIndex: Int
 
     @Environment(NativeAdLoader.self) private var loader
-    @Environment(AdFreeStore.self) private var adFreeStore
+    @Environment(Entitlement.self) private var entitlement
     @State private var ad: Any?
 
     var body: some View {
         Group {
-            if adFreeStore.isAdFree {
+            if entitlement.isAdSuppressed {
                 EmptyView()
             } else {
                 cardBody
@@ -54,7 +54,10 @@ struct NativeAdCard: View {
 
     private func ensureAdLoaded() {
         guard ad == nil else { return }
-        ad = loader.dequeue(adFreeStore: adFreeStore)
+        ad = loader.dequeue(
+            adFreeStore: entitlement.adFreeStore,
+            subscriptionStore: entitlement.subscriptionStore
+        )
     }
 }
 

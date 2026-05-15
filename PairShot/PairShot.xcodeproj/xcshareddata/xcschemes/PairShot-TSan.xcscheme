@@ -27,6 +27,9 @@
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       shouldUseLaunchSchemeArgsEnv = "YES">
+      <StoreKitConfigurationFileReference
+         identifier = "../PairShot/Configuration.storekit">
+      </StoreKitConfigurationFileReference>
       <Testables>
       </Testables>
    </TestAction>
@@ -45,6 +48,9 @@
       enableThreadPerformanceChecker = "YES"
       stopOnEveryMainThreadCheckerIssue = "YES"
       stopOnEveryThreadSanitizerIssue = "YES">
+      <StoreKitConfigurationFileReference
+         identifier = "../PairShot/Configuration.storekit">
+      </StoreKitConfigurationFileReference>
       <BuildableProductRunnable
          runnableDebuggingMode = "0">
          <BuildableReference

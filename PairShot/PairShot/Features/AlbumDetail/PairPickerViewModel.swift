@@ -11,7 +11,7 @@ final class PairPickerViewModel {
     var didFinish: Bool = false
     var errorMessage: String?
 
-    private let toggleAlbumMembership: ToggleAlbumMembershipUseCase
+    private let albumRepo: AlbumRepository
 
     var titleText: String {
         if selection.isEmpty {
@@ -33,11 +33,11 @@ final class PairPickerViewModel {
 
     init(
         albumId: UUID,
-        toggleAlbumMembership: ToggleAlbumMembershipUseCase,
+        albumRepo: AlbumRepository,
         photoLibrary _: PhotoLibraryService
     ) {
         self.albumId = albumId
-        self.toggleAlbumMembership = toggleAlbumMembership
+        self.albumRepo = albumRepo
     }
 
     func toggleSelection(_ pairId: UUID, isAlreadyInAlbum: Bool) {
@@ -60,11 +60,7 @@ final class PairPickerViewModel {
         var failed = false
         for pairId in selection {
             do {
-                try await toggleAlbumMembership(
-                    pairId: pairId,
-                    albumId: albumId,
-                    isIncluded: true
-                )
+                try await albumRepo.addPair(pairId: pairId, toAlbum: albumId)
             } catch {
                 failed = true
             }

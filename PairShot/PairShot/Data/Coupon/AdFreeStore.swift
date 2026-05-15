@@ -11,12 +11,12 @@ final class AdFreeStore {
     private(set) var remainingDays: Int?
     private(set) var couponCount: Int
 
-    private let fetcher: AdFreeStatusFetcher
+    private let fetcher: any AdFreeStatusFetching
     private let deviceHashProvider: DeviceHashProvider
     private let defaults: UserDefaults
 
     init(
-        fetcher: AdFreeStatusFetcher,
+        fetcher: any AdFreeStatusFetching,
         deviceHashProvider: DeviceHashProvider,
         defaults: UserDefaults = .standard
     ) {

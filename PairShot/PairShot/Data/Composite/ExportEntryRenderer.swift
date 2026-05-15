@@ -41,7 +41,7 @@ nonisolated enum ExportEntryRenderer {
     ) async -> Data? {
         let combineSettings: CombineSettings? =
             renderOptions.applyCombineSettings
-                ? appSettings.combineSettings
+                ? appSettings.combineSettings.effective(isPro: renderOptions.isPro)
                 : nil
         let layout: CompositeLayout =
             combineSettings.map(CompositeLayoutResolver.layout(from:))
@@ -85,10 +85,8 @@ nonisolated enum ExportEntryRenderer {
         appSettings: AppSettings,
         renderOptions: ExportRenderOptions
     ) -> WatermarkSettings? {
-        guard renderOptions.applyWatermark,
-              appSettings.watermarkEnabled
-        else { return nil }
-        return appSettings.watermarkSettings
+        guard appSettings.watermarkEnabled else { return nil }
+        return appSettings.watermarkSettings.effective(isPro: renderOptions.isPro)
     }
 }
 

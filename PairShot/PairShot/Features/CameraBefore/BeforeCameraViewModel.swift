@@ -55,25 +55,27 @@ final class BeforeCameraViewModel {
     var lastThumbnail: UIImage?
     var pendingPairs: [PhotoPair] = []
     var selectedPairId: UUID?
+    var showPaywall: Bool = false
 
     let sortOrder: HomeSortOrder
     let events: AsyncStream<Event>
 
-    private let createPair: CreatePairUseCase
-    private let pairRepo: PhotoPairRepository
-    private let albumRepo: AlbumRepository
-    private let appSettings: AppSettings
+    let createPair: CreatePairUseCase
+    let pairRepo: PhotoPairRepository
+    let albumRepo: AlbumRepository
+    let appSettings: AppSettings
     let hapticService: HapticService
-    private let location: CoreLocationService
-    private let permissionProbe: @Sendable () async -> Bool
-    private let eventsContinuation: AsyncStream<Event>.Continuation
-    private var dragAccumulatorPx: Double = 0
-    private var dragStartRatio: Double = 1.0
-    private var lastMinorTickIndex: Int?
-    private var lastMajorTickIndex: Int?
-    private var sessionStartedAt: Date = .distantPast
-    private var zoomRampTask: Task<Void, Never>?
-    private var pinchRampTask: Task<Void, Never>?
+    let location: CoreLocationService
+    let entitlement: Entitlement
+    let permissionProbe: @Sendable () async -> Bool
+    let eventsContinuation: AsyncStream<Event>.Continuation
+    var dragAccumulatorPx: Double = 0
+    var dragStartRatio: Double = 1.0
+    var lastMinorTickIndex: Int?
+    var lastMajorTickIndex: Int?
+    var sessionStartedAt: Date = .distantPast
+    var zoomRampTask: Task<Void, Never>?
+    var pinchRampTask: Task<Void, Never>?
 
     nonisolated var captureSession: AVCaptureSession {
         session.captureSession
@@ -87,6 +89,7 @@ final class BeforeCameraViewModel {
         appSettings: AppSettings,
         hapticService: HapticService,
         location: CoreLocationService,
+        entitlement: Entitlement,
         sortOrder: HomeSortOrder = .newest,
         refillPairId: UUID? = nil,
         session: CameraSession? = nil,
@@ -100,6 +103,7 @@ final class BeforeCameraViewModel {
         self.appSettings = appSettings
         self.hapticService = hapticService
         self.location = location
+        self.entitlement = entitlement
         self.sortOrder = sortOrder
         let resolvedSession = session ?? CameraSession()
         self.session = resolvedSession
@@ -129,7 +133,7 @@ final class BeforeCameraViewModel {
         activePreset = matchingPreset(for: currentZoomRatio)
     }
 
-    private func applyZoomSnapshot(_ snapshot: CameraZoomSnapshot) {
+    func applyZoomSnapshot(_ snapshot: CameraZoomSnapshot) {
         minZoom = snapshot.minFactor
         maxZoom = snapshot.maxFactor
         currentZoomRatio = snapshot.currentFactor
@@ -142,186 +146,6 @@ final class BeforeCameraViewModel {
     func onDisappear() {
         location.stop()
         Task { await session.stop() }
-    }
-
-    func onPinchChanged(_ scale: Double) {
-        let target = pinchBaseFactor * scale
-        currentZoomRatio = clampZoom(target)
-        activePreset = matchingPreset(for: target)
-        pinchRampTask?.cancel()
-        pinchRampTask = Task { [session] in
-            guard !Task.isCancelled else { return }
-            await session.ramp(toZoomFactor: target, rate: 6.0)
-        }
-    }
-
-    func onPinchEnded(_ scale: Double) {
-        pinchBaseFactor *= scale
-        pinchRampTask?.cancel()
-        pinchRampTask = nil
-    }
-
-    func onTapFocus(devicePoint: CGPoint) {
-        Task { await session.focus(at: devicePoint) }
-    }
-
-    func onExposureBias(_ bias: Float) {
-        Task { await session.setExposureBias(bias) }
-    }
-
-    func cycleFlash() {
-        Task {
-            let next = await session.cycleFlashMode()
-            flashMode = next
-        }
-    }
-
-    func toggleLens() {
-        let next: CameraLensPosition = lensPosition == .back ? .front : .back
-        Task {
-            await session.switchLens(to: next)
-            let snapshot = await session.zoomSnapshot()
-            lensPosition = next
-            applyZoomSnapshot(snapshot)
-            pinchBaseFactor = snapshot.currentFactor
-            activePreset = matchingPreset(for: pinchBaseFactor)
-        }
-    }
-
-    func toggleGrid() {
-        isGridOn.toggle()
-    }
-
-    func toggleLevel() {
-        isLevelOn.toggle()
-    }
-
-    func toggleNightMode() {
-        isNightModeOn.toggle()
-        let enabled = isNightModeOn
-        Task { await session.setLowLightBoost(enabled: enabled) }
-    }
-
-    func applyPreset(_ preset: ZoomPresetSpec) {
-        activePreset = preset
-        pinchBaseFactor = preset.factor
-        currentZoomRatio = preset.factor
-        Task { await session.ramp(toZoomFactor: preset.factor, rate: 32.0) }
-    }
-
-    func onZoomDragBegan() {
-        if !isDraggingZoom {
-            dragAccumulatorPx = 0
-            dragStartRatio = currentZoomRatio
-            lastMinorTickIndex = Int((currentZoomRatio * 10).rounded())
-            lastMajorTickIndex = Int(currentZoomRatio.rounded())
-            isDraggingZoom = true
-        }
-    }
-
-    func onZoomDragChanged(deltaPx: Double) {
-        onZoomDragBegan()
-        dragAccumulatorPx = deltaPx
-        let span = max(maxZoom - minZoom, 0.0001)
-        let pxPerZoom = ZoomDialMetrics.dragRangeSpanPt / span
-        let zoomDelta = dragAccumulatorPx / pxPerZoom
-        let target = clampZoom(dragStartRatio + zoomDelta)
-        currentZoomRatio = target
-        activePreset = matchingPreset(for: target)
-        zoomRampTask?.cancel()
-        zoomRampTask = Task { [session] in
-            guard !Task.isCancelled else { return }
-            await session.ramp(toZoomFactor: target, rate: 32.0)
-        }
-        emitTickHaptics(for: target)
-    }
-
-    func onZoomDragEnded() {
-        isDraggingZoom = false
-        pinchBaseFactor = currentZoomRatio
-        lastMinorTickIndex = nil
-        lastMajorTickIndex = nil
-        zoomRampTask?.cancel()
-        zoomRampTask = nil
-    }
-
-    func shutter() async {
-        guard !isCapturing, session.captureReadiness == .ready else { return }
-        isCapturing = true
-        let captured: CapturedPhoto
-        do {
-            let metadata = ExifGPSBuilder.metadata(from: location.currentLocation)
-            captured = try await session.capturePhoto(metadata: metadata)
-        } catch {
-            captureErrorMessage = Self.captureErrorText(for: error)
-            isCapturing = false
-            return
-        }
-        updateLastThumbnail(from: captured.jpegData)
-        eventsContinuation.yield(.snackbarSuccess)
-        isCapturing = false
-        let lensPosition = LensPosition.resolve(identifier: captured.lensIdentifier)
-        let aspect = currentAspect
-        let cameraSettings = CameraSettings(
-            zoomFactor: captured.zoomFactor,
-            lensPosition: lensPosition,
-            aspectRatio: aspect
-        )
-        do {
-            if let refillPairId {
-                _ = try await createPair.refillBefore(
-                    pairId: refillPairId,
-                    beforeJPEG: captured.jpegData,
-                    cameraSettings: cameraSettings,
-                    aspectRatio: aspect,
-                    isDeferredProxy: captured.isDeferredProxy
-                )
-                eventsContinuation.yield(.dismiss)
-                return
-            }
-            let pair = try await createPair(
-                beforeJPEG: captured.jpegData,
-                cameraSettings: cameraSettings,
-                aspectRatio: aspect,
-                isDeferredProxy: captured.isDeferredProxy
-            )
-            if let albumId {
-                try? await albumRepo.addPair(pairId: pair.id, toAlbum: albumId)
-            }
-            let nextPairs = await fetchSortedPendingPairs()
-            withAnimation(.smooth) {
-                pendingPairs = nextPairs
-                selectedPairId = pair.id
-            }
-        } catch {
-            captureErrorMessage = Self.captureErrorText(for: error)
-        }
-    }
-
-    private func updateLastThumbnail(from jpegData: Data) {
-        guard let image = UIImage(data: jpegData) else { return }
-        lastThumbnail = image
-    }
-
-    private func emitTickHaptics(for ratio: Double) {
-        let minorIndex = Int((ratio * 10).rounded())
-        if minorIndex != lastMinorTickIndex {
-            lastMinorTickIndex = minorIndex
-            hapticService.impact(.light)
-        }
-        let majorIndex = Int(ratio.rounded())
-        if abs(ratio - Double(majorIndex)) < 0.05, majorIndex != lastMajorTickIndex {
-            lastMajorTickIndex = majorIndex
-            hapticService.impact(.medium)
-        }
-    }
-
-    private func clampZoom(_ value: Double) -> Double {
-        max(minZoom, min(value, maxZoom))
-    }
-
-    private func matchingPreset(for factor: Double) -> ZoomPresetSpec? {
-        availablePresets.last { $0.factor <= factor + 0.05 } ?? availablePresets.first
     }
 
     static func captureErrorText(for error: Error) -> String {
@@ -373,30 +197,6 @@ nonisolated enum CameraFlashModeMapping {
 
             case .torch:
                 CameraFlashModePersistence.torch
-        }
-    }
-}
-
-extension BeforeCameraViewModel {
-    func cycleAspect() {
-        let next = currentAspect.next
-        currentAspect = next
-        appSettings.cameraAspectRatio = next
-        Task { await session.setAspectRatio(next) }
-    }
-}
-
-private extension BeforeCameraViewModel {
-    func fetchSortedPendingPairs() async -> [PhotoPair] {
-        let all = await (try? pairRepo.fetchAll()) ?? []
-        let scoped: [PhotoPair] = if let albumId {
-            all.filter { $0.albumIds.contains(albumId) }
-        } else { all }
-        let filtered = scoped
-            .filter { $0.afterPhotoLocalIdentifier == nil }
-            .filter { $0.createdAt >= sessionStartedAt }
-        return filtered.sorted { lhs, rhs in
-            sortOrder == .newest ? lhs.createdAt > rhs.createdAt : lhs.createdAt < rhs.createdAt
         }
     }
 }

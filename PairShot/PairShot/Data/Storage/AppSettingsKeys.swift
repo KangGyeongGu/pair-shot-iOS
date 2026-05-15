@@ -19,4 +19,5 @@ nonisolated enum AppSettingsKeys {
     static let homeSortOrder = "pairshot.homeSortOrder"
     static let albumSortOrder = "pairshot.albumSortOrder"
     static let embedGPSInPhoto = "pairshot.embedGPSInPhoto"
+    static let hasCompletedFirstRunPaywall = "pairshot.hasCompletedFirstRunPaywall"
 }

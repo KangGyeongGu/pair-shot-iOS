@@ -21,7 +21,6 @@ final class AppEnvironment {
     let deleteCombinedExports: DeleteCombinedExportsUseCase
     let deletePairsKeepingCombined: DeletePairsKeepingCombinedUseCase
     let exportPairs: ExportPairsUseCase
-    let toggleAlbumMembership: ToggleAlbumMembershipUseCase
 
     let appSettings: AppSettings
     let appSettingsRepo: AppSettingsRepository
@@ -38,10 +37,17 @@ final class AppEnvironment {
     let snackbarQueue: SnackbarQueue
     let immediateExport: ImmediateExportService
     let settingsRedirectCoordinator: SettingsRedirectCoordinator
+    let exportCompletionCoordinator: ExportCompletionCoordinator
     let permissionStatusService: PermissionStatusService
     let thumbnailCache: PhotoLibraryThumbnailCache
     let hapticService: HapticService
     let motionService: MotionService
+
+    let productsService: ProductsService
+    let subscriptionStore: SubscriptionStore
+    let transactionListener: TransactionListener
+
+    let entitlement: Entitlement
 
     private var sharedSettingsViewModel: SettingsViewModel?
 
@@ -59,33 +65,54 @@ final class AppEnvironment {
         consentManager: ConsentManager? = nil,
         snackbarQueue: SnackbarQueue? = nil,
         settingsRedirectCoordinator: SettingsRedirectCoordinator? = nil,
+        exportCompletionCoordinator: ExportCompletionCoordinator? = nil,
         permissionStatusService: PermissionStatusService? = nil,
         thumbnailCache: PhotoLibraryThumbnailCache? = nil,
         hapticService: HapticService? = nil,
-        motionService: MotionService? = nil
+        motionService: MotionService? = nil,
+        productsService: ProductsService? = nil,
+        subscriptionStore: SubscriptionStore? = nil,
+        transactionListener: TransactionListener? = nil
     ) {
-        let foundation = Self.makeFoundation(
-            overrides: AppEnvironmentFoundationOverrides(
-                appSettings: appSettings,
-                snackbarQueue: snackbarQueue,
-                appSettingsRepo: appSettingsRepo,
-                adFreeStore: adFreeStore,
-                trackingService: trackingService,
-                settingsRedirectCoordinator: settingsRedirectCoordinator,
-                permissionStatusService: permissionStatusService,
-                thumbnailCache: thumbnailCache,
-                hapticService: hapticService,
-                motionService: motionService
+        let bundles = Self.makeAllBundles(
+            input: AppEnvironmentInitInput(
+                modelContainer: modelContainer,
+                foundationOverrides: AppEnvironmentFoundationOverrides(
+                    appSettings: appSettings,
+                    snackbarQueue: snackbarQueue,
+                    appSettingsRepo: appSettingsRepo,
+                    adFreeStore: adFreeStore,
+                    trackingService: trackingService,
+                    settingsRedirectCoordinator: settingsRedirectCoordinator,
+                    exportCompletionCoordinator: exportCompletionCoordinator,
+                    permissionStatusService: permissionStatusService,
+                    thumbnailCache: thumbnailCache,
+                    hapticService: hapticService,
+                    motionService: motionService
+                ),
+                adServicesOverrides: AdServicesOverrides(
+                    interstitial: interstitialAdManager,
+                    rewarded: rewardedAdManager,
+                    nativeAd: nativeAdLoader,
+                    appOpen: appOpenAdManager,
+                    fullscreen: fullscreenAdCoordinator,
+                    consent: consentManager
+                ),
+                subscriptionOverrides: SubscriptionServicesOverrides(
+                    productsService: productsService,
+                    subscriptionStore: subscriptionStore,
+                    transactionListener: transactionListener
+                )
             )
         )
-        let resolvedAppSettings = foundation.appSettings
-        let resolvedSnackbarQueue = foundation.snackbarQueue
-        self.appSettings = resolvedAppSettings
+        let foundation = bundles.foundation
+        self.appSettings = foundation.appSettings
         self.appSettingsRepo = foundation.appSettingsRepo
         self.adFreeStore = foundation.adFreeStore
         self.trackingService = foundation.trackingService
-        self.snackbarQueue = resolvedSnackbarQueue
+        self.snackbarQueue = foundation.snackbarQueue
         self.settingsRedirectCoordinator = foundation.settingsRedirectCoordinator
+        self.exportCompletionCoordinator = foundation.exportCompletionCoordinator
         self.permissionStatusService = foundation.permissionStatusService
         self.thumbnailCache = foundation.thumbnailCache
         self.hapticService = foundation.hapticService
@@ -93,17 +120,7 @@ final class AppEnvironment {
         couponApiConfig = foundation.apiConfig
         deviceHashProvider = foundation.deviceHashProvider
 
-        let adServices = Self.makeAdServices(
-            trackingService: self.trackingService,
-            overrides: AdServicesOverrides(
-                interstitial: interstitialAdManager,
-                rewarded: rewardedAdManager,
-                nativeAd: nativeAdLoader,
-                appOpen: appOpenAdManager,
-                fullscreen: fullscreenAdCoordinator,
-                consent: consentManager
-            )
-        )
+        let adServices = bundles.adServices
         self.interstitialAdManager = adServices.interstitial
         self.rewardedAdManager = adServices.rewarded
         self.nativeAdLoader = adServices.nativeAd
@@ -111,28 +128,14 @@ final class AppEnvironment {
         self.fullscreenAdCoordinator = adServices.fullscreen
         self.consentManager = adServices.consent
 
-        let dataServices = Self.makeDataServices(
-            modelContainer: modelContainer,
-            appSettings: resolvedAppSettings
-        )
+        let dataServices = bundles.dataServices
         location = dataServices.location
         photoLibraryExporter = dataServices.photoLibraryExporter
         photoLibrary = dataServices.photoLibrary
         pairRepo = dataServices.pairRepo
         albumRepo = dataServices.albumRepo
 
-        let useCases = Self.makeUseCases(
-            dependencies: UseCasesDependencies(
-                pairRepo: dataServices.pairRepo,
-                albumRepo: dataServices.albumRepo,
-                photoLibrary: dataServices.photoLibrary,
-                photoLibraryExporter: dataServices.photoLibraryExporter,
-                location: dataServices.location,
-                zipExporter: dataServices.zipExporter,
-                snackbarQueue: resolvedSnackbarQueue,
-                appSettings: resolvedAppSettings
-            )
-        )
+        let useCases = bundles.useCases
         createPair = useCases.createPair
         captureAfter = useCases.captureAfter
         recaptureAfter = useCases.recaptureAfter
@@ -140,8 +143,14 @@ final class AppEnvironment {
         deleteCombinedExports = useCases.deleteCombinedExports
         deletePairsKeepingCombined = useCases.deletePairsKeepingCombined
         exportPairs = useCases.exportPairs
-        toggleAlbumMembership = useCases.toggleAlbumMembership
         immediateExport = useCases.immediateExport
+
+        let subscription = bundles.subscription
+        self.productsService = subscription.productsService
+        self.subscriptionStore = subscription.subscriptionStore
+        self.transactionListener = subscription.transactionListener
+
+        entitlement = bundles.entitlement
     }
 
     func makeBeforeCameraViewModel(
@@ -156,6 +165,7 @@ final class AppEnvironment {
             appSettings: appSettings,
             hapticService: hapticService,
             location: location,
+            entitlement: entitlement,
             sortOrder: HomeSortOrderMapping.sortOrder(from: appSettings.homeSortOrder),
             refillPairId: refillPairId,
             session: makeCameraSession(),
@@ -203,7 +213,8 @@ final class AppEnvironment {
         PairPreviewViewModel(
             pair: pair,
             photoLibrary: photoLibrary,
-            appSettings: appSettings
+            appSettings: appSettings,
+            entitlement: entitlement
         )
     }
 
@@ -213,13 +224,11 @@ final class AppEnvironment {
             pairRepo: pairRepo,
             albumRepo: albumRepo,
             deletePairs: deletePairs,
-            toggleAlbumMembership: toggleAlbumMembership,
-            photoLibrary: photoLibrary,
             immediateExport: immediateExport,
             appSettings: appSettings,
             thumbnailCache: thumbnailCache,
             interstitialAdManager: interstitialAdManager,
-            adFreeStore: adFreeStore,
+            entitlement: entitlement,
             fullscreenAdCoordinator: fullscreenAdCoordinator,
             deleteCombinedExports: deleteCombinedExports,
             deletePairsKeepingCombined: deletePairsKeepingCombined
@@ -229,7 +238,7 @@ final class AppEnvironment {
     func makePairPickerViewModel(albumId: UUID) -> PairPickerViewModel {
         PairPickerViewModel(
             albumId: albumId,
-            toggleAlbumMembership: toggleAlbumMembership,
+            albumRepo: albumRepo,
             photoLibrary: photoLibrary
         )
     }
@@ -239,14 +248,12 @@ final class AppEnvironment {
             pairRepo: pairRepo,
             albumRepo: albumRepo,
             deletePairs: deletePairs,
-            toggleAlbumMembership: toggleAlbumMembership,
-            photoLibrary: photoLibrary,
             location: location,
             immediateExport: immediateExport,
             appSettings: appSettings,
             thumbnailCache: thumbnailCache,
             interstitialAdManager: interstitialAdManager,
-            adFreeStore: adFreeStore,
+            entitlement: entitlement,
             fullscreenAdCoordinator: fullscreenAdCoordinator,
             deleteCombinedExports: deleteCombinedExports,
             deletePairsKeepingCombined: deletePairsKeepingCombined
@@ -257,9 +264,9 @@ final class AppEnvironment {
         if let sharedSettingsViewModel { return sharedSettingsViewModel }
         let viewModel = SettingsViewModel(
             appSettings: appSettings,
-            appSettingsRepo: appSettingsRepo,
             thumbnailCache: thumbnailCache,
-            hapticService: hapticService
+            hapticService: hapticService,
+            entitlement: entitlement
         )
         sharedSettingsViewModel = viewModel
         return viewModel
@@ -283,7 +290,7 @@ final class AppEnvironment {
             snackbarQueue: snackbarQueue,
             appSettings: appSettings,
             interstitialAdManager: interstitialAdManager,
-            adFreeStore: adFreeStore,
+            entitlement: entitlement,
             fullscreenAdCoordinator: fullscreenAdCoordinator
         )
     }

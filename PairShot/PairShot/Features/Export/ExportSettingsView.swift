@@ -7,6 +7,8 @@ struct ExportSettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(RewardedAdManager.self) private var rewardedManager
     @Environment(AdFreeStore.self) private var adFreeStore
+    @Environment(SubscriptionStore.self) private var subscriptionStore
+    @Environment(ExportCompletionCoordinator.self) private var exportCompletionCoordinator
     @Environment(\.fullscreenAdCoordinator) private var coordinator
 
     var body: some View {
@@ -38,7 +40,6 @@ struct ExportSettingsView: View {
                 saveButton
             }
         }
-        .overlay { busyOverlay }
         .alert(
             String(localized: "export_picker_dialog_failed_title"),
             isPresented: errorBinding,
@@ -63,9 +64,17 @@ struct ExportSettingsView: View {
                     }
                 }
         )
-        .onDisappear { viewModel.cleanupPendingZip() }
+        .onDisappear {
+            viewModel.cleanupPendingZip()
+            exportCompletionCoordinator.cancelPending()
+        }
         .task { await observeEvents() }
-        .task { rewardedManager.loadIfNeeded(adFreeStore: adFreeStore) }
+        .task {
+            rewardedManager.loadIfNeeded(
+                adFreeStore: adFreeStore,
+                subscriptionStore: subscriptionStore
+            )
+        }
         .alert(
             String(localized: "rewarded_gate_title"),
             isPresented: $viewModel.showWatermarkGateDialog
@@ -88,6 +97,7 @@ struct ExportSettingsView: View {
         } message: {
             Text(String(localized: "rewarded_gate_body_combine_detail"))
         }
+        .paywallSheet(isPresented: $viewModel.showPaywall)
     }
 
     private var includesSection: some View {
@@ -103,17 +113,14 @@ struct ExportSettingsView: View {
 
     private var formatSection: some View {
         Section {
-            Picker(String(localized: "export_settings_field_format"), selection: $viewModel.format) {
+            Picker(String(localized: "export_settings_field_format"), selection: formatBinding) {
                 Label(
                     String(localized: "export_settings_format_image"),
                     systemImage: "photo"
                 )
                 .tag(ExportFormat.individualImages)
-                Label(
-                    String(localized: "ZIP"),
-                    systemImage: "doc.zipper"
-                )
-                .tag(ExportFormat.zip)
+                zipFormatLabel
+                    .tag(ExportFormat.zip)
             }
             .pickerStyle(.inline)
             .labelsHidden()
@@ -122,22 +129,51 @@ struct ExportSettingsView: View {
         }
     }
 
+    private var zipFormatLabel: some View {
+        HStack(spacing: 6) {
+            Label(
+                String(localized: "ZIP"),
+                systemImage: "doc.zipper"
+            )
+            if !viewModel.isProUser {
+                ProLockBadge()
+            }
+        }
+    }
+
+    private var formatBinding: Binding<ExportFormat> {
+        Binding(
+            get: { viewModel.format },
+            set: { viewModel.selectFormat($0) }
+        )
+    }
+
     private var watermarkSection: some View {
         Section {
-            Toggle(String(localized: "export_settings_apply_watermark"), isOn: $viewModel.applyWatermark)
+            Toggle(
+                String(localized: "export_settings_apply_watermark"),
+                isOn: applyWatermarkBinding
+            )
             if viewModel.applyWatermark {
                 Button {
                     if viewModel.requestWatermarkGate(rewardedManager: rewardedManager) {
                         onPushWatermarkSettings?()
                     }
                 } label: {
-                    userSettingsRowLabel
+                    userSettingsRowLabel(showsSetupNeeded: viewModel.watermarkSettingsBlank)
                 }
                 .buttonStyle(.plain)
             }
         } header: {
             Text(String(localized: "export_settings_section_watermark"))
         }
+    }
+
+    private var applyWatermarkBinding: Binding<Bool> {
+        Binding(
+            get: { viewModel.applyWatermark },
+            set: { viewModel.applyWatermark = $0 }
+        )
     }
 
     private var combineSection: some View {
@@ -149,27 +185,13 @@ struct ExportSettingsView: View {
                         onPushCombineSettings?()
                     }
                 } label: {
-                    userSettingsRowLabel
+                    userSettingsRowLabel()
                 }
                 .buttonStyle(.plain)
             }
         } header: {
             Text(String(localized: "export_settings_section_combine"))
         }
-    }
-
-    private var userSettingsRowLabel: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "slider.horizontal.3")
-                .foregroundStyle(.secondary)
-            Text(String(localized: "settings_item_user_settings"))
-                .foregroundStyle(.primary)
-            Spacer()
-            Image(systemName: "chevron.right")
-                .font(.caption.bold())
-                .foregroundStyle(.tertiary)
-        }
-        .contentShape(Rectangle())
     }
 
     private var shareButton: some View {
@@ -194,18 +216,6 @@ struct ExportSettingsView: View {
             )
         }
         .disabled(!viewModel.canExecute)
-    }
-
-    @ViewBuilder
-    private var busyOverlay: some View {
-        if viewModel.isExporting {
-            ZStack {
-                Color.appLetterbox.opacity(0.35).ignoresSafeArea()
-                ProgressView(String(localized: "export_progress_exporting"))
-                    .padding()
-                    .adaptiveGlass(in: RoundedRectangle(cornerRadius: 14), kind: .thin)
-            }
-        }
     }
 
     private var errorBinding: Binding<Bool> {
@@ -243,6 +253,23 @@ struct ExportSettingsView: View {
         self.onPushCombineSettings = onPushCombineSettings
     }
 
+    private func userSettingsRowLabel(showsSetupNeeded: Bool = false) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: "slider.horizontal.3")
+                .foregroundStyle(.secondary)
+            Text(String(localized: "settings_item_user_settings"))
+                .foregroundStyle(.primary)
+            Spacer()
+            if showsSetupNeeded {
+                InlineWarningLabel(text: String(localized: "settings_warning_setup_needed"))
+            }
+            Image(systemName: "chevron.right")
+                .font(.caption.bold())
+                .foregroundStyle(.tertiary)
+        }
+        .contentShape(Rectangle())
+    }
+
     @MainActor
     private func confirmWatermarkGate() async {
         let result = await viewModel.confirmWatermarkGateAd(
@@ -270,6 +297,9 @@ struct ExportSettingsView: View {
     private func observeEvents() async {
         for await event in viewModel.events {
             switch event {
+                case .completed:
+                    exportCompletionCoordinator.notifyCompleted()
+
                 case .dismiss:
                     dismiss()
             }

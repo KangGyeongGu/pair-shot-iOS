@@ -109,7 +109,6 @@ extension ImmediateExportService {
         entry: ExportSelection.Entry,
         renderOptions: ExportRenderOptions
     ) async {
-        guard let pairRepo else { return }
         guard
             let kind = await MainActor.run(body: {
                 ExportHistoryKindResolver.resolve(

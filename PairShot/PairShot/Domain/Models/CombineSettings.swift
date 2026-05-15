@@ -156,4 +156,11 @@ nonisolated struct CombineSettings: Codable, Equatable {
         self.fullWidthVertical = fullWidthVertical
         self.labelBackground = labelBackground
     }
+
+    func effective(isPro: Bool) -> Self {
+        guard !isPro, label.isEnabled else { return self }
+        var copy = self
+        copy.label.isEnabled = false
+        return copy
+    }
 }

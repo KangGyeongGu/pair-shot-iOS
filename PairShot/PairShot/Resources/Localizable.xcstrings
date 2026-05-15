@@ -1619,6 +1619,23 @@
         }
       }
     },
+    "common_pro_locked" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro only"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro 전용"
+          }
+        }
+      }
+    },
     "common_button_confirm" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3627,6 +3644,193 @@
       },
       "shouldTranslate" : false
     },
+    "paywall_close" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Close"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "닫기"
+          }
+        }
+      }
+    },
+    "paywall_continue_free" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continue with Free version (5 pairs/day · ads)"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "무료 버전으로 계속 (하루 페어 5개 · 광고 표시)"
+          }
+        }
+      }
+    },
+    "paywall_korea_refund_notice" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Charges are billed to your Apple ID at confirmation. You can manage and cancel subscriptions in iOS Settings > Apple Account > Subscriptions. Refunds are handled by Apple at reportaproblem.apple.com. See the Terms of Service for details."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "구매 시 Apple ID 에 청구되며, 구독은 iOS 설정 > Apple 계정 > 구독에서 관리·해지할 수 있습니다. 환불은 Apple 정책에 따르며 reportaproblem.apple.com 에서 신청할 수 있습니다. 자세한 내용은 이용약관 참조."
+          }
+        }
+      }
+    },
+    "paywall_pair_limit_message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Free plan creates up to 5 pairs per day. Upgrade to Pro for unlimited creation and ad-free experience."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Free 플랜은 하루에 페어 5개까지 생성할 수 있습니다. Pro 로 업그레이드하면 무제한 생성 + 광고 제거."
+          }
+        }
+      }
+    },
+    "paywall_policy_privacy" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Privacy Policy"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "개인정보 처리방침"
+          }
+        }
+      }
+    },
+    "paywall_policy_terms" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terms of Use"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이용약관"
+          }
+        }
+      }
+    },
+    "paywall_feature_all_access" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Full access to compositing & watermark"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "합성·워터마크 모든 기능 액세스"
+          }
+        }
+      }
+    },
+    "paywall_feature_no_ads" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All ads removed"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "전체 광고 제거"
+          }
+        }
+      }
+    },
+    "paywall_feature_unlimited_pairs" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unlimited pair creation"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "페어 무제한 생성"
+          }
+        }
+      }
+    },
+    "paywall_subtitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Manage your before/after photos easily."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "전·후 사진 관리를 손쉽게."
+          }
+        }
+      }
+    },
+    "paywall_title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PairShot Pro"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PairShot Pro"
+          }
+        }
+      }
+    },
     "permission_button_open_settings" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3827,6 +4031,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "사진 더 추가하기"
+          }
+        }
+      }
+    },
+    "renewal_reminder_body_template" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your %@ subscription will auto-renew in 7 days. To change, manage in Settings > Apple Account > Subscriptions."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "7일 후 %@ 구독이 자동 갱신됩니다. 변경하려면 설정 > Apple 계정 > 구독에서 관리해 주세요."
+          }
+        }
+      }
+    },
+    "renewal_reminder_title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Subscription Renewal Notice"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "구독 자동 갱신 안내"
           }
         }
       }
@@ -4330,13 +4568,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "GPS coordinates are included in EXIF when shared"
+            "value" : "Embeds location into photos"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "공유 시 EXIF 에 GPS 좌표가 포함됩니다"
+            "value" : "사진에 위치 정보를 포함합니다"
           }
         }
       }
@@ -4347,13 +4585,98 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Include Location in Photos"
+            "value" : "Include Location"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "사진에 위치 정보 포함"
+            "value" : "위치 정보 포함"
+          }
+        }
+      }
+    },
+    "settings_pro_promo_cta" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Learn about Pro"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro 알아보기"
+          }
+        }
+      }
+    },
+    "settings_pro_promo_feature_pairs" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unlimited pairs"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "무제한 페어"
+          }
+        }
+      }
+    },
+    "settings_pro_promo_feature_no_ads" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ad-free experience"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "광고 제거"
+          }
+        }
+      }
+    },
+    "settings_pro_promo_feature_full_access" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Full compositing & watermark access"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "합성·워터마크 전체 액세스"
+          }
+        }
+      }
+    },
+    "settings_pro_promo_title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PairShot PRO"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PairShot PRO"
           }
         }
       }
@@ -4834,6 +5157,23 @@
         }
       }
     },
+    "settings_section_general" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "General"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "일반"
+          }
+        }
+      }
+    },
     "settings_section_coupon" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5157,6 +5497,176 @@
         }
       }
     },
+    "settings_subscription_manage" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Manage Subscription"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "구독 관리"
+          }
+        }
+      }
+    },
+    "settings_subscription_restore" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restore Purchases"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "구매 복원"
+          }
+        }
+      }
+    },
+    "settings_subscription_status" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Current Plan"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "현재 상태"
+          }
+        }
+      }
+    },
+    "settings_subscription_status_free" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Free"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Free"
+          }
+        }
+      }
+    },
+    "settings_subscription_status_pro" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro"
+          }
+        }
+      }
+    },
+    "settings_subscription_membership" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Membership"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "멤버십"
+          }
+        }
+      }
+    },
+    "settings_subscription_status_free" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Free"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "무료"
+          }
+        }
+      }
+    },
+    "settings_subscription_status_pro" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro"
+          }
+        }
+      }
+    },
+    "settings_subscription_title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Subscription"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "구독"
+          }
+        }
+      }
+    },
+    "settings_subscription_upgrade" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Upgrade to Pro"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro 업그레이드"
+          }
+        }
+      }
+    },
     "settings_title" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5191,19 +5701,19 @@
         }
       }
     },
-    "settings_warning_required" : {
+    "settings_warning_setup_needed" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Required"
+            "value" : "Setup needed"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "필수"
+            "value" : "설정 필요"
           }
         }
       }
@@ -5408,6 +5918,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "저장할 새 이미지가 없습니다"
+          }
+        }
+      }
+    },
+    "snackbar_warning_watermark_setup_required" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Please complete the watermark settings first."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "워터마크 설정을 먼저 완료해주세요"
           }
         }
       }
@@ -5850,6 +6377,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "로고 선택"
+          }
+        }
+      }
+    },
+    "watermark_logo_state_empty" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No logo"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "등록된 로고 없음"
+          }
+        }
+      }
+    },
+    "watermark_logo_state_set" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Logo registered"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "로고 등록됨"
           }
         }
       }

@@ -1,6 +1,10 @@
 import Foundation
 
-nonisolated struct AdFreeStatusFetcher {
+nonisolated protocol AdFreeStatusFetching: Sendable {
+    func fetch(deviceHash: String) async -> AdFreeStatusResult?
+}
+
+nonisolated struct AdFreeStatusFetcher: AdFreeStatusFetching {
     private let config: CouponApiConfig
     private let session: URLSession
 

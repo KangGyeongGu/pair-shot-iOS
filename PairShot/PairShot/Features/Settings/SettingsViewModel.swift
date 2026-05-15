@@ -8,11 +8,15 @@ final class SettingsViewModel {
     let appSettings: AppSettings
     let thumbnailCache: PhotoLibraryThumbnailCache
     let hapticService: HapticService
+    let entitlement: Entitlement?
 
     var showCacheClearConfirm: Bool = false
     var showLanguageRestartAlert: Bool = false
     var shouldPulseWatermark: Bool = false
     var shouldPulseCombine: Bool = false
+    var showWatermarkGateDialog: Bool = false
+    var showCombineGateDialog: Bool = false
+    var lastGateFailureReason: String?
 
     private(set) var photoStorageBytes: Int64?
     private(set) var cacheBytes: Int64?
@@ -82,14 +86,7 @@ final class SettingsViewModel {
     }
 
     var watermarkSettingsBlank: Bool {
-        let watermark = appSettings.watermarkSettings
-        switch watermark.type {
-            case .text:
-                return watermark.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-
-            case .logo:
-                return watermark.logoImageData == nil
-        }
+        appSettings.watermarkSettings.isBlank
     }
 
     var photoStorageText: String {
@@ -111,13 +108,14 @@ final class SettingsViewModel {
 
     init(
         appSettings: AppSettings,
-        appSettingsRepo _: AppSettingsRepository,
         thumbnailCache: PhotoLibraryThumbnailCache,
-        hapticService: HapticService
+        hapticService: HapticService,
+        entitlement: Entitlement? = nil
     ) {
         self.appSettings = appSettings
         self.thumbnailCache = thumbnailCache
         self.hapticService = hapticService
+        self.entitlement = entitlement
         overlayAlphaValue = CompositionDefaults.clampAlpha(appSettings.defaultOverlayAlpha)
         overlayAlphaEnabled = appSettings.overlayEnabled
     }

@@ -13,5 +13,10 @@ nonisolated enum ExportFormat: String, Equatable, CaseIterable {
 
 nonisolated struct ExportRenderOptions: Equatable {
     let applyCombineSettings: Bool
-    let applyWatermark: Bool
+    let isPro: Bool
+
+    init(applyCombineSettings: Bool, isPro: Bool = false) {
+        self.applyCombineSettings = applyCombineSettings
+        self.isPro = isPro
+    }
 }

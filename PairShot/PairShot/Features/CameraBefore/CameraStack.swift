@@ -3,7 +3,7 @@ import SwiftUI
 import UIKit
 
 struct BeforeCameraStack: View {
-    @Environment(AdFreeStore.self) private var adFreeStore
+    @Environment(Entitlement.self) private var entitlement
 
     let captureSession: AVCaptureSession
     let onMakePreviewView: (CameraPreviewView) -> Void
@@ -46,7 +46,7 @@ struct BeforeCameraStack: View {
         GeometryReader { geo in
             let layout = CameraLayoutMath.compute(
                 totalSize: geo.size,
-                isAdFree: adFreeStore.isAdFree,
+                isAdFree: entitlement.isAdSuppressed,
                 aspect: aspect
             )
 

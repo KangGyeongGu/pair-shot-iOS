@@ -26,6 +26,7 @@ nonisolated struct WatermarkSettings: Codable, Equatable {
         case repeatCount
         case textSizeRatio
         case logoImageData
+        case logoFileName
         case logoPosition
         case logoWidthRatio
         case logoAlpha
@@ -47,9 +48,20 @@ nonisolated struct WatermarkSettings: Codable, Equatable {
     var repeatCount: Double
     var textSizeRatio: Double
     var logoImageData: Data?
+    var logoFileName: String?
     var logoPosition: LogoPosition
     var logoWidthRatio: Double
     var logoAlpha: Double
+
+    var isBlank: Bool {
+        switch type {
+            case .text:
+                text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+
+            case .logo:
+                logoImageData == nil
+        }
+    }
 
     init(
         type: WatermarkType = .text,
@@ -59,6 +71,7 @@ nonisolated struct WatermarkSettings: Codable, Equatable {
         repeatCount: Double = 1.5,
         textSizeRatio: Double = 0.03,
         logoImageData: Data? = nil,
+        logoFileName: String? = nil,
         logoPosition: LogoPosition = .center,
         logoWidthRatio: Double = 0.5,
         logoAlpha: Double = 0.5
@@ -70,6 +83,7 @@ nonisolated struct WatermarkSettings: Codable, Equatable {
         self.repeatCount = repeatCount
         self.textSizeRatio = textSizeRatio
         self.logoImageData = logoImageData
+        self.logoFileName = logoFileName
         self.logoPosition = logoPosition
         self.logoWidthRatio = logoWidthRatio
         self.logoAlpha = logoAlpha
@@ -84,8 +98,16 @@ nonisolated struct WatermarkSettings: Codable, Equatable {
         repeatCount = try container.decodeIfPresent(Double.self, forKey: .repeatCount) ?? 1.5
         textSizeRatio = try container.decodeIfPresent(Double.self, forKey: .textSizeRatio) ?? 0.03
         logoImageData = try container.decodeIfPresent(Data.self, forKey: .logoImageData)
+        logoFileName = try container.decodeIfPresent(String.self, forKey: .logoFileName)
         logoPosition = try container.decodeIfPresent(LogoPosition.self, forKey: .logoPosition) ?? .center
         logoWidthRatio = try container.decodeIfPresent(Double.self, forKey: .logoWidthRatio) ?? 0.5
         logoAlpha = try container.decodeIfPresent(Double.self, forKey: .logoAlpha) ?? 0.5
+    }
+
+    func effective(isPro: Bool) -> Self {
+        guard !isPro, type == .logo else { return self }
+        var copy = self
+        copy.type = .text
+        return copy
     }
 }

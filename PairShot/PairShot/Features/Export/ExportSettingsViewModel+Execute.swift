@@ -87,6 +87,7 @@ extension ExportSettingsViewModel {
             return
         }
         finalizeSaveProgress(progress, savedCount: saved)
+        eventsContinuation.yield(.completed)
         eventsContinuation.yield(.dismiss)
     }
 

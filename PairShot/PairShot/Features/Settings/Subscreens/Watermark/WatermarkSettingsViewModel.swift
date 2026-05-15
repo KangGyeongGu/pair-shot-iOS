@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import Photos
 import PhotosUI
 import SwiftUI
 import UIKit
@@ -37,9 +38,12 @@ final class WatermarkSettingsViewModel {
         do {
             guard let data = try await item.loadTransferable(type: Data.self) else { return }
             let normalized = normalizedPNG(from: data) ?? data
+            let filename = await Self.fetchOriginalFilename(for: item)
             settings.logoImageData = normalized
+            settings.logoFileName = filename
         } catch {
             settings.logoImageData = nil
+            settings.logoFileName = nil
         }
     }
 
@@ -62,5 +66,12 @@ final class WatermarkSettingsViewModel {
             image.draw(in: CGRect(origin: .zero, size: targetSize))
         }
         return resized.pngData()
+    }
+
+    private static func fetchOriginalFilename(for item: PhotosPickerItem) async -> String? {
+        guard let identifier = item.itemIdentifier else { return nil }
+        let assets = PHAsset.fetchAssets(withLocalIdentifiers: [identifier], options: nil)
+        guard let asset = assets.firstObject else { return nil }
+        return PHAssetResource.assetResources(for: asset).first?.originalFilename
     }
 }

@@ -60,19 +60,28 @@ private struct SettingsFormBody: View {
     @Bindable var viewModel: SettingsViewModel
     let openURL: OpenURLAction
     @Binding var path: [Route]
+    @State private var showPaywall: Bool = false
+    @Environment(RewardedAdManager.self) private var rewardedManager
+    @Environment(\.fullscreenAdCoordinator) private var coordinator
 
     var body: some View {
         Form {
-            SettingsGeneralSection(viewModel: viewModel, path: $path)
+            if !(viewModel.entitlement?.isPaidPro ?? false) {
+                Section {
+                    SettingsProPromoCard(onLearnMore: { showPaywall = true })
+                        .listRowBackground(Color.clear)
+                        .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
+                }
+            }
+            SubscriptionSettingsSection(showPaywall: $showPaywall)
             SettingsCaptureFileSection(viewModel: viewModel, path: $path)
             SettingsWatermarkSection(viewModel: viewModel, path: $path)
             SettingsCombineSection(viewModel: viewModel, path: $path)
-            SettingsPrivacySection(viewModel: viewModel)
-            SettingsPromotionCodeSection()
-            SettingsPrivacyOptionsSection()
-            SettingsStorageInfoSection(viewModel: viewModel, openURL: openURL)
+            SettingsGeneralSection(viewModel: viewModel, path: $path)
+            SettingsStorageInfoSection(viewModel: viewModel, openURL: openURL, path: $path)
         }
         .listStyle(.insetGrouped)
+        .paywallSheet(isPresented: $showPaywall)
         .refreshable { await viewModel.refreshStorageInfo() }
         .alert(
             String(localized: "settings_dialog_cache_clear_title"),
@@ -94,6 +103,52 @@ private struct SettingsFormBody: View {
             }
         } message: {
             Text(String(localized: "settings_language_restart_message"))
+        }
+        .alert(
+            String(localized: "rewarded_gate_title"),
+            isPresented: $viewModel.showWatermarkGateDialog
+        ) {
+            Button(String(localized: "rewarded_gate_confirm")) {
+                Task { await confirmWatermarkGate() }
+            }
+            Button(String(localized: "common_button_cancel"), role: .cancel) {}
+        } message: {
+            Text(String(localized: "rewarded_gate_body_watermark_detail"))
+        }
+        .alert(
+            String(localized: "rewarded_gate_title"),
+            isPresented: $viewModel.showCombineGateDialog
+        ) {
+            Button(String(localized: "rewarded_gate_confirm")) {
+                Task { await confirmCombineGate() }
+            }
+            Button(String(localized: "common_button_cancel"), role: .cancel) {}
+        } message: {
+            Text(String(localized: "rewarded_gate_body_combine_detail"))
+        }
+    }
+
+    @MainActor
+    private func confirmWatermarkGate() async {
+        let result = await viewModel.confirmWatermarkGateAd(
+            rewardedManager: rewardedManager,
+            coordinator: coordinator,
+            rootViewController: BannerAdView.resolveTopPresentedViewController()
+        )
+        if case .proceed = result {
+            path.append(.watermarkSettings)
+        }
+    }
+
+    @MainActor
+    private func confirmCombineGate() async {
+        let result = await viewModel.confirmCombineGateAd(
+            rewardedManager: rewardedManager,
+            coordinator: coordinator,
+            rootViewController: BannerAdView.resolveTopPresentedViewController()
+        )
+        if case .proceed = result {
+            path.append(.combineSettings)
         }
     }
 }

@@ -1,4 +1,3 @@
-import SwiftData
 import SwiftUI
 
 struct PairPickerView: View {
@@ -6,11 +5,6 @@ struct PairPickerView: View {
 
     @Environment(AppEnvironment.self) private var env
     @Environment(\.dismiss) private var dismiss
-
-    @Query(sort: \PhotoPairEntity.createdAt, order: .reverse)
-    private var allPairs: [PhotoPairEntity]
-
-    @Query private var albums: [AlbumEntity]
 
     @State private var viewModel: PairPickerViewModel?
 
@@ -20,19 +14,10 @@ struct PairPickerView: View {
     ]
 
     var body: some View {
-        ZStack {
-            if let viewModel {
-                content(for: viewModel)
-            } else {
-                ProgressView()
+        AlbumByIdQueryHost(id: albumId) { album in
+            PhotoPairQueryHost { allPairs in
+                rootContent(album: album, allPairs: allPairs)
             }
-        }
-        .navigationBarTitleDisplayMode(.inline)
-        .navigationBarBackButtonHidden(true)
-        .toolbar { toolbar }
-        .task { ensureViewModel() }
-        .onChange(of: viewModel?.didFinish ?? false) { _, finished in
-            if finished { dismiss() }
         }
     }
 
@@ -53,8 +38,26 @@ struct PairPickerView: View {
 
     init(albumId: UUID) {
         self.albumId = albumId
-        let predicate = #Predicate<AlbumEntity> { $0.id == albumId }
-        _albums = Query(filter: predicate)
+    }
+
+    @ViewBuilder
+    private func rootContent(album: Album?, allPairs: [PhotoPair]) -> some View {
+        let membership = Set(album?.pairIds ?? [])
+
+        ZStack {
+            if let viewModel {
+                content(for: viewModel, allPairs: allPairs, membership: membership)
+            } else {
+                ProgressView()
+            }
+        }
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(true)
+        .toolbar { toolbar }
+        .task { ensureViewModel() }
+        .onChange(of: viewModel?.didFinish ?? false) { _, finished in
+            if finished { dismiss() }
+        }
     }
 
     private func ensureViewModel() {
@@ -63,12 +66,13 @@ struct PairPickerView: View {
         }
     }
 
-    @ViewBuilder
-    private func content(for viewModel: PairPickerViewModel) -> some View {
-        let membership = membershipPairIds()
-
+    private func content(
+        for viewModel: PairPickerViewModel,
+        allPairs: [PhotoPair],
+        membership: Set<UUID>
+    ) -> some View {
         VStack(spacing: 0) {
-            grid(viewModel: viewModel, membership: membership)
+            grid(viewModel: viewModel, allPairs: allPairs, membership: membership)
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             PairPickerBottomBar(
@@ -92,6 +96,7 @@ struct PairPickerView: View {
     @ViewBuilder
     private func grid(
         viewModel: PairPickerViewModel,
+        allPairs: [PhotoPair],
         membership: Set<UUID>
     ) -> some View {
         if allPairs.isEmpty {
@@ -99,8 +104,7 @@ struct PairPickerView: View {
         } else {
             ScrollView {
                 LazyVGrid(columns: columns, spacing: 8) {
-                    ForEach(allPairs) { entity in
-                        let pair = entity.toDomain()
+                    ForEach(allPairs) { pair in
                         let alreadyIn = membership.contains(pair.id)
                         let isSelected = viewModel.selection.contains(pair.id)
 
@@ -123,20 +127,6 @@ struct PairPickerView: View {
                 .padding(.vertical, 12)
             }
         }
-    }
-
-    private func membershipPairIds() -> Set<UUID> {
-        guard let album = albums.first else { return [] }
-        let domain = Album(
-            name: album.name,
-            id: album.id,
-            latitude: album.latitude,
-            longitude: album.longitude,
-            locationLabel: album.locationLabel,
-            createdAt: album.createdAt,
-            pairIds: album.pairs.map(\.id)
-        )
-        return Set(domain.pairIds)
     }
 
     private func errorBinding(for viewModel: PairPickerViewModel) -> Binding<Bool> {

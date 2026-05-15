@@ -6,6 +6,8 @@ struct HomeBottomBarHost: View {
     let sortedAlbums: [Album]
     let onPushExportSettings: (([UUID]) -> Void)?
 
+    @Environment(ExportCompletionCoordinator.self) private var exportCompletionCoordinator
+
     var body: some View {
         if viewModel.isSelectionMode {
             switch viewModel.contentMode {
@@ -49,7 +51,7 @@ struct HomeBottomBarHost: View {
                             ? String(localized: "common_button_start_capture")
                             : String(localized: "camera_desc_capture"),
                         systemImage: "camera.fill"
-                    ) { viewModel.startCapture() }
+                    ) { Task { await viewModel.startCapture() } }
 
                 case .albums:
                     HomePrimaryActionBar(
@@ -66,6 +68,9 @@ struct HomeBottomBarHost: View {
                 .filter { viewModel.selectedPairIds.contains($0.id) }
                 .map(\.id)
         guard !chosen.isEmpty else { return }
+        exportCompletionCoordinator.register { [weak viewModel] in
+            viewModel?.cancelSelection()
+        }
         onPushExportSettings?(chosen)
     }
 
@@ -76,6 +81,9 @@ struct HomeBottomBarHost: View {
                 .flatMap(\.pairIds)
         let unique = Array(Set(pairIds))
         guard !unique.isEmpty else { return }
+        exportCompletionCoordinator.register { [weak viewModel] in
+            viewModel?.cancelSelection()
+        }
         onPushExportSettings?(unique)
     }
 }
@@ -134,11 +142,24 @@ struct HomeSelectionToolbar: ToolbarContent {
 struct HomeDefaultToolbar: ToolbarContent {
     let viewModel: HomeViewModel?
     let onPushSettings: (() -> Void)?
+    let isPro: Bool
 
     var body: some ToolbarContent {
         ToolbarItem(placement: .principal) {
-            Text(String(localized: "PairShot"))
-                .font(.title3.weight(.semibold))
+            HStack(spacing: 4) {
+                Text(String(localized: "PairShot"))
+                    .font(.title3.weight(.semibold))
+                if isPro {
+                    Text(verbatim: "Pro")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(.tint)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(
+                            Capsule().stroke(Color.accentColor, lineWidth: 1.5)
+                        )
+                }
+            }
         }
         ToolbarItem(placement: .topBarTrailing) {
             Button {
@@ -162,13 +183,14 @@ struct HomeDefaultToolbar: ToolbarContent {
 }
 
 struct HomeViewSheetModifiers: ViewModifier {
-    let viewModel: HomeViewModel
+    @Bindable var viewModel: HomeViewModel
 
     func body(content: Content) -> some View {
         content
             .modifier(HomeCameraCovers(viewModel: viewModel))
             .modifier(HomeSheets(viewModel: viewModel))
             .modifier(HomeDeleteDialogs(viewModel: viewModel))
+            .paywallSheet(isPresented: $viewModel.showPaywall)
     }
 }
 

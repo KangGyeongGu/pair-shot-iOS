@@ -67,8 +67,13 @@ final class SnackbarQueue {
     private var lastEnqueueTimes: [String: Date] = [:]
     private var dismissTask: Task<Void, Never>?
     private let clock: @MainActor () -> Date
+    private let hapticService: HapticService
 
-    init(clock: @escaping @MainActor () -> Date = { Date() }) {
+    init(
+        hapticService: HapticService = HapticService(),
+        clock: @escaping @MainActor () -> Date = { Date() }
+    ) {
+        self.hapticService = hapticService
         self.clock = clock
     }
 
@@ -95,8 +100,20 @@ final class SnackbarQueue {
             createdAt: now
         )
         pending.append(item)
+        if let kind = hapticKind(for: variant) {
+            hapticService.notify(kind)
+        }
         if current == nil {
             advance()
+        }
+    }
+
+    private func hapticKind(for variant: SnackbarVariant) -> HapticNotificationKind? {
+        switch variant {
+            case .error: .error
+            case .warning: .warning
+            case .success: .success
+            case .info, .progress, .indeterminateProgress: nil
         }
     }
 

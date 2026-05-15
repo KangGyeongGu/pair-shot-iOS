@@ -5,7 +5,6 @@ final nonisolated class ExportPreferences: @unchecked Sendable {
     static let includeBeforeKey = "pairshot.exportIncludeBefore"
     static let includeAfterKey = "pairshot.exportIncludeAfter"
     static let formatKey = "pairshot.exportFormat"
-    static let applyWatermarkKey = "pairshot.exportApplyWatermark"
     static let applyCombineKey = "pairshot.exportApplyCombine"
 
     private let defaults: UserDefaults
@@ -33,11 +32,6 @@ final nonisolated class ExportPreferences: @unchecked Sendable {
         set { defaults.set(newValue.rawValue, forKey: Self.formatKey) }
     }
 
-    var applyWatermark: Bool {
-        get { defaults.bool(forKey: Self.applyWatermarkKey) }
-        set { defaults.set(newValue, forKey: Self.applyWatermarkKey) }
-    }
-
     var applyCombineSettings: Bool {
         get { defaults.bool(forKey: Self.applyCombineKey) }
         set { defaults.set(newValue, forKey: Self.applyCombineKey) }
@@ -50,7 +44,6 @@ final nonisolated class ExportPreferences: @unchecked Sendable {
             Self.includeBeforeKey: false,
             Self.includeAfterKey: false,
             Self.formatKey: ExportFormat.individualImages.rawValue,
-            Self.applyWatermarkKey: false,
             Self.applyCombineKey: true,
         ])
     }

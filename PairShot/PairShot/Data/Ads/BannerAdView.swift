@@ -7,19 +7,19 @@ import UIKit
 #endif
 
 enum BannerAdGate {
-    static func shouldShow(isAdFree: Bool) -> Bool {
-        !isAdFree
+    static func shouldShow(isAdFree: Bool, isPro: Bool = false) -> Bool {
+        !AdSuppression.isSuppressed(isAdFree: isAdFree, isPro: isPro)
     }
 }
 
 struct BannerAdSlot: View {
-    @Environment(AdFreeStore.self) private var adFreeStore
+    @Environment(Entitlement.self) private var entitlement
     @Environment(TrackingAuthorizationService.self) private var tracking
 
     let adUnitID: String
 
     var body: some View {
-        if BannerAdGate.shouldShow(isAdFree: adFreeStore.isAdFree) {
+        if BannerAdGate.shouldShow(isAdFree: entitlement.hasCouponAdFree, isPro: entitlement.isPaidPro) {
             let width = BannerAdView.currentBannerWidth()
             let height = BannerAdSize.adaptiveHeight(width: width)
             BannerAdView(

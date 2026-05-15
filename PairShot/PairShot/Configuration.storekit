@@ -1,0 +1,149 @@
+{
+  "appPolicies" : {
+    "eula" : "",
+    "policies" : [
+      {
+        "locale" : "ko",
+        "policyText" : "",
+        "policyURL" : ""
+      },
+      {
+        "locale" : "en_US",
+        "policyText" : "",
+        "policyURL" : ""
+      }
+    ]
+  },
+  "identifier" : "B4A7E8F2",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+
+  ],
+  "settings" : {
+    "_askToBuyEnabled" : false,
+    "_billingGracePeriodEnabled" : false,
+    "_billingIssuesEnabled" : false,
+    "_disableDialogs" : false,
+    "_failTransactionsEnabled" : false,
+    "_locale" : "ko",
+    "_renewalBillingIssuesEnabled" : false,
+    "_storefront" : "KOR",
+    "_storeKitErrors" : [
+
+    ],
+    "_timeRate" : 0
+  },
+  "subscriptionGroups" : [
+    {
+      "id" : "21461234",
+      "localizations" : [
+
+      ],
+      "name" : "PairShot Pro",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "4500",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "C7E5A2B1",
+          "introductoryOffer" : {
+            "billingPlanType" : "BILLED_UPFRONT",
+            "internalID" : "F1A2B3C4",
+            "numberOfPeriods" : 1,
+            "paymentMode" : "free",
+            "subscriptionPeriod" : "P2W"
+          },
+          "introductoryOffers" : [
+            {
+              "billingPlanType" : "BILLED_UPFRONT",
+              "internalID" : "F1A2B3C4",
+              "numberOfPeriods" : 1,
+              "paymentMode" : "free",
+              "subscriptionPeriod" : "P2W"
+            }
+          ],
+          "localizations" : [
+            {
+              "description" : "2-week free, then ₩4,500/mo · cancel anytime\nFull access · Ad-free",
+              "displayName" : "Monthly Subscription",
+              "locale" : "en_US"
+            },
+            {
+              "description" : "2주 무료, 이후 ₩4,500/월 · 언제든 취소 가능\n모든 기능 접근 · 광고 제거",
+              "displayName" : "월간 구독",
+              "locale" : "ko"
+            }
+          ],
+          "productID" : "app.pairshot.pro.monthly",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Pro Monthly",
+          "subscriptionGroupID" : "21461234",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : [
+
+          ]
+        },
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "43200",
+          "familyShareable" : false,
+          "groupNumber" : 2,
+          "internalID" : "E9F7C4D3",
+          "introductoryOffer" : {
+            "billingPlanType" : "BILLED_UPFRONT",
+            "internalID" : "A8C5D6E7",
+            "numberOfPeriods" : 1,
+            "paymentMode" : "free",
+            "subscriptionPeriod" : "P2W"
+          },
+          "introductoryOffers" : [
+            {
+              "billingPlanType" : "BILLED_UPFRONT",
+              "internalID" : "A8C5D6E7",
+              "numberOfPeriods" : 1,
+              "paymentMode" : "free",
+              "subscriptionPeriod" : "P2W"
+            }
+          ],
+          "localizations" : [
+            {
+              "description" : "2-week free, then ₩43,200/yr\nFull access · Ad-free · ₩3,600/mo",
+              "displayName" : "Annual Subscription · 20% OFF",
+              "locale" : "en_US"
+            },
+            {
+              "description" : "2주 무료, 이후 ₩43,200/년\n모든 기능 접근 · 광고 제거 · ₩3,600/월",
+              "displayName" : "연간 구독 · 20% 할인",
+              "locale" : "ko"
+            }
+          ],
+          "productID" : "app.pairshot.pro.annual",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "Pro Annual",
+          "subscriptionGroupID" : "21461234",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : [
+
+          ]
+        }
+      ]
+    }
+  ],
+  "version" : {
+    "major" : 5,
+    "minor" : 0
+  }
+}

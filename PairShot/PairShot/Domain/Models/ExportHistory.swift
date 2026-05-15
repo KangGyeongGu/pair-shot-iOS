@@ -33,10 +33,9 @@ nonisolated enum ExportHistoryKindResolver {
 
     @MainActor
     private static func isWatermarkActive(
-        renderOptions: ExportRenderOptions,
+        renderOptions _: ExportRenderOptions,
         appSettings: AppSettings
     ) -> Bool {
-        guard renderOptions.applyWatermark else { return false }
-        return appSettings.watermarkEnabled
+        appSettings.watermarkEnabled
     }
 }

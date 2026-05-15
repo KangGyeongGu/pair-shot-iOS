@@ -10,6 +10,16 @@ import UIKit
 @MainActor
 @Observable
 final class InterstitialAdManager {
+    struct PresentContext {
+        let rootViewController: UIViewController?
+        let coordinator: FullscreenAdCoordinator
+        let adFreeStore: AdFreeStore?
+        let subscriptionStore: SubscriptionStore?
+        let adUnitID: String?
+        let now: Date
+        let onFinished: @MainActor () -> Void
+    }
+
     nonisolated static let cooldownSeconds: TimeInterval = 5.0
 
     private(set) var isLoaded: Bool = false
@@ -36,9 +46,10 @@ final class InterstitialAdManager {
 
     func loadIfNeeded(
         adUnitID: String? = nil,
-        adFreeStore: AdFreeStore? = nil
+        adFreeStore: AdFreeStore? = nil,
+        subscriptionStore: SubscriptionStore? = nil
     ) {
-        if let adFreeStore, adFreeStore.isAdFree { return }
+        if AdSuppression.isSuppressed(adFreeStore: adFreeStore, subscriptionStore: subscriptionStore) { return }
         guard !isLoaded, !isLoading else { return }
         let resolvedUnitID = adUnitID ?? AdsConfig.interstitial
         #if canImport(GoogleMobileAds)
@@ -78,63 +89,69 @@ final class InterstitialAdManager {
         from rootViewController: UIViewController?,
         coordinator: FullscreenAdCoordinator,
         adFreeStore: AdFreeStore? = nil,
+        subscriptionStore: SubscriptionStore? = nil,
         adUnitID: String? = nil,
         now: Date = .now,
         onFinished: @escaping @MainActor () -> Void
     ) async -> Bool {
-        guard shouldShow(adFreeStore: adFreeStore, now: now, onFinished: onFinished, adUnitID: adUnitID) else {
+        let context = PresentContext(
+            rootViewController: rootViewController,
+            coordinator: coordinator,
+            adFreeStore: adFreeStore,
+            subscriptionStore: subscriptionStore,
+            adUnitID: adUnitID,
+            now: now,
+            onFinished: onFinished
+        )
+        guard shouldShow(context: context) else {
             return false
         }
         guard await coordinator.tryAcquire() else {
             onFinished()
             return false
         }
-        return await presentAd(
-            rootViewController: rootViewController,
-            coordinator: coordinator,
-            adFreeStore: adFreeStore,
-            adUnitID: adUnitID,
-            now: now,
-            onFinished: onFinished
-        )
+        return await presentAd(context: context)
     }
 
-    private func shouldShow(
-        adFreeStore: AdFreeStore?,
-        now: Date,
-        onFinished: @escaping @MainActor () -> Void,
-        adUnitID: String?
-    ) -> Bool {
-        if let adFreeStore, adFreeStore.isAdFree {
-            onFinished()
+    private func shouldShow(context: PresentContext) -> Bool {
+        if AdSuppression.isSuppressed(
+            adFreeStore: context.adFreeStore,
+            subscriptionStore: context.subscriptionStore
+        ) {
+            context.onFinished()
             return false
         }
-        if let lastShownAt, now.timeIntervalSince(lastShownAt) < Self.cooldownSeconds {
-            onFinished()
-            loadIfNeeded(adUnitID: adUnitID, adFreeStore: adFreeStore)
+        if let lastShownAt, context.now.timeIntervalSince(lastShownAt) < Self.cooldownSeconds {
+            context.onFinished()
+            loadIfNeeded(
+                adUnitID: context.adUnitID,
+                adFreeStore: context.adFreeStore,
+                subscriptionStore: context.subscriptionStore
+            )
             return false
         }
         guard isLoaded else {
-            onFinished()
-            loadIfNeeded(adUnitID: adUnitID, adFreeStore: adFreeStore)
+            context.onFinished()
+            loadIfNeeded(
+                adUnitID: context.adUnitID,
+                adFreeStore: context.adFreeStore,
+                subscriptionStore: context.subscriptionStore
+            )
             return false
         }
         return true
     }
 
-    private func presentAd(
-        rootViewController: UIViewController?,
-        coordinator: FullscreenAdCoordinator,
-        adFreeStore: AdFreeStore?,
-        adUnitID: String?,
-        now: Date,
-        onFinished: @escaping @MainActor () -> Void
-    ) async -> Bool {
+    private func presentAd(context: PresentContext) async -> Bool {
         #if canImport(GoogleMobileAds)
             guard let ad else {
-                await coordinator.release()
-                onFinished()
-                loadIfNeeded(adUnitID: adUnitID, adFreeStore: adFreeStore)
+                await context.coordinator.release()
+                context.onFinished()
+                loadIfNeeded(
+                    adUnitID: context.adUnitID,
+                    adFreeStore: context.adFreeStore,
+                    subscriptionStore: context.subscriptionStore
+                )
                 return false
             }
             await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
@@ -144,35 +161,43 @@ final class InterstitialAdManager {
                     resumed = true
                     continuation.resume()
                 }
-                presentationDelegate.onDismiss = { [weak coordinator, weak self] in
+                presentationDelegate.onDismiss = { [weak self] in
                     Task { @MainActor in
-                        await coordinator?.release()
+                        await context.coordinator.release()
                         self?.lastShownAt = Date()
                         self?.ad = nil
                         self?.isLoaded = false
-                        self?.loadIfNeeded(adUnitID: adUnitID, adFreeStore: adFreeStore)
-                        onFinished()
+                        self?.loadIfNeeded(
+                            adUnitID: context.adUnitID,
+                            adFreeStore: context.adFreeStore,
+                            subscriptionStore: context.subscriptionStore
+                        )
+                        context.onFinished()
                         resume()
                     }
                 }
-                presentationDelegate.onFailToPresent = { [weak coordinator, weak self] in
+                presentationDelegate.onFailToPresent = { [weak self] in
                     Task { @MainActor in
-                        await coordinator?.release()
+                        await context.coordinator.release()
                         self?.ad = nil
                         self?.isLoaded = false
-                        self?.loadIfNeeded(adUnitID: adUnitID, adFreeStore: adFreeStore)
-                        onFinished()
+                        self?.loadIfNeeded(
+                            adUnitID: context.adUnitID,
+                            adFreeStore: context.adFreeStore,
+                            subscriptionStore: context.subscriptionStore
+                        )
+                        context.onFinished()
                         resume()
                     }
                 }
                 AppLogger.ads.debug("Interstitial showIfAvailable presented")
-                ad.present(fromRootViewController: rootViewController)
+                ad.present(fromRootViewController: context.rootViewController)
             }
             return true
         #else
-            await coordinator.release()
-            lastShownAt = now
-            onFinished()
+            await context.coordinator.release()
+            lastShownAt = context.now
+            context.onFinished()
             return true
         #endif
     }
@@ -183,6 +208,7 @@ extension InterstitialAdManager {
     static func runGated(
         manager: InterstitialAdManager?,
         adFreeStore: AdFreeStore?,
+        subscriptionStore: SubscriptionStore?,
         coordinator: FullscreenAdCoordinator?,
         work: @escaping @MainActor () async -> Void
     ) async {
@@ -195,7 +221,8 @@ extension InterstitialAdManager {
                 await manager.showIfAvailable(
                     from: BannerAdView.resolveTopPresentedViewController(),
                     coordinator: coordinator,
-                    adFreeStore: adFreeStore
+                    adFreeStore: adFreeStore,
+                    subscriptionStore: subscriptionStore
                 ) {
                     Task { @MainActor in
                         await work()

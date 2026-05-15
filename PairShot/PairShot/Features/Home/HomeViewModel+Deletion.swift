@@ -1,56 +1,40 @@
 import Foundation
 
 extension HomeViewModel {
+    var deletionCoordinator: PairDeletionCoordinator {
+        PairDeletionCoordinator(
+            deletePairs: deletePairs,
+            deleteCombinedExports: deleteCombinedExports,
+            deletePairsKeepingCombined: deletePairsKeepingCombined,
+            thumbnailCache: thumbnailCache
+        )
+    }
+
     func confirmPairDeletion(pairs: [PhotoPair]) async {
-        let snapshots: [(before: String?, after: String?)] = pairs.map {
-            ($0.beforePhotoLocalIdentifier, $0.afterPhotoLocalIdentifier)
-        }
-        let ids = Set(pairs.map(\.id))
-        try? await deletePairs(ids: ids)
-        for snapshot in snapshots {
-            evictThumbnails(beforeIdentifier: snapshot.before, afterIdentifier: snapshot.after)
-        }
+        await deletionCoordinator.deletePairsWithThumbnailEviction(pairs)
         cancelSelection()
     }
 
     func confirmCombinedDeletion(pairs: [PhotoPair]) async {
-        guard let useCase = deleteCombinedExports else { return }
-        let ids = Set(pairs.map(\.id))
-        try? await useCase(ids: ids)
+        await deletionCoordinator.deleteCombinedOnly(pairs)
         cancelSelection()
     }
 
     func confirmOriginalOnlyPairDeletion(pairs: [PhotoPair]) async {
-        guard let useCase = deletePairsKeepingCombined else { return }
-        let snapshots: [(before: String?, after: String?)] = pairs.map {
-            ($0.beforePhotoLocalIdentifier, $0.afterPhotoLocalIdentifier)
-        }
-        let ids = Set(pairs.map(\.id))
-        try? await useCase(ids: ids)
-        for snapshot in snapshots {
-            evictThumbnails(beforeIdentifier: snapshot.before, afterIdentifier: snapshot.after)
-        }
+        await deletionCoordinator.deleteOriginalsKeepingCombined(pairs)
         cancelSelection()
     }
 
     func confirmSinglePairDeletion(_ pair: PhotoPair) async {
-        let beforeId = pair.beforePhotoLocalIdentifier
-        let afterId = pair.afterPhotoLocalIdentifier
-        try? await deletePairs(ids: [pair.id])
-        evictThumbnails(beforeIdentifier: beforeId, afterIdentifier: afterId)
+        await deletionCoordinator.deleteSinglePairWithThumbnailEviction(pair)
     }
 
     func confirmSingleOriginalOnlyPairDeletion(_ pair: PhotoPair) async {
-        guard let useCase = deletePairsKeepingCombined else { return }
-        let beforeId = pair.beforePhotoLocalIdentifier
-        let afterId = pair.afterPhotoLocalIdentifier
-        try? await useCase(ids: [pair.id])
-        evictThumbnails(beforeIdentifier: beforeId, afterIdentifier: afterId)
+        await deletionCoordinator.deleteSingleOriginalKeepingCombined(pair)
     }
 
     func confirmSingleCombinedDeletion(_ pair: PhotoPair) async {
-        guard let useCase = deleteCombinedExports else { return }
-        try? await useCase(ids: [pair.id])
+        await deletionCoordinator.deleteSingleCombinedOnly(pair)
     }
 
     func confirmAlbumDeletion(albums: [Album]) async {
@@ -72,10 +56,9 @@ extension HomeViewModel {
     }
 
     func confirmAlbumDeletionOriginalOnly(albums: [Album]) async {
-        guard let useCase = deletePairsKeepingCombined else { return }
         let pairIds = Set(albums.flatMap(\.pairIds))
         if !pairIds.isEmpty {
-            try? await useCase(ids: pairIds)
+            try? await deletePairsKeepingCombined(ids: pairIds)
         }
         for album in albums {
             try? await albumRepo.delete(id: album.id)
@@ -84,11 +67,9 @@ extension HomeViewModel {
     }
 
     func confirmAlbumDeletionCombinedOnly(albums: [Album]) async {
-        if let useCase = deleteCombinedExports {
-            let pairIds = Set(albums.flatMap(\.pairIds))
-            if !pairIds.isEmpty {
-                try? await useCase(ids: pairIds)
-            }
+        let pairIds = Set(albums.flatMap(\.pairIds))
+        if !pairIds.isEmpty {
+            try? await deleteCombinedExports(ids: pairIds)
         }
         for album in albums {
             try? await albumRepo.delete(id: album.id)
@@ -109,30 +90,18 @@ extension HomeViewModel {
     }
 
     func confirmSingleAlbumDeletionOriginalOnly(_ album: Album) async {
-        guard let useCase = deletePairsKeepingCombined else { return }
         let pairIds = Set(album.pairIds)
         if !pairIds.isEmpty {
-            try? await useCase(ids: pairIds)
+            try? await deletePairsKeepingCombined(ids: pairIds)
         }
         try? await albumRepo.delete(id: album.id)
     }
 
     func confirmSingleAlbumDeletionCombinedOnly(_ album: Album) async {
-        if let useCase = deleteCombinedExports {
-            let pairIds = Set(album.pairIds)
-            if !pairIds.isEmpty {
-                try? await useCase(ids: pairIds)
-            }
+        let pairIds = Set(album.pairIds)
+        if !pairIds.isEmpty {
+            try? await deleteCombinedExports(ids: pairIds)
         }
         try? await albumRepo.delete(id: album.id)
-    }
-
-    func evictThumbnails(beforeIdentifier: String?, afterIdentifier: String?) {
-        if let beforeIdentifier {
-            thumbnailCache.evict(localIdentifier: beforeIdentifier)
-        }
-        if let afterIdentifier {
-            thumbnailCache.evict(localIdentifier: afterIdentifier)
-        }
     }
 }

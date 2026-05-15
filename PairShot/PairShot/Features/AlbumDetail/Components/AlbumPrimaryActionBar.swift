@@ -40,6 +40,8 @@ struct AlbumDetailBottomBarHost: View {
     let sortedPairs: [PhotoPair]
     let onPushExportSettings: (([UUID]) -> Void)?
 
+    @Environment(ExportCompletionCoordinator.self) private var exportCompletionCoordinator
+
     var body: some View {
         if viewModel.isSelectionMode {
             AlbumDetailSelectionBottomBar(
@@ -51,7 +53,7 @@ struct AlbumDetailBottomBarHost: View {
             )
         } else {
             AlbumEmptyActionBar(
-                onCapture: viewModel.startCapture,
+                onCapture: { Task { await viewModel.startCapture() } },
                 onPickPair: viewModel.startPairPicker
             )
         }
@@ -63,6 +65,9 @@ struct AlbumDetailBottomBarHost: View {
                 .filter { viewModel.selectedPairIds.contains($0.id) }
                 .map(\.id)
         guard !chosen.isEmpty else { return }
+        exportCompletionCoordinator.register { [weak viewModel] in
+            viewModel?.cancelSelection()
+        }
         onPushExportSettings?(chosen)
     }
 }

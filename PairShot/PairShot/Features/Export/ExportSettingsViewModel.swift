@@ -12,15 +12,11 @@ struct ExportShareItems: Identifiable {
 @MainActor
 @Observable
 final class ExportSettingsViewModel {
-    enum Event {
-        case dismiss
-    }
+    typealias GateResult = RewardedGateResult
 
-    enum GateResult: Equatable {
-        case proceed
-        case adNotReady
-        case userClosed
-        case failed(reason: String)
+    enum Event {
+        case completed
+        case dismiss
     }
 
     let pairIds: [UUID]
@@ -43,7 +39,8 @@ final class ExportSettingsViewModel {
     }
 
     var applyWatermark: Bool {
-        didSet { preferences.applyWatermark = applyWatermark }
+        get { appSettings.watermarkEnabled }
+        set { appSettings.watermarkEnabled = newValue }
     }
 
     var applyCombineSettings: Bool {
@@ -56,6 +53,7 @@ final class ExportSettingsViewModel {
     var zipExportItem: DocumentExporterItem?
     var showWatermarkGateDialog: Bool = false
     var showCombineGateDialog: Bool = false
+    var showPaywall: Bool = false
     var lastGateFailureReason: String?
 
     var zipSaveProgress: SnackbarProgressHandle?
@@ -68,6 +66,14 @@ final class ExportSettingsViewModel {
         !isExporting && hasAnyInclude && !pairIds.isEmpty
     }
 
+    var watermarkSettingsBlank: Bool {
+        appSettings.watermarkSettings.isBlank
+    }
+
+    var isProUser: Bool {
+        entitlement?.isPaidPro ?? false
+    }
+
     let pairRepo: PhotoPairRepository
     let photoLibrary: PhotoLibraryService
     let exportPairs: ExportPairsUseCase
@@ -78,7 +84,7 @@ final class ExportSettingsViewModel {
     let appSettings: AppSettings
     var preferences: ExportPreferences
     let interstitialAdManager: InterstitialAdManager?
-    let adFreeStore: AdFreeStore?
+    let entitlement: Entitlement?
     let fullscreenAdCoordinator: FullscreenAdCoordinator?
 
     var pendingZipURL: URL?
@@ -94,7 +100,7 @@ final class ExportSettingsViewModel {
         tempDirectoryProvider: @escaping @Sendable () -> URL = { FileManager.default.temporaryDirectory },
         preferences: ExportPreferences = ExportPreferences(),
         interstitialAdManager: InterstitialAdManager? = nil,
-        adFreeStore: AdFreeStore? = nil,
+        entitlement: Entitlement? = nil,
         fullscreenAdCoordinator: FullscreenAdCoordinator? = nil
     ) {
         self.pairIds = pairIds
@@ -107,13 +113,12 @@ final class ExportSettingsViewModel {
         self.preferences = preferences
         self.appSettings = appSettings
         self.interstitialAdManager = interstitialAdManager
-        self.adFreeStore = adFreeStore
+        self.entitlement = entitlement
         self.fullscreenAdCoordinator = fullscreenAdCoordinator
         includeCombined = preferences.includeCombined
         includeBefore = preferences.includeBefore
         includeAfter = preferences.includeAfter
         format = preferences.format
-        applyWatermark = preferences.applyWatermark
         applyCombineSettings = preferences.applyCombineSettings
         let stream = AsyncStream<Event>.makeStream()
         events = stream.stream
@@ -129,14 +134,17 @@ final class ExportSettingsViewModel {
     func clearShareItems() {
         shareItems = nil
         cleanupPendingZip()
+        eventsContinuation.yield(.completed)
         eventsContinuation.yield(.dismiss)
     }
 
     func share() async {
         guard canExecute else { return }
+        guard ensureExportEligibility() else { return }
         await InterstitialAdManager.runGated(
             manager: interstitialAdManager,
-            adFreeStore: adFreeStore,
+            adFreeStore: entitlement?.adFreeStore,
+            subscriptionStore: entitlement?.subscriptionStore,
             coordinator: fullscreenAdCoordinator
         ) { [weak self] in
             await self?.performShare()
@@ -145,9 +153,11 @@ final class ExportSettingsViewModel {
 
     func saveToDevice() async {
         guard canExecute else { return }
+        guard ensureExportEligibility() else { return }
         await InterstitialAdManager.runGated(
             manager: interstitialAdManager,
-            adFreeStore: adFreeStore,
+            adFreeStore: entitlement?.adFreeStore,
+            subscriptionStore: entitlement?.subscriptionStore,
             coordinator: fullscreenAdCoordinator
         ) { [weak self] in
             await self?.performSaveToDevice()
@@ -170,6 +180,7 @@ final class ExportSettingsViewModel {
         }
         cleanupPendingZip()
         if saved {
+            eventsContinuation.yield(.completed)
             eventsContinuation.yield(.dismiss)
         }
     }
@@ -185,7 +196,31 @@ final class ExportSettingsViewModel {
     func makeRenderOptions() -> ExportRenderOptions {
         ExportRenderOptions(
             applyCombineSettings: applyCombineSettings,
-            applyWatermark: applyWatermark
+            isPro: entitlement?.isPaidPro ?? false
         )
+    }
+
+    func ensureExportEligibility() -> Bool {
+        if format == .zip, !isProUser {
+            showPaywall = true
+            return false
+        }
+        if applyWatermark, watermarkSettingsBlank {
+            snackbarQueue.enqueue(
+                "snackbar_warning_watermark_setup_required",
+                variant: .warning,
+                debounceKey: "watermark-setup-required"
+            )
+            return false
+        }
+        return true
+    }
+
+    func selectFormat(_ newFormat: ExportFormat) {
+        if newFormat == .zip, !isProUser {
+            showPaywall = true
+            return
+        }
+        format = newFormat
     }
 }

@@ -8,6 +8,7 @@ struct AppEnvironmentFoundationOverrides {
     let adFreeStore: AdFreeStore?
     let trackingService: TrackingAuthorizationService?
     let settingsRedirectCoordinator: SettingsRedirectCoordinator?
+    let exportCompletionCoordinator: ExportCompletionCoordinator?
     let permissionStatusService: PermissionStatusService?
     let thumbnailCache: PhotoLibraryThumbnailCache?
     let hapticService: HapticService?
@@ -21,6 +22,7 @@ struct AppEnvironmentFoundation {
     let adFreeStore: AdFreeStore
     let trackingService: TrackingAuthorizationService
     let settingsRedirectCoordinator: SettingsRedirectCoordinator
+    let exportCompletionCoordinator: ExportCompletionCoordinator
     let permissionStatusService: PermissionStatusService
     let thumbnailCache: PhotoLibraryThumbnailCache
     let hapticService: HapticService
@@ -58,13 +60,13 @@ struct DataServicesBundle {
 
 struct UseCasesDependencies {
     let pairRepo: PhotoPairRepository
-    let albumRepo: AlbumRepository
     let photoLibrary: PhotoLibraryService
     let photoLibraryExporter: PhotoLibraryExport
     let location: CoreLocationService
     let zipExporter: ZipExporterAdapter
     let snackbarQueue: SnackbarQueue
     let appSettings: AppSettings
+    let entitlement: Entitlement?
 }
 
 struct UseCasesBundle {
@@ -75,27 +77,93 @@ struct UseCasesBundle {
     let deleteCombinedExports: DeleteCombinedExportsUseCase
     let deletePairsKeepingCombined: DeletePairsKeepingCombinedUseCase
     let exportPairs: ExportPairsUseCase
-    let toggleAlbumMembership: ToggleAlbumMembershipUseCase
     let immediateExport: ImmediateExportService
 }
 
+struct SubscriptionServicesOverrides {
+    let productsService: ProductsService?
+    let subscriptionStore: SubscriptionStore?
+    let transactionListener: TransactionListener?
+}
+
+struct SubscriptionServicesBundle {
+    let productsService: ProductsService
+    let subscriptionStore: SubscriptionStore
+    let transactionListener: TransactionListener
+}
+
+struct AppEnvironmentInitInput {
+    let modelContainer: ModelContainer
+    let foundationOverrides: AppEnvironmentFoundationOverrides
+    let adServicesOverrides: AdServicesOverrides
+    let subscriptionOverrides: SubscriptionServicesOverrides
+}
+
+struct AppEnvironmentBundles {
+    let foundation: AppEnvironmentFoundation
+    let adServices: AdServicesBundle
+    let dataServices: DataServicesBundle
+    let useCases: UseCasesBundle
+    let subscription: SubscriptionServicesBundle
+    let entitlement: Entitlement
+}
+
 extension AppEnvironment {
+    static func makeAllBundles(input: AppEnvironmentInitInput) -> AppEnvironmentBundles {
+        let foundation = makeFoundation(overrides: input.foundationOverrides)
+        let adServices = makeAdServices(
+            trackingService: foundation.trackingService,
+            overrides: input.adServicesOverrides
+        )
+        let dataServices = makeDataServices(
+            modelContainer: input.modelContainer,
+            appSettings: foundation.appSettings
+        )
+        let subscription = makeSubscriptionServices(overrides: input.subscriptionOverrides)
+        let entitlement = Entitlement(
+            subscriptionStore: subscription.subscriptionStore,
+            adFreeStore: foundation.adFreeStore
+        )
+        let useCases = makeUseCases(
+            dependencies: UseCasesDependencies(
+                pairRepo: dataServices.pairRepo,
+                photoLibrary: dataServices.photoLibrary,
+                photoLibraryExporter: dataServices.photoLibraryExporter,
+                location: dataServices.location,
+                zipExporter: dataServices.zipExporter,
+                snackbarQueue: foundation.snackbarQueue,
+                appSettings: foundation.appSettings,
+                entitlement: entitlement
+            )
+        )
+        return AppEnvironmentBundles(
+            foundation: foundation,
+            adServices: adServices,
+            dataServices: dataServices,
+            useCases: useCases,
+            subscription: subscription,
+            entitlement: entitlement
+        )
+    }
+
     static func makeFoundation(
         overrides: AppEnvironmentFoundationOverrides
     ) -> AppEnvironmentFoundation {
         let apiConfig = CouponApiConfig.resolve()
         let hashProvider = DeviceHashProvider()
         let statusFetcher = AdFreeStatusFetcher(config: apiConfig)
+        let hapticService = overrides.hapticService ?? HapticService()
         return AppEnvironmentFoundation(
             appSettings: overrides.appSettings ?? AppSettings(),
-            snackbarQueue: overrides.snackbarQueue ?? SnackbarQueue(),
+            snackbarQueue: overrides.snackbarQueue ?? SnackbarQueue(hapticService: hapticService),
             appSettingsRepo: overrides.appSettingsRepo ?? UserDefaultsAppSettingsRepository(),
             adFreeStore: overrides.adFreeStore ?? AdFreeStore(fetcher: statusFetcher, deviceHashProvider: hashProvider),
             trackingService: overrides.trackingService ?? TrackingAuthorizationService(),
             settingsRedirectCoordinator: overrides.settingsRedirectCoordinator ?? SettingsRedirectCoordinator(),
+            exportCompletionCoordinator: overrides.exportCompletionCoordinator ?? ExportCompletionCoordinator(),
             permissionStatusService: overrides.permissionStatusService ?? PermissionStatusService(),
             thumbnailCache: overrides.thumbnailCache ?? PhotoLibraryThumbnailCache(),
-            hapticService: overrides.hapticService ?? HapticService(),
+            hapticService: hapticService,
             motionService: overrides.motionService ?? MotionService(),
             apiConfig: apiConfig,
             deviceHashProvider: hashProvider
@@ -139,6 +207,18 @@ extension AppEnvironment {
         )
     }
 
+    static func makeSubscriptionServices(
+        overrides: SubscriptionServicesOverrides
+    ) -> SubscriptionServicesBundle {
+        let scheduler = RenewalReminderScheduler()
+        return SubscriptionServicesBundle(
+            productsService: overrides.productsService ?? ProductsService(),
+            subscriptionStore: overrides.subscriptionStore
+                ?? SubscriptionStore(renewalReminderScheduler: scheduler),
+            transactionListener: overrides.transactionListener ?? TransactionListener()
+        )
+    }
+
     static func makeUseCases(
         dependencies: UseCasesDependencies
     ) -> UseCasesBundle {
@@ -167,14 +247,14 @@ extension AppEnvironment {
             deleteCombinedExports: DeleteCombinedExportsUseCase(pairRepo: pairRepo, photoLibrary: photoLibrary),
             deletePairsKeepingCombined: deletePairsKeepingCombined,
             exportPairs: exportPairs,
-            toggleAlbumMembership: ToggleAlbumMembershipUseCase(albumRepo: dependencies.albumRepo),
             immediateExport: ImmediateExportService(
                 photoLibrary: photoLibrary,
                 exportPairs: exportPairs,
                 photoLibraryExporter: dependencies.photoLibraryExporter,
                 snackbarQueue: dependencies.snackbarQueue,
                 appSettings: dependencies.appSettings,
-                pairRepo: pairRepo
+                pairRepo: pairRepo,
+                entitlement: dependencies.entitlement
             )
         )
     }

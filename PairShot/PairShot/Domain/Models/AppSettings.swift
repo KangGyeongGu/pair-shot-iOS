@@ -131,6 +131,12 @@ final class AppSettings {
         set { defaults.set(newValue, forKey: AppSettingsKeys.embedGPSInPhoto) }
     }
 
+    var hasCompletedFirstRunPaywall: Bool {
+        didSet {
+            defaults.set(hasCompletedFirstRunPaywall, forKey: AppSettingsKeys.hasCompletedFirstRunPaywall)
+        }
+    }
+
     var homeSortOrder: String {
         didSet {
             let normalized = SortOrderPersistence.normalize(homeSortOrder)
@@ -179,6 +185,7 @@ final class AppSettings {
             AppSettingsKeys.albumSortOrder: SortOrderPersistence.defaultRawValue,
         ])
         watermarkEnabled = defaults.bool(forKey: AppSettingsKeys.watermarkEnabled)
+        hasCompletedFirstRunPaywall = defaults.bool(forKey: AppSettingsKeys.hasCompletedFirstRunPaywall)
         let storedHome =
             defaults.string(forKey: AppSettingsKeys.homeSortOrder)
                 ?? SortOrderPersistence.defaultRawValue

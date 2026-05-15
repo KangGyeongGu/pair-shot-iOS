@@ -2,6 +2,10 @@ import Foundation
 import UIKit
 
 extension ExportSettingsViewModel {
+    var gateCoordinator: RewardedGateCoordinator {
+        RewardedGateCoordinator(entitlement: entitlement)
+    }
+
     func requestWatermarkGate(rewardedManager: RewardedAdManager) -> Bool {
         requestGate(
             unlockID: .watermarkSettings,
@@ -44,67 +48,35 @@ extension ExportSettingsViewModel {
         )
     }
 
-    func requestGate(
+    private func requestGate(
         unlockID: RewardedAdManager.UnlockID,
         rewardedManager: RewardedAdManager,
         dialogFlag: ReferenceWritableKeyPath<ExportSettingsViewModel, Bool>
     ) -> Bool {
         lastGateFailureReason = nil
-        if !RewardedSessionGate.shouldShowGate(
-            unlockID: unlockID,
-            sessionUnlocks: rewardedManager.sessionUnlocks,
-            isAdFree: adFreeStore?.isAdFree ?? false
-        ) {
+        let coordinator = gateCoordinator
+        if coordinator.shouldProceedWithoutGate(unlockID: unlockID, rewardedManager: rewardedManager) {
             return true
         }
-        rewardedManager.loadIfNeeded(adFreeStore: adFreeStore)
+        coordinator.loadAd(rewardedManager: rewardedManager)
         self[keyPath: dialogFlag] = true
         return false
     }
 
-    func presentGateAd(
+    private func presentGateAd(
         unlockID: RewardedAdManager.UnlockID,
         rewardedManager: RewardedAdManager,
         coordinator: FullscreenAdCoordinator,
         rootViewController: UIViewController?
     ) async -> GateResult {
         lastGateFailureReason = nil
-        if !RewardedSessionGate.shouldShowGate(
+        let outcome = await gateCoordinator.presentGateAd(
             unlockID: unlockID,
-            sessionUnlocks: rewardedManager.sessionUnlocks,
-            isAdFree: adFreeStore?.isAdFree ?? false
-        ) {
-            return .proceed
-        }
-        if !rewardedManager.isLoaded {
-            rewardedManager.loadIfNeeded(adFreeStore: adFreeStore)
-            lastGateFailureReason = String(localized: "rewarded_gate_load_failed")
-            return .adNotReady
-        }
-        let outcome = await rewardedManager.presentForReward(
-            unlockID,
-            from: rootViewController,
+            rewardedManager: rewardedManager,
             coordinator: coordinator,
-            adFreeStore: adFreeStore
+            rootViewController: rootViewController
         )
-        return mapOutcome(outcome)
-    }
-
-    func mapOutcome(_ outcome: RewardedAdManager.RewardOutcome) -> GateResult {
-        switch outcome {
-            case .granted:
-                return .proceed
-
-            case .userClosed:
-                lastGateFailureReason = String(localized: "rewarded_gate_failure_not_completed")
-                return .userClosed
-
-            case let .failed(reason):
-                lastGateFailureReason = String(
-                    format: String(localized: "rewarded_gate_failure_show_failed_template"),
-                    reason
-                )
-                return .failed(reason: reason)
-        }
+        lastGateFailureReason = outcome.failureReason
+        return outcome.result
     }
 }

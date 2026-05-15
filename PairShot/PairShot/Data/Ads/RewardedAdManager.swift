@@ -11,9 +11,10 @@ enum RewardedSessionGate {
     static func shouldShowGate(
         unlockID: RewardedAdManager.UnlockID,
         sessionUnlocks: Set<RewardedAdManager.UnlockID>,
-        isAdFree: Bool
+        isAdFree: Bool,
+        isPro: Bool = false
     ) -> Bool {
-        if isAdFree { return false }
+        if AdSuppression.isSuppressed(isAdFree: isAdFree, isPro: isPro) { return false }
         if sessionUnlocks.contains(unlockID) { return false }
         return true
     }
@@ -55,9 +56,10 @@ final class RewardedAdManager {
 
     func loadIfNeeded(
         adUnitID: String? = nil,
-        adFreeStore: AdFreeStore? = nil
+        adFreeStore: AdFreeStore? = nil,
+        subscriptionStore: SubscriptionStore? = nil
     ) {
-        if let adFreeStore, adFreeStore.isAdFree { return }
+        if AdSuppression.isSuppressed(adFreeStore: adFreeStore, subscriptionStore: subscriptionStore) { return }
         guard !isLoaded, !isLoading else { return }
         let resolvedUnitID = adUnitID ?? AdsConfig.rewarded
         #if canImport(GoogleMobileAds)
@@ -98,9 +100,10 @@ final class RewardedAdManager {
         from rootViewController: UIViewController?,
         coordinator: FullscreenAdCoordinator,
         adFreeStore: AdFreeStore? = nil,
+        subscriptionStore: SubscriptionStore? = nil,
         adUnitID: String? = nil
     ) async -> RewardOutcome {
-        if let adFreeStore, adFreeStore.isAdFree {
+        if AdSuppression.isSuppressed(adFreeStore: adFreeStore, subscriptionStore: subscriptionStore) {
             sessionUnlocks.insert(unlockID)
             return .granted
         }
@@ -151,7 +154,11 @@ final class RewardedAdManager {
 
             self.ad = nil
             isLoaded = false
-            loadIfNeeded(adUnitID: adUnitID ?? AdsConfig.rewarded, adFreeStore: adFreeStore)
+            loadIfNeeded(
+                adUnitID: adUnitID ?? AdsConfig.rewarded,
+                adFreeStore: adFreeStore,
+                subscriptionStore: subscriptionStore
+            )
 
             if case .granted = outcome {
                 sessionUnlocks.insert(unlockID)

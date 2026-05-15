@@ -1,37 +1,5 @@
 import SwiftUI
-
-struct SettingsGeneralSection: View {
-    @Bindable var viewModel: SettingsViewModel
-    @Binding var path: [Route]
-
-    var body: some View {
-        Section {
-            Button {
-                path.append(.languagePicker)
-            } label: {
-                SettingsNavigationRow(
-                    icon: SettingsRowIcon(systemImage: "globe", color: .blue),
-                    title: String(localized: "settings_item_language"),
-                    value: viewModel.languageDisplayText
-                )
-            }
-            .buttonStyle(.plain)
-
-            Button {
-                path.append(.themePicker)
-            } label: {
-                SettingsNavigationRow(
-                    icon: SettingsRowIcon(systemImage: "circle.lefthalf.filled", color: .indigo),
-                    title: String(localized: "settings_item_theme"),
-                    value: viewModel.themeDisplayText
-                )
-            }
-            .buttonStyle(.plain)
-        } header: {
-            Text(String(localized: "settings_section_general"))
-        }
-    }
-}
+import UIKit
 
 struct SettingsCaptureFileSection: View {
     @Bindable var viewModel: SettingsViewModel
@@ -62,8 +30,31 @@ struct SettingsCaptureFileSection: View {
                 )
             }
             .buttonStyle(.plain)
+
+            embedGPSRow
         } header: {
             Text(String(localized: "settings_section_shooting_files"))
+        }
+    }
+
+    private var embedGPSRow: some View {
+        Toggle(
+            isOn: Binding(
+                get: { viewModel.embedGPSInPhoto },
+                set: { viewModel.embedGPSInPhoto = $0 }
+            )
+        ) {
+            HStack(spacing: 12) {
+                SettingsIconBadge(
+                    icon: SettingsRowIcon(systemImage: "location.fill", color: .blue)
+                )
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(String(localized: "settings_embed_gps_title"))
+                    Text(String(localized: "settings_embed_gps_subtitle"))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
         }
     }
 
@@ -99,9 +90,7 @@ struct SettingsCaptureFileSection: View {
                             .frame(width: 48, alignment: .trailing)
                     }
                     if viewModel.overlayAlphaValue > 0.75 {
-                        Text(String(localized: "settings_warning_opacity_high"))
-                            .font(.caption)
-                            .foregroundStyle(.orange)
+                        InlineWarningLabel(text: String(localized: "settings_warning_opacity_high"))
                     }
                 }
                 .transition(.opacity.combined(with: .move(edge: .top)))
@@ -114,6 +103,7 @@ struct SettingsCaptureFileSection: View {
 struct SettingsWatermarkSection: View {
     @Bindable var viewModel: SettingsViewModel
     @Binding var path: [Route]
+    @Environment(RewardedAdManager.self) private var rewardedManager
 
     var body: some View {
         Section {
@@ -134,7 +124,9 @@ struct SettingsWatermarkSection: View {
             }
             if viewModel.watermarkEnabled {
                 Button {
-                    path.append(.watermarkSettings)
+                    if viewModel.requestWatermarkGate(rewardedManager: rewardedManager) {
+                        path.append(.watermarkSettings)
+                    }
                 } label: {
                     HStack(spacing: 12) {
                         SettingsIconBadge(
@@ -144,9 +136,7 @@ struct SettingsWatermarkSection: View {
                             .foregroundStyle(.primary)
                         Spacer()
                         if viewModel.watermarkSettingsBlank {
-                            Text(String(localized: "settings_warning_required"))
-                                .font(.subheadline)
-                                .foregroundStyle(.red)
+                            InlineWarningLabel(text: String(localized: "settings_warning_setup_needed"))
                         }
                         Image(systemName: "chevron.right")
                             .font(.caption.bold())
@@ -164,12 +154,15 @@ struct SettingsWatermarkSection: View {
 struct SettingsCombineSection: View {
     @Bindable var viewModel: SettingsViewModel
     @Binding var path: [Route]
+    @Environment(RewardedAdManager.self) private var rewardedManager
 
     var body: some View {
         Section {
             HighlightableCard(isHighlighted: viewModel.shouldPulseCombine) {
                 Button {
-                    path.append(.combineSettings)
+                    if viewModel.requestCombineGate(rewardedManager: rewardedManager) {
+                        path.append(.combineSettings)
+                    }
                 } label: {
                     HStack(spacing: 12) {
                         SettingsIconBadge(
@@ -191,108 +184,35 @@ struct SettingsCombineSection: View {
     }
 }
 
-struct SettingsPrivacySection: View {
+struct SettingsGeneralSection: View {
     @Bindable var viewModel: SettingsViewModel
+    @Binding var path: [Route]
 
     var body: some View {
         Section {
-            Toggle(
-                isOn: Binding(
-                    get: { viewModel.embedGPSInPhoto },
-                    set: { viewModel.embedGPSInPhoto = $0 }
+            Button {
+                path.append(.languagePicker)
+            } label: {
+                SettingsNavigationRow(
+                    icon: SettingsRowIcon(systemImage: "globe", color: .blue),
+                    title: String(localized: "settings_item_language"),
+                    value: viewModel.languageDisplayText
                 )
-            ) {
-                HStack(spacing: 12) {
-                    SettingsIconBadge(
-                        icon: SettingsRowIcon(systemImage: "location.fill", color: .blue)
-                    )
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(String(localized: "settings_embed_gps_title"))
-                        Text(String(localized: "settings_embed_gps_subtitle"))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
             }
+            .buttonStyle(.plain)
+
+            Button {
+                path.append(.themePicker)
+            } label: {
+                SettingsNavigationRow(
+                    icon: SettingsRowIcon(systemImage: "circle.lefthalf.filled", color: .indigo),
+                    title: String(localized: "settings_item_theme"),
+                    value: viewModel.themeDisplayText
+                )
+            }
+            .buttonStyle(.plain)
         } header: {
-            Text(String(localized: "settings_embed_gps_section_header"))
-        }
-    }
-}
-
-struct SettingsPromotionCodeSection: View {
-    @Environment(AppEnvironment.self) private var env
-    @Environment(AdFreeStore.self) private var adFreeStore
-
-    var body: some View {
-        Section {
-            HStack(spacing: 12) {
-                SettingsIconBadge(
-                    icon: SettingsRowIcon(systemImage: "tag.fill", color: .pink)
-                )
-                Text(String(localized: "settings_promotion_code_redeem"))
-                Spacer()
-                Image(systemName: "arrow.up.right.square")
-                    .foregroundStyle(.secondary)
-            }
-            .contentShape(Rectangle())
-            .onTapGesture {
-                CouponRedemptionLink.open(
-                    config: env.couponApiConfig,
-                    deviceHashProvider: env.deviceHashProvider
-                )
-            }
-        } footer: {
-            if adFreeStore.isAdFree {
-                Text(adFreeStatusFooterText)
-            }
-        }
-    }
-
-    private var adFreeStatusFooterText: String {
-        let activeBase = String(localized: "settings_promotion_code_status_active")
-        guard let remaining = adFreeStore.remainingDays else {
-            return String(localized: "settings_promotion_code_status_permanent")
-        }
-        let remainingText = String(
-            format: String(localized: "settings_promotion_code_status_remaining_days"),
-            remaining
-        )
-        if adFreeStore.couponCount >= 2 {
-            let couponsText = String(
-                format: String(localized: "settings_promotion_code_status_coupons_template"),
-                adFreeStore.couponCount
-            )
-            return "\(activeBase) (\(couponsText)) — \(remainingText)"
-        }
-        return "\(activeBase) — \(remainingText)"
-    }
-}
-
-struct SettingsPrivacyOptionsSection: View {
-    @Environment(AppEnvironment.self) private var env
-
-    var body: some View {
-        if env.consentManager.canShowPrivacyOptionsButton {
-            Section {
-                Button {
-                    Task { await env.consentManager.presentPrivacyOptions() }
-                } label: {
-                    HStack(spacing: 12) {
-                        SettingsIconBadge(
-                            icon: SettingsRowIcon(systemImage: "hand.raised.fill", color: .blue)
-                        )
-                        Text(String(localized: "settings_privacy_options"))
-                            .foregroundStyle(.primary)
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .font(.caption.bold())
-                            .foregroundStyle(.tertiary)
-                    }
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-            }
+            Text(String(localized: "settings_section_general"))
         }
     }
 }
@@ -300,6 +220,8 @@ struct SettingsPrivacyOptionsSection: View {
 struct SettingsStorageInfoSection: View {
     @Bindable var viewModel: SettingsViewModel
     let openURL: OpenURLAction
+    @Binding var path: [Route]
+    @Environment(AppEnvironment.self) private var env
 
     var body: some View {
         Section {
@@ -338,17 +260,78 @@ struct SettingsStorageInfoSection: View {
             }
             .contentShape(Rectangle())
             .onTapGesture { openURL(SettingsExternalLinks.privacyPolicy) }
+
+            if env.consentManager.canShowPrivacyOptionsButton {
+                Button {
+                    Task { await env.consentManager.presentPrivacyOptions() }
+                } label: {
+                    HStack(spacing: 12) {
+                        SettingsIconBadge(
+                            icon: SettingsRowIcon(systemImage: "hand.raised.fill", color: .blue)
+                        )
+                        Text(String(localized: "settings_privacy_options"))
+                            .foregroundStyle(.primary)
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.caption.bold())
+                            .foregroundStyle(.tertiary)
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
         } header: {
             Text(String(localized: "settings_section_storage_and_info"))
         }
     }
 }
 
-enum SettingsExternalLinks {
-    static let privacyPolicy: URL = {
-        guard let url = URL(string: "https://pairshot.kangkyeonggu.com/privacy") else {
-            fatalError("Invalid static URL")
+struct SettingsProPromoCard: View {
+    let onLearnMore: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            Text(String(localized: "settings_pro_promo_title"))
+                .font(.title3.weight(.bold))
+                .foregroundStyle(.primary)
+
+            VStack(alignment: .leading, spacing: 10) {
+                promoFeatureRow(text: String(localized: "settings_pro_promo_feature_pairs"))
+                promoFeatureRow(text: String(localized: "settings_pro_promo_feature_no_ads"))
+                promoFeatureRow(text: String(localized: "settings_pro_promo_feature_full_access"))
+            }
+
+            Button(action: onLearnMore) {
+                Text(String(localized: "settings_pro_promo_cta"))
+                    .font(.subheadline.weight(.semibold))
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
         }
-        return url
-    }()
+        .padding(20)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color(uiColor: .secondarySystemGroupedBackground))
+        )
+    }
+
+    private func promoFeatureRow(text: String) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: "checkmark")
+                .font(.footnote.weight(.bold))
+                .foregroundStyle(.tint)
+                .frame(width: 16)
+            Text(text)
+                .font(.subheadline)
+                .foregroundStyle(.primary)
+        }
+    }
+}
+
+enum SettingsExternalLinks {
+    static var privacyPolicy: URL {
+        PaywallURLs.privacy
+    }
 }

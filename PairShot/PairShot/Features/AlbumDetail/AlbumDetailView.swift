@@ -1,4 +1,3 @@
-import SwiftData
 import SwiftUI
 
 struct AlbumDetailView: View {
@@ -6,9 +5,8 @@ struct AlbumDetailView: View {
     let onPushExportSettings: (([UUID]) -> Void)?
 
     @Environment(AppEnvironment.self) private var env
-    @Environment(AdFreeStore.self) private var adFreeStore
+    @Environment(Entitlement.self) private var entitlement
     @Environment(\.dismiss) private var dismiss
-    @Query private var albums: [AlbumEntity]
 
     @State private var viewModel: AlbumDetailViewModel?
 
@@ -18,27 +16,9 @@ struct AlbumDetailView: View {
     ]
 
     var body: some View {
-        ZStack {
-            Color(.systemGroupedBackground).ignoresSafeArea()
-            if let viewModel, let album = albums.first {
-                content(for: viewModel, album: album)
-            } else if albums.isEmpty {
-                missingAlbumView
-            } else {
-                ProgressView()
-            }
-        }
-        .navigationTitle(albums.first?.name ?? "")
-        .navigationBarTitleDisplayMode(.inline)
-        .navigationBarBackButtonHidden(viewModel?.isSelectionMode == true)
-        .toolbar { toolbar }
-        .task { ensureViewModel() }
-        .onChange(of: viewModel?.albumDeleted ?? false) { _, deleted in
-            if deleted { dismiss() }
-        }
-        .sheet(isPresented: pairPickerSheetBinding) {
-            NavigationStack {
-                PairPickerView(albumId: albumId)
+        AlbumByIdQueryHost(id: albumId) { album in
+            PhotoPairQueryHost { allDomainPairs in
+                rootContent(album: album, allDomainPairs: allDomainPairs)
             }
         }
     }
@@ -50,29 +30,6 @@ struct AlbumDetailView: View {
                 if !newValue { viewModel?.navigateToPairPicker = false }
             }
         )
-    }
-
-    @ToolbarContentBuilder
-    private var toolbar: some ToolbarContent {
-        if let viewModel, let album = albums.first {
-            let domainPairs = album.pairs.map { $0.toDomain() }
-            let sorted = viewModel.sortedPairs(from: domainPairs)
-            let domainAlbum = Self.toDomain(album)
-            if viewModel.isSelectionMode {
-                AlbumDetailSelectionToolbar(
-                    selectionCount: viewModel.selectedPairIds.count,
-                    allSelected: viewModel.areAllPairsSelected(from: sorted),
-                    onCancel: viewModel.cancelSelection,
-                    onToggleSelectAll: { viewModel.selectAllPairs(from: sorted) }
-                )
-            } else {
-                AlbumDetailDefaultToolbar(
-                    onSelect: viewModel.enterSelectionMode,
-                    onRename: { viewModel.beginRename(currentName: album.name) },
-                    onDelete: { viewModel.requestAlbumDeletion(album: domainAlbum) }
-                )
-            }
-        }
     }
 
     private var missingAlbumView: some View {
@@ -93,8 +50,58 @@ struct AlbumDetailView: View {
     ) {
         self.albumId = albumId
         self.onPushExportSettings = onPushExportSettings
-        let predicate = #Predicate<AlbumEntity> { $0.id == albumId }
-        _albums = Query(filter: predicate)
+    }
+
+    @ViewBuilder
+    private func rootContent(album: Album?, allDomainPairs: [PhotoPair]) -> some View {
+        let albumPairs = album.map { current in
+            allDomainPairs.filter { current.pairIds.contains($0.id) }
+        } ?? []
+
+        ZStack {
+            Color(.systemGroupedBackground).ignoresSafeArea()
+            if let viewModel, let album {
+                content(for: viewModel, album: album, albumPairs: albumPairs)
+            } else if album == nil {
+                missingAlbumView
+            } else {
+                ProgressView()
+            }
+        }
+        .navigationTitle(album?.name ?? "")
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(viewModel?.isSelectionMode == true)
+        .toolbar { toolbar(album: album, albumPairs: albumPairs) }
+        .task { ensureViewModel() }
+        .onChange(of: viewModel?.albumDeleted ?? false) { _, deleted in
+            if deleted { dismiss() }
+        }
+        .sheet(isPresented: pairPickerSheetBinding) {
+            NavigationStack {
+                PairPickerView(albumId: albumId)
+            }
+        }
+    }
+
+    @ToolbarContentBuilder
+    private func toolbar(album: Album?, albumPairs: [PhotoPair]) -> some ToolbarContent {
+        if let viewModel, let album {
+            let sorted = viewModel.sortedPairs(from: albumPairs)
+            if viewModel.isSelectionMode {
+                AlbumDetailSelectionToolbar(
+                    selectionCount: viewModel.selectedPairIds.count,
+                    allSelected: viewModel.areAllPairsSelected(from: sorted),
+                    onCancel: viewModel.cancelSelection,
+                    onToggleSelectAll: { viewModel.selectAllPairs(from: sorted) }
+                )
+            } else {
+                AlbumDetailDefaultToolbar(
+                    onSelect: viewModel.enterSelectionMode,
+                    onRename: { viewModel.beginRename(currentName: album.name) },
+                    onDelete: { viewModel.requestAlbumDeletion(album: album) }
+                )
+            }
+        }
     }
 
     private func ensureViewModel() {
@@ -104,10 +111,12 @@ struct AlbumDetailView: View {
     }
 
     @ViewBuilder
-    private func content(for viewModel: AlbumDetailViewModel, album: AlbumEntity) -> some View {
-        let domainPairs = album.pairs.map { $0.toDomain() }
-        let sortedPairs = viewModel.sortedPairs(from: domainPairs)
-        let domainAlbum = Self.toDomain(album)
+    private func content(
+        for viewModel: AlbumDetailViewModel,
+        album: Album,
+        albumPairs: [PhotoPair]
+    ) -> some View {
+        let sortedPairs = viewModel.sortedPairs(from: albumPairs)
 
         VStack(spacing: 0) {
             BannerAdSlot()
@@ -123,9 +132,10 @@ struct AlbumDetailView: View {
         }
         .modifier(AlbumDetailCameraCovers(viewModel: viewModel))
         .modifier(AlbumDeletePairsDialog(viewModel: viewModel))
-        .modifier(AlbumDetailRenameAlert(viewModel: viewModel, album: domainAlbum))
+        .modifier(AlbumDetailRenameAlert(viewModel: viewModel, album: album))
         .modifier(AlbumDetailDeleteAlbumAlert(viewModel: viewModel))
         .modifier(AlbumDetailShareSheet(viewModel: viewModel))
+        .modifier(AlbumDetailPaywallSheet(viewModel: viewModel))
     }
 
     @ViewBuilder
@@ -133,7 +143,10 @@ struct AlbumDetailView: View {
         if pairs.isEmpty {
             AlbumDetailEmptyState()
         } else {
-            let chunks = PairListWithAdsBuilder.buildChunks(pairs: pairs, adFree: adFreeStore.isAdFree).chunks
+            let chunks = PairListWithAdsBuilder.buildChunks(
+                pairs: pairs,
+                adFree: entitlement.isAdSuppressed
+            ).chunks
             ScrollView {
                 LazyVStack(spacing: 12) {
                     ForEach(chunks) { chunk in
@@ -214,18 +227,6 @@ struct AlbumDetailView: View {
             }
         }
     }
-
-    static func toDomain(_ entity: AlbumEntity) -> Album {
-        Album(
-            name: entity.name,
-            id: entity.id,
-            latitude: entity.latitude,
-            longitude: entity.longitude,
-            locationLabel: entity.locationLabel,
-            createdAt: entity.createdAt,
-            pairIds: entity.pairs.map(\.id)
-        )
-    }
 }
 
 struct AlbumDetailCameraCovers: ViewModifier {
@@ -290,5 +291,13 @@ struct AlbumDetailShareSheet: ViewModifier {
                         }
                     }
             )
+    }
+}
+
+struct AlbumDetailPaywallSheet: ViewModifier {
+    @Bindable var viewModel: AlbumDetailViewModel
+
+    func body(content: Content) -> some View {
+        content.paywallSheet(isPresented: $viewModel.showPaywall)
     }
 }

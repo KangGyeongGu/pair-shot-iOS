@@ -7,7 +7,8 @@ extension HomeViewModel {
         guard !isExporting else { return }
         await InterstitialAdManager.runGated(
             manager: interstitialAdManager,
-            adFreeStore: adFreeStore,
+            adFreeStore: entitlement.adFreeStore,
+            subscriptionStore: entitlement.subscriptionStore,
             coordinator: fullscreenAdCoordinator
         ) { [weak self] in
             await self?.performShare(pairs: chosen)
@@ -20,7 +21,8 @@ extension HomeViewModel {
         guard !isExporting else { return }
         await InterstitialAdManager.runGated(
             manager: interstitialAdManager,
-            adFreeStore: adFreeStore,
+            adFreeStore: entitlement.adFreeStore,
+            subscriptionStore: entitlement.subscriptionStore,
             coordinator: fullscreenAdCoordinator
         ) { [weak self] in
             await self?.performSaveToDevice(pairs: chosen)
@@ -36,7 +38,8 @@ extension HomeViewModel {
         guard !chosen.isEmpty, !isExporting else { return }
         await InterstitialAdManager.runGated(
             manager: interstitialAdManager,
-            adFreeStore: adFreeStore,
+            adFreeStore: entitlement.adFreeStore,
+            subscriptionStore: entitlement.subscriptionStore,
             coordinator: fullscreenAdCoordinator
         ) { [weak self] in
             await self?.performShare(pairs: chosen)
@@ -52,7 +55,8 @@ extension HomeViewModel {
         guard !chosen.isEmpty, !isExporting else { return }
         await InterstitialAdManager.runGated(
             manager: interstitialAdManager,
-            adFreeStore: adFreeStore,
+            adFreeStore: entitlement.adFreeStore,
+            subscriptionStore: entitlement.subscriptionStore,
             coordinator: fullscreenAdCoordinator
         ) { [weak self] in
             await self?.performSaveToDevice(pairs: chosen)
@@ -63,7 +67,8 @@ extension HomeViewModel {
         guard !isExporting else { return }
         await InterstitialAdManager.runGated(
             manager: interstitialAdManager,
-            adFreeStore: adFreeStore,
+            adFreeStore: entitlement.adFreeStore,
+            subscriptionStore: entitlement.subscriptionStore,
             coordinator: fullscreenAdCoordinator
         ) { [weak self] in
             await self?.performShare(pairs: [pair])
@@ -74,7 +79,8 @@ extension HomeViewModel {
         guard !isExporting else { return }
         await InterstitialAdManager.runGated(
             manager: interstitialAdManager,
-            adFreeStore: adFreeStore,
+            adFreeStore: entitlement.adFreeStore,
+            subscriptionStore: entitlement.subscriptionStore,
             coordinator: fullscreenAdCoordinator
         ) { [weak self] in
             await self?.performSaveToDevice(pairs: [pair])

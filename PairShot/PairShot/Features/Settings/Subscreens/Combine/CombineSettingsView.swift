@@ -2,6 +2,8 @@ import SwiftUI
 
 struct CombineSettingsView: View {
     @Bindable var viewModel: CombineSettingsViewModel
+    @Environment(Entitlement.self) private var entitlement
+    @State private var showPaywall: Bool = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -11,12 +13,13 @@ struct CombineSettingsView: View {
                 directionSection
                 borderSection
                 labelSection
-                if viewModel.settings.label.isEnabled {
+                if viewModel.settings.label.isEnabled, entitlement.isPaidPro {
                     labelModeSection
                     labelBackgroundSection
                 }
             }
             .listStyle(.insetGrouped)
+            .paywallSheet(isPresented: $showPaywall)
         }
         .navigationTitle(String(localized: "export_settings_section_combine"))
         .navigationBarTitleDisplayMode(.inline)
@@ -40,10 +43,15 @@ struct CombineSettingsView: View {
     private var directionSection: some View {
         Section {
             Picker(String(localized: "combine_field_direction"), selection: $viewModel.settings.direction) {
-                Text(String(localized: "combine_direction_horizontal_full")).tag(CombineSettings.Direction.horizontal)
-                Text(String(localized: "combine_direction_vertical_full")).tag(CombineSettings.Direction.vertical)
+                Text(String(localized: "combine_direction_horizontal_full"))
+                    .tag(CombineSettings.Direction.horizontal)
+                Text(String(localized: "combine_direction_vertical_full"))
+                    .tag(CombineSettings.Direction.vertical)
             }
             .pickerStyle(.segmented)
+            .labelsHidden()
+            .listRowBackground(Color.clear)
+            .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
         } header: {
             Text(String(localized: "combine_field_alignment"))
         }
@@ -75,35 +83,50 @@ struct CombineSettingsView: View {
 
     private var labelSection: some View {
         Section {
-            Toggle(isOn: $viewModel.settings.label.isEnabled) {
-                Label(String(localized: "combine_item_label_use"), systemImage: "textformat")
-            }
-            if viewModel.settings.label.isEnabled {
-                CombineLabelTextField(
-                    title: String(localized: "combine_field_label_before"),
-                    text: $viewModel.settings.label.beforeText
-                )
-                CombineLabelTextField(
-                    title: String(localized: "combine_field_label_after"),
-                    text: $viewModel.settings.label.afterText
-                )
-                CombineSliderRow(
-                    title: String(localized: "combine_field_text_size"),
-                    value: $viewModel.settings.label.textSizePercent,
-                    range: CombineSettings.labelTextSizeRange,
-                    step: 1,
-                    valueLabel: "\(Int(viewModel.settings.label.textSizePercent))%"
-                )
-                ColorPicker(
-                    String(localized: "combine_field_text_color"),
-                    selection: labelTextColorBinding,
-                    supportsOpacity: false
-                )
+            if entitlement.isPaidPro {
+                Toggle(isOn: $viewModel.settings.label.isEnabled) {
+                    Label(String(localized: "combine_item_label_use"), systemImage: "textformat")
+                }
+                if viewModel.settings.label.isEnabled {
+                    CombineLabelTextField(
+                        title: String(localized: "combine_field_label_before"),
+                        text: $viewModel.settings.label.beforeText
+                    )
+                    CombineLabelTextField(
+                        title: String(localized: "combine_field_label_after"),
+                        text: $viewModel.settings.label.afterText
+                    )
+                    CombineSliderRow(
+                        title: String(localized: "combine_field_text_size"),
+                        value: $viewModel.settings.label.textSizePercent,
+                        range: CombineSettings.labelTextSizeRange,
+                        step: 1,
+                        valueLabel: "\(Int(viewModel.settings.label.textSizePercent))%"
+                    )
+                    ColorPicker(
+                        String(localized: "combine_field_text_color"),
+                        selection: labelTextColorBinding,
+                        supportsOpacity: false
+                    )
+                }
+            } else {
+                Button {
+                    showPaywall = true
+                } label: {
+                    HStack(spacing: 12) {
+                        Label(String(localized: "combine_item_label_use"), systemImage: "textformat")
+                            .foregroundStyle(.primary)
+                        Spacer()
+                        ProLockBadge()
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
             }
         } header: {
             Text(String(localized: "combine_section_label"))
         } footer: {
-            if !viewModel.settings.label.isEnabled {
+            if !viewModel.settings.label.isEnabled || !entitlement.isPaidPro {
                 previewFooter
             }
         }

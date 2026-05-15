@@ -32,6 +32,11 @@ struct PairShotApp: App {
                 .environment(env.adFreeStore)
                 .environment(env.trackingService)
                 .environment(env.appSettings)
+                .environment(env.productsService)
+                .environment(env.subscriptionStore)
+                .environment(env.transactionListener)
+                .environment(env.entitlement)
+                .environment(env.exportCompletionCoordinator)
                 .environment(\.locale, env.appSettings.resolvedLocale)
                 .preferredColorScheme(env.appSettings.resolvedColorScheme)
                 .task {
@@ -40,11 +45,18 @@ struct PairShotApp: App {
                         await env.permissionStatusService.requestAllInOrder()
                     }
                     _ = await env.trackingService.requestIfUndetermined()
-                    await bootstrapAds()
+                    await bootstrapSubscription()
+                    if shouldBootstrapAdsNow() {
+                        await bootstrapAds()
+                    }
                 }
                 .onChange(of: env.consentManager.canRequestAds) { _, canRequest in
                     guard canRequest, !hasBootstrappedAds else { return }
                     Task { @MainActor in await startAdsAfterConsent() }
+                }
+                .onChange(of: env.appSettings.hasCompletedFirstRunPaywall) { _, completed in
+                    guard completed, !hasBootstrappedAds, !env.entitlement.isPaidPro else { return }
+                    Task { @MainActor in await bootstrapAds() }
                 }
         }
         .modelContainer(sharedModelContainer)
@@ -60,10 +72,24 @@ struct PairShotApp: App {
         _env = State(initialValue: environment)
     }
 
+    func bootstrapSubscription() async {
+        let store = env.subscriptionStore
+        env.transactionListener.start { _ in
+            await store.refresh()
+        }
+        await env.subscriptionStore.refresh()
+        try? await env.productsService.loadProducts()
+    }
+
     func bootstrapAds() async {
         await env.consentManager.bootstrap()
         guard env.consentManager.canRequestAds else { return }
         await startAdsAfterConsent()
+    }
+
+    private func shouldBootstrapAdsNow() -> Bool {
+        if env.entitlement.isPaidPro { return false }
+        return env.appSettings.hasCompletedFirstRunPaywall
     }
 
     private func startAdsAfterConsent() async {
@@ -73,10 +99,23 @@ struct PairShotApp: App {
             _ = await GADMobileAds.sharedInstance().start()
         #endif
         await env.adFreeStore.refresh()
-        env.interstitialAdManager.loadIfNeeded(adFreeStore: env.adFreeStore)
-        env.appOpenAdManager.loadIfNeeded(adFreeStore: env.adFreeStore)
-        env.rewardedAdManager.loadIfNeeded(adFreeStore: env.adFreeStore)
-        env.nativeAdLoader.prefetch(count: 5, adFreeStore: env.adFreeStore)
+        env.interstitialAdManager.loadIfNeeded(
+            adFreeStore: env.adFreeStore,
+            subscriptionStore: env.subscriptionStore
+        )
+        env.appOpenAdManager.loadIfNeeded(
+            adFreeStore: env.adFreeStore,
+            subscriptionStore: env.subscriptionStore
+        )
+        env.rewardedAdManager.loadIfNeeded(
+            adFreeStore: env.adFreeStore,
+            subscriptionStore: env.subscriptionStore
+        )
+        env.nativeAdLoader.prefetch(
+            count: 5,
+            adFreeStore: env.adFreeStore,
+            subscriptionStore: env.subscriptionStore
+        )
     }
 
     private func handleScenePhaseChange(_ phase: ScenePhase) {
@@ -90,10 +129,23 @@ struct PairShotApp: App {
             await env.permissionStatusService.refreshAll()
             guard hasBootstrappedAds else { return }
             await env.adFreeStore.refresh()
-            env.interstitialAdManager.loadIfNeeded(adFreeStore: env.adFreeStore)
-            env.appOpenAdManager.loadIfNeeded(adFreeStore: env.adFreeStore)
-            env.rewardedAdManager.loadIfNeeded(adFreeStore: env.adFreeStore)
-            env.nativeAdLoader.prefetch(count: 5, adFreeStore: env.adFreeStore)
+            env.interstitialAdManager.loadIfNeeded(
+                adFreeStore: env.adFreeStore,
+                subscriptionStore: env.subscriptionStore
+            )
+            env.appOpenAdManager.loadIfNeeded(
+                adFreeStore: env.adFreeStore,
+                subscriptionStore: env.subscriptionStore
+            )
+            env.rewardedAdManager.loadIfNeeded(
+                adFreeStore: env.adFreeStore,
+                subscriptionStore: env.subscriptionStore
+            )
+            env.nativeAdLoader.prefetch(
+                count: 5,
+                adFreeStore: env.adFreeStore,
+                subscriptionStore: env.subscriptionStore
+            )
             guard let backgroundedAt = enteredBackgroundAt,
                   Date().timeIntervalSince(backgroundedAt) >= Self.backgroundDwellThreshold
             else { return }
@@ -101,7 +153,8 @@ struct PairShotApp: App {
             await env.appOpenAdManager.presentIfReady(
                 from: BannerAdView.resolveRootViewController(),
                 coordinator: env.fullscreenAdCoordinator,
-                adFreeStore: env.adFreeStore
+                adFreeStore: env.adFreeStore,
+                subscriptionStore: env.subscriptionStore
             )
         }
     }

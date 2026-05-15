@@ -7,6 +7,7 @@ struct RootView: View {
     @Binding var showFallbackAlert: Bool
 
     @State private var path: [Route] = []
+    @State private var showFirstRunPaywall = false
 
     var body: some View {
         ZStack {
@@ -24,6 +25,18 @@ struct RootView: View {
                         }
                 }
                 .toolbarColorScheme(colorScheme, for: .navigationBar)
+                .fullScreenCover(isPresented: $showFirstRunPaywall) {
+                    PaywallView(mode: .firstRun) {
+                        env.appSettings.hasCompletedFirstRunPaywall = true
+                        showFirstRunPaywall = false
+                    }
+                }
+                .task {
+                    evaluateFirstRunPaywall()
+                }
+                .onChange(of: env.entitlement.isPaidPro) { _, _ in
+                    evaluateFirstRunPaywall()
+                }
             }
         }
         .alert(
@@ -41,6 +54,15 @@ struct RootView: View {
 
     init(showFallbackAlert: Binding<Bool> = .constant(false)) {
         _showFallbackAlert = showFallbackAlert
+    }
+
+    private func evaluateFirstRunPaywall() {
+        guard !env.appSettings.hasCompletedFirstRunPaywall else { return }
+        guard !env.entitlement.isPaidPro else {
+            env.appSettings.hasCompletedFirstRunPaywall = true
+            return
+        }
+        showFirstRunPaywall = true
     }
 
     @ViewBuilder

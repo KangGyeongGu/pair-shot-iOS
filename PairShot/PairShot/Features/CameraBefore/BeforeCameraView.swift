@@ -10,6 +10,7 @@ struct BeforeCameraView: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(AppEnvironment.self) private var env
     @Environment(AdFreeStore.self) private var adFreeStore
+    @Environment(SubscriptionStore.self) private var subscriptionStore
 
     @State private var viewModel: BeforeCameraViewModel?
     @State private var didStartViewModel = false
@@ -49,7 +50,8 @@ struct BeforeCameraView: View {
                         await env.appOpenAdManager.presentIfReady(
                             from: BannerAdView.resolveRootViewController(),
                             coordinator: env.fullscreenAdCoordinator,
-                            adFreeStore: adFreeStore
+                            adFreeStore: adFreeStore,
+                            subscriptionStore: subscriptionStore
                         )
                     }
                 }
@@ -80,6 +82,12 @@ struct BeforeCameraView: View {
             message: Binding(
                 get: { viewModel?.captureErrorMessage },
                 set: { viewModel?.captureErrorMessage = $0 }
+            )
+        )
+        .paywallSheet(
+            isPresented: Binding(
+                get: { viewModel?.showPaywall ?? false },
+                set: { newValue in viewModel?.showPaywall = newValue }
             )
         )
     }

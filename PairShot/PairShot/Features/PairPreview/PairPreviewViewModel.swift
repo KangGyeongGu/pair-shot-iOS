@@ -24,16 +24,19 @@ final class PairPreviewViewModel {
 
     private let photoLibrary: PhotoLibraryService
     private let appSettings: AppSettings
+    private let entitlement: Entitlement?
     private let eventsContinuation: AsyncStream<Event>.Continuation
 
     init(
         pair: PhotoPair,
         photoLibrary: PhotoLibraryService,
-        appSettings: AppSettings
+        appSettings: AppSettings,
+        entitlement: Entitlement? = nil
     ) {
         self.pair = pair
         self.photoLibrary = photoLibrary
         self.appSettings = appSettings
+        self.entitlement = entitlement
         let stream = AsyncStream<Event>.makeStream()
         events = stream.stream
         eventsContinuation = stream.continuation
@@ -46,11 +49,12 @@ final class PairPreviewViewModel {
         isRendering = true
         defer { isRendering = false }
         do {
+            let isPro = entitlement?.isPaidPro ?? false
             let watermark: WatermarkSettings? =
                 appSettings.watermarkEnabled
-                    ? appSettings.watermarkSettings
+                    ? appSettings.watermarkSettings.effective(isPro: isPro)
                     : nil
-            let combineSettings = appSettings.combineSettings
+            let combineSettings = appSettings.combineSettings.effective(isPro: isPro)
             let layout = CompositeLayoutResolver.layout(from: combineSettings)
             let options = CompositeOptions(
                 layout: layout,
