@@ -71,7 +71,7 @@ final class ExportSettingsViewModel {
     }
 
     var isProUser: Bool {
-        entitlement?.isPaidPro ?? false
+        membership?.proIsActive ?? false
     }
 
     let pairRepo: PhotoPairRepository
@@ -84,7 +84,7 @@ final class ExportSettingsViewModel {
     let appSettings: AppSettings
     var preferences: ExportPreferences
     let interstitialAdManager: InterstitialAdManager?
-    let entitlement: Entitlement?
+    let membership: Membership?
     let fullscreenAdCoordinator: FullscreenAdCoordinator?
 
     var pendingZipURL: URL?
@@ -100,7 +100,7 @@ final class ExportSettingsViewModel {
         tempDirectoryProvider: @escaping @Sendable () -> URL = { FileManager.default.temporaryDirectory },
         preferences: ExportPreferences = ExportPreferences(),
         interstitialAdManager: InterstitialAdManager? = nil,
-        entitlement: Entitlement? = nil,
+        membership: Membership? = nil,
         fullscreenAdCoordinator: FullscreenAdCoordinator? = nil
     ) {
         self.pairIds = pairIds
@@ -113,7 +113,7 @@ final class ExportSettingsViewModel {
         self.preferences = preferences
         self.appSettings = appSettings
         self.interstitialAdManager = interstitialAdManager
-        self.entitlement = entitlement
+        self.membership = membership
         self.fullscreenAdCoordinator = fullscreenAdCoordinator
         includeCombined = preferences.includeCombined
         includeBefore = preferences.includeBefore
@@ -143,8 +143,8 @@ final class ExportSettingsViewModel {
         guard ensureExportEligibility() else { return }
         await InterstitialAdManager.runGated(
             manager: interstitialAdManager,
-            adFreeStore: entitlement?.adFreeStore,
-            subscriptionStore: entitlement?.subscriptionStore,
+            promotionStore: membership?.promotionStore,
+            subscriptionStore: membership?.subscriptionStore,
             coordinator: fullscreenAdCoordinator
         ) { [weak self] in
             await self?.performShare()
@@ -156,8 +156,8 @@ final class ExportSettingsViewModel {
         guard ensureExportEligibility() else { return }
         await InterstitialAdManager.runGated(
             manager: interstitialAdManager,
-            adFreeStore: entitlement?.adFreeStore,
-            subscriptionStore: entitlement?.subscriptionStore,
+            promotionStore: membership?.promotionStore,
+            subscriptionStore: membership?.subscriptionStore,
             coordinator: fullscreenAdCoordinator
         ) { [weak self] in
             await self?.performSaveToDevice()
@@ -196,7 +196,7 @@ final class ExportSettingsViewModel {
     func makeRenderOptions() -> ExportRenderOptions {
         ExportRenderOptions(
             applyCombineSettings: applyCombineSettings,
-            isPro: entitlement?.isPaidPro ?? false
+            isPro: membership?.proIsActive ?? false
         )
     }
 

@@ -13,13 +13,16 @@ enum BannerAdGate {
 }
 
 struct BannerAdSlot: View {
-    @Environment(Entitlement.self) private var entitlement
+    @Environment(Membership.self) private var membership
     @Environment(TrackingAuthorizationService.self) private var tracking
 
     let adUnitID: String
 
     var body: some View {
-        if BannerAdGate.shouldShow(isAdFree: entitlement.hasCouponAdFree, isPro: entitlement.isPaidPro) {
+        if BannerAdGate.shouldShow(
+            isAdFree: membership.adFreeBySolePromotion,
+            isPro: membership.proIsActive
+        ) {
             let width = BannerAdView.currentBannerWidth()
             let height = BannerAdSize.adaptiveHeight(width: width)
             BannerAdView(

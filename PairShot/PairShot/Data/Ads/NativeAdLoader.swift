@@ -30,10 +30,10 @@ final class NativeAdLoader: NSObject {
     func prefetch(
         count: Int,
         adUnitID: String? = nil,
-        adFreeStore: AdFreeStore? = nil,
+        promotionStore: PromotionStore? = nil,
         subscriptionStore: SubscriptionStore? = nil
     ) {
-        if AdSuppression.isSuppressed(adFreeStore: adFreeStore, subscriptionStore: subscriptionStore) { return }
+        if AdSuppression.isSuppressed(promotionStore: promotionStore, subscriptionStore: subscriptionStore) { return }
         guard count > 0 else { return }
         guard !isLoading else { return }
         let resolvedUnitID = adUnitID ?? AdsConfig.native
@@ -59,17 +59,18 @@ final class NativeAdLoader: NSObject {
     }
 
     func dequeue(
-        adFreeStore: AdFreeStore? = nil,
+        promotionStore: PromotionStore? = nil,
         subscriptionStore: SubscriptionStore? = nil
     ) -> Any? {
-        if AdSuppression.isSuppressed(adFreeStore: adFreeStore, subscriptionStore: subscriptionStore) { return nil }
+        if AdSuppression
+            .isSuppressed(promotionStore: promotionStore, subscriptionStore: subscriptionStore) { return nil }
         guard !loadedAds.isEmpty else {
-            prefetch(count: 1, adFreeStore: adFreeStore, subscriptionStore: subscriptionStore)
+            prefetch(count: 1, promotionStore: promotionStore, subscriptionStore: subscriptionStore)
             return nil
         }
         let ad = loadedAds.removeFirst()
         if loadedAds.count < 2 {
-            prefetch(count: 5, adFreeStore: adFreeStore, subscriptionStore: subscriptionStore)
+            prefetch(count: 5, promotionStore: promotionStore, subscriptionStore: subscriptionStore)
         }
         return ad
     }

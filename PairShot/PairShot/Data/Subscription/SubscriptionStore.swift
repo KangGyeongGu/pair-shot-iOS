@@ -24,6 +24,8 @@ struct RenewalReminderTarget: Equatable {
 final class SubscriptionStore {
     private(set) var isPro: Bool = false
 
+    private(set) var proExpiresAt: Date?
+
     @ObservationIgnored private let renewalReminderScheduler: RenewalReminderScheduler?
 
     init(renewalReminderScheduler: RenewalReminderScheduler? = nil) {
@@ -57,6 +59,7 @@ final class SubscriptionStore {
 
         let statuses = await Self.fetchStatuses(productIDs: ProductIDs.allLoadable)
         isPro = Self.computeIsPro(entitlements: entitlements, statuses: statuses, now: now)
+        proExpiresAt = Self.computeProExpiresAt(entitlements: entitlements, now: now)
 
         await syncRenewalReminder(
             target: Self.renewalReminderTarget(
@@ -99,6 +102,17 @@ final class SubscriptionStore {
         guard snapshot.revocationDate == nil else { return false }
         let expiration = snapshot.expirationDate ?? .distantFuture
         return expiration > now
+    }
+
+    nonisolated static func computeProExpiresAt(
+        entitlements: [EntitlementSnapshot],
+        now: Date
+    ) -> Date? {
+        let activeExpirations = entitlements.compactMap { entitlement -> Date? in
+            guard isActivePro(snapshot: entitlement, now: now) else { return nil }
+            return entitlement.expirationDate ?? .distantFuture
+        }
+        return activeExpirations.max()
     }
 
     nonisolated static func isActiveProStatus(_ status: SubscriptionStatusSnapshot) -> Bool {

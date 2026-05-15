@@ -227,11 +227,6 @@ final class PhotoLibraryThumbnailCache {
         failedKeys.removeAllObjects()
     }
 
-    func removeAll() {
-        cache.removeAllObjects()
-        failedKeys.removeAllObjects()
-    }
-
     private func cacheKey(_ localIdentifier: String, _ targetSize: CGSize) -> NSString {
         "\(localIdentifier)@\(Int(targetSize.width))x\(Int(targetSize.height))" as NSString
     }

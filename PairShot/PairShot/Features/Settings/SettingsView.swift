@@ -22,7 +22,6 @@ struct SettingsView: View {
         .navigationTitle(String(localized: "settings_title"))
         .navigationBarTitleDisplayMode(.inline)
         .task { ensureViewModel() }
-        .task { await initialStorageRefresh() }
     }
 
     private func ensureViewModel() {
@@ -40,11 +39,6 @@ struct SettingsView: View {
             case .watermark: viewModel.triggerPulse(\.shouldPulseWatermark)
             case .combine: viewModel.triggerPulse(\.shouldPulseCombine)
         }
-    }
-
-    private func initialStorageRefresh() async {
-        guard let viewModel else { return }
-        await viewModel.refreshStorageInfo()
     }
 
     private func form(for viewModel: SettingsViewModel) -> some View {
@@ -66,7 +60,7 @@ private struct SettingsFormBody: View {
 
     var body: some View {
         Form {
-            if !(viewModel.entitlement?.isPaidPro ?? false) {
+            if !(viewModel.membership?.proIsActive ?? false) {
                 Section {
                     SettingsProPromoCard(onLearnMore: { showPaywall = true })
                         .listRowBackground(Color.clear)
@@ -82,18 +76,6 @@ private struct SettingsFormBody: View {
         }
         .listStyle(.insetGrouped)
         .paywallSheet(isPresented: $showPaywall)
-        .refreshable { await viewModel.refreshStorageInfo() }
-        .alert(
-            String(localized: "settings_dialog_cache_clear_title"),
-            isPresented: $viewModel.showCacheClearConfirm
-        ) {
-            Button(String(localized: "settings_dialog_cache_clear_button"), role: .destructive) {
-                Task { await viewModel.clearCache() }
-            }
-            Button(String(localized: "common_button_cancel"), role: .cancel) {}
-        } message: {
-            Text(String(localized: "settings_dialog_cache_clear_message"))
-        }
         .alert(
             String(localized: "settings_language_restart_title"),
             isPresented: $viewModel.showLanguageRestartAlert

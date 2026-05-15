@@ -29,13 +29,13 @@ struct PairShotApp: App {
                 .environment(env.appOpenAdManager)
                 .environment(env.rewardedAdManager)
                 .environment(env.nativeAdLoader)
-                .environment(env.adFreeStore)
+                .environment(env.promotionStore)
                 .environment(env.trackingService)
                 .environment(env.appSettings)
                 .environment(env.productsService)
                 .environment(env.subscriptionStore)
                 .environment(env.transactionListener)
-                .environment(env.entitlement)
+                .environment(env.membership)
                 .environment(env.exportCompletionCoordinator)
                 .environment(\.locale, env.appSettings.resolvedLocale)
                 .preferredColorScheme(env.appSettings.resolvedColorScheme)
@@ -55,7 +55,7 @@ struct PairShotApp: App {
                     Task { @MainActor in await startAdsAfterConsent() }
                 }
                 .onChange(of: env.appSettings.hasCompletedFirstRunPaywall) { _, completed in
-                    guard completed, !hasBootstrappedAds, !env.entitlement.isPaidPro else { return }
+                    guard completed, !hasBootstrappedAds, !env.membership.proIsActive else { return }
                     Task { @MainActor in await bootstrapAds() }
                 }
         }
@@ -88,7 +88,7 @@ struct PairShotApp: App {
     }
 
     private func shouldBootstrapAdsNow() -> Bool {
-        if env.entitlement.isPaidPro { return false }
+        if env.membership.proIsActive { return false }
         return env.appSettings.hasCompletedFirstRunPaywall
     }
 
@@ -98,22 +98,22 @@ struct PairShotApp: App {
         #if canImport(GoogleMobileAds)
             _ = await GADMobileAds.sharedInstance().start()
         #endif
-        await env.adFreeStore.refresh()
+        await env.promotionStore.refresh()
         env.interstitialAdManager.loadIfNeeded(
-            adFreeStore: env.adFreeStore,
+            promotionStore: env.promotionStore,
             subscriptionStore: env.subscriptionStore
         )
         env.appOpenAdManager.loadIfNeeded(
-            adFreeStore: env.adFreeStore,
+            promotionStore: env.promotionStore,
             subscriptionStore: env.subscriptionStore
         )
         env.rewardedAdManager.loadIfNeeded(
-            adFreeStore: env.adFreeStore,
+            promotionStore: env.promotionStore,
             subscriptionStore: env.subscriptionStore
         )
         env.nativeAdLoader.prefetch(
             count: 5,
-            adFreeStore: env.adFreeStore,
+            promotionStore: env.promotionStore,
             subscriptionStore: env.subscriptionStore
         )
     }
@@ -128,22 +128,22 @@ struct PairShotApp: App {
         Task { @MainActor in
             await env.permissionStatusService.refreshAll()
             guard hasBootstrappedAds else { return }
-            await env.adFreeStore.refresh()
+            await env.promotionStore.refresh()
             env.interstitialAdManager.loadIfNeeded(
-                adFreeStore: env.adFreeStore,
+                promotionStore: env.promotionStore,
                 subscriptionStore: env.subscriptionStore
             )
             env.appOpenAdManager.loadIfNeeded(
-                adFreeStore: env.adFreeStore,
+                promotionStore: env.promotionStore,
                 subscriptionStore: env.subscriptionStore
             )
             env.rewardedAdManager.loadIfNeeded(
-                adFreeStore: env.adFreeStore,
+                promotionStore: env.promotionStore,
                 subscriptionStore: env.subscriptionStore
             )
             env.nativeAdLoader.prefetch(
                 count: 5,
-                adFreeStore: env.adFreeStore,
+                promotionStore: env.promotionStore,
                 subscriptionStore: env.subscriptionStore
             )
             guard let backgroundedAt = enteredBackgroundAt,
@@ -153,7 +153,7 @@ struct PairShotApp: App {
             await env.appOpenAdManager.presentIfReady(
                 from: BannerAdView.resolveRootViewController(),
                 coordinator: env.fullscreenAdCoordinator,
-                adFreeStore: env.adFreeStore,
+                promotionStore: env.promotionStore,
                 subscriptionStore: env.subscriptionStore
             )
         }

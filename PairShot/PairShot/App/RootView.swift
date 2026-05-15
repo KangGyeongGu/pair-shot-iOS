@@ -34,7 +34,7 @@ struct RootView: View {
                 .task {
                     evaluateFirstRunPaywall()
                 }
-                .onChange(of: env.entitlement.isPaidPro) { _, _ in
+                .onChange(of: env.membership.proIsActive) { _, _ in
                     evaluateFirstRunPaywall()
                 }
             }
@@ -58,7 +58,7 @@ struct RootView: View {
 
     private func evaluateFirstRunPaywall() {
         guard !env.appSettings.hasCompletedFirstRunPaywall else { return }
-        guard !env.entitlement.isPaidPro else {
+        guard !env.membership.proIsActive else {
             env.appSettings.hasCompletedFirstRunPaywall = true
             return
         }

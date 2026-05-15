@@ -1,28 +1,18 @@
 import Foundation
 import Observation
-import UIKit
 
 @MainActor
 @Observable
 final class SettingsViewModel {
     let appSettings: AppSettings
-    let thumbnailCache: PhotoLibraryThumbnailCache
-    let hapticService: HapticService
-    let entitlement: Entitlement?
+    let membership: Membership?
 
-    var showCacheClearConfirm: Bool = false
     var showLanguageRestartAlert: Bool = false
     var shouldPulseWatermark: Bool = false
     var shouldPulseCombine: Bool = false
     var showWatermarkGateDialog: Bool = false
     var showCombineGateDialog: Bool = false
     var lastGateFailureReason: String?
-
-    private(set) var photoStorageBytes: Int64?
-    private(set) var cacheBytes: Int64?
-    private(set) var lastStorageError: String?
-    private(set) var isCalculatingStorage: Bool = false
-    private(set) var isClearingCache: Bool = false
 
     var appVersionText: String {
         let version = SettingsBundleMetadata.appVersionLabel
@@ -89,33 +79,12 @@ final class SettingsViewModel {
         appSettings.watermarkSettings.isBlank
     }
 
-    var photoStorageText: String {
-        if let photoStorageBytes {
-            return SettingsStorageFormatter.formatBytes(photoStorageBytes)
-        }
-        return isCalculatingStorage ? String(localized: "settings_calculating_short") : "—"
-    }
-
-    var cacheText: String {
-        if isClearingCache {
-            return String(localized: "settings_deleting_short")
-        }
-        if let cacheBytes {
-            return SettingsStorageFormatter.formatBytes(cacheBytes)
-        }
-        return isCalculatingStorage ? String(localized: "settings_calculating_short") : "—"
-    }
-
     init(
         appSettings: AppSettings,
-        thumbnailCache: PhotoLibraryThumbnailCache,
-        hapticService: HapticService,
-        entitlement: Entitlement? = nil
+        membership: Membership? = nil
     ) {
         self.appSettings = appSettings
-        self.thumbnailCache = thumbnailCache
-        self.hapticService = hapticService
-        self.entitlement = entitlement
+        self.membership = membership
         overlayAlphaValue = CompositionDefaults.clampAlpha(appSettings.defaultOverlayAlpha)
         overlayAlphaEnabled = appSettings.overlayEnabled
     }
@@ -145,32 +114,6 @@ extension SettingsViewModel {
             try? await Task.sleep(nanoseconds: 50_000_000)
             self[keyPath: flag] = false
         }
-    }
-
-    func refreshStorageInfo() async {
-        photoStorageBytes = 0
-        cacheBytes = 0
-    }
-
-    func clearCache() async {
-        guard !isClearingCache else { return }
-        isClearingCache = true
-        defer { isClearingCache = false }
-        let cache = thumbnailCache
-        await Task { @MainActor in
-            cache.removeAll()
-        }.value
-        hapticService.notify(.success)
-        await refreshStorageInfo()
-    }
-}
-
-enum SettingsStorageFormatter {
-    static func formatBytes(_ bytes: Int64) -> String {
-        let formatter = ByteCountFormatter()
-        formatter.countStyle = .file
-        formatter.allowsNonnumericFormatting = true
-        return formatter.string(fromByteCount: max(0, bytes))
     }
 }
 

@@ -2,25 +2,22 @@ import StoreKit
 import SwiftUI
 
 struct SubscriptionSettingsSection: View {
-    @Environment(Entitlement.self) private var entitlement
+    @Environment(Membership.self) private var membership
     @Environment(AppEnvironment.self) private var env
     @Binding var showPaywall: Bool
 
     var body: some View {
         Section {
             membershipRow
-            if !entitlement.isPaidPro {
+            if !membership.proIsActive {
                 upgradeButton
             }
             manageButton
             restoreButton
-            promotionCodeRow
         } header: {
             Text(String(localized: "settings_subscription_title"))
         } footer: {
-            if entitlement.hasCouponAdFree, !entitlement.isPaidPro {
-                Text(adFreeStatusFooterText)
-            }
+            promotionCodeFooterLink
         }
     }
 
@@ -28,64 +25,66 @@ struct SubscriptionSettingsSection: View {
         HStack(spacing: 12) {
             SettingsIconBadge(
                 icon: SettingsRowIcon(
-                    systemImage: entitlement.isPaidPro ? "checkmark.seal.fill" : "person.crop.circle",
-                    color: entitlement.isPaidPro ? .yellow : .gray
+                    systemImage: membership.proIsActive ? "checkmark.seal.fill" : "person.crop.circle",
+                    color: membership.proIsActive ? .yellow : .gray
                 )
             )
-            Text(String(localized: "settings_subscription_membership"))
-                .foregroundStyle(.primary)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(String(localized: "settings_subscription_membership"))
+                    .foregroundStyle(.primary)
+                if let subline = membershipSublineText {
+                    Text(subline)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
             Spacer()
             Text(membershipStatusText)
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(entitlement.isPaidPro ? Color.accentColor : .secondary)
+                .foregroundStyle(membership.proIsActive ? Color.accentColor : .secondary)
         }
         .contentShape(Rectangle())
     }
 
     private var membershipStatusText: String {
-        entitlement.isPaidPro
+        membership.proIsActive
             ? String(localized: "settings_subscription_status_pro")
             : String(localized: "settings_subscription_status_free")
     }
 
-    private var promotionCodeRow: some View {
-        HStack(spacing: 12) {
-            SettingsIconBadge(
-                icon: SettingsRowIcon(systemImage: "tag.fill", color: .pink)
-            )
-            Text(String(localized: "settings_promotion_code_redeem"))
-                .foregroundStyle(.primary)
-            Spacer()
-            Image(systemName: "arrow.up.right.square")
-                .foregroundStyle(.secondary)
+    private var membershipSublineText: String? {
+        if membership.proIsActive {
+            return Self.expirationSublineText(date: membership.proExpiresAt)
         }
-        .contentShape(Rectangle())
-        .onTapGesture {
-            CouponRedemptionLink.open(
-                config: env.couponApiConfig,
-                deviceHashProvider: env.deviceHashProvider
-            )
+        if membership.adFreeIsActive {
+            let active = String(localized: "settings_subscription_status_ad_free_active")
+            if let date = membership.adFreeExpiresAt {
+                return "\(active) — \(Self.formattedExpirationText(date: date))"
+            }
+            return "\(active) — \(String(localized: "settings_subscription_membership_permanent"))"
         }
+        return nil
     }
 
-    private var adFreeStatusFooterText: String {
-        let activeBase = String(localized: "settings_promotion_code_status_active")
-        let adFreeStore = entitlement.adFreeStore
-        guard let remaining = adFreeStore.remainingDays else {
-            return String(localized: "settings_promotion_code_status_permanent")
+    private var promotionCodeFooterLink: some View {
+        HStack(spacing: 0) {
+            Spacer()
+            Button {
+                PromotionRedemptionLink.open(
+                    config: env.couponApiConfig,
+                    deviceHashProvider: env.deviceHashProvider
+                )
+            } label: {
+                HStack(spacing: 4) {
+                    Text(String(localized: "settings_promotion_code_redeem"))
+                    Image(systemName: "arrow.up.right.square")
+                }
+                .font(.footnote)
+                .foregroundStyle(Color.accentColor)
+            }
+            .buttonStyle(.plain)
         }
-        let remainingText = String(
-            format: String(localized: "settings_promotion_code_status_remaining_days"),
-            remaining
-        )
-        if adFreeStore.couponCount >= 2 {
-            let couponsText = String(
-                format: String(localized: "settings_promotion_code_status_coupons_template"),
-                adFreeStore.couponCount
-            )
-            return "\(activeBase) (\(couponsText)) — \(remainingText)"
-        }
-        return "\(activeBase) — \(remainingText)"
+        .padding(.top, 4)
     }
 
     private var upgradeButton: some View {
@@ -150,6 +149,24 @@ struct SubscriptionSettingsSection: View {
 
     private func restorePurchases() async {
         try? await AppStore.sync()
-        await entitlement.subscriptionStore.refresh()
+        await membership.subscriptionStore.refresh()
+    }
+
+    private static func expirationSublineText(date: Date?) -> String {
+        guard let date else {
+            return String(localized: "settings_subscription_membership_permanent")
+        }
+        return formattedExpirationText(date: date)
+    }
+
+    private static func formattedExpirationText(date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale.current
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
+        return String(
+            format: String(localized: "settings_subscription_membership_expires_template"),
+            formatter.string(from: date)
+        )
     }
 }

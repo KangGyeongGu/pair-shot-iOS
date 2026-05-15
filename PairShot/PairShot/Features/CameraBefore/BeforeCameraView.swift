@@ -9,7 +9,7 @@ struct BeforeCameraView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var scenePhase
     @Environment(AppEnvironment.self) private var env
-    @Environment(AdFreeStore.self) private var adFreeStore
+    @Environment(PromotionStore.self) private var promotionStore
     @Environment(SubscriptionStore.self) private var subscriptionStore
 
     @State private var viewModel: BeforeCameraViewModel?
@@ -46,11 +46,11 @@ struct BeforeCameraView: View {
                             return
                         }
                         hasPresentedColdStartAppOpen = true
-                        await env.adFreeStore.refresh()
+                        await env.promotionStore.refresh()
                         await env.appOpenAdManager.presentIfReady(
                             from: BannerAdView.resolveRootViewController(),
                             coordinator: env.fullscreenAdCoordinator,
-                            adFreeStore: adFreeStore,
+                            promotionStore: promotionStore,
                             subscriptionStore: subscriptionStore
                         )
                     }

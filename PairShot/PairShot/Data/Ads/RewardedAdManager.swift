@@ -56,10 +56,10 @@ final class RewardedAdManager {
 
     func loadIfNeeded(
         adUnitID: String? = nil,
-        adFreeStore: AdFreeStore? = nil,
+        promotionStore: PromotionStore? = nil,
         subscriptionStore: SubscriptionStore? = nil
     ) {
-        if AdSuppression.isSuppressed(adFreeStore: adFreeStore, subscriptionStore: subscriptionStore) { return }
+        if AdSuppression.isSuppressed(promotionStore: promotionStore, subscriptionStore: subscriptionStore) { return }
         guard !isLoaded, !isLoading else { return }
         let resolvedUnitID = adUnitID ?? AdsConfig.rewarded
         #if canImport(GoogleMobileAds)
@@ -99,11 +99,11 @@ final class RewardedAdManager {
         _ unlockID: UnlockID,
         from rootViewController: UIViewController?,
         coordinator: FullscreenAdCoordinator,
-        adFreeStore: AdFreeStore? = nil,
+        promotionStore: PromotionStore? = nil,
         subscriptionStore: SubscriptionStore? = nil,
         adUnitID: String? = nil
     ) async -> RewardOutcome {
-        if AdSuppression.isSuppressed(adFreeStore: adFreeStore, subscriptionStore: subscriptionStore) {
+        if AdSuppression.isSuppressed(promotionStore: promotionStore, subscriptionStore: subscriptionStore) {
             sessionUnlocks.insert(unlockID)
             return .granted
         }
@@ -156,7 +156,7 @@ final class RewardedAdManager {
             isLoaded = false
             loadIfNeeded(
                 adUnitID: adUnitID ?? AdsConfig.rewarded,
-                adFreeStore: adFreeStore,
+                promotionStore: promotionStore,
                 subscriptionStore: subscriptionStore
             )
 

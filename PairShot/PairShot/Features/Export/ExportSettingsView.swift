@@ -6,7 +6,7 @@ struct ExportSettingsView: View {
     let onPushCombineSettings: (() -> Void)?
     @Environment(\.dismiss) private var dismiss
     @Environment(RewardedAdManager.self) private var rewardedManager
-    @Environment(AdFreeStore.self) private var adFreeStore
+    @Environment(PromotionStore.self) private var promotionStore
     @Environment(SubscriptionStore.self) private var subscriptionStore
     @Environment(ExportCompletionCoordinator.self) private var exportCompletionCoordinator
     @Environment(\.fullscreenAdCoordinator) private var coordinator
@@ -71,7 +71,7 @@ struct ExportSettingsView: View {
         .task { await observeEvents() }
         .task {
             rewardedManager.loadIfNeeded(
-                adFreeStore: adFreeStore,
+                promotionStore: promotionStore,
                 subscriptionStore: subscriptionStore
             )
         }

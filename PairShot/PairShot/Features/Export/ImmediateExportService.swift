@@ -17,7 +17,7 @@ final class ImmediateExportService {
     let tempDirectoryProvider: @Sendable () -> URL
     let appSettings: AppSettings
     let pairRepo: PhotoPairRepository
-    let entitlement: Entitlement?
+    let membership: Membership?
 
     private var hasAnyInclude: Bool {
         preferences.includeCombined || preferences.includeBefore || preferences.includeAfter
@@ -30,7 +30,7 @@ final class ImmediateExportService {
         snackbarQueue: SnackbarQueue,
         appSettings: AppSettings,
         pairRepo: PhotoPairRepository,
-        entitlement: Entitlement? = nil,
+        membership: Membership? = nil,
         preferences: ExportPreferences = ExportPreferences(),
         tempDirectoryProvider: @escaping @Sendable () -> URL = { FileManager.default.temporaryDirectory }
     ) {
@@ -40,7 +40,7 @@ final class ImmediateExportService {
         self.snackbarQueue = snackbarQueue
         self.appSettings = appSettings
         self.pairRepo = pairRepo
-        self.entitlement = entitlement
+        self.membership = membership
         self.preferences = preferences
         self.tempDirectoryProvider = tempDirectoryProvider
     }
@@ -147,7 +147,7 @@ final class ImmediateExportService {
     func currentRenderOptions() -> ExportRenderOptions {
         ExportRenderOptions(
             applyCombineSettings: preferences.applyCombineSettings,
-            isPro: entitlement?.isPaidPro ?? false
+            isPro: membership?.proIsActive ?? false
         )
     }
 

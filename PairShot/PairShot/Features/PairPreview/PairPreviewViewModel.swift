@@ -24,19 +24,19 @@ final class PairPreviewViewModel {
 
     private let photoLibrary: PhotoLibraryService
     private let appSettings: AppSettings
-    private let entitlement: Entitlement?
+    private let membership: Membership?
     private let eventsContinuation: AsyncStream<Event>.Continuation
 
     init(
         pair: PhotoPair,
         photoLibrary: PhotoLibraryService,
         appSettings: AppSettings,
-        entitlement: Entitlement? = nil
+        membership: Membership? = nil
     ) {
         self.pair = pair
         self.photoLibrary = photoLibrary
         self.appSettings = appSettings
-        self.entitlement = entitlement
+        self.membership = membership
         let stream = AsyncStream<Event>.makeStream()
         events = stream.stream
         eventsContinuation = stream.continuation
@@ -49,7 +49,7 @@ final class PairPreviewViewModel {
         isRendering = true
         defer { isRendering = false }
         do {
-            let isPro = entitlement?.isPaidPro ?? false
+            let isPro = membership?.proIsActive ?? false
             let watermark: WatermarkSettings? =
                 appSettings.watermarkEnabled
                     ? appSettings.watermarkSettings.effective(isPro: isPro)

@@ -97,7 +97,7 @@ final class HomeViewModel {
     let immediateExport: ImmediateExportService
     let appSettings: AppSettings
     let interstitialAdManager: InterstitialAdManager
-    let entitlement: Entitlement
+    let membership: Membership
     let fullscreenAdCoordinator: FullscreenAdCoordinator
 
     init(
@@ -109,7 +109,7 @@ final class HomeViewModel {
         appSettings: AppSettings,
         thumbnailCache: PhotoLibraryThumbnailCache,
         interstitialAdManager: InterstitialAdManager,
-        entitlement: Entitlement,
+        membership: Membership,
         fullscreenAdCoordinator: FullscreenAdCoordinator,
         deleteCombinedExports: DeleteCombinedExportsUseCase,
         deletePairsKeepingCombined: DeletePairsKeepingCombinedUseCase
@@ -124,7 +124,7 @@ final class HomeViewModel {
         self.appSettings = appSettings
         self.thumbnailCache = thumbnailCache
         self.interstitialAdManager = interstitialAdManager
-        self.entitlement = entitlement
+        self.membership = membership
         self.fullscreenAdCoordinator = fullscreenAdCoordinator
     }
 

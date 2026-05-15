@@ -109,7 +109,7 @@ struct ExportSettingsViewModelGateTests {
             snackbarQueue: SnackbarQueue(),
             appSettings: appSettings,
             preferences: preferences,
-            entitlement: nil
+            membership: nil
         )
     }
 }

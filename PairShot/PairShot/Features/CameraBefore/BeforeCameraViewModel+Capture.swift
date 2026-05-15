@@ -33,7 +33,7 @@ extension BeforeCameraViewModel {
 
     private func shouldGateForPaywall() async -> Bool {
         guard refillPairId == nil else { return false }
-        let isPro = entitlement.isPaidPro
+        let isPro = membership.proIsActive
         let dayStart = PairLimitGate.startOfToday()
         let createdToday = await (try? pairRepo.countCreated(since: dayStart)) ?? 0
         return PairLimitGate.shouldGatePairCreation(isPro: isPro, todayCreatedCount: createdToday)

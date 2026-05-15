@@ -4290,40 +4290,6 @@
         }
       }
     },
-    "settings_calculating_short" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Calculating…"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "계산 중…"
-          }
-        }
-      }
-    },
-    "settings_deleting_short" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Deleting…"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "삭제 중…"
-          }
-        }
-      }
-    },
     "settings_dialog_apply" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4337,57 +4303,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "적용"
-          }
-        }
-      }
-    },
-    "settings_dialog_cache_clear_button" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Clear"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "초기화"
-          }
-        }
-      }
-    },
-    "settings_dialog_cache_clear_message" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Clear cache? Thumbnails will be deleted and regenerated."
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "캐시를 초기화하시겠습니까?\n썸네일이 삭제되며, 다시 생성됩니다."
-          }
-        }
-      }
-    },
-    "settings_dialog_cache_clear_title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Clear cache"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "캐시 초기화"
           }
         }
       }
@@ -4749,23 +4664,6 @@
         }
       }
     },
-    "settings_item_cache" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cache"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "캐시"
-          }
-        }
-      }
-    },
     "settings_item_coupon" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4864,23 +4762,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "오버레이 투명도"
-          }
-        }
-      }
-    },
-    "settings_item_photo_storage" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Photo storage"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "사진 용량"
           }
         }
       }
@@ -5595,6 +5476,57 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "멤버십"
+          }
+        }
+      }
+    },
+    "settings_subscription_status_ad_free_active" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ad-free active"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "광고 제거 중"
+          }
+        }
+      }
+    },
+    "settings_subscription_membership_expires_template" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Until %@"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@까지"
+          }
+        }
+      }
+    },
+    "settings_subscription_membership_permanent" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permanent"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "영구"
           }
         }
       }

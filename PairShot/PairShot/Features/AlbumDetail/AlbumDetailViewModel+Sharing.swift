@@ -7,8 +7,8 @@ extension AlbumDetailViewModel {
         guard !isExporting else { return }
         await InterstitialAdManager.runGated(
             manager: interstitialAdManager,
-            adFreeStore: entitlement.adFreeStore,
-            subscriptionStore: entitlement.subscriptionStore,
+            promotionStore: membership.promotionStore,
+            subscriptionStore: membership.subscriptionStore,
             coordinator: fullscreenAdCoordinator
         ) { [weak self] in
             await self?.performShare(pairs: chosen)
@@ -21,8 +21,8 @@ extension AlbumDetailViewModel {
         guard !isExporting else { return }
         await InterstitialAdManager.runGated(
             manager: interstitialAdManager,
-            adFreeStore: entitlement.adFreeStore,
-            subscriptionStore: entitlement.subscriptionStore,
+            promotionStore: membership.promotionStore,
+            subscriptionStore: membership.subscriptionStore,
             coordinator: fullscreenAdCoordinator
         ) { [weak self] in
             await self?.performSaveToDevice(pairs: chosen)
@@ -33,8 +33,8 @@ extension AlbumDetailViewModel {
         guard !isExporting else { return }
         await InterstitialAdManager.runGated(
             manager: interstitialAdManager,
-            adFreeStore: entitlement.adFreeStore,
-            subscriptionStore: entitlement.subscriptionStore,
+            promotionStore: membership.promotionStore,
+            subscriptionStore: membership.subscriptionStore,
             coordinator: fullscreenAdCoordinator
         ) { [weak self] in
             await self?.performShare(pairs: [pair])
@@ -45,8 +45,8 @@ extension AlbumDetailViewModel {
         guard !isExporting else { return }
         await InterstitialAdManager.runGated(
             manager: interstitialAdManager,
-            adFreeStore: entitlement.adFreeStore,
-            subscriptionStore: entitlement.subscriptionStore,
+            promotionStore: membership.promotionStore,
+            subscriptionStore: membership.subscriptionStore,
             coordinator: fullscreenAdCoordinator
         ) { [weak self] in
             await self?.performSaveToDevice(pairs: [pair])

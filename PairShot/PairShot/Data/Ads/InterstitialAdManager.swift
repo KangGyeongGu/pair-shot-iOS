@@ -13,7 +13,7 @@ final class InterstitialAdManager {
     struct PresentContext {
         let rootViewController: UIViewController?
         let coordinator: FullscreenAdCoordinator
-        let adFreeStore: AdFreeStore?
+        let promotionStore: PromotionStore?
         let subscriptionStore: SubscriptionStore?
         let adUnitID: String?
         let now: Date
@@ -46,10 +46,10 @@ final class InterstitialAdManager {
 
     func loadIfNeeded(
         adUnitID: String? = nil,
-        adFreeStore: AdFreeStore? = nil,
+        promotionStore: PromotionStore? = nil,
         subscriptionStore: SubscriptionStore? = nil
     ) {
-        if AdSuppression.isSuppressed(adFreeStore: adFreeStore, subscriptionStore: subscriptionStore) { return }
+        if AdSuppression.isSuppressed(promotionStore: promotionStore, subscriptionStore: subscriptionStore) { return }
         guard !isLoaded, !isLoading else { return }
         let resolvedUnitID = adUnitID ?? AdsConfig.interstitial
         #if canImport(GoogleMobileAds)
@@ -88,7 +88,7 @@ final class InterstitialAdManager {
     func showIfAvailable(
         from rootViewController: UIViewController?,
         coordinator: FullscreenAdCoordinator,
-        adFreeStore: AdFreeStore? = nil,
+        promotionStore: PromotionStore? = nil,
         subscriptionStore: SubscriptionStore? = nil,
         adUnitID: String? = nil,
         now: Date = .now,
@@ -97,7 +97,7 @@ final class InterstitialAdManager {
         let context = PresentContext(
             rootViewController: rootViewController,
             coordinator: coordinator,
-            adFreeStore: adFreeStore,
+            promotionStore: promotionStore,
             subscriptionStore: subscriptionStore,
             adUnitID: adUnitID,
             now: now,
@@ -115,7 +115,7 @@ final class InterstitialAdManager {
 
     private func shouldShow(context: PresentContext) -> Bool {
         if AdSuppression.isSuppressed(
-            adFreeStore: context.adFreeStore,
+            promotionStore: context.promotionStore,
             subscriptionStore: context.subscriptionStore
         ) {
             context.onFinished()
@@ -125,7 +125,7 @@ final class InterstitialAdManager {
             context.onFinished()
             loadIfNeeded(
                 adUnitID: context.adUnitID,
-                adFreeStore: context.adFreeStore,
+                promotionStore: context.promotionStore,
                 subscriptionStore: context.subscriptionStore
             )
             return false
@@ -134,7 +134,7 @@ final class InterstitialAdManager {
             context.onFinished()
             loadIfNeeded(
                 adUnitID: context.adUnitID,
-                adFreeStore: context.adFreeStore,
+                promotionStore: context.promotionStore,
                 subscriptionStore: context.subscriptionStore
             )
             return false
@@ -149,7 +149,7 @@ final class InterstitialAdManager {
                 context.onFinished()
                 loadIfNeeded(
                     adUnitID: context.adUnitID,
-                    adFreeStore: context.adFreeStore,
+                    promotionStore: context.promotionStore,
                     subscriptionStore: context.subscriptionStore
                 )
                 return false
@@ -169,7 +169,7 @@ final class InterstitialAdManager {
                         self?.isLoaded = false
                         self?.loadIfNeeded(
                             adUnitID: context.adUnitID,
-                            adFreeStore: context.adFreeStore,
+                            promotionStore: context.promotionStore,
                             subscriptionStore: context.subscriptionStore
                         )
                         context.onFinished()
@@ -183,7 +183,7 @@ final class InterstitialAdManager {
                         self?.isLoaded = false
                         self?.loadIfNeeded(
                             adUnitID: context.adUnitID,
-                            adFreeStore: context.adFreeStore,
+                            promotionStore: context.promotionStore,
                             subscriptionStore: context.subscriptionStore
                         )
                         context.onFinished()
@@ -207,7 +207,7 @@ final class InterstitialAdManager {
 extension InterstitialAdManager {
     static func runGated(
         manager: InterstitialAdManager?,
-        adFreeStore: AdFreeStore?,
+        promotionStore: PromotionStore?,
         subscriptionStore: SubscriptionStore?,
         coordinator: FullscreenAdCoordinator?,
         work: @escaping @MainActor () async -> Void
@@ -221,7 +221,7 @@ extension InterstitialAdManager {
                 await manager.showIfAvailable(
                     from: BannerAdView.resolveTopPresentedViewController(),
                     coordinator: coordinator,
-                    adFreeStore: adFreeStore,
+                    promotionStore: promotionStore,
                     subscriptionStore: subscriptionStore
                 ) {
                     Task { @MainActor in

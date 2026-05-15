@@ -6,7 +6,7 @@ struct HomeView: View {
     let onPushSettings: (() -> Void)?
 
     @Environment(AppEnvironment.self) private var env
-    @Environment(Entitlement.self) private var entitlement
+    @Environment(Membership.self) private var membership
     @State private var viewModel: HomeViewModel?
 
     private let columns: [GridItem] = [
@@ -63,7 +63,7 @@ struct HomeView: View {
             HomeDefaultToolbar(
                 viewModel: viewModel,
                 onPushSettings: onPushSettings,
-                isPro: entitlement.isPaidPro
+                isPro: membership.proIsActive
             )
         }
     }
@@ -150,7 +150,7 @@ struct HomeView: View {
                 .map { group in
                     let result = PairListWithAdsBuilder.buildChunks(
                         pairs: group.pairs,
-                        adFree: entitlement.isAdSuppressed,
+                        adFree: membership.adFreeIsActive,
                         startingAdSlotIndex: slotIndex
                     )
                     slotIndex = result.nextSlotIndex

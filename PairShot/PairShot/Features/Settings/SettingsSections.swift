@@ -226,17 +226,6 @@ struct SettingsStorageInfoSection: View {
     var body: some View {
         Section {
             SettingsValueRow(
-                icon: SettingsRowIcon(systemImage: "photo.stack", color: .blue),
-                title: String(localized: "settings_item_photo_storage"),
-                value: viewModel.photoStorageText
-            )
-            SettingsValueRow(
-                icon: SettingsRowIcon(systemImage: "internaldrive", color: .gray),
-                title: String(localized: "settings_item_cache"),
-                value: viewModel.cacheText
-            )
-            .onTapGesture { viewModel.showCacheClearConfirm = true }
-            SettingsValueRow(
                 icon: SettingsRowIcon(systemImage: "info.circle", color: .gray),
                 title: String(localized: "settings_item_app_version"),
                 value: viewModel.appVersionText

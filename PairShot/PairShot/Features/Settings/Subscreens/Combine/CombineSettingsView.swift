@@ -2,7 +2,7 @@ import SwiftUI
 
 struct CombineSettingsView: View {
     @Bindable var viewModel: CombineSettingsViewModel
-    @Environment(Entitlement.self) private var entitlement
+    @Environment(Membership.self) private var membership
     @State private var showPaywall: Bool = false
 
     var body: some View {
@@ -13,7 +13,7 @@ struct CombineSettingsView: View {
                 directionSection
                 borderSection
                 labelSection
-                if viewModel.settings.label.isEnabled, entitlement.isPaidPro {
+                if viewModel.settings.label.isEnabled, membership.proIsActive {
                     labelModeSection
                     labelBackgroundSection
                 }
@@ -83,7 +83,7 @@ struct CombineSettingsView: View {
 
     private var labelSection: some View {
         Section {
-            if entitlement.isPaidPro {
+            if membership.proIsActive {
                 Toggle(isOn: $viewModel.settings.label.isEnabled) {
                     Label(String(localized: "combine_item_label_use"), systemImage: "textformat")
                 }
@@ -126,7 +126,7 @@ struct CombineSettingsView: View {
         } header: {
             Text(String(localized: "combine_section_label"))
         } footer: {
-            if !viewModel.settings.label.isEnabled || !entitlement.isPaidPro {
+            if !viewModel.settings.label.isEnabled || !membership.proIsActive {
                 previewFooter
             }
         }

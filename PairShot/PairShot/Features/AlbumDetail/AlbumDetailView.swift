@@ -5,7 +5,7 @@ struct AlbumDetailView: View {
     let onPushExportSettings: (([UUID]) -> Void)?
 
     @Environment(AppEnvironment.self) private var env
-    @Environment(Entitlement.self) private var entitlement
+    @Environment(Membership.self) private var membership
     @Environment(\.dismiss) private var dismiss
 
     @State private var viewModel: AlbumDetailViewModel?
@@ -145,7 +145,7 @@ struct AlbumDetailView: View {
         } else {
             let chunks = PairListWithAdsBuilder.buildChunks(
                 pairs: pairs,
-                adFree: entitlement.isAdSuppressed
+                adFree: membership.adFreeIsActive
             ).chunks
             ScrollView {
                 LazyVStack(spacing: 12) {

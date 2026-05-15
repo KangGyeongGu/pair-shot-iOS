@@ -4,7 +4,7 @@ import SwiftUI
 struct WatermarkSettingsView: View {
     @Bindable var viewModel: WatermarkSettingsViewModel
     @Environment(AppSettings.self) private var appSettings
-    @Environment(Entitlement.self) private var entitlement
+    @Environment(Membership.self) private var membership
     @State private var showPaywall: Bool = false
 
     var body: some View {
@@ -14,7 +14,7 @@ struct WatermarkSettingsView: View {
 
             Form {
                 basicSection(bindable: $bindableAppSettings.watermarkEnabled)
-                if viewModel.settings.type == .text || !entitlement.isPaidPro {
+                if viewModel.settings.type == .text || !membership.proIsActive {
                     textSection
                 } else {
                     logoSection
@@ -76,7 +76,7 @@ struct WatermarkSettingsView: View {
     private var typeSelector: some View {
         HStack(spacing: 8) {
             typeButton(label: "TEXT", value: .text, locked: false)
-            typeButton(label: "LOGO", value: .logo, locked: !entitlement.isPaidPro)
+            typeButton(label: "LOGO", value: .logo, locked: !membership.proIsActive)
         }
     }
 

@@ -5,7 +5,7 @@ struct AppEnvironmentFoundationOverrides {
     let appSettings: AppSettings?
     let snackbarQueue: SnackbarQueue?
     let appSettingsRepo: AppSettingsRepository?
-    let adFreeStore: AdFreeStore?
+    let promotionStore: PromotionStore?
     let trackingService: TrackingAuthorizationService?
     let settingsRedirectCoordinator: SettingsRedirectCoordinator?
     let exportCompletionCoordinator: ExportCompletionCoordinator?
@@ -19,7 +19,7 @@ struct AppEnvironmentFoundation {
     let appSettings: AppSettings
     let snackbarQueue: SnackbarQueue
     let appSettingsRepo: AppSettingsRepository
-    let adFreeStore: AdFreeStore
+    let promotionStore: PromotionStore
     let trackingService: TrackingAuthorizationService
     let settingsRedirectCoordinator: SettingsRedirectCoordinator
     let exportCompletionCoordinator: ExportCompletionCoordinator
@@ -66,7 +66,7 @@ struct UseCasesDependencies {
     let zipExporter: ZipExporterAdapter
     let snackbarQueue: SnackbarQueue
     let appSettings: AppSettings
-    let entitlement: Entitlement?
+    let membership: Membership?
 }
 
 struct UseCasesBundle {
@@ -105,7 +105,7 @@ struct AppEnvironmentBundles {
     let dataServices: DataServicesBundle
     let useCases: UseCasesBundle
     let subscription: SubscriptionServicesBundle
-    let entitlement: Entitlement
+    let membership: Membership
 }
 
 extension AppEnvironment {
@@ -120,9 +120,9 @@ extension AppEnvironment {
             appSettings: foundation.appSettings
         )
         let subscription = makeSubscriptionServices(overrides: input.subscriptionOverrides)
-        let entitlement = Entitlement(
+        let membership = Membership(
             subscriptionStore: subscription.subscriptionStore,
-            adFreeStore: foundation.adFreeStore
+            promotionStore: foundation.promotionStore
         )
         let useCases = makeUseCases(
             dependencies: UseCasesDependencies(
@@ -133,7 +133,7 @@ extension AppEnvironment {
                 zipExporter: dataServices.zipExporter,
                 snackbarQueue: foundation.snackbarQueue,
                 appSettings: foundation.appSettings,
-                entitlement: entitlement
+                membership: membership
             )
         )
         return AppEnvironmentBundles(
@@ -142,7 +142,7 @@ extension AppEnvironment {
             dataServices: dataServices,
             useCases: useCases,
             subscription: subscription,
-            entitlement: entitlement
+            membership: membership
         )
     }
 
@@ -151,13 +151,14 @@ extension AppEnvironment {
     ) -> AppEnvironmentFoundation {
         let apiConfig = CouponApiConfig.resolve()
         let hashProvider = DeviceHashProvider()
-        let statusFetcher = AdFreeStatusFetcher(config: apiConfig)
+        let promotionFetcher = PromotionFetcher(config: apiConfig)
         let hapticService = overrides.hapticService ?? HapticService()
         return AppEnvironmentFoundation(
             appSettings: overrides.appSettings ?? AppSettings(),
             snackbarQueue: overrides.snackbarQueue ?? SnackbarQueue(hapticService: hapticService),
             appSettingsRepo: overrides.appSettingsRepo ?? UserDefaultsAppSettingsRepository(),
-            adFreeStore: overrides.adFreeStore ?? AdFreeStore(fetcher: statusFetcher, deviceHashProvider: hashProvider),
+            promotionStore: overrides.promotionStore
+                ?? PromotionStore(fetcher: promotionFetcher, deviceHashProvider: hashProvider),
             trackingService: overrides.trackingService ?? TrackingAuthorizationService(),
             settingsRedirectCoordinator: overrides.settingsRedirectCoordinator ?? SettingsRedirectCoordinator(),
             exportCompletionCoordinator: overrides.exportCompletionCoordinator ?? ExportCompletionCoordinator(),
@@ -254,7 +255,7 @@ extension AppEnvironment {
                 snackbarQueue: dependencies.snackbarQueue,
                 appSettings: dependencies.appSettings,
                 pairRepo: pairRepo,
-                entitlement: dependencies.entitlement
+                membership: dependencies.membership
             )
         )
     }

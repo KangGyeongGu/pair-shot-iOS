@@ -50,10 +50,10 @@ final class AppOpenAdManager {
 
     func loadIfNeeded(
         adUnitID: String? = nil,
-        adFreeStore: AdFreeStore? = nil,
+        promotionStore: PromotionStore? = nil,
         subscriptionStore: SubscriptionStore? = nil
     ) {
-        if AdSuppression.isSuppressed(adFreeStore: adFreeStore, subscriptionStore: subscriptionStore) { return }
+        if AdSuppression.isSuppressed(promotionStore: promotionStore, subscriptionStore: subscriptionStore) { return }
         guard !isLoaded, !isLoading else { return }
         let resolvedUnitID = adUnitID ?? AdsConfig.appOpen
         #if canImport(GoogleMobileAds)
@@ -92,14 +92,15 @@ final class AppOpenAdManager {
     func presentIfReady(
         from rootViewController: UIViewController?,
         coordinator: FullscreenAdCoordinator,
-        adFreeStore: AdFreeStore? = nil,
+        promotionStore: PromotionStore? = nil,
         subscriptionStore: SubscriptionStore? = nil,
         adUnitID: String? = nil,
         now: Date = .now
     ) async -> Bool {
-        if AdSuppression.isSuppressed(adFreeStore: adFreeStore, subscriptionStore: subscriptionStore) { return false }
+        if AdSuppression
+            .isSuppressed(promotionStore: promotionStore, subscriptionStore: subscriptionStore) { return false }
         if !isLoaded, !isLoading {
-            loadIfNeeded(adUnitID: adUnitID, adFreeStore: adFreeStore, subscriptionStore: subscriptionStore)
+            loadIfNeeded(adUnitID: adUnitID, promotionStore: promotionStore, subscriptionStore: subscriptionStore)
         }
         if !isLoaded {
             let deadline = Date().addingTimeInterval(5)
@@ -135,7 +136,7 @@ final class AppOpenAdManager {
             isLoaded = false
             loadIfNeeded(
                 adUnitID: adUnitID ?? AdsConfig.appOpen,
-                adFreeStore: adFreeStore,
+                promotionStore: promotionStore,
                 subscriptionStore: subscriptionStore
             )
             return true

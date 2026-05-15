@@ -3,12 +3,12 @@ import Foundation
 @MainActor
 enum AdSuppression {
     static func isSuppressed(
-        adFreeStore: AdFreeStore?,
+        promotionStore: PromotionStore?,
         subscriptionStore: SubscriptionStore?
     ) -> Bool {
-        let coupon = adFreeStore?.isAdFree ?? false
+        let promotion = promotionStore?.adFreeIsActive ?? false
         let subscription = subscriptionStore?.isPro ?? false
-        return coupon || subscription
+        return promotion || subscription
     }
 
     static func isSuppressed(isAdFree: Bool, isPro: Bool) -> Bool {

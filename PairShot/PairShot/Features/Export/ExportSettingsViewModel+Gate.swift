@@ -3,7 +3,7 @@ import UIKit
 
 extension ExportSettingsViewModel {
     var gateCoordinator: RewardedGateCoordinator {
-        RewardedGateCoordinator(entitlement: entitlement)
+        RewardedGateCoordinator(membership: membership)
     }
 
     func requestWatermarkGate(rewardedManager: RewardedAdManager) -> Bool {

@@ -22,7 +22,7 @@ extension AlbumDetailViewModel {
     }
 
     func startCapture() async {
-        if !entitlement.isPaidPro {
+        if !membership.proIsActive {
             let count = await todayCreatedCountOrZero()
             guard count < PairLimitGate.freeTierDailyLimit else {
                 showPaywall = true

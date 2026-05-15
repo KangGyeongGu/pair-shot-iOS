@@ -24,7 +24,7 @@ final class AppEnvironment {
 
     let appSettings: AppSettings
     let appSettingsRepo: AppSettingsRepository
-    let adFreeStore: AdFreeStore
+    let promotionStore: PromotionStore
     let trackingService: TrackingAuthorizationService
 
     let interstitialAdManager: InterstitialAdManager
@@ -47,7 +47,7 @@ final class AppEnvironment {
     let subscriptionStore: SubscriptionStore
     let transactionListener: TransactionListener
 
-    let entitlement: Entitlement
+    let membership: Membership
 
     private var sharedSettingsViewModel: SettingsViewModel?
 
@@ -55,7 +55,7 @@ final class AppEnvironment {
         modelContainer: ModelContainer,
         appSettings: AppSettings? = nil,
         appSettingsRepo: AppSettingsRepository? = nil,
-        adFreeStore: AdFreeStore? = nil,
+        promotionStore: PromotionStore? = nil,
         trackingService: TrackingAuthorizationService? = nil,
         interstitialAdManager: InterstitialAdManager? = nil,
         rewardedAdManager: RewardedAdManager? = nil,
@@ -81,7 +81,7 @@ final class AppEnvironment {
                     appSettings: appSettings,
                     snackbarQueue: snackbarQueue,
                     appSettingsRepo: appSettingsRepo,
-                    adFreeStore: adFreeStore,
+                    promotionStore: promotionStore,
                     trackingService: trackingService,
                     settingsRedirectCoordinator: settingsRedirectCoordinator,
                     exportCompletionCoordinator: exportCompletionCoordinator,
@@ -108,7 +108,7 @@ final class AppEnvironment {
         let foundation = bundles.foundation
         self.appSettings = foundation.appSettings
         self.appSettingsRepo = foundation.appSettingsRepo
-        self.adFreeStore = foundation.adFreeStore
+        self.promotionStore = foundation.promotionStore
         self.trackingService = foundation.trackingService
         self.snackbarQueue = foundation.snackbarQueue
         self.settingsRedirectCoordinator = foundation.settingsRedirectCoordinator
@@ -150,7 +150,7 @@ final class AppEnvironment {
         self.subscriptionStore = subscription.subscriptionStore
         self.transactionListener = subscription.transactionListener
 
-        entitlement = bundles.entitlement
+        membership = bundles.membership
     }
 
     func makeBeforeCameraViewModel(
@@ -165,7 +165,7 @@ final class AppEnvironment {
             appSettings: appSettings,
             hapticService: hapticService,
             location: location,
-            entitlement: entitlement,
+            membership: membership,
             sortOrder: HomeSortOrderMapping.sortOrder(from: appSettings.homeSortOrder),
             refillPairId: refillPairId,
             session: makeCameraSession(),
@@ -214,7 +214,7 @@ final class AppEnvironment {
             pair: pair,
             photoLibrary: photoLibrary,
             appSettings: appSettings,
-            entitlement: entitlement
+            membership: membership
         )
     }
 
@@ -228,7 +228,7 @@ final class AppEnvironment {
             appSettings: appSettings,
             thumbnailCache: thumbnailCache,
             interstitialAdManager: interstitialAdManager,
-            entitlement: entitlement,
+            membership: membership,
             fullscreenAdCoordinator: fullscreenAdCoordinator,
             deleteCombinedExports: deleteCombinedExports,
             deletePairsKeepingCombined: deletePairsKeepingCombined
@@ -253,7 +253,7 @@ final class AppEnvironment {
             appSettings: appSettings,
             thumbnailCache: thumbnailCache,
             interstitialAdManager: interstitialAdManager,
-            entitlement: entitlement,
+            membership: membership,
             fullscreenAdCoordinator: fullscreenAdCoordinator,
             deleteCombinedExports: deleteCombinedExports,
             deletePairsKeepingCombined: deletePairsKeepingCombined
@@ -264,9 +264,7 @@ final class AppEnvironment {
         if let sharedSettingsViewModel { return sharedSettingsViewModel }
         let viewModel = SettingsViewModel(
             appSettings: appSettings,
-            thumbnailCache: thumbnailCache,
-            hapticService: hapticService,
-            entitlement: entitlement
+            membership: membership
         )
         sharedSettingsViewModel = viewModel
         return viewModel
@@ -290,7 +288,7 @@ final class AppEnvironment {
             snackbarQueue: snackbarQueue,
             appSettings: appSettings,
             interstitialAdManager: interstitialAdManager,
-            entitlement: entitlement,
+            membership: membership,
             fullscreenAdCoordinator: fullscreenAdCoordinator
         )
     }

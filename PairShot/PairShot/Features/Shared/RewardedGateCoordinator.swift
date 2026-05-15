@@ -10,7 +10,7 @@ enum RewardedGateResult: Equatable {
 
 @MainActor
 struct RewardedGateCoordinator {
-    let entitlement: Entitlement?
+    let membership: Membership?
 
     func shouldProceedWithoutGate(
         unlockID: RewardedAdManager.UnlockID,
@@ -19,15 +19,15 @@ struct RewardedGateCoordinator {
         !RewardedSessionGate.shouldShowGate(
             unlockID: unlockID,
             sessionUnlocks: rewardedManager.sessionUnlocks,
-            isAdFree: entitlement?.hasCouponAdFree ?? false,
-            isPro: entitlement?.isPaidPro ?? false
+            isAdFree: membership?.adFreeBySolePromotion ?? false,
+            isPro: membership?.proIsActive ?? false
         )
     }
 
     func loadAd(rewardedManager: RewardedAdManager) {
         rewardedManager.loadIfNeeded(
-            adFreeStore: entitlement?.adFreeStore,
-            subscriptionStore: entitlement?.subscriptionStore
+            promotionStore: membership?.promotionStore,
+            subscriptionStore: membership?.subscriptionStore
         )
     }
 
@@ -51,8 +51,8 @@ struct RewardedGateCoordinator {
             unlockID,
             from: rootViewController,
             coordinator: coordinator,
-            adFreeStore: entitlement?.adFreeStore,
-            subscriptionStore: entitlement?.subscriptionStore
+            promotionStore: membership?.promotionStore,
+            subscriptionStore: membership?.subscriptionStore
         )
         return mapOutcome(outcome)
     }

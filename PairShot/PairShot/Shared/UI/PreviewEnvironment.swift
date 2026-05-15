@@ -27,11 +27,11 @@ struct PreviewEnvironment<Content: View>: View {
             .environment(env.appOpenAdManager)
             .environment(env.rewardedAdManager)
             .environment(env.nativeAdLoader)
-            .environment(env.adFreeStore)
+            .environment(env.promotionStore)
             .environment(env.subscriptionStore)
             .environment(env.trackingService)
             .environment(env.appSettings)
-            .environment(env.entitlement)
+            .environment(env.membership)
             .environment(env.exportCompletionCoordinator)
     }
 }

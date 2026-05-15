@@ -3,7 +3,7 @@ import SafariServices
 import UIKit
 
 @MainActor
-enum CouponRedemptionLink {
+enum PromotionRedemptionLink {
     static func open(config: CouponApiConfig, deviceHashProvider: DeviceHashProvider) {
         guard let url = buildURL(config: config, deviceHash: deviceHashProvider.deviceHash()) else { return }
         guard let viewController = topViewController() else { return }
