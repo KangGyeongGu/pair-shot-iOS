@@ -17,16 +17,11 @@ struct TutorialOverlayTests {
     }
 
     @Test
-    func `TutorialStepCopy 는 done 외 모든 step 에 비어있지 않은 텍스트 제공`() {
-        for step in TutorialStep.allCases where step != .done {
+    func `TutorialStepCopy 는 모든 step 에 비어있지 않은 텍스트 제공`() {
+        for step in TutorialStep.allCases {
             let text = TutorialStepCopy.text(for: step)
             #expect(!text.isEmpty, "step \(step) text must not be empty")
         }
-    }
-
-    @Test
-    func `TutorialStepCopy done step 은 빈 텍스트`() {
-        #expect(TutorialStepCopy.text(for: .done).isEmpty)
     }
 
     @Test

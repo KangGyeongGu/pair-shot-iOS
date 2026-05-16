@@ -55,6 +55,10 @@ struct HomeDefaultToolbar: ToolbarContent {
     let viewModel: HomeViewModel?
     let onPushSettings: (() -> Void)?
     let isPro: Bool
+    let tutorialActive: Bool
+    let tutorialPairIds: [UUID]
+    let onTutorialAdvanceAfterSelectionMode: () -> Void
+    let onTutorialAdvanceAfterSettings: () -> Void
 
     var body: some ToolbarContent {
         ToolbarItem(placement: .principal) {
@@ -75,21 +79,29 @@ struct HomeDefaultToolbar: ToolbarContent {
         }
         ToolbarItem(placement: .topBarTrailing) {
             Button {
-                viewModel?.enterSelectionMode()
+                if tutorialActive {
+                    viewModel?.enterSelectionMode(autoSelectingPairIds: tutorialPairIds)
+                    onTutorialAdvanceAfterSelectionMode()
+                } else {
+                    viewModel?.enterSelectionMode()
+                }
             } label: {
                 Image(systemName: "checkmark.circle")
             }
             .accessibilityLabel(String(localized: "home_desc_selection_mode"))
             .disabled(viewModel == nil)
+            .tutorialAnchor(TutorialAnchorID.homeSelectionToggle)
         }
         ToolbarItem(placement: .topBarTrailing) {
             Button {
                 onPushSettings?()
+                onTutorialAdvanceAfterSettings()
             } label: {
                 Image(systemName: "gearshape")
             }
             .accessibilityLabel(String(localized: "common_label_settings"))
             .disabled(onPushSettings == nil)
+            .tutorialAnchor(TutorialAnchorID.homeSettings)
         }
     }
 }

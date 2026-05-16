@@ -145,6 +145,7 @@ final class AppEnvironment {
             container: modelContainer,
             photoLibrary: dataServices.photoLibrary,
         )
+        resolvedTutorialCoordinator.cleanupService = tutorialCleanupService
 
         let useCases = bundles.useCases
         createPair = useCases.createPair

@@ -7,4 +7,10 @@ nonisolated enum TutorialAnchorID {
     static let afterGhostOverlay = "after.ghostOverlay"
     static let afterShutter = "after.shutter"
     static let afterHomeButton = "after.homeButton"
+    static let homeSelectionToggle = "home.selectionToggle"
+    static let homeSettings = "home.settings"
+    static let selectionShare = "selection.share"
+    static let selectionSave = "selection.save"
+    static let selectionDelete = "selection.delete"
+    static let selectionExport = "selection.export"
 }

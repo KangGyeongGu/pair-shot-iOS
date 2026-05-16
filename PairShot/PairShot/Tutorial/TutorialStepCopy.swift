@@ -16,9 +16,9 @@ enum TutorialStepCopy {
             case .selectionSave: "선택한 페어를 저장하세요"
             case .selectionDelete: "선택한 페어를 삭제할 수 있어요"
             case .selectionExport: "선택한 페어를 내보낼 수 있어요"
-            case .saveToDevice: "기기에 저장할 수 있어요"
+            case .saveToDevice: "이렇게 기기에 저장합니다"
             case .goSettings: "설정에서 더 많은 옵션을 확인하세요"
-            case .done: ""
+            case .done: "설정에서 필요한 기본 세팅이 가능합니다. 튜토리얼을 종료할게요."
         }
     }
 }

@@ -15,6 +15,7 @@ struct HomePairSelectionBottomBar: View {
                 systemImage: "square.and.arrow.up",
                 isEnabled: enabled,
                 role: nil,
+                anchorID: TutorialAnchorID.selectionShare,
                 action: onShare,
             )
             actionColumn(
@@ -22,6 +23,7 @@ struct HomePairSelectionBottomBar: View {
                 systemImage: "arrow.down.to.line",
                 isEnabled: enabled,
                 role: nil,
+                anchorID: TutorialAnchorID.selectionSave,
                 action: onSaveToDevice,
             )
             actionColumn(
@@ -29,6 +31,7 @@ struct HomePairSelectionBottomBar: View {
                 systemImage: "trash",
                 isEnabled: enabled,
                 role: .destructive,
+                anchorID: TutorialAnchorID.selectionDelete,
                 action: onDelete,
             )
             actionColumn(
@@ -36,6 +39,7 @@ struct HomePairSelectionBottomBar: View {
                 systemImage: "slider.horizontal.3",
                 isEnabled: enabled,
                 role: nil,
+                anchorID: TutorialAnchorID.selectionExport,
                 action: onExportSettings,
             )
         }
@@ -55,6 +59,7 @@ struct HomePairSelectionBottomBar: View {
         systemImage: String,
         isEnabled: Bool,
         role: ButtonRole?,
+        anchorID: String,
         action: @escaping () -> Void,
     ) -> some View {
         Button(role: role, action: action) {
@@ -76,5 +81,6 @@ struct HomePairSelectionBottomBar: View {
         .opacity(isEnabled ? 1 : 0.38)
         .disabled(!isEnabled)
         .accessibilityLabel(title)
+        .tutorialAnchor(anchorID)
     }
 }

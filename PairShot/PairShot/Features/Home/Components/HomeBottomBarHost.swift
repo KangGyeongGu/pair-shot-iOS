@@ -7,6 +7,7 @@ struct HomeBottomBarHost: View {
     let onPushExportSettings: (([UUID]) -> Void)?
 
     @Environment(ExportCompletionCoordinator.self) private var exportCompletionCoordinator
+    @Environment(TutorialCoordinator.self) private var tutorialCoordinator
 
     var body: some View {
         contents
@@ -22,10 +23,27 @@ struct HomeBottomBarHost: View {
                 case .pairs:
                     HomePairSelectionBottomBar(
                         selectionCount: viewModel.selectedPairIds.count,
-                        onShare: { Task { await viewModel.shareSelectedPairs(from: sortedPairs) } },
-                        onSaveToDevice: { Task { await viewModel.saveSelectedPairsToDevice(from: sortedPairs) } },
-                        onDelete: { viewModel.requestPairDeletion(from: sortedPairs) },
-                        onExportSettings: pushExport,
+                        onShare: {
+                            if tutorialCoordinator.isActive { tutorialCoordinator.advance(); return }
+                            Task { await viewModel.shareSelectedPairs(from: sortedPairs) }
+                        },
+                        onSaveToDevice: {
+                            if tutorialCoordinator.isActive {
+                                let wasSaveToDevice = tutorialCoordinator.isAtStep(.saveToDevice)
+                                tutorialCoordinator.advance()
+                                if wasSaveToDevice { viewModel.cancelSelection() }
+                                return
+                            }
+                            Task { await viewModel.saveSelectedPairsToDevice(from: sortedPairs) }
+                        },
+                        onDelete: {
+                            if tutorialCoordinator.isActive { tutorialCoordinator.advance(); return }
+                            viewModel.requestPairDeletion(from: sortedPairs)
+                        },
+                        onExportSettings: {
+                            if tutorialCoordinator.isActive { tutorialCoordinator.advance(); return }
+                            pushExport()
+                        },
                     )
 
                 case .albums:

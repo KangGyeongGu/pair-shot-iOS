@@ -14,15 +14,19 @@ struct TutorialOverlay: View {
             content(in: proxy)
         }
         .ignoresSafeArea()
-        .allowsHitTesting(coord.isActive)
+        .allowsHitTesting(coord.isActive || coord.current == .done)
     }
 
     @ViewBuilder
     private func content(in proxy: GeometryProxy) -> some View {
-        if let step = coord.current,
-           step != .done,
-           let anchorID = anchorID(for: step),
-           let anchor = anchors[anchorID]
+        if coord.current == .done {
+            TutorialFinishView(
+                message: TutorialStepCopy.text(for: .done),
+                onFinish: { coord.finishAndCleanup() },
+            )
+        } else if let step = coord.current,
+                  let anchorID = anchorID(for: step),
+                  let anchor = anchors[anchorID]
         {
             let rect = proxy[anchor].insetBy(dx: Self.cutoutInset, dy: Self.cutoutInset)
             ZStack {
@@ -63,7 +67,25 @@ struct TutorialOverlay: View {
             case .backToHome2:
                 TutorialAnchorID.afterHomeButton
 
-            default:
+            case .enterSelectionMode:
+                TutorialAnchorID.homeSelectionToggle
+
+            case .selectionShare:
+                TutorialAnchorID.selectionShare
+
+            case .selectionSave, .saveToDevice:
+                TutorialAnchorID.selectionSave
+
+            case .selectionDelete:
+                TutorialAnchorID.selectionDelete
+
+            case .selectionExport:
+                TutorialAnchorID.selectionExport
+
+            case .goSettings:
+                TutorialAnchorID.homeSettings
+
+            case .done:
                 nil
         }
     }

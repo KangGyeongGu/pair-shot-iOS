@@ -64,6 +64,20 @@ struct HomeView: View {
                 viewModel: viewModel,
                 onPushSettings: onPushSettings,
                 isPro: membership.proIsActive,
+                tutorialActive: env.tutorialCoordinator.isActive,
+                tutorialPairIds: env.tutorialCoordinator.isActive
+                    ? domainPairs.filter(\.isTutorial).map(\.id)
+                    : [],
+                onTutorialAdvanceAfterSelectionMode: {
+                    if env.tutorialCoordinator.isAtStep(.enterSelectionMode) {
+                        env.tutorialCoordinator.advance()
+                    }
+                },
+                onTutorialAdvanceAfterSettings: {
+                    if env.tutorialCoordinator.isAtStep(.goSettings) {
+                        env.tutorialCoordinator.advance()
+                    }
+                },
             )
         }
     }

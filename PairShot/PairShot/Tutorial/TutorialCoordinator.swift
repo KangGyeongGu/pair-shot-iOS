@@ -5,6 +5,7 @@ import Observation
 @Observable
 final class TutorialCoordinator {
     private(set) var current: TutorialStep?
+    var cleanupService: TutorialCleanupService?
 
     var isActive: Bool {
         current != nil && current != .done
@@ -14,8 +15,9 @@ final class TutorialCoordinator {
         current.map { .running($0) } ?? .off
     }
 
-    init(current: TutorialStep? = nil) {
+    init(current: TutorialStep? = nil, cleanupService: TutorialCleanupService? = nil) {
         self.current = current
+        self.cleanupService = cleanupService
     }
 
     func start() {
@@ -33,6 +35,17 @@ final class TutorialCoordinator {
 
     func complete() {
         current = .done
+    }
+
+    func finishAndCleanup() {
+        complete()
+        let service = cleanupService
+        Task { [weak self] in
+            if let service {
+                try? await service.deleteAllTutorialPairs()
+            }
+            self?.current = nil
+        }
     }
 
     @discardableResult
