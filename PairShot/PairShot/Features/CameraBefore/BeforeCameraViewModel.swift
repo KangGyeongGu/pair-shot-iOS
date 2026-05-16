@@ -68,6 +68,7 @@ final class BeforeCameraViewModel {
     let location: CoreLocationService
     let membership: Membership
     let snackbarQueue: SnackbarQueue
+    let tutorialCoordinator: TutorialCoordinator?
     let permissionProbe: @Sendable () async -> Bool
     let eventsContinuation: AsyncStream<Event>.Continuation
     var dragAccumulatorPx: Double = 0
@@ -92,6 +93,7 @@ final class BeforeCameraViewModel {
         location: CoreLocationService,
         membership: Membership,
         snackbarQueue: SnackbarQueue,
+        tutorialCoordinator: TutorialCoordinator? = nil,
         sortOrder: HomeSortOrder = .newest,
         refillPairId: UUID? = nil,
         session: CameraSession? = nil,
@@ -107,6 +109,7 @@ final class BeforeCameraViewModel {
         self.location = location
         self.membership = membership
         self.snackbarQueue = snackbarQueue
+        self.tutorialCoordinator = tutorialCoordinator
         self.sortOrder = sortOrder
         let resolvedSession = session ?? CameraSession()
         self.session = resolvedSession

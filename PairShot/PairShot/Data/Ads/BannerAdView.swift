@@ -14,11 +14,12 @@ enum BannerAdGate {
 struct BannerAdSlot: View {
     @Environment(Membership.self) private var membership
     @Environment(TrackingAuthorizationService.self) private var tracking
+    @Environment(TutorialCoordinator.self) private var tutorialCoordinator
 
     let adUnitID: String
 
     var body: some View {
-        if BannerAdGate.shouldShow(
+        if !tutorialCoordinator.isActive, BannerAdGate.shouldShow(
             isAdFree: membership.adFreeBySolePromotion,
             isPro: membership.proIsActive,
         ) {

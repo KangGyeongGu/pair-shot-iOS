@@ -33,5 +33,7 @@ struct PreviewEnvironment<Content: View>: View {
             .environment(env.appSettings)
             .environment(env.membership)
             .environment(env.exportCompletionCoordinator)
+            .environment(env.tutorialCoordinator)
+            .tutorialModeBinding(env.tutorialCoordinator)
     }
 }

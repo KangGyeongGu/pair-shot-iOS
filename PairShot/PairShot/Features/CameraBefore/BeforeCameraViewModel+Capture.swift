@@ -6,6 +6,10 @@ import UIKit
 extension BeforeCameraViewModel {
     func shutter() async {
         guard !isCapturing, session.captureReadiness == .ready else { return }
+        if let tutorialCoordinator, tutorialCoordinator.isActive {
+            tutorialCoordinator.advance()
+            return
+        }
         if await shouldGateForPaywall() {
             snackbarQueue.enqueue(
                 "settings_promotion_guide_daily_limit",

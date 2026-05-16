@@ -30,6 +30,7 @@ final class AppOpenAdManager {
 
     private let minimumInterval: TimeInterval
     private let trackingService: TrackingAuthorizationService?
+    private let tutorialCoordinator: TutorialCoordinator?
 
     #if canImport(GoogleMobileAds)
         private var ad: AppOpenAd?
@@ -39,9 +40,11 @@ final class AppOpenAdManager {
     init(
         minimumInterval: TimeInterval = AppOpenAdGate.defaultMinimumInterval,
         trackingService: TrackingAuthorizationService? = nil,
+        tutorialCoordinator: TutorialCoordinator? = nil,
     ) {
         self.minimumInterval = minimumInterval
         self.trackingService = trackingService
+        self.tutorialCoordinator = tutorialCoordinator
         #if canImport(GoogleMobileAds)
             presentationDelegate = AppOpenPresentationDelegate()
         #endif
@@ -52,7 +55,11 @@ final class AppOpenAdManager {
         promotionStore: PromotionStore? = nil,
         subscriptionStore: SubscriptionStore? = nil,
     ) {
-        if AdSuppression.isSuppressed(promotionStore: promotionStore, subscriptionStore: subscriptionStore) { return }
+        if AdSuppression.isSuppressed(
+            promotionStore: promotionStore,
+            subscriptionStore: subscriptionStore,
+            tutorialCoordinator: tutorialCoordinator,
+        ) { return }
         guard !isLoaded, !isLoading else { return }
         let resolvedUnitID = adUnitID ?? AdsConfig.appOpen
         #if canImport(GoogleMobileAds)
@@ -89,8 +96,11 @@ final class AppOpenAdManager {
         adUnitID: String? = nil,
         now: Date = .now,
     ) async -> Bool {
-        if AdSuppression
-            .isSuppressed(promotionStore: promotionStore, subscriptionStore: subscriptionStore) { return false }
+        if AdSuppression.isSuppressed(
+            promotionStore: promotionStore,
+            subscriptionStore: subscriptionStore,
+            tutorialCoordinator: tutorialCoordinator,
+        ) { return false }
         if !isLoaded, !isLoading {
             loadIfNeeded(adUnitID: adUnitID, promotionStore: promotionStore, subscriptionStore: subscriptionStore)
         }

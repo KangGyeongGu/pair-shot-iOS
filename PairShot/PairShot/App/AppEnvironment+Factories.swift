@@ -94,6 +94,7 @@ struct SubscriptionServicesBundle {
 
 struct AppEnvironmentInitInput {
     let modelContainer: ModelContainer
+    let tutorialCoordinator: TutorialCoordinator
     let foundationOverrides: AppEnvironmentFoundationOverrides
     let adServicesOverrides: AdServicesOverrides
     let subscriptionOverrides: SubscriptionServicesOverrides
@@ -113,6 +114,7 @@ extension AppEnvironment {
         let foundation = makeFoundation(overrides: input.foundationOverrides)
         let adServices = makeAdServices(
             trackingService: foundation.trackingService,
+            tutorialCoordinator: input.tutorialCoordinator,
             overrides: input.adServicesOverrides,
         )
         let dataServices = makeDataServices(
@@ -196,13 +198,30 @@ extension AppEnvironment {
 
     static func makeAdServices(
         trackingService: TrackingAuthorizationService,
+        tutorialCoordinator: TutorialCoordinator,
         overrides: AdServicesOverrides,
     ) -> AdServicesBundle {
         AdServicesBundle(
-            interstitial: overrides.interstitial ?? InterstitialAdManager(trackingService: trackingService),
-            rewarded: overrides.rewarded ?? RewardedAdManager(trackingService: trackingService),
-            nativeAd: overrides.nativeAd ?? NativeAdLoader(trackingService: trackingService),
-            appOpen: overrides.appOpen ?? AppOpenAdManager(trackingService: trackingService),
+            interstitial: overrides.interstitial
+                ?? InterstitialAdManager(
+                    trackingService: trackingService,
+                    tutorialCoordinator: tutorialCoordinator,
+                ),
+            rewarded: overrides.rewarded
+                ?? RewardedAdManager(
+                    trackingService: trackingService,
+                    tutorialCoordinator: tutorialCoordinator,
+                ),
+            nativeAd: overrides.nativeAd
+                ?? NativeAdLoader(
+                    trackingService: trackingService,
+                    tutorialCoordinator: tutorialCoordinator,
+                ),
+            appOpen: overrides.appOpen
+                ?? AppOpenAdManager(
+                    trackingService: trackingService,
+                    tutorialCoordinator: tutorialCoordinator,
+                ),
             fullscreen: overrides.fullscreen ?? FullscreenAdCoordinator(),
             consent: overrides.consent ?? ConsentManager(),
         )

@@ -40,14 +40,19 @@ final class RewardedAdManager {
     private(set) var sessionUnlocks: Set<UnlockID> = []
 
     private let trackingService: TrackingAuthorizationService?
+    private let tutorialCoordinator: TutorialCoordinator?
 
     #if canImport(GoogleMobileAds)
         private var ad: RewardedAd?
         private let presentationDelegate: RewardedPresentationDelegate
     #endif
 
-    init(trackingService: TrackingAuthorizationService? = nil) {
+    init(
+        trackingService: TrackingAuthorizationService? = nil,
+        tutorialCoordinator: TutorialCoordinator? = nil,
+    ) {
         self.trackingService = trackingService
+        self.tutorialCoordinator = tutorialCoordinator
         #if canImport(GoogleMobileAds)
             presentationDelegate = RewardedPresentationDelegate()
         #endif
@@ -58,7 +63,11 @@ final class RewardedAdManager {
         promotionStore: PromotionStore? = nil,
         subscriptionStore: SubscriptionStore? = nil,
     ) {
-        if AdSuppression.isSuppressed(promotionStore: promotionStore, subscriptionStore: subscriptionStore) { return }
+        if AdSuppression.isSuppressed(
+            promotionStore: promotionStore,
+            subscriptionStore: subscriptionStore,
+            tutorialCoordinator: tutorialCoordinator,
+        ) { return }
         guard !isLoaded, !isLoading else { return }
         let resolvedUnitID = adUnitID ?? AdsConfig.rewarded
         #if canImport(GoogleMobileAds)
@@ -95,7 +104,11 @@ final class RewardedAdManager {
         subscriptionStore: SubscriptionStore? = nil,
         adUnitID: String? = nil,
     ) async -> RewardOutcome {
-        if AdSuppression.isSuppressed(promotionStore: promotionStore, subscriptionStore: subscriptionStore) {
+        if AdSuppression.isSuppressed(
+            promotionStore: promotionStore,
+            subscriptionStore: subscriptionStore,
+            tutorialCoordinator: tutorialCoordinator,
+        ) {
             sessionUnlocks.insert(unlockID)
             return .granted
         }

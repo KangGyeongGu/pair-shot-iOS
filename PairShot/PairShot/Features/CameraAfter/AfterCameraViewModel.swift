@@ -88,6 +88,7 @@ final class AfterCameraViewModel {
     private let appSettings: AppSettings
     let hapticService: HapticService
     private let location: CoreLocationService
+    private let tutorialCoordinator: TutorialCoordinator?
     private let permissionProbe: @Sendable () async -> Bool
     private let eventsContinuation: AsyncStream<Event>.Continuation
     private var allCompletedDismissTask: Task<Void, Never>?
@@ -105,6 +106,7 @@ final class AfterCameraViewModel {
         appSettings: AppSettings,
         hapticService: HapticService,
         location: CoreLocationService,
+        tutorialCoordinator: TutorialCoordinator? = nil,
         initialPairId: UUID? = nil,
         sortOrder: HomeSortOrder = .newest,
         recaptureTargetPair: PhotoPair? = nil,
@@ -122,6 +124,7 @@ final class AfterCameraViewModel {
         self.appSettings = appSettings
         self.hapticService = hapticService
         self.location = location
+        self.tutorialCoordinator = tutorialCoordinator
         let resolvedSession = session ?? CameraSession()
         self.session = resolvedSession
         self.permissionProbe = permissionProbe
@@ -174,6 +177,10 @@ final class AfterCameraViewModel {
 
     func shutter() async {
         guard !isCapturing, session.captureReadiness == .ready, let pair = currentPair else { return }
+        if let tutorialCoordinator, tutorialCoordinator.isActive {
+            tutorialCoordinator.advance()
+            return
+        }
         isCapturing = true
         let captured: CapturedPhoto
         do {

@@ -49,6 +49,8 @@ final class AppEnvironment {
 
     let membership: Membership
 
+    let tutorialCoordinator: TutorialCoordinator
+
     private var sharedSettingsViewModel: SettingsViewModel?
 
     init(
@@ -73,10 +75,14 @@ final class AppEnvironment {
         productsService: ProductsService? = nil,
         subscriptionStore: SubscriptionStore? = nil,
         transactionListener: TransactionListener? = nil,
+        tutorialCoordinator: TutorialCoordinator? = nil,
     ) {
+        let resolvedTutorialCoordinator = tutorialCoordinator ?? TutorialCoordinator()
+        self.tutorialCoordinator = resolvedTutorialCoordinator
         let bundles = Self.makeAllBundles(
             input: AppEnvironmentInitInput(
                 modelContainer: modelContainer,
+                tutorialCoordinator: resolvedTutorialCoordinator,
                 foundationOverrides: AppEnvironmentFoundationOverrides(
                     appSettings: appSettings,
                     snackbarQueue: snackbarQueue,
@@ -167,6 +173,7 @@ final class AppEnvironment {
             location: location,
             membership: membership,
             snackbarQueue: snackbarQueue,
+            tutorialCoordinator: tutorialCoordinator,
             sortOrder: HomeSortOrderMapping.sortOrder(from: appSettings.homeSortOrder),
             refillPairId: refillPairId,
             session: makeCameraSession(),
@@ -189,6 +196,7 @@ final class AppEnvironment {
             appSettings: appSettings,
             hapticService: hapticService,
             location: location,
+            tutorialCoordinator: tutorialCoordinator,
             initialPairId: initialPairId,
             sortOrder: sortOrder,
             recaptureTargetPair: recaptureTargetPair,

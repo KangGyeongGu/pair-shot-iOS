@@ -16,13 +16,18 @@ final class NativeAdLoader: NSObject {
     private(set) var lastErrorDescription: String?
 
     private let trackingService: TrackingAuthorizationService?
+    private let tutorialCoordinator: TutorialCoordinator?
 
     #if canImport(GoogleMobileAds)
         private var inflightLoader: AdLoader?
     #endif
 
-    init(trackingService: TrackingAuthorizationService? = nil) {
+    init(
+        trackingService: TrackingAuthorizationService? = nil,
+        tutorialCoordinator: TutorialCoordinator? = nil,
+    ) {
         self.trackingService = trackingService
+        self.tutorialCoordinator = tutorialCoordinator
         super.init()
     }
 
@@ -32,7 +37,11 @@ final class NativeAdLoader: NSObject {
         promotionStore: PromotionStore? = nil,
         subscriptionStore: SubscriptionStore? = nil,
     ) {
-        if AdSuppression.isSuppressed(promotionStore: promotionStore, subscriptionStore: subscriptionStore) { return }
+        if AdSuppression.isSuppressed(
+            promotionStore: promotionStore,
+            subscriptionStore: subscriptionStore,
+            tutorialCoordinator: tutorialCoordinator,
+        ) { return }
         guard count > 0 else { return }
         guard !isLoading else { return }
         let resolvedUnitID = adUnitID ?? AdsConfig.native
@@ -60,8 +69,11 @@ final class NativeAdLoader: NSObject {
         promotionStore: PromotionStore? = nil,
         subscriptionStore: SubscriptionStore? = nil,
     ) -> Any? {
-        if AdSuppression
-            .isSuppressed(promotionStore: promotionStore, subscriptionStore: subscriptionStore) { return nil }
+        if AdSuppression.isSuppressed(
+            promotionStore: promotionStore,
+            subscriptionStore: subscriptionStore,
+            tutorialCoordinator: tutorialCoordinator,
+        ) { return nil }
         guard !loadedAds.isEmpty else {
             prefetch(count: 1, promotionStore: promotionStore, subscriptionStore: subscriptionStore)
             return nil

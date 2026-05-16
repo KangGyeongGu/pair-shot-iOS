@@ -28,6 +28,7 @@ final class InterstitialAdManager {
     private(set) var lastShownAt: Date?
 
     private let trackingService: TrackingAuthorizationService?
+    private let tutorialCoordinator: TutorialCoordinator?
 
     #if canImport(GoogleMobileAds)
         private var ad: InterstitialAd?
@@ -36,8 +37,10 @@ final class InterstitialAdManager {
 
     init(
         trackingService: TrackingAuthorizationService? = nil,
+        tutorialCoordinator: TutorialCoordinator? = nil,
     ) {
         self.trackingService = trackingService
+        self.tutorialCoordinator = tutorialCoordinator
         #if canImport(GoogleMobileAds)
             presentationDelegate = InterstitialPresentationDelegate()
         #endif
@@ -48,7 +51,11 @@ final class InterstitialAdManager {
         promotionStore: PromotionStore? = nil,
         subscriptionStore: SubscriptionStore? = nil,
     ) {
-        if AdSuppression.isSuppressed(promotionStore: promotionStore, subscriptionStore: subscriptionStore) { return }
+        if AdSuppression.isSuppressed(
+            promotionStore: promotionStore,
+            subscriptionStore: subscriptionStore,
+            tutorialCoordinator: tutorialCoordinator,
+        ) { return }
         guard !isLoaded, !isLoading else { return }
         let resolvedUnitID = adUnitID ?? AdsConfig.interstitial
         #if canImport(GoogleMobileAds)
@@ -109,6 +116,7 @@ final class InterstitialAdManager {
         if AdSuppression.isSuppressed(
             promotionStore: context.promotionStore,
             subscriptionStore: context.subscriptionStore,
+            tutorialCoordinator: tutorialCoordinator,
         ) {
             context.onFinished()
             return false
