@@ -108,7 +108,7 @@ struct HomeView: View {
 
             grids(viewModel: viewModel, sortedPairs: sortedPairs, sortedAlbums: sortedAlbums)
         }
-        .safeAreaInset(edge: .bottom, spacing: 0) {
+        .overlay(alignment: .bottom) {
             HomeBottomBarHost(
                 viewModel: viewModel,
                 sortedPairs: sortedPairs,
@@ -169,6 +169,7 @@ struct HomeView: View {
             }
             .padding(.vertical, 8)
         }
+        .contentMargins(.bottom, 40, for: .scrollContent)
         .refreshable { await viewModel.reload() }
     }
 
@@ -273,6 +274,7 @@ struct HomeView: View {
             }
         }
         .listStyle(.insetGrouped)
+        .contentMargins(.bottom, 40, for: .scrollContent)
         .refreshable { await viewModel.reload() }
     }
 

@@ -47,6 +47,15 @@
           "adHocOffers" : [
 
           ],
+          "billingPlans" : [
+            {
+              "billingPlanType" : "BILLED_UPFRONT",
+              "commitmentDisplayPrice" : "4500",
+              "displayPrice" : "4500",
+              "internalID" : "15239A81",
+              "isEnabled" : true
+            }
+          ],
           "codeOffers" : [
 
           ],
@@ -94,6 +103,15 @@
         {
           "adHocOffers" : [
 
+          ],
+          "billingPlans" : [
+            {
+              "billingPlanType" : "BILLED_UPFRONT",
+              "commitmentDisplayPrice" : "43200",
+              "displayPrice" : "43200",
+              "internalID" : "CB83C41D",
+              "isEnabled" : true
+            }
           ],
           "codeOffers" : [
 
