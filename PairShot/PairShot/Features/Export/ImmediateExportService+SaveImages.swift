@@ -11,76 +11,69 @@ extension ImmediateExportService {
         }
         let selection = currentSelection()
         let renderOptions = currentRenderOptions()
-        let allEntries = collectExportEntries(pairs: pairs, selection: selection)
-        let saved = await processEntries(
-            allEntries,
+        let now = Date()
+        let jobs = ExportJobBuilder.makeJobs(
+            pairs: pairs,
+            selection: selection,
+            appSettings: appSettings,
+            renderOptions: renderOptions,
+            now: now,
+        )
+        let saved = await processJobs(
+            jobs,
             renderOptions: renderOptions,
             progress: progress,
         )
         finalizeProgress(progress, savedCount: saved)
     }
 
-    func collectExportEntries(
-        pairs: [PhotoPair],
-        selection: ExportContents,
-    ) -> [(pair: PhotoPair, entry: ExportSelection.Entry)] {
-        let ext = appSettings.exportQuality.fileExtension
-        return pairs.enumerated().flatMap { offset, pair in
-            ExportSelection.relativePaths(
-                for: pair,
-                selection: selection,
-                sequenceNumber: offset + 1,
-                prefix: appSettings.fileNamePrefix,
-                fileExtension: ext,
-            )
-            .map { (pair: pair, entry: $0) }
-        }
-    }
-
-    func processEntries(
-        _ allEntries: [(pair: PhotoPair, entry: ExportSelection.Entry)],
+    func processJobs(
+        _ jobs: [ExportJob],
         renderOptions: ExportRenderOptions,
         progress: SnackbarProgressHandle,
     ) async -> Int {
-        let total = max(1, allEntries.count)
-        let now = Date()
-        var saved = 0
-        var processed = 0
-        for item in allEntries {
-            guard
-                let rendered = await ExportEntryRenderer.render(
-                    entry: item.entry,
-                    pair: item.pair,
-                    photoLibrary: photoLibrary,
-                    appSettings: appSettings,
-                    renderOptions: renderOptions,
-                    now: now,
-                )
-            else {
-                processed += 1
-                snackbarQueue.updateProgress(progress, value: Double(processed) / Double(total))
-                continue
+        let total = max(1, jobs.count)
+        let snackbar = snackbarQueue
+        let progressToken = progress.token
+        let counter = ExportProgressCounter(total: jobs.count) { fraction in
+            Task { @MainActor in
+                snackbar.updateProgress(SnackbarProgressHandle(token: progressToken), value: fraction)
             }
+        }
+        let payloads: [RenderedExportPayload]
+        do {
+            payloads = try await ExportEntryBatchRenderer.renderAll(
+                jobs: jobs,
+                photoLibrary: photoLibrary,
+                counter: counter,
+            )
+        } catch is CancellationError {
+            return 0
+        } catch {
+            enqueueSaveFailure(progress: progress)
+            return 0
+        }
+        var saved = 0
+        for payload in payloads {
             do {
                 let identifier = try await photoLibraryExporter.saveImageData(
-                    rendered.data,
+                    payload.data,
                     type: .photo,
-                    utType: rendered.utType,
+                    utType: payload.utType,
                 )
                 await recordExportHistory(
                     identifier: identifier,
-                    pair: item.pair,
-                    entry: item.entry,
+                    pairId: payload.pairId,
+                    entry: payload.entry,
                     renderOptions: renderOptions,
                 )
                 saved += 1
-                processed += 1
-                snackbarQueue.updateProgress(progress, value: Double(processed) / Double(total))
             } catch {
                 enqueueSaveFailure(progress: progress)
                 return saved
             }
         }
+        snackbarQueue.updateProgress(progress, value: Double(saved) / Double(total))
         return saved
     }
 
@@ -111,7 +104,7 @@ extension ImmediateExportService {
 
     func recordExportHistory(
         identifier: String,
-        pair: PhotoPair,
+        pairId: UUID,
         entry: ExportSelection.Entry,
         renderOptions: ExportRenderOptions,
     ) async {
@@ -126,7 +119,7 @@ extension ImmediateExportService {
         else { return }
         do {
             try await pairRepo.recordExportHistory(
-                pairId: pair.id,
+                pairId: pairId,
                 kind: kind,
                 photoLocalIdentifier: identifier,
             )

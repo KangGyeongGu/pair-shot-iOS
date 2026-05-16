@@ -74,12 +74,17 @@ extension ExportSettingsViewModel {
         let saved: Int
         do {
             let pairs = try await loadPairs()
-            let allEntries = buildEntries(pairs: pairs, selection: selection)
-            saved = await processEntries(
-                allEntries,
-                progress: progress,
+            let jobs = ExportJobBuilder.makeJobs(
+                pairs: pairs,
+                selection: selection,
+                appSettings: appSettings,
                 renderOptions: renderOptions,
                 now: now,
+            )
+            saved = await processJobs(
+                jobs,
+                progress: progress,
+                renderOptions: renderOptions,
             )
         } catch {
             snackbarQueue.cancelProgress(progress)
@@ -91,76 +96,52 @@ extension ExportSettingsViewModel {
         eventsContinuation.yield(.dismiss)
     }
 
-    func buildEntries(
-        pairs: [PhotoPair],
-        selection: ExportContents,
-    ) -> [(pair: PhotoPair, entry: ExportSelection.Entry)] {
-        let ext = appSettings.exportQuality.fileExtension
-        return pairs.enumerated().flatMap { offset, pair in
-            ExportSelection.relativePaths(
-                for: pair,
-                selection: selection,
-                sequenceNumber: offset + 1,
-                prefix: appSettings.fileNamePrefix,
-                fileExtension: ext,
-            )
-            .map { (pair: pair, entry: $0) }
-        }
-    }
-
-    func processEntries(
-        _ allEntries: [(pair: PhotoPair, entry: ExportSelection.Entry)],
+    func processJobs(
+        _ jobs: [ExportJob],
         progress: SnackbarProgressHandle,
         renderOptions: ExportRenderOptions,
-        now: Date,
     ) async -> Int {
-        let total = max(1, allEntries.count)
-        var saved = 0
-        var processed = 0
-        for item in allEntries {
-            let didSave = await processSingleEntry(
-                item: item,
-                renderOptions: renderOptions,
-                now: now,
-            )
-            if didSave { saved += 1 }
-            processed += 1
-            snackbarQueue.updateProgress(progress, value: Double(processed) / Double(total))
+        let total = max(1, jobs.count)
+        let snackbar = snackbarQueue
+        let progressToken = progress.token
+        let counter = ExportProgressCounter(total: jobs.count) { fraction in
+            Task { @MainActor in
+                snackbar.updateProgress(SnackbarProgressHandle(token: progressToken), value: fraction)
+            }
         }
-        return saved
-    }
-
-    func processSingleEntry(
-        item: (pair: PhotoPair, entry: ExportSelection.Entry),
-        renderOptions: ExportRenderOptions,
-        now: Date,
-    ) async -> Bool {
-        guard
-            let rendered = await ExportEntryRenderer.render(
-                entry: item.entry,
-                pair: item.pair,
-                photoLibrary: photoLibrary,
-                appSettings: appSettings,
-                renderOptions: renderOptions,
-                now: now,
-            )
-        else { return false }
+        let payloads: [RenderedExportPayload]
         do {
-            let identifier = try await photoLibraryExporter.saveImageData(
-                rendered.data,
-                type: .photo,
-                utType: rendered.utType,
+            payloads = try await ExportEntryBatchRenderer.renderAll(
+                jobs: jobs,
+                photoLibrary: photoLibrary,
+                counter: counter,
             )
-            await recordExportHistory(
-                identifier: identifier,
-                pair: item.pair,
-                entry: item.entry,
-                renderOptions: renderOptions,
-            )
-            return true
+        } catch is CancellationError {
+            return 0
         } catch {
-            return false
+            return 0
         }
+        var saved = 0
+        for payload in payloads {
+            do {
+                let identifier = try await photoLibraryExporter.saveImageData(
+                    payload.data,
+                    type: .photo,
+                    utType: payload.utType,
+                )
+                await recordExportHistory(
+                    identifier: identifier,
+                    pairId: payload.pairId,
+                    entry: payload.entry,
+                    renderOptions: renderOptions,
+                )
+                saved += 1
+            } catch {
+                return saved
+            }
+        }
+        snackbarQueue.updateProgress(progress, value: Double(saved) / Double(total))
+        return saved
     }
 
     func finalizeSaveProgress(_ progress: SnackbarProgressHandle, savedCount: Int) {
@@ -203,35 +184,33 @@ extension ExportSettingsViewModel {
         let selection = makeSelection()
         let renderOptions = makeRenderOptions()
         let tempDir = tempDirectoryProvider()
-        var urls: [URL] = []
         let now = Date()
-        for (offset, pair) in pairs.enumerated() {
-            let entries = ExportSelection.relativePaths(
-                for: pair,
-                selection: selection,
-                sequenceNumber: offset + 1,
-                prefix: appSettings.fileNamePrefix,
-                fileExtension: appSettings.exportQuality.fileExtension,
+        let jobs = ExportJobBuilder.makeJobs(
+            pairs: pairs,
+            selection: selection,
+            appSettings: appSettings,
+            renderOptions: renderOptions,
+            now: now,
+        )
+        let payloads: [RenderedExportPayload]
+        do {
+            payloads = try await ExportEntryBatchRenderer.renderAll(
+                jobs: jobs,
+                photoLibrary: photoLibrary,
+                counter: nil,
             )
-            for entry in entries {
-                guard
-                    let rendered = await ExportEntryRenderer.render(
-                        entry: entry,
-                        pair: pair,
-                        photoLibrary: photoLibrary,
-                        appSettings: appSettings,
-                        renderOptions: renderOptions,
-                        now: now,
-                    )
-                else { continue }
-                let fileName = ExportTempFileWriter.sanitizedName(from: entry.relativeName)
-                if let url = ExportTempFileWriter.write(
-                    data: rendered.data,
-                    fileName: fileName,
-                    tempDirectory: tempDir,
-                ) {
-                    urls.append(url)
-                }
+        } catch is CancellationError {
+            return []
+        }
+        var urls: [URL] = []
+        for payload in payloads {
+            let fileName = ExportTempFileWriter.sanitizedName(from: payload.entry.relativeName)
+            if let url = ExportTempFileWriter.write(
+                data: payload.data,
+                fileName: fileName,
+                tempDirectory: tempDir,
+            ) {
+                urls.append(url)
             }
         }
         return urls
@@ -243,7 +222,7 @@ extension ExportSettingsViewModel {
 
     func recordExportHistory(
         identifier: String,
-        pair: PhotoPair,
+        pairId: UUID,
         entry: ExportSelection.Entry,
         renderOptions: ExportRenderOptions,
     ) async {
@@ -256,7 +235,7 @@ extension ExportSettingsViewModel {
         else { return }
         do {
             try await pairRepo.recordExportHistory(
-                pairId: pair.id,
+                pairId: pairId,
                 kind: kind,
                 photoLocalIdentifier: identifier,
             )

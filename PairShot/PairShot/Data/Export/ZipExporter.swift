@@ -107,33 +107,33 @@ nonisolated struct ZipExporterAdapter {
         now: Date,
     ) async throws -> URL {
         let resolved = try await pairRepo.fetch(ids: pairIds)
-        let (prefix, fileExtension) = await MainActor.run {
-            (appSettings.fileNamePrefix, appSettings.exportQuality.fileExtension)
-        }
-        var payloads: [ZipEntryPayload] = []
-        for (offset, pair) in resolved.enumerated() {
-            let entries = ExportSelection.relativePaths(
-                for: pair,
+        let jobs = await MainActor.run {
+            ExportJobBuilder.makeJobs(
+                pairs: resolved,
                 selection: selection,
-                sequenceNumber: offset + 1,
-                prefix: prefix,
-                fileExtension: fileExtension,
+                appSettings: appSettings,
+                renderOptions: renderOptions,
+                now: now,
             )
-            for entry in entries {
-                guard
-                    let rendered = await ExportEntryRenderer.render(
-                        entry: entry,
-                        pair: pair,
-                        photoLibrary: photoLibrary,
-                        appSettings: appSettings,
-                        renderOptions: renderOptions,
-                        now: now,
-                    )
-                else { continue }
-                payloads.append(ZipEntryPayload(relativeName: entry.relativeName, data: rendered.data))
-            }
         }
-        return try await exporter.makeZip(for: payloads, in: tempDirectory, now: now)
+        let payloads: [RenderedExportPayload]
+        do {
+            payloads = try await ExportEntryBatchRenderer.renderAll(
+                jobs: jobs,
+                photoLibrary: photoLibrary,
+                counter: nil,
+            )
+        } catch is CancellationError {
+            throw ZipExporter.ExportError.archiveFailed
+        }
+        var zipPayloads: [ZipEntryPayload] = []
+        zipPayloads.reserveCapacity(payloads.count)
+        for payload in payloads {
+            zipPayloads.append(
+                ZipEntryPayload(relativeName: payload.entry.relativeName, data: payload.data),
+            )
+        }
+        return try await exporter.makeZip(for: zipPayloads, in: tempDirectory, now: now)
     }
 }
 
