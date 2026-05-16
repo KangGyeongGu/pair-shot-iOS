@@ -50,6 +50,7 @@ struct RootView: View {
             Text(String(localized: "root_storage_init_failed_message"))
         }
         .snackbarOverlay(env.snackbarQueue)
+        .tutorialOverlay()
     }
 
     init(showFallbackAlert: Binding<Bool> = .constant(false)) {
