@@ -1,12 +1,16 @@
 import Foundation
 import Observation
+import UniformTypeIdentifiers
 
 @MainActor
 @Observable
 final class AppSettings {
-    var jpegQuality: Double {
-        get { defaults.double(forKey: AppSettingsKeys.jpegQuality) }
-        set { defaults.set(newValue, forKey: AppSettingsKeys.jpegQuality) }
+    var exportQuality: ExportQuality {
+        get {
+            let raw = defaults.string(forKey: AppSettingsKeys.exportQuality) ?? ExportQuality.high.rawValue
+            return ExportQuality(rawValue: raw) ?? .high
+        }
+        set { defaults.set(newValue.rawValue, forKey: AppSettingsKeys.exportQuality) }
     }
 
     var fileNamePrefix: String {
@@ -168,7 +172,7 @@ final class AppSettings {
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         defaults.register(defaults: [
-            AppSettingsKeys.jpegQuality: CaptureQualityPreset.high.rawValue,
+            AppSettingsKeys.exportQuality: ExportQuality.high.rawValue,
             AppSettingsKeys.fileNamePrefix: AndroidParityDefaults.fileNamePrefix,
             AppSettingsKeys.defaultOverlayAlpha: CompositionDefaults.fallbackAlpha,
             AppSettingsKeys.defaultCompositeLayout: CompositionDefaults.fallbackLayout.rawValue,
@@ -258,13 +262,37 @@ nonisolated enum CompositionDefaults {
     }
 }
 
-nonisolated enum CaptureQualityPreset: Double, CaseIterable, Identifiable {
-    case low = 0.6
-    case standard = 0.8
-    case high = 0.95
+nonisolated enum ExportQuality: String, CaseIterable, Identifiable {
+    case low
+    case standard
+    case high
+    case lossless
 
-    var id: Double {
+    var id: String {
         rawValue
+    }
+
+    var compressionQuality: CGFloat {
+        switch self {
+            case .low: 0.6
+            case .standard: 0.8
+            case .high: 0.95
+            case .lossless: 1.0
+        }
+    }
+
+    var utType: UTType {
+        switch self {
+            case .low, .standard, .high: .jpeg
+            case .lossless: .heic
+        }
+    }
+
+    var fileExtension: String {
+        switch self {
+            case .low, .standard, .high: "jpg"
+            case .lossless: "heic"
+        }
     }
 
     var label: String {
@@ -272,11 +300,8 @@ nonisolated enum CaptureQualityPreset: Double, CaseIterable, Identifiable {
             case .low: String(localized: "image_quality_low")
             case .standard: String(localized: "image_quality_standard")
             case .high: String(localized: "image_quality_high")
+            case .lossless: String(localized: "image_quality_lossless")
         }
-    }
-
-    static func nearest(to quality: Double) -> Self {
-        allCases.min(by: { abs($0.rawValue - quality) < abs($1.rawValue - quality) }) ?? .standard
     }
 }
 

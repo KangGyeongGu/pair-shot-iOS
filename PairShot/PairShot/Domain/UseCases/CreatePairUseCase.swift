@@ -1,4 +1,5 @@
 import Foundation
+import UniformTypeIdentifiers
 
 @MainActor
 final class CreatePairUseCase {
@@ -24,14 +25,19 @@ final class CreatePairUseCase {
     }
 
     func callAsFunction(
-        beforeJPEG: Data,
+        beforeData: Data,
+        beforeUTType: UTType,
         cameraSettings: CameraSettings,
         aspectRatio: AspectRatio = .default,
         isDeferredProxy: Bool = false,
     ) async throws -> PhotoPair {
         let timestamp = now()
         let pairId = UUID()
-        let localIdentifier = try await photoLibrary.saveImage(beforeJPEG, isDeferredProxy: isDeferredProxy)
+        let localIdentifier = try await photoLibrary.saveImage(
+            beforeData,
+            utType: beforeUTType,
+            isDeferredProxy: isDeferredProxy,
+        )
         let resolvedLocation = location.currentLocation
         var settings = cameraSettings
         settings.aspectRatio = aspectRatio
@@ -52,7 +58,8 @@ final class CreatePairUseCase {
 
     func refillBefore(
         pairId: UUID,
-        beforeJPEG: Data,
+        beforeData: Data,
+        beforeUTType: UTType,
         cameraSettings: CameraSettings,
         aspectRatio: AspectRatio = .default,
         isDeferredProxy: Bool = false,
@@ -61,7 +68,11 @@ final class CreatePairUseCase {
             throw RefillError.pairNotFound
         }
         let timestamp = now()
-        let localIdentifier = try await photoLibrary.saveImage(beforeJPEG, isDeferredProxy: isDeferredProxy)
+        let localIdentifier = try await photoLibrary.saveImage(
+            beforeData,
+            utType: beforeUTType,
+            isDeferredProxy: isDeferredProxy,
+        )
         var settings = cameraSettings
         settings.aspectRatio = aspectRatio
         pair.beforePhotoLocalIdentifier = localIdentifier

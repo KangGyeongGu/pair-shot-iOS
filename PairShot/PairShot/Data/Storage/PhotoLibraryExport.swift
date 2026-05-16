@@ -1,6 +1,7 @@
 import Foundation
 import OSLog
 import Photos
+import UniformTypeIdentifiers
 
 enum ImageMediaType {
     case photo
@@ -32,12 +33,17 @@ final class PhotoLibraryExport: Sendable {
     }
 
     @discardableResult
-    nonisolated func saveImageData(_ data: Data, type: ImageMediaType) async throws -> String {
+    nonisolated func saveImageData(
+        _ data: Data,
+        type: ImageMediaType,
+        utType: UTType,
+    ) async throws -> String {
         let status = PHPhotoLibrary.authorizationStatus(for: .addOnly)
         guard status == .authorized || status == .limited else {
             AppLogger.storage.error("PhotoLibraryExport not authorized")
             throw PhotoLibraryExportError.notAuthorized
         }
+        let typeIdentifier = utType.identifier
         do {
             typealias StringContinuation = CheckedContinuation<String, Error>
             let identifier: String = try await withCheckedThrowingContinuation { (continuation: StringContinuation) in
@@ -48,7 +54,9 @@ final class PhotoLibraryExport: Sendable {
                     }
                 let changesBlock: @Sendable () -> Void = {
                     let request = PHAssetCreationRequest.forAsset()
-                    request.addResource(with: resourceType, data: data, options: nil)
+                    let options = PHAssetResourceCreationOptions()
+                    options.uniformTypeIdentifier = typeIdentifier
+                    request.addResource(with: resourceType, data: data, options: options)
                     placeholderBox.placeholder = request.placeholderForCreatedAsset
                 }
                 let completionBlock: @Sendable (Bool, Error?) -> Void = { success, error in

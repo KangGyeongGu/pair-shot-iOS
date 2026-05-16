@@ -1,7 +1,7 @@
 import Foundation
 
 nonisolated struct AppSettingsSnapshot: Equatable {
-    static let defaultJpegQuality: Double = 0.95
+    static let defaultExportQualityRawValue: String = "high"
     static let defaultOverlayAlphaValue: Double = 0.35
     static let defaultCompositeLayoutFallback: String = "horizontal"
     static let defaultWatermarkEnabled: Bool = false
@@ -9,7 +9,7 @@ nonisolated struct AppSettingsSnapshot: Equatable {
     static let defaultTheme: AppTheme = .system
     static let defaultFileNamePrefix: String = "PAIRSHOT"
 
-    var jpegQuality: Double
+    var exportQualityRawValue: String
     var fileNamePrefix: String
     var defaultOverlayAlpha: Double
     var defaultCompositeLayoutRawValue: String

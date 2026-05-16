@@ -1,4 +1,5 @@
 import Foundation
+import UniformTypeIdentifiers
 
 @MainActor
 final class CaptureAfterUseCase {
@@ -22,7 +23,8 @@ final class CaptureAfterUseCase {
 
     func callAsFunction(
         pairId: UUID,
-        afterJPEG: Data,
+        afterData: Data,
+        afterUTType: UTType,
         aspectRatio: AspectRatio = .default,
         isDeferredProxy: Bool = false,
     ) async throws -> PhotoPair {
@@ -30,7 +32,11 @@ final class CaptureAfterUseCase {
             throw CaptureAfterError.pairNotFound
         }
         let timestamp = now()
-        let localIdentifier = try await photoLibrary.saveImage(afterJPEG, isDeferredProxy: isDeferredProxy)
+        let localIdentifier = try await photoLibrary.saveImage(
+            afterData,
+            utType: afterUTType,
+            isDeferredProxy: isDeferredProxy,
+        )
         pair.afterPhotoLocalIdentifier = localIdentifier
         pair.afterCapturedAt = timestamp
         pair.updatedAt = timestamp

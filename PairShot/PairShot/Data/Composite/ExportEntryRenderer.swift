@@ -1,5 +1,11 @@
 import Foundation
 import UIKit
+import UniformTypeIdentifiers
+
+nonisolated struct RenderedExportEntry {
+    let data: Data
+    let utType: UTType
+}
 
 nonisolated enum ExportEntryRenderer {
     @MainActor
@@ -10,7 +16,7 @@ nonisolated enum ExportEntryRenderer {
         appSettings: AppSettings,
         renderOptions: ExportRenderOptions,
         now: Date,
-    ) async -> Data? {
+    ) async -> RenderedExportEntry? {
         switch entry.kind {
             case .combined:
                 await renderCombined(
@@ -38,7 +44,7 @@ nonisolated enum ExportEntryRenderer {
         appSettings: AppSettings,
         renderOptions: ExportRenderOptions,
         now: Date,
-    ) async -> Data? {
+    ) async -> RenderedExportEntry? {
         let combineSettings: CombineSettings? =
             renderOptions.applyCombineSettings
                 ? appSettings.combineSettings.effective(isPro: renderOptions.isPro)
@@ -47,20 +53,23 @@ nonisolated enum ExportEntryRenderer {
             combineSettings.map(CompositeLayoutResolver.layout(from:))
                 ?? appSettings.defaultCompositeLayout
         let watermark = activeWatermark(appSettings: appSettings, renderOptions: renderOptions)
+        let quality = appSettings.exportQuality
         let options = CompositeOptions(
             layout: layout,
-            jpegQuality: 0.95,
+            compressionQuality: quality.compressionQuality,
+            utType: quality.utType,
             watermarkEnabled: watermark != nil,
             watermark: watermark,
             combineSettings: combineSettings,
             includeGPS: appSettings.embedGPSInPhoto,
         )
-        return try? await CompositeRenderer.makeComposite(
+        guard let data = try? await CompositeRenderer.makeComposite(
             for: pair,
             photoLibrary: photoLibrary,
             options: options,
             now: now,
-        )
+        ) else { return nil }
+        return RenderedExportEntry(data: data, utType: quality.utType)
     }
 
     @MainActor
@@ -69,24 +78,29 @@ nonisolated enum ExportEntryRenderer {
         photoLibrary: PhotoLibraryService,
         appSettings: AppSettings,
         renderOptions: ExportRenderOptions,
-    ) async -> Data? {
+    ) async -> RenderedExportEntry? {
         guard let id = entry.localIdentifier,
               let raw = await photoLibrary.requestImageData(localIdentifier: id)
         else { return nil }
-        guard let image = UIImage(data: raw) else { return raw }
+        let quality = appSettings.exportQuality
+        guard let image = UIImage(data: raw) else {
+            return RenderedExportEntry(data: raw, utType: quality.utType)
+        }
         let watermark = activeWatermark(appSettings: appSettings, renderOptions: renderOptions)
         let combineSettings: CombineSettings? =
             renderOptions.applyCombineSettings
                 ? appSettings.combineSettings.effective(isPro: renderOptions.isPro)
                 : nil
         let isBefore = entry.kind == .before
-        return CompositeRenderer.renderSingle(
+        let rendered = CompositeRenderer.renderSingle(
             image: image,
             combineSettings: combineSettings,
             isBefore: isBefore,
             watermark: watermark,
-            jpegQuality: 0.95,
+            utType: quality.utType,
+            compressionQuality: quality.compressionQuality,
         ) ?? raw
+        return RenderedExportEntry(data: rendered, utType: quality.utType)
     }
 
     @MainActor

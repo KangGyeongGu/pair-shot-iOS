@@ -12,8 +12,8 @@ struct SettingsCaptureFileSection: View {
             } label: {
                 SettingsNavigationRow(
                     icon: SettingsRowIcon(systemImage: "photo", color: .blue),
-                    title: String(localized: "settings_item_image_quality"),
-                    value: viewModel.imageQualityValueText,
+                    title: String(localized: "settings_item_export_quality"),
+                    value: viewModel.exportQualityValueText,
                 )
             }
             .buttonStyle(.plain)

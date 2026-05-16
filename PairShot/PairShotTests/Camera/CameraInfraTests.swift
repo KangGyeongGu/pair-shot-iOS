@@ -1,6 +1,7 @@
 @preconcurrency import AVFoundation
 @testable import PairShot
 import Testing
+import UniformTypeIdentifiers
 
 struct CameraInfraTests {
     @Test
@@ -33,6 +34,18 @@ struct CameraInfraTests {
         let session = CameraSession()
         let captureSession: AVCaptureSession = session.captureSession
         #expect(captureSession === session.captureSession)
+    }
+
+    @Test
+    func `utType resolves to heic when settings carry hevc codec`() {
+        let settings = AVCapturePhotoSettings(format: [AVVideoCodecKey: AVVideoCodecType.hevc])
+        #expect(CameraSession.utType(for: settings) == .heic)
+    }
+
+    @Test
+    func `utType falls back to jpeg without explicit codec`() {
+        let settings = AVCapturePhotoSettings()
+        #expect(CameraSession.utType(for: settings) == .jpeg)
     }
 }
 

@@ -2,6 +2,7 @@
 import Foundation
 import Observation
 import SwiftUI
+import UniformTypeIdentifiers
 
 @MainActor
 @Observable
@@ -192,7 +193,8 @@ final class AfterCameraViewModel {
         do {
             _ = try await persistAfter(
                 pairId: capturedPairId,
-                afterJPEG: captured.jpegData,
+                afterData: captured.data,
+                afterUTType: captured.utType,
                 aspectRatio: currentAspect,
                 isDeferredProxy: captured.isDeferredProxy,
             )
@@ -241,21 +243,24 @@ final class AfterCameraViewModel {
 
     private func persistAfter(
         pairId: UUID,
-        afterJPEG: Data,
+        afterData: Data,
+        afterUTType: UTType,
         aspectRatio: AspectRatio,
         isDeferredProxy: Bool,
     ) async throws -> PhotoPair {
         if isRecaptureMode {
             return try await recaptureAfter(
                 pairId: pairId,
-                afterJPEG: afterJPEG,
+                afterData: afterData,
+                afterUTType: afterUTType,
                 aspectRatio: aspectRatio,
                 isDeferredProxy: isDeferredProxy,
             )
         }
         return try await captureAfter(
             pairId: pairId,
-            afterJPEG: afterJPEG,
+            afterData: afterData,
+            afterUTType: afterUTType,
             aspectRatio: aspectRatio,
             isDeferredProxy: isDeferredProxy,
         )

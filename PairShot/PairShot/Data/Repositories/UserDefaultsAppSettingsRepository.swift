@@ -10,7 +10,8 @@ final nonisolated class UserDefaultsAppSettingsRepository: AppSettingsRepository
 
     func load() -> AppSettingsSnapshot {
         AppSettingsSnapshot(
-            jpegQuality: defaults.double(forKey: AppSettingsKeys.jpegQuality),
+            exportQualityRawValue: defaults.string(forKey: AppSettingsKeys.exportQuality)
+                ?? AppSettingsSnapshot.defaultExportQualityRawValue,
             fileNamePrefix: defaults.string(forKey: AppSettingsKeys.fileNamePrefix) ?? "",
             defaultOverlayAlpha: defaults.double(forKey: AppSettingsKeys.defaultOverlayAlpha),
             defaultCompositeLayoutRawValue: defaults.string(forKey: AppSettingsKeys.defaultCompositeLayout)
@@ -24,7 +25,7 @@ final nonisolated class UserDefaultsAppSettingsRepository: AppSettingsRepository
     }
 
     func save(_ settings: AppSettingsSnapshot) async throws {
-        defaults.set(settings.jpegQuality, forKey: AppSettingsKeys.jpegQuality)
+        defaults.set(settings.exportQualityRawValue, forKey: AppSettingsKeys.exportQuality)
         defaults.set(settings.fileNamePrefix, forKey: AppSettingsKeys.fileNamePrefix)
         defaults.set(settings.defaultOverlayAlpha, forKey: AppSettingsKeys.defaultOverlayAlpha)
         defaults.set(settings.defaultCompositeLayoutRawValue, forKey: AppSettingsKeys.defaultCompositeLayout)
@@ -91,7 +92,7 @@ final nonisolated class UserDefaultsAppSettingsRepository: AppSettingsRepository
 
     private static func makeRegisteredDefaults() -> [String: Any] {
         [
-            AppSettingsKeys.jpegQuality: AppSettingsSnapshot.defaultJpegQuality,
+            AppSettingsKeys.exportQuality: AppSettingsSnapshot.defaultExportQualityRawValue,
             AppSettingsKeys.fileNamePrefix: AppSettingsSnapshot.defaultFileNamePrefix,
             AppSettingsKeys.defaultOverlayAlpha: AppSettingsSnapshot.defaultOverlayAlphaValue,
             AppSettingsKeys.defaultCompositeLayout: AppSettingsSnapshot.defaultCompositeLayoutFallback,

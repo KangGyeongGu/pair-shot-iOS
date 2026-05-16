@@ -15,24 +15,45 @@ nonisolated enum FileNameBuilder {
         prefix: String,
         timestamp: Date,
         sequenceNumber: Int,
+        fileExtension: String = "jpg",
     ) -> String {
-        build(type: .before, prefix: prefix, timestamp: timestamp, sequenceNumber: sequenceNumber)
+        build(
+            type: .before,
+            prefix: prefix,
+            timestamp: timestamp,
+            sequenceNumber: sequenceNumber,
+            fileExtension: fileExtension,
+        )
     }
 
     static func after(
         prefix: String,
         timestamp: Date,
         sequenceNumber: Int,
+        fileExtension: String = "jpg",
     ) -> String {
-        build(type: .after, prefix: prefix, timestamp: timestamp, sequenceNumber: sequenceNumber)
+        build(
+            type: .after,
+            prefix: prefix,
+            timestamp: timestamp,
+            sequenceNumber: sequenceNumber,
+            fileExtension: fileExtension,
+        )
     }
 
     static func combined(
         prefix: String,
         timestamp: Date,
         sequenceNumber: Int,
+        fileExtension: String = "jpg",
     ) -> String {
-        build(type: .combined, prefix: prefix, timestamp: timestamp, sequenceNumber: sequenceNumber)
+        build(
+            type: .combined,
+            prefix: prefix,
+            timestamp: timestamp,
+            sequenceNumber: sequenceNumber,
+            fileExtension: fileExtension,
+        )
     }
 
     private static func build(
@@ -40,13 +61,14 @@ nonisolated enum FileNameBuilder {
         prefix: String,
         timestamp: Date,
         sequenceNumber: Int,
+        fileExtension: String,
     ) -> String {
         let safePrefix = FileNamePrefixValidator.sanitize(prefix)
         let prefixPart = safePrefix.isEmpty ? "" : "\(safePrefix)_"
         let dateStr = DateFormatter.psFileDate.string(from: timestamp)
         let timeStr = DateFormatter.psFileTime.string(from: timestamp)
         let seqStr = String(format: "%0\(sequenceWidth)d", sequenceNumber)
-        return "\(prefixPart)\(type.rawValue)_\(seqStr)_\(dateStr)_\(timeStr).jpg"
+        return "\(prefixPart)\(type.rawValue)_\(seqStr)_\(dateStr)_\(timeStr).\(fileExtension)"
     }
 }
 

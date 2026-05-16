@@ -56,9 +56,11 @@ final class PairPreviewViewModel {
                     : nil
             let combineSettings = appSettings.combineSettings.effective(isPro: isPro)
             let layout = CompositeLayoutResolver.layout(from: combineSettings)
+            let quality = appSettings.exportQuality
             let options = CompositeOptions(
                 layout: layout,
-                jpegQuality: 0.95,
+                compressionQuality: quality.compressionQuality,
+                utType: quality.utType,
                 watermarkEnabled: watermark != nil,
                 watermark: watermark,
                 combineSettings: combineSettings,

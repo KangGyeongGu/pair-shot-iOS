@@ -922,19 +922,19 @@
         }
       }
     },
-    "capture_settings_jpeg_quality_picker" : {
+    "capture_settings_export_quality_picker" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "JPEG quality"
+            "value" : "Export quality"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "JPEG 품질"
+            "value" : "내보내기 품질"
           }
         }
       }
@@ -3303,6 +3303,40 @@
         }
       }
     },
+    "image_quality_lossless" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lossless (HEIC)"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "무손실 (HEIC)"
+          }
+        }
+      }
+    },
+    "image_quality_lossless_subtitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Original"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "원본"
+          }
+        }
+      }
+    },
     "image_quality_low" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4341,19 +4375,19 @@
         }
       }
     },
-    "settings_dialog_image_quality_title" : {
+    "settings_dialog_export_quality_title" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Image quality"
+            "value" : "Export quality"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "이미지 품질"
+            "value" : "내보내기 품질"
           }
         }
       }
@@ -4698,19 +4732,19 @@
         }
       }
     },
-    "settings_item_image_quality" : {
+    "settings_item_export_quality" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Image quality"
+            "value" : "Export quality"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "이미지 품질"
+            "value" : "내보내기 품질"
           }
         }
       }

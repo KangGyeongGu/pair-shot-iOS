@@ -107,7 +107,9 @@ nonisolated struct ZipExporterAdapter {
         now: Date,
     ) async throws -> URL {
         let resolved = try await pairRepo.fetch(ids: pairIds)
-        let prefix = await MainActor.run { appSettings.fileNamePrefix }
+        let (prefix, fileExtension) = await MainActor.run {
+            (appSettings.fileNamePrefix, appSettings.exportQuality.fileExtension)
+        }
         var payloads: [ZipEntryPayload] = []
         for (offset, pair) in resolved.enumerated() {
             let entries = ExportSelection.relativePaths(
@@ -115,10 +117,11 @@ nonisolated struct ZipExporterAdapter {
                 selection: selection,
                 sequenceNumber: offset + 1,
                 prefix: prefix,
+                fileExtension: fileExtension,
             )
             for entry in entries {
                 guard
-                    let data = await ExportEntryRenderer.render(
+                    let rendered = await ExportEntryRenderer.render(
                         entry: entry,
                         pair: pair,
                         photoLibrary: photoLibrary,
@@ -127,7 +130,7 @@ nonisolated struct ZipExporterAdapter {
                         now: now,
                     )
                 else { continue }
-                payloads.append(ZipEntryPayload(relativeName: entry.relativeName, data: data))
+                payloads.append(ZipEntryPayload(relativeName: entry.relativeName, data: rendered.data))
             }
         }
         return try await exporter.makeZip(for: payloads, in: tempDirectory, now: now)
@@ -152,6 +155,7 @@ nonisolated enum ExportSelection {
         selection: ExportContents,
         sequenceNumber: Int,
         prefix: String,
+        fileExtension: String = "jpg",
     ) -> [Entry] {
         let folder = sanitizeFolderName(pair.firstAlbumName ?? "PairShot")
         var out: [Entry] = []
@@ -166,6 +170,7 @@ nonisolated enum ExportSelection {
                 prefix: prefix,
                 timestamp: pair.createdAt,
                 sequenceNumber: sequenceNumber,
+                fileExtension: fileExtension,
             )
             out.append(
                 Entry(
@@ -180,6 +185,7 @@ nonisolated enum ExportSelection {
                 prefix: prefix,
                 timestamp: pair.createdAt,
                 sequenceNumber: sequenceNumber,
+                fileExtension: fileExtension,
             )
             out.append(
                 Entry(
@@ -194,6 +200,7 @@ nonisolated enum ExportSelection {
                 prefix: prefix,
                 timestamp: pair.createdAt,
                 sequenceNumber: sequenceNumber,
+                fileExtension: fileExtension,
             )
             out.append(
                 Entry(

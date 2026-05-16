@@ -1,6 +1,7 @@
 import Foundation
 import Photos
 import UIKit
+import UniformTypeIdentifiers
 
 final nonisolated class PhotoLibraryService: Sendable {
     enum LibraryError: Error, Equatable {
@@ -29,11 +30,16 @@ final nonisolated class PhotoLibraryService: Sendable {
     }
 
     @discardableResult
-    nonisolated func saveImage(_ jpegData: Data, isDeferredProxy: Bool = false) async throws -> String {
+    nonisolated func saveImage(
+        _ data: Data,
+        utType: UTType,
+        isDeferredProxy: Bool = false,
+    ) async throws -> String {
         let status = await authorize(level: .addOnly)
         guard status == .authorized || status == .limited else {
             throw LibraryError.notAuthorized
         }
+        let typeIdentifier = utType.identifier
         return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<String, Error>) in
             let placeholderBox = PhotoLibraryPlaceholderBox()
             let changesBlock: @Sendable () -> Void = {
@@ -41,9 +47,9 @@ final nonisolated class PhotoLibraryService: Sendable {
                 let options = PHAssetResourceCreationOptions()
                 let resourceType: PHAssetResourceType = isDeferredProxy ? .photoProxy : .photo
                 if !isDeferredProxy {
-                    options.uniformTypeIdentifier = "public.jpeg"
+                    options.uniformTypeIdentifier = typeIdentifier
                 }
-                request.addResource(with: resourceType, data: jpegData, options: options)
+                request.addResource(with: resourceType, data: data, options: options)
                 placeholderBox.placeholder = request.placeholderForCreatedAsset
             }
             let completionBlock: @Sendable (Bool, Error?) -> Void = { success, error in

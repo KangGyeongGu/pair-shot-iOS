@@ -8,20 +8,21 @@ import UniformTypeIdentifiers
 
 struct CompositeRendererTests {
     @Test
-    func `composeJPEG with B + A pair succeeds and preserves EXIF DateTimeOriginal`() throws {
+    func `composeImage with B + A pair succeeds and preserves EXIF DateTimeOriginal`() throws {
         let before = makeSolidJPEG(width: 800, height: 600, color: .red)
         let after = makeSolidJPEG(width: 800, height: 600, color: .blue)
         let capturedAt = Date(timeIntervalSince1970: 1_700_000_000)
         let options = CompositeOptions(
             layout: .horizontal,
-            jpegQuality: 0.95,
+            compressionQuality: 0.95,
+            utType: .jpeg,
             watermarkEnabled: false,
             watermark: nil,
             combineSettings: nil,
             includeGPS: false,
         )
 
-        let data = try CompositeRenderer.composeJPEG(
+        let data = try CompositeRenderer.composeImage(
             beforeData: before,
             afterData: after,
             options: options,
@@ -43,19 +44,20 @@ struct CompositeRendererTests {
     }
 
     @Test
-    func `composeJPEG embeds GPS dictionary when latitude and longitude are supplied`() throws {
+    func `composeImage embeds GPS dictionary when latitude and longitude are supplied`() throws {
         let before = makeSolidJPEG(width: 400, height: 400, color: .gray)
         let after = makeSolidJPEG(width: 400, height: 400, color: .gray)
         let options = CompositeOptions(
             layout: .horizontal,
-            jpegQuality: 0.9,
+            compressionQuality: 0.9,
+            utType: .jpeg,
             watermarkEnabled: false,
             watermark: nil,
             combineSettings: nil,
             includeGPS: true,
         )
 
-        let data = try CompositeRenderer.composeJPEG(
+        let data = try CompositeRenderer.composeImage(
             beforeData: before,
             afterData: after,
             options: options,
@@ -80,7 +82,8 @@ struct CompositeRendererTests {
             combineSettings: nil,
             isBefore: true,
             watermark: nil,
-            jpegQuality: 0.95,
+            utType: .jpeg,
+            compressionQuality: 0.95,
         )
         #expect(data != nil)
         #expect(data?.isEmpty == false)
@@ -98,7 +101,8 @@ struct CompositeRendererTests {
             combineSettings: nil,
             isBefore: false,
             watermark: nil,
-            jpegQuality: 0.95,
+            utType: .jpeg,
+            compressionQuality: 0.95,
         )
         #expect(data != nil)
         let dims = decodePixelSize(jpeg: data ?? Data())
@@ -107,13 +111,14 @@ struct CompositeRendererTests {
     }
 
     @Test
-    func `composeJPEG with watermark disabled equals composeJPEG with watermark setting but flag off`() throws {
+    func `composeImage with watermark disabled equals composeImage with watermark setting but flag off`() throws {
         let before = makeSolidJPEG(width: 400, height: 400, color: .red)
         let after = makeSolidJPEG(width: 400, height: 400, color: .blue)
         let watermark = WatermarkSettings(type: .text, text: "PAIRSHOT")
         let off = CompositeOptions(
             layout: .horizontal,
-            jpegQuality: 0.95,
+            compressionQuality: 0.95,
+            utType: .jpeg,
             watermarkEnabled: false,
             watermark: watermark,
             combineSettings: nil,
@@ -121,7 +126,7 @@ struct CompositeRendererTests {
         )
         let timestamp = Date(timeIntervalSince1970: 1_700_000_000)
 
-        let withoutWatermark = try CompositeRenderer.composeJPEG(
+        let withoutWatermark = try CompositeRenderer.composeImage(
             beforeData: before,
             afterData: after,
             options: off,
@@ -132,7 +137,7 @@ struct CompositeRendererTests {
 
         var on = off
         on.watermarkEnabled = true
-        let withWatermark = try CompositeRenderer.composeJPEG(
+        let withWatermark = try CompositeRenderer.composeImage(
             beforeData: before,
             afterData: after,
             options: on,
@@ -152,12 +157,13 @@ struct CompositeRendererTests {
     }
 
     @Test
-    func `composeJPEG without watermark is bit-stable and decodes to a high-PSNR image vs itself`() throws {
+    func `composeImage without watermark is bit-stable and decodes to a high-PSNR image vs itself`() throws {
         let before = makeSolidJPEG(width: 400, height: 400, color: .red)
         let after = makeSolidJPEG(width: 400, height: 400, color: .blue)
         let options = CompositeOptions(
             layout: .horizontal,
-            jpegQuality: 0.95,
+            compressionQuality: 0.95,
+            utType: .jpeg,
             watermarkEnabled: false,
             watermark: nil,
             combineSettings: nil,
@@ -165,7 +171,7 @@ struct CompositeRendererTests {
         )
         let timestamp = Date(timeIntervalSince1970: 1_700_000_000)
 
-        let first = try CompositeRenderer.composeJPEG(
+        let first = try CompositeRenderer.composeImage(
             beforeData: before,
             afterData: after,
             options: options,
@@ -173,7 +179,7 @@ struct CompositeRendererTests {
             latitude: nil,
             longitude: nil,
         )
-        let second = try CompositeRenderer.composeJPEG(
+        let second = try CompositeRenderer.composeImage(
             beforeData: before,
             afterData: after,
             options: options,
@@ -186,6 +192,61 @@ struct CompositeRendererTests {
         let secondPixels = try #require(decodeRGBA(jpeg: second))
         let psnr = computePSNR(lhs: firstPixels, rhs: secondPixels)
         #expect(psnr >= 35.0)
+    }
+
+    @Test
+    func `composeImage with lossless utType produces HEIC output`() throws {
+        let before = makeSolidJPEG(width: 400, height: 400, color: .red)
+        let after = makeSolidJPEG(width: 400, height: 400, color: .blue)
+        let options = CompositeOptions(
+            layout: .horizontal,
+            compressionQuality: 1.0,
+            utType: .heic,
+            watermarkEnabled: false,
+            watermark: nil,
+            combineSettings: nil,
+            includeGPS: false,
+        )
+
+        let data = try CompositeRenderer.composeImage(
+            beforeData: before,
+            afterData: after,
+            options: options,
+            capturedAt: .now,
+            latitude: nil,
+            longitude: nil,
+        )
+
+        #expect(!data.isEmpty)
+        #expect(ImageSignatures.isHEIC(data))
+        #expect(!ImageSignatures.isJPEG(data))
+    }
+
+    @Test
+    func `composeImage with high preset (jpeg) produces JPEG output`() throws {
+        let before = makeSolidJPEG(width: 400, height: 400, color: .red)
+        let after = makeSolidJPEG(width: 400, height: 400, color: .blue)
+        let options = CompositeOptions(
+            layout: .horizontal,
+            compressionQuality: 0.95,
+            utType: .jpeg,
+            watermarkEnabled: false,
+            watermark: nil,
+            combineSettings: nil,
+            includeGPS: false,
+        )
+
+        let data = try CompositeRenderer.composeImage(
+            beforeData: before,
+            afterData: after,
+            options: options,
+            capturedAt: .now,
+            latitude: nil,
+            longitude: nil,
+        )
+
+        #expect(ImageSignatures.isJPEG(data))
+        #expect(!ImageSignatures.isHEIC(data))
     }
 }
 
@@ -282,4 +343,27 @@ private func computePSNR(lhs: PixelGrid, rhs: PixelGrid) -> Double {
     let mse = sumSquaredError / Double(count)
     if mse == 0 { return .infinity }
     return 10.0 * log10((255.0 * 255.0) / mse)
+}
+
+enum ImageSignatures {
+    static func isJPEG(_ data: Data) -> Bool {
+        guard data.count >= 3 else { return false }
+        return data[0] == 0xFF && data[1] == 0xD8 && data[2] == 0xFF
+    }
+
+    static func isHEIC(_ data: Data) -> Bool {
+        guard data.count >= 12 else { return false }
+        let ftyp = data.subdata(in: 4 ..< 8)
+        guard ftyp == Data([0x66, 0x74, 0x79, 0x70]) else { return false }
+        let brand = data.subdata(in: 8 ..< 12)
+        let knownHEIFBrands: [Data] = [
+            Data([0x68, 0x65, 0x69, 0x63]),
+            Data([0x68, 0x65, 0x69, 0x78]),
+            Data([0x6D, 0x69, 0x66, 0x31]),
+            Data([0x6D, 0x73, 0x66, 0x31]),
+            Data([0x68, 0x65, 0x76, 0x63]),
+            Data([0x68, 0x65, 0x76, 0x78]),
+        ]
+        return knownHEIFBrands.contains(brand)
+    }
 }

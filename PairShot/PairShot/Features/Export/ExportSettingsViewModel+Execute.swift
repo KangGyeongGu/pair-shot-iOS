@@ -95,12 +95,14 @@ extension ExportSettingsViewModel {
         pairs: [PhotoPair],
         selection: ExportContents,
     ) -> [(pair: PhotoPair, entry: ExportSelection.Entry)] {
-        pairs.enumerated().flatMap { offset, pair in
+        let ext = appSettings.exportQuality.fileExtension
+        return pairs.enumerated().flatMap { offset, pair in
             ExportSelection.relativePaths(
                 for: pair,
                 selection: selection,
                 sequenceNumber: offset + 1,
                 prefix: appSettings.fileNamePrefix,
+                fileExtension: ext,
             )
             .map { (pair: pair, entry: $0) }
         }
@@ -134,7 +136,7 @@ extension ExportSettingsViewModel {
         now: Date,
     ) async -> Bool {
         guard
-            let data = await ExportEntryRenderer.render(
+            let rendered = await ExportEntryRenderer.render(
                 entry: item.entry,
                 pair: item.pair,
                 photoLibrary: photoLibrary,
@@ -144,7 +146,11 @@ extension ExportSettingsViewModel {
             )
         else { return false }
         do {
-            let identifier = try await photoLibraryExporter.saveImageData(data, type: .photo)
+            let identifier = try await photoLibraryExporter.saveImageData(
+                rendered.data,
+                type: .photo,
+                utType: rendered.utType,
+            )
             await recordExportHistory(
                 identifier: identifier,
                 pair: item.pair,
@@ -205,10 +211,11 @@ extension ExportSettingsViewModel {
                 selection: selection,
                 sequenceNumber: offset + 1,
                 prefix: appSettings.fileNamePrefix,
+                fileExtension: appSettings.exportQuality.fileExtension,
             )
             for entry in entries {
                 guard
-                    let data = await ExportEntryRenderer.render(
+                    let rendered = await ExportEntryRenderer.render(
                         entry: entry,
                         pair: pair,
                         photoLibrary: photoLibrary,
@@ -219,7 +226,7 @@ extension ExportSettingsViewModel {
                 else { continue }
                 let fileName = ExportTempFileWriter.sanitizedName(from: entry.relativeName)
                 if let url = ExportTempFileWriter.write(
-                    data: data,
+                    data: rendered.data,
                     fileName: fileName,
                     tempDirectory: tempDir,
                 ) {

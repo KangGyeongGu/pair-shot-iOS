@@ -4,10 +4,10 @@ import ImageIO
 import UniformTypeIdentifiers
 
 nonisolated enum AspectRatioCropper {
-    static func cropJPEG(
+    static func cropToAspect(
         data: Data,
         targetAspect: AspectRatio,
-        compressionQuality: CGFloat = 0.95,
+        utType: UTType,
     ) -> Data {
         guard targetAspect != .fourThree else { return data }
         guard let source = CGImageSourceCreateWithData(data as CFData, nil),
@@ -25,10 +25,11 @@ nonisolated enum AspectRatioCropper {
         guard let cropped = cgImage.cropping(to: cropRect) else { return data }
 
         let metadata = (CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any]) ?? [:]
-        return encodeJPEG(
+        return encode(
             image: cropped,
             metadata: metadata,
-            compressionQuality: compressionQuality,
+            utType: utType,
+            compressionQuality: compressionQuality(for: utType),
         ) ?? data
     }
 
@@ -66,15 +67,20 @@ nonisolated enum AspectRatioCropper {
         )
     }
 
-    private static func encodeJPEG(
+    private static func compressionQuality(for utType: UTType) -> CGFloat {
+        utType == .heic ? 1.0 : 0.95
+    }
+
+    private static func encode(
         image: CGImage,
         metadata: [CFString: Any],
+        utType: UTType,
         compressionQuality: CGFloat,
     ) -> Data? {
         let mutable = NSMutableData()
         guard let destination = CGImageDestinationCreateWithData(
             mutable as CFMutableData,
-            UTType.jpeg.identifier as CFString,
+            utType.identifier as CFString,
             1,
             nil,
         ) else { return nil }

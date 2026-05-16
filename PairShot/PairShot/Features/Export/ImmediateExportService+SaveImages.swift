@@ -24,12 +24,14 @@ extension ImmediateExportService {
         pairs: [PhotoPair],
         selection: ExportContents,
     ) -> [(pair: PhotoPair, entry: ExportSelection.Entry)] {
-        pairs.enumerated().flatMap { offset, pair in
+        let ext = appSettings.exportQuality.fileExtension
+        return pairs.enumerated().flatMap { offset, pair in
             ExportSelection.relativePaths(
                 for: pair,
                 selection: selection,
                 sequenceNumber: offset + 1,
                 prefix: appSettings.fileNamePrefix,
+                fileExtension: ext,
             )
             .map { (pair: pair, entry: $0) }
         }
@@ -46,7 +48,7 @@ extension ImmediateExportService {
         var processed = 0
         for item in allEntries {
             guard
-                let data = await ExportEntryRenderer.render(
+                let rendered = await ExportEntryRenderer.render(
                     entry: item.entry,
                     pair: item.pair,
                     photoLibrary: photoLibrary,
@@ -60,7 +62,11 @@ extension ImmediateExportService {
                 continue
             }
             do {
-                let identifier = try await photoLibraryExporter.saveImageData(data, type: .photo)
+                let identifier = try await photoLibraryExporter.saveImageData(
+                    rendered.data,
+                    type: .photo,
+                    utType: rendered.utType,
+                )
                 await recordExportHistory(
                     identifier: identifier,
                     pair: item.pair,

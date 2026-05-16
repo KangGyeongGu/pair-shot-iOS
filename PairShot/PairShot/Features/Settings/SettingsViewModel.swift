@@ -39,14 +39,12 @@ final class SettingsViewModel {
         set { appSettings.embedGPSInPhoto = newValue }
     }
 
-    var imageQualityPreset: CaptureQualityPreset {
-        CaptureQualityPreset.nearest(to: appSettings.jpegQuality)
+    var exportQualityPreset: ExportQuality {
+        appSettings.exportQuality
     }
 
-    var imageQualityValueText: String {
-        let preset = imageQualityPreset
-        let percent = Int((preset.rawValue * 100).rounded())
-        return "\(preset.label) (\(percent)%)"
+    var exportQualityValueText: String {
+        exportQualityPreset.label
     }
 
     var overlayAlphaEnabled: Bool = false {
@@ -102,8 +100,8 @@ final class SettingsViewModel {
         appSettings.theme = theme
     }
 
-    func setImageQuality(_ preset: CaptureQualityPreset) {
-        appSettings.jpegQuality = preset.rawValue
+    func setExportQuality(_ preset: ExportQuality) {
+        appSettings.exportQuality = preset
     }
 }
 

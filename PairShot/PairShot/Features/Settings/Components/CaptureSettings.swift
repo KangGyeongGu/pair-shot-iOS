@@ -19,29 +19,29 @@ struct CaptureSettingsView: View {
 
     private var qualitySection: some View {
         Section {
-            Picker(String(localized: "capture_settings_jpeg_quality_picker"), selection: qualityBinding) {
-                ForEach(CaptureQualityPreset.allCases) { preset in
+            Picker(String(localized: "capture_settings_export_quality_picker"), selection: qualityBinding) {
+                ForEach(ExportQuality.allCases) { preset in
                     Text(preset.label).tag(preset)
                 }
             }
             .pickerStyle(.segmented)
         } header: {
-            Text(String(localized: "capture_settings_jpeg_quality_picker"))
+            Text(String(localized: "capture_settings_export_quality_picker"))
         } footer: {
             Text(qualityFooter)
         }
     }
 
-    private var qualityBinding: Binding<CaptureQualityPreset> {
+    private var qualityBinding: Binding<ExportQuality> {
         Binding(
-            get: { CaptureQualityPreset.nearest(to: appSettings.jpegQuality) },
-            set: { appSettings.jpegQuality = $0.rawValue },
+            get: { appSettings.exportQuality },
+            set: { appSettings.exportQuality = $0 },
         )
     }
 
     private var qualityFooter: String {
-        let preset = CaptureQualityPreset.nearest(to: appSettings.jpegQuality)
-        let percent = Int((preset.rawValue * 100).rounded())
+        let preset = appSettings.exportQuality
+        let percent = Int((preset.compressionQuality * 100).rounded())
         return String(
             format: String(localized: "capture_settings_overlay_summary_template"),
             preset.label,

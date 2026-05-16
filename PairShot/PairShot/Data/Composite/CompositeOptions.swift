@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import UniformTypeIdentifiers
 
 nonisolated enum CompositeLayout: String, CaseIterable, Identifiable {
     case horizontal
@@ -25,17 +26,9 @@ nonisolated enum CompositeLayout: String, CaseIterable, Identifiable {
 }
 
 nonisolated struct CompositeOptions: Equatable {
-    static let `default` = Self(
-        layout: .horizontal,
-        jpegQuality: 0.9,
-        watermarkEnabled: false,
-        watermark: nil,
-        combineSettings: nil,
-        includeGPS: true,
-    )
-
     var layout: CompositeLayout
-    var jpegQuality: CGFloat
+    var compressionQuality: CGFloat
+    var utType: UTType
     var watermarkEnabled: Bool
     var watermark: WatermarkSettings?
     var combineSettings: CombineSettings?

@@ -159,16 +159,18 @@ final class ImmediateExportService {
         let tempDir = tempDirectoryProvider()
         var urls: [URL] = []
         let now = Date()
+        let ext = appSettings.exportQuality.fileExtension
         for (offset, pair) in pairs.enumerated() {
             let entries = ExportSelection.relativePaths(
                 for: pair,
                 selection: selection,
                 sequenceNumber: offset + 1,
                 prefix: appSettings.fileNamePrefix,
+                fileExtension: ext,
             )
             for entry in entries {
                 guard
-                    let data = await ExportEntryRenderer.render(
+                    let rendered = await ExportEntryRenderer.render(
                         entry: entry,
                         pair: pair,
                         photoLibrary: photoLibrary,
@@ -179,7 +181,7 @@ final class ImmediateExportService {
                 else { continue }
                 let fileName = ExportTempFileWriter.sanitizedName(from: entry.relativeName)
                 if let url = ExportTempFileWriter.write(
-                    data: data,
+                    data: rendered.data,
                     fileName: fileName,
                     tempDirectory: tempDir,
                 ) {

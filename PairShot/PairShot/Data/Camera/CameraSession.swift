@@ -2,6 +2,7 @@
 import Foundation
 import OSLog
 import UIKit
+import UniformTypeIdentifiers
 
 nonisolated enum CameraAuthorizationState {
     case notDetermined
@@ -32,7 +33,8 @@ nonisolated enum CameraFlashMode: String, CaseIterable {
 }
 
 nonisolated struct CapturedPhoto {
-    let jpegData: Data
+    let data: Data
+    let utType: UTType
     let zoomFactor: Double
     let lensIdentifier: String
     let isDeferredProxy: Bool

@@ -7,25 +7,25 @@ struct ImageQualityPickerView: View {
     var body: some View {
         List {
             Section {
-                ForEach(CaptureQualityPreset.allCases) { preset in
+                ForEach(ExportQuality.allCases) { preset in
                     ImageQualityPickerRow(
                         preset: preset,
-                        isSelected: viewModel.imageQualityPreset == preset,
+                        isSelected: viewModel.exportQualityPreset == preset,
                     ) {
-                        viewModel.setImageQuality(preset)
+                        viewModel.setExportQuality(preset)
                         dismiss()
                     }
                 }
             }
         }
         .listStyle(.insetGrouped)
-        .navigationTitle(String(localized: "settings_dialog_image_quality_title"))
+        .navigationTitle(String(localized: "settings_dialog_export_quality_title"))
         .navigationBarTitleDisplayMode(.inline)
     }
 }
 
 private struct ImageQualityPickerRow: View {
-    let preset: CaptureQualityPreset
+    let preset: ExportQuality
     let isSelected: Bool
     let action: () -> Void
 
@@ -35,9 +35,11 @@ private struct ImageQualityPickerRow: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(preset.label)
                         .foregroundStyle(.primary)
-                    Text(verbatim: "\(Int((preset.rawValue * 100).rounded()))%")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    if let subtitle = subtitleText {
+                        Text(subtitle)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 }
                 Spacer()
                 if isSelected {
@@ -48,5 +50,12 @@ private struct ImageQualityPickerRow: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+    }
+
+    private var subtitleText: String? {
+        switch preset {
+            case .lossless: String(localized: "image_quality_lossless_subtitle")
+            case .low, .standard, .high: "\(Int((preset.compressionQuality * 100).rounded()))%"
+        }
     }
 }

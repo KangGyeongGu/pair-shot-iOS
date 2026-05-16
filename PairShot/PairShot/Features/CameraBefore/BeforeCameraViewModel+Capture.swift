@@ -25,14 +25,14 @@ extension BeforeCameraViewModel {
             isCapturing = false
             return
         }
-        updateLastThumbnail(from: captured.jpegData)
+        updateLastThumbnail(from: captured.data)
         eventsContinuation.yield(.snackbarSuccess)
         isCapturing = false
         await persistCapturedPhoto(captured)
     }
 
-    func updateLastThumbnail(from jpegData: Data) {
-        guard let image = UIImage(data: jpegData) else { return }
+    func updateLastThumbnail(from data: Data) {
+        guard let image = UIImage(data: data) else { return }
         lastThumbnail = image
     }
 
@@ -56,7 +56,8 @@ extension BeforeCameraViewModel {
             if let refillPairId {
                 _ = try await createPair.refillBefore(
                     pairId: refillPairId,
-                    beforeJPEG: captured.jpegData,
+                    beforeData: captured.data,
+                    beforeUTType: captured.utType,
                     cameraSettings: cameraSettings,
                     aspectRatio: aspect,
                     isDeferredProxy: captured.isDeferredProxy,
@@ -65,7 +66,8 @@ extension BeforeCameraViewModel {
                 return
             }
             let pair = try await createPair(
-                beforeJPEG: captured.jpegData,
+                beforeData: captured.data,
+                beforeUTType: captured.utType,
                 cameraSettings: cameraSettings,
                 aspectRatio: aspect,
                 isDeferredProxy: captured.isDeferredProxy,

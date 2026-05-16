@@ -21,7 +21,7 @@ nonisolated enum CompositeRenderer {
     static func makeComposite(
         for pair: PhotoPair,
         photoLibrary: PhotoLibraryService,
-        options: CompositeOptions = .default,
+        options: CompositeOptions,
         now: Date = .now,
     ) async throws -> Data {
         guard
@@ -49,7 +49,7 @@ nonisolated enum CompositeRenderer {
 
         return try await Task.detached(priority: .userInitiated) {
             try autoreleasepool {
-                try composeJPEG(
+                try composeImage(
                     beforeData: bData,
                     afterData: aData,
                     options: options,
@@ -61,7 +61,7 @@ nonisolated enum CompositeRenderer {
         }.value
     }
 
-    nonisolated static func composeJPEG(
+    nonisolated static func composeImage(
         beforeData: Data,
         afterData: Data,
         options: CompositeOptions,
@@ -85,9 +85,10 @@ nonisolated enum CompositeRenderer {
         guard let cgImage = composite.cgImage else {
             throw RenderError.encodeFailed
         }
-        guard let encoded = CompositeJPEGEncoder.encode(
+        guard let encoded = CompositeImageEncoder.encode(
             cgImage: cgImage,
-            quality: options.jpegQuality,
+            utType: options.utType,
+            quality: options.compressionQuality,
             capturedAt: capturedAt,
             latitude: latitude,
             longitude: longitude,
@@ -103,7 +104,8 @@ nonisolated enum CompositeRenderer {
         combineSettings: CombineSettings?,
         isBefore: Bool,
         watermark: WatermarkSettings?,
-        jpegQuality: CGFloat,
+        utType: UTType,
+        compressionQuality: CGFloat,
     ) -> Data? {
         let composed = renderSingleComposite(
             image: image,
@@ -111,7 +113,15 @@ nonisolated enum CompositeRenderer {
             isBefore: isBefore,
             watermark: watermark,
         )
-        return composed.jpegData(compressionQuality: jpegQuality)
+        guard let cgImage = composed.cgImage else { return nil }
+        return CompositeImageEncoder.encode(
+            cgImage: cgImage,
+            utType: utType,
+            quality: compressionQuality,
+            capturedAt: nil,
+            latitude: nil,
+            longitude: nil,
+        )
     }
 
     nonisolated static func renderSingleComposite(
@@ -263,34 +273,37 @@ private nonisolated enum CompositeImageDecoder {
     }
 }
 
-private nonisolated enum CompositeJPEGEncoder {
+nonisolated enum CompositeImageEncoder {
     static func encode(
         cgImage: CGImage,
+        utType: UTType,
         quality: CGFloat,
-        capturedAt: Date,
+        capturedAt: Date?,
         latitude: Double?,
         longitude: Double?,
     ) -> Data? {
         let destinationData = NSMutableData()
         guard let destination = CGImageDestinationCreateWithData(
             destinationData,
-            UTType.jpeg.identifier as CFString,
+            utType.identifier as CFString,
             1,
             nil,
         ) else {
             return nil
         }
-        let stamp = exifTimestamp(from: capturedAt)
         var properties: [CFString: Any] = [
             kCGImageDestinationLossyCompressionQuality: quality,
-            kCGImagePropertyExifDictionary: [
+        ]
+        if let capturedAt {
+            let stamp = exifTimestamp(from: capturedAt)
+            properties[kCGImagePropertyExifDictionary] = [
                 kCGImagePropertyExifDateTimeOriginal: stamp,
                 kCGImagePropertyExifDateTimeDigitized: stamp,
-            ] as [CFString: Any],
-            kCGImagePropertyTIFFDictionary: [
+            ] as [CFString: Any]
+            properties[kCGImagePropertyTIFFDictionary] = [
                 kCGImagePropertyTIFFDateTime: stamp,
-            ] as [CFString: Any],
-        ]
+            ] as [CFString: Any]
+        }
         if let latitude, let longitude {
             properties[kCGImagePropertyGPSDictionary] = [
                 kCGImagePropertyGPSLatitude: abs(latitude),

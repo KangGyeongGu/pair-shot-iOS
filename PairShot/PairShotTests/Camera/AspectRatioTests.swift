@@ -262,9 +262,10 @@ struct AspectRatioCropperTests {
     @Test
     func `4:3 input passes through unchanged`() {
         let original = makeTestJPEG(width: 3000, height: 4000)
-        let cropped = AspectRatioCropper.cropJPEG(
+        let cropped = AspectRatioCropper.cropToAspect(
             data: original,
             targetAspect: .fourThree,
+            utType: .jpeg,
         )
         #expect(cropped == original)
     }
@@ -272,9 +273,10 @@ struct AspectRatioCropperTests {
     @Test
     func `16:9 portrait crop produces 9:16 image data with reduced height`() {
         let source = makeTestJPEG(width: 3000, height: 4000)
-        let cropped = AspectRatioCropper.cropJPEG(
+        let cropped = AspectRatioCropper.cropToAspect(
             data: source,
             targetAspect: .sixteenNine,
+            utType: .jpeg,
         )
         let dims = decodePixelSize(jpeg: cropped)
         guard let dims else {
@@ -289,9 +291,10 @@ struct AspectRatioCropperTests {
     @Test
     func `1:1 crop on a portrait image yields a square`() {
         let source = makeTestJPEG(width: 3000, height: 4000)
-        let cropped = AspectRatioCropper.cropJPEG(
+        let cropped = AspectRatioCropper.cropToAspect(
             data: source,
             targetAspect: .square,
+            utType: .jpeg,
         )
         let dims = decodePixelSize(jpeg: cropped)
         guard let dims else {
@@ -315,6 +318,73 @@ struct AspectRatioCropperTests {
         #expect(isHorizontallyCentered)
         #expect(abs(rect.origin.y) < 0.0001)
     }
+
+    @Test
+    func `HEIC input cropped to 16:9 produces HEIC output`() {
+        let source = makeTestHEIC(width: 1024, height: 768)
+        guard !source.isEmpty else {
+            Issue.record("Failed to create HEIC source")
+            return
+        }
+        let cropped = AspectRatioCropper.cropToAspect(
+            data: source,
+            targetAspect: .sixteenNine,
+            utType: .heic,
+        )
+        #expect(isHEIC(cropped))
+        #expect(!isJPEG(cropped))
+    }
+
+    @Test
+    func `JPEG input cropped to 16:9 produces JPEG output`() {
+        let source = makeTestJPEG(width: 1024, height: 768)
+        let cropped = AspectRatioCropper.cropToAspect(
+            data: source,
+            targetAspect: .sixteenNine,
+            utType: .jpeg,
+        )
+        #expect(isJPEG(cropped))
+        #expect(!isHEIC(cropped))
+    }
+}
+
+private func makeTestHEIC(width: Int, height: Int) -> Data {
+    let colorSpace = CGColorSpaceCreateDeviceRGB()
+    let bitsPerComponent = 8
+    let bytesPerRow = width * 4
+    guard let context = CGContext(
+        data: nil,
+        width: width,
+        height: height,
+        bitsPerComponent: bitsPerComponent,
+        bytesPerRow: bytesPerRow,
+        space: colorSpace,
+        bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue,
+    ) else { return Data() }
+    context.setFillColor(red: 0.5, green: 0.5, blue: 0.5, alpha: 1.0)
+    context.fill(CGRect(x: 0, y: 0, width: width, height: height))
+    guard let image = context.makeImage() else { return Data() }
+    let mutable = NSMutableData()
+    let identifier = UTType.heic.identifier as CFString
+    guard let dest = CGImageDestinationCreateWithData(mutable, identifier, 1, nil) else {
+        return Data()
+    }
+    CGImageDestinationAddImage(dest, image, [
+        kCGImageDestinationLossyCompressionQuality: 1.0,
+    ] as CFDictionary)
+    guard CGImageDestinationFinalize(dest) else { return Data() }
+    return mutable as Data
+}
+
+private func isJPEG(_ data: Data) -> Bool {
+    guard data.count >= 3 else { return false }
+    return data[0] == 0xFF && data[1] == 0xD8 && data[2] == 0xFF
+}
+
+private func isHEIC(_ data: Data) -> Bool {
+    guard data.count >= 12 else { return false }
+    let ftyp = data.subdata(in: 4 ..< 8)
+    return ftyp == Data([0x66, 0x74, 0x79, 0x70])
 }
 
 private func makeTestJPEG(width: Int, height: Int) -> Data {

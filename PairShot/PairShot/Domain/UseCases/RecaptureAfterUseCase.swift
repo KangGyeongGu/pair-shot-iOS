@@ -1,4 +1,5 @@
 import Foundation
+import UniformTypeIdentifiers
 
 @MainActor
 final class RecaptureAfterUseCase {
@@ -18,7 +19,8 @@ final class RecaptureAfterUseCase {
 
     func callAsFunction(
         pairId: UUID,
-        afterJPEG: Data,
+        afterData: Data,
+        afterUTType: UTType,
         aspectRatio: AspectRatio = .default,
         isDeferredProxy: Bool = false,
     ) async throws -> PhotoPair {
@@ -34,7 +36,8 @@ final class RecaptureAfterUseCase {
 
         let updated = try await captureAfter(
             pairId: pairId,
-            afterJPEG: afterJPEG,
+            afterData: afterData,
+            afterUTType: afterUTType,
             aspectRatio: aspectRatio,
             isDeferredProxy: isDeferredProxy,
         )

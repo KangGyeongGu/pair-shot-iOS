@@ -1,7 +1,7 @@
 import Foundation
 
 nonisolated enum AppSettingsKeys {
-    static let jpegQuality = "pairshot.jpegQuality"
+    static let exportQuality = "pairshot.exportQuality"
     static let fileNamePrefix = "pairshot.fileNamePrefix"
     static let defaultOverlayAlpha = "pairshot.defaultOverlayAlpha"
     static let defaultCompositeLayout = "pairshot.defaultCompositeLayout"

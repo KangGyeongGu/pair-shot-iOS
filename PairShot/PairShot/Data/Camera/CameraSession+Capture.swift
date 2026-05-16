@@ -1,6 +1,7 @@
 @preconcurrency import AVFoundation
 import Foundation
 import OSLog
+import UniformTypeIdentifiers
 
 nonisolated extension CameraSession {
     func capturePhoto(
@@ -15,10 +16,11 @@ nonisolated extension CameraSession {
                 return nil
             }
 
-            let settings = AVCapturePhotoSettings()
+            let settings = Self.makePhotoSettings(for: photoOutput)
             if !metadataBox.value.isEmpty {
                 settings.metadata = metadataBox.value
             }
+            settings.photoQualityPrioritization = .quality
             if device.hasFlash {
                 switch flashMode {
                     case .auto: settings.flashMode = .auto
@@ -32,6 +34,7 @@ nonisolated extension CameraSession {
                 zoom: Double(device.videoZoomFactor),
                 lens: Self.lensIdentifier(for: device),
                 aspectRatio: currentAspectRatio,
+                utType: Self.utType(for: settings),
             )
         }
 
@@ -51,6 +54,7 @@ nonisolated extension CameraSession {
         return try await withCheckedThrowingContinuation { cont in
             let id = UUID()
             let aspect = captureContext.aspectRatio
+            let utType = captureContext.utType
             let delegate = PhotoCaptureDelegate { [weak self] result in
                 queue.async { [weak self] in
                     self?.inFlightDelegates.removeValue(forKey: id)
@@ -60,13 +64,15 @@ nonisolated extension CameraSession {
                 }
                 switch result {
                     case let .success(payload):
-                        let finalData = AspectRatioCropper.cropJPEG(
+                        let finalData = AspectRatioCropper.cropToAspect(
                             data: payload.data,
                             targetAspect: aspect,
+                            utType: utType,
                         )
                         cont.resume(
                             returning: CapturedPhoto(
-                                jpegData: finalData,
+                                data: finalData,
+                                utType: utType,
                                 zoomFactor: captureContext.zoom,
                                 lensIdentifier: captureContext.lens,
                                 isDeferredProxy: payload.isDeferredProxy && aspect == .fourThree,
@@ -84,6 +90,21 @@ nonisolated extension CameraSession {
                 captureContext.photoOutput.capturePhoto(with: captureContext.settings, delegate: delegate)
             }
         }
+    }
+
+    nonisolated static func makePhotoSettings(for output: AVCapturePhotoOutput) -> AVCapturePhotoSettings {
+        if output.availablePhotoCodecTypes.contains(.hevc) {
+            return AVCapturePhotoSettings(format: [AVVideoCodecKey: AVVideoCodecType.hevc])
+        }
+        return AVCapturePhotoSettings()
+    }
+
+    nonisolated static func utType(for settings: AVCapturePhotoSettings) -> UTType {
+        let codec = settings.format?[AVVideoCodecKey] as? String
+        if codec == AVVideoCodecType.hevc.rawValue {
+            return .heic
+        }
+        return .jpeg
     }
 
     nonisolated static func lensIdentifier(for device: AVCaptureDevice) -> String {
@@ -104,6 +125,7 @@ private final nonisolated class CaptureContext: @unchecked Sendable {
     let zoom: Double
     let lens: String
     let aspectRatio: AspectRatio
+    let utType: UTType
 
     init(
         photoOutput: AVCapturePhotoOutput,
@@ -111,12 +133,14 @@ private final nonisolated class CaptureContext: @unchecked Sendable {
         zoom: Double,
         lens: String,
         aspectRatio: AspectRatio,
+        utType: UTType,
     ) {
         self.photoOutput = photoOutput
         self.settings = settings
         self.zoom = zoom
         self.lens = lens
         self.aspectRatio = aspectRatio
+        self.utType = utType
     }
 }
 
