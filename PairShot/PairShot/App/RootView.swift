@@ -8,6 +8,7 @@ struct RootView: View {
 
     @State private var path: [Route] = []
     @State private var showFirstRunPaywall = false
+    @AppStorage("tutorial.completed") private var tutorialCompleted = false
 
     var body: some View {
         ZStack {
@@ -33,6 +34,7 @@ struct RootView: View {
                 }
                 .task {
                     evaluateFirstRunPaywall()
+                    startTutorialIfFirstRun()
                 }
                 .onChange(of: env.membership.proIsActive) { _, _ in
                     evaluateFirstRunPaywall()
@@ -55,6 +57,13 @@ struct RootView: View {
 
     init(showFallbackAlert: Binding<Bool> = .constant(false)) {
         _showFallbackAlert = showFallbackAlert
+    }
+
+    private func startTutorialIfFirstRun() {
+        guard !tutorialCompleted else { return }
+        guard !env.tutorialCoordinator.isActive else { return }
+        guard env.tutorialCoordinator.current == nil else { return }
+        env.tutorialCoordinator.start()
     }
 
     private func evaluateFirstRunPaywall() {

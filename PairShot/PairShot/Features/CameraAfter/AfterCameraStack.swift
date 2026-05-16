@@ -80,6 +80,8 @@ struct AfterCameraStack: View {
                         onLeadingTap: onLeadingTap,
                         onShutter: onShutter,
                         onSettingsTap: onSettingsTap,
+                        shutterAnchorID: TutorialAnchorID.afterShutter,
+                        leadingAnchorID: TutorialAnchorID.afterHomeButton,
                     )
                     .opacity(canCapture ? 1.0 : 0.6)
                     .frame(maxWidth: .infinity)
@@ -157,6 +159,7 @@ struct AfterCameraStack: View {
                 width: width,
                 height: previewHeight,
             )
+            .tutorialAnchor(TutorialAnchorID.afterGhostOverlay)
 
             if isGridOn {
                 GridOverlay()

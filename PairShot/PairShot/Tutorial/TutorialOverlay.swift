@@ -44,8 +44,28 @@ struct TutorialOverlay: View {
     }
 
     private func anchorID(for step: TutorialStep) -> String? {
-        _ = step
-        return nil
+        switch step {
+            case .homeCaptureHighlight,
+                 .captureGuidePortrait,
+                 .captureGuideLeft,
+                 .captureGuideRight:
+                TutorialAnchorID.cameraShutter
+
+            case .backToHome:
+                TutorialAnchorID.cameraHomeButton
+
+            case .tapPairCard:
+                TutorialAnchorID.homeFirstPairCard
+
+            case .afterCameraGuide:
+                TutorialAnchorID.afterShutter
+
+            case .backToHome2:
+                TutorialAnchorID.afterHomeButton
+
+            default:
+                nil
+        }
     }
 }
 

@@ -82,6 +82,8 @@ struct BeforeCameraStack: View {
                         onLeadingTap: onLeadingTap,
                         onShutter: onShutter,
                         onSettingsTap: onSettingsTap,
+                        shutterAnchorID: TutorialAnchorID.cameraShutter,
+                        leadingAnchorID: TutorialAnchorID.cameraHomeButton,
                     )
                     .frame(maxWidth: .infinity)
                     .frame(height: layout.shutterHeight)

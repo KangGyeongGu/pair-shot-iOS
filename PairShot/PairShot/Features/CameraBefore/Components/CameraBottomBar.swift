@@ -8,6 +8,8 @@ struct CameraBottomBar: View {
     let onLeadingTap: () -> Void
     let onShutter: () -> Void
     let onSettingsTap: () -> Void
+    let shutterAnchorID: String?
+    let leadingAnchorID: String?
 
     private var sideButtonSize: CGFloat {
         max(0, zoneHeight * 0.483)
@@ -46,8 +48,9 @@ struct CameraBottomBar: View {
         .background(Color.appCameraBackground)
     }
 
+    @ViewBuilder
     private var leadingButton: some View {
-        Button(action: onLeadingTap) {
+        let button = Button(action: onLeadingTap) {
             ZStack {
                 if let lastThumbnail {
                     Image(uiImage: lastThumbnail)
@@ -70,10 +73,16 @@ struct CameraBottomBar: View {
             }
         }
         .buttonStyle(.plain)
+        if let leadingAnchorID {
+            button.tutorialAnchor(leadingAnchorID)
+        } else {
+            button
+        }
     }
 
+    @ViewBuilder
     private var shutterButton: some View {
-        Button(action: onShutter) {
+        let button = Button(action: onShutter) {
             ZStack {
                 Circle()
                     .stroke(Color.white, lineWidth: 3)
@@ -91,6 +100,11 @@ struct CameraBottomBar: View {
         }
         .buttonStyle(.plain)
         .disabled(isCapturing)
+        if let shutterAnchorID {
+            button.tutorialAnchor(shutterAnchorID)
+        } else {
+            button
+        }
     }
 
     private var trailingButton: some View {
@@ -103,5 +117,25 @@ struct CameraBottomBar: View {
                 .accessibilityLabel(String(localized: "camera_settings_title"))
         }
         .buttonStyle(.plain)
+    }
+
+    init(
+        lastThumbnail: UIImage?,
+        isCapturing: Bool,
+        zoneHeight: CGFloat,
+        onLeadingTap: @escaping () -> Void,
+        onShutter: @escaping () -> Void,
+        onSettingsTap: @escaping () -> Void,
+        shutterAnchorID: String? = nil,
+        leadingAnchorID: String? = nil,
+    ) {
+        self.lastThumbnail = lastThumbnail
+        self.isCapturing = isCapturing
+        self.zoneHeight = zoneHeight
+        self.onLeadingTap = onLeadingTap
+        self.onShutter = onShutter
+        self.onSettingsTap = onSettingsTap
+        self.shutterAnchorID = shutterAnchorID
+        self.leadingAnchorID = leadingAnchorID
     }
 }

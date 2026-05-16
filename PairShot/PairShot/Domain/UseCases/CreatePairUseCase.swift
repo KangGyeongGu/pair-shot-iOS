@@ -30,6 +30,7 @@ final class CreatePairUseCase {
         cameraSettings: CameraSettings,
         aspectRatio: AspectRatio = .default,
         isDeferredProxy: Bool = false,
+        isTutorial: Bool = false,
     ) async throws -> PhotoPair {
         let timestamp = now()
         let pairId = UUID()
@@ -51,6 +52,7 @@ final class CreatePairUseCase {
             longitude: resolvedLocation?.longitude,
             locationLabel: nil,
             cameraSettings: settings,
+            isTutorial: isTutorial,
         )
         try await pairRepo.add(pair)
         return pair

@@ -4,10 +4,10 @@ import SwiftUI
 import UIKit
 
 extension BeforeCameraViewModel {
-    func shutter() async {
+    func shutter(rollDegrees: Double = 0) async {
         guard !isCapturing, session.captureReadiness == .ready else { return }
         if let tutorialCoordinator, tutorialCoordinator.isActive {
-            tutorialCoordinator.advance()
+            await handleTutorialShutter(coord: tutorialCoordinator, rollDegrees: rollDegrees)
             return
         }
         if await shouldGateForPaywall() {
@@ -38,6 +38,61 @@ extension BeforeCameraViewModel {
     func updateLastThumbnail(from data: Data) {
         guard let image = UIImage(data: data) else { return }
         lastThumbnail = image
+    }
+
+    private func handleTutorialShutter(
+        coord: TutorialCoordinator,
+        rollDegrees: Double,
+    ) async {
+        guard let step = coord.current else { return }
+        if TutorialMotionGuide.postureRequiringStep(step) {
+            let posture = TutorialMotionGuide.posture(forRollDegrees: rollDegrees)
+            guard TutorialMotionGuide.matches(step: step, posture: posture) else { return }
+            await captureTutorialPair(rollDegrees: rollDegrees)
+            coord.advance()
+            return
+        }
+        coord.advance()
+    }
+
+    private func captureTutorialPair(rollDegrees _: Double) async {
+        isCapturing = true
+        let captured: CapturedPhoto
+        do {
+            let metadata = ExifGPSBuilder.metadata(from: location.currentLocation)
+            captured = try await session.capturePhoto(metadata: metadata)
+        } catch {
+            captureErrorMessage = Self.captureErrorText(for: error)
+            isCapturing = false
+            return
+        }
+        updateLastThumbnail(from: captured.data)
+        eventsContinuation.yield(.snackbarSuccess)
+        isCapturing = false
+        await persistTutorialCapturedPhoto(captured)
+    }
+
+    private func persistTutorialCapturedPhoto(_ captured: CapturedPhoto) async {
+        let lensPosition = LensPosition.resolve(identifier: captured.lensIdentifier)
+        let aspect = currentAspect
+        let cameraSettings = CameraSettings(
+            zoomFactor: captured.zoomFactor,
+            lensPosition: lensPosition,
+            aspectRatio: aspect,
+        )
+        do {
+            let pair = try await createPair(
+                beforeData: captured.data,
+                beforeUTType: captured.utType,
+                cameraSettings: cameraSettings,
+                aspectRatio: aspect,
+                isDeferredProxy: captured.isDeferredProxy,
+                isTutorial: true,
+            )
+            selectedPairId = pair.id
+        } catch {
+            captureErrorMessage = Self.captureErrorText(for: error)
+        }
     }
 
     private func shouldGateForPaywall() async -> Bool {

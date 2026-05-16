@@ -211,6 +211,7 @@ struct HomeView: View {
             isSelectionMode: viewModel.isSelectionMode,
             isSelected: viewModel.selectedPairIds.contains(pair.id),
         )
+        .modifier(FirstPairCardAnchor(isFirst: allPairs.first?.id == pair.id))
         .contentShape(.rect)
         .onTapGesture { viewModel.tapPair(pair, allPairs: allPairs) }
         .contextMenu {
@@ -305,6 +306,18 @@ struct HomeView: View {
 
     static func formatDateHeader(_ date: Date, now _: Date = .now, calendar: Calendar = .current) -> String {
         HomeDateFormatter.base(for: date, calendar: calendar)
+    }
+}
+
+private struct FirstPairCardAnchor: ViewModifier {
+    let isFirst: Bool
+
+    func body(content: Content) -> some View {
+        if isFirst {
+            content.tutorialAnchor(TutorialAnchorID.homeFirstPairCard)
+        } else {
+            content
+        }
     }
 }
 

@@ -34,4 +34,18 @@ final class TutorialCoordinator {
     func complete() {
         current = .done
     }
+
+    @discardableResult
+    func advanceIfPostureMatches(rollDegrees: Double) -> Bool {
+        guard let step = current else { return false }
+        guard TutorialMotionGuide.postureRequiringStep(step) else { return false }
+        let posture = TutorialMotionGuide.posture(forRollDegrees: rollDegrees)
+        guard TutorialMotionGuide.matches(step: step, posture: posture) else { return false }
+        advance()
+        return true
+    }
+
+    func isAtStep(_ step: TutorialStep) -> Bool {
+        current == step
+    }
 }

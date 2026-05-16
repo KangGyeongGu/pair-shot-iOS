@@ -62,13 +62,13 @@ struct BeforeCameraView: View {
             viewModel?.onDisappear()
             releaseMotionIfNeeded()
         }
-        .onChange(of: scenePhase) { _, newPhase in
-            if newPhase == .background { releaseMotionIfNeeded() }
-            if newPhase == .active, viewModel?.isLevelOn == true { acquireMotionIfNeeded() }
-        }
-        .onChange(of: viewModel?.isLevelOn ?? false) { _, isOn in
-            if isOn { acquireMotionIfNeeded() } else { releaseMotionIfNeeded() }
-        }
+        .modifier(BeforeCameraMotionSubscription(
+            scenePhase: scenePhase,
+            isLevelOn: viewModel?.isLevelOn ?? false,
+            isTutorialActive: env.tutorialCoordinator.isActive,
+            onSync: syncMotionSubscription,
+            onBackground: releaseMotionIfNeeded,
+        ))
         .fullScreenCover(item: $afterCameraTarget) { target in
             NavigationStack {
                 AfterCameraView(
@@ -174,15 +174,23 @@ struct BeforeCameraView: View {
 
     private func handleShutter(viewModel: BeforeCameraViewModel) {
         env.hapticService.impact(.heavy)
-        Task { await viewModel.shutter() }
+        let roll = env.motionService.rollDegrees
+        Task { await viewModel.shutter(rollDegrees: roll) }
     }
 
     private func handleLeadingTap() {
+        advanceTutorialOnHomeTap()
         if let onHome {
             onHome()
         } else {
             dismiss()
         }
+    }
+
+    private func advanceTutorialOnHomeTap() {
+        let coord = env.tutorialCoordinator
+        guard coord.isAtStep(.backToHome) else { return }
+        coord.advance()
     }
 
     private func ensureViewModelSync() {
@@ -205,6 +213,15 @@ struct BeforeCameraView: View {
         didSubscribeMotion = false
     }
 
+    private func syncMotionSubscription() {
+        let shouldKeep = viewModel?.isLevelOn == true || env.tutorialCoordinator.isActive
+        if shouldKeep {
+            acquireMotionIfNeeded()
+        } else {
+            releaseMotionIfNeeded()
+        }
+    }
+
     private func observeEvents(viewModel: BeforeCameraViewModel) async {
         for await event in viewModel.events {
             switch event {
@@ -218,6 +235,28 @@ struct BeforeCameraView: View {
                     afterCameraTarget = AfterCameraTarget(pairId: pairId)
             }
         }
+    }
+}
+
+private struct BeforeCameraMotionSubscription: ViewModifier {
+    let scenePhase: ScenePhase
+    let isLevelOn: Bool
+    let isTutorialActive: Bool
+    let onSync: () -> Void
+    let onBackground: () -> Void
+
+    func body(content: Content) -> some View {
+        content
+            .onChange(of: scenePhase) { _, newPhase in
+                if newPhase == .background {
+                    onBackground()
+                } else if newPhase == .active {
+                    onSync()
+                }
+            }
+            .onChange(of: isLevelOn) { _, _ in onSync() }
+            .onChange(of: isTutorialActive) { _, _ in onSync() }
+            .task { onSync() }
     }
 }
 

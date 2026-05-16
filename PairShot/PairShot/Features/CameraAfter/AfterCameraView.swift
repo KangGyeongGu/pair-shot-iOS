@@ -31,7 +31,10 @@ struct AfterCameraView: View {
         }
         .toolbar(.hidden, for: .navigationBar)
         .statusBarHidden(true)
-        .onAppear { ensureViewModelSync() }
+        .onAppear {
+            ensureViewModelSync()
+            advanceTutorialOnEnter()
+        }
         .task {
             ensureViewModelSync()
             guard let vm = viewModel else { return }
@@ -64,6 +67,7 @@ struct AfterCameraView: View {
                 set: { viewModel?.ghostWarningToast = $0 },
             ),
         )
+        .tutorialOverlay()
     }
 
     @ViewBuilder
@@ -137,7 +141,7 @@ struct AfterCameraView: View {
                 onZoomDragChanged: viewModel.onZoomDragChanged(deltaPx:),
                 onZoomDragEnded: viewModel.onZoomDragEnded,
                 onShutter: { handleShutter(viewModel: viewModel) },
-                onLeadingTap: { dismiss() },
+                onLeadingTap: { handleLeadingTap() },
                 onToggleLens: viewModel.toggleLens,
                 onSettingsTap: { showSettingsSheet = true },
             )
@@ -180,6 +184,20 @@ struct AfterCameraView: View {
     private func handleShutter(viewModel: AfterCameraViewModel) {
         env.hapticService.impact(.heavy)
         Task { await viewModel.shutter() }
+    }
+
+    private func handleLeadingTap() {
+        let coord = env.tutorialCoordinator
+        if coord.isAtStep(.backToHome2) {
+            coord.advance()
+        }
+        dismiss()
+    }
+
+    private func advanceTutorialOnEnter() {
+        let coord = env.tutorialCoordinator
+        guard coord.isAtStep(.tapPairCard) else { return }
+        coord.advance()
     }
 
     private func ensureViewModelSync() {
