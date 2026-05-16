@@ -4,6 +4,8 @@ struct SnackbarBanner: View {
     let item: SnackbarItem
     let onDismiss: () -> Void
 
+    @State private var dragOffset: CGFloat = 0
+
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
             iconBadge
@@ -46,8 +48,30 @@ struct SnackbarBanner: View {
         )
         .shadow(color: Color.black.opacity(0.18), radius: 10, y: 3)
         .padding(.horizontal, 12)
+        .contentShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .onTapGesture {}
+        .offset(y: dragOffset)
+        .gesture(item.isProgress ? nil : swipeDismissGesture)
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isStaticText)
+    }
+
+    private var swipeDismissGesture: some Gesture {
+        DragGesture(minimumDistance: 10)
+            .onChanged { value in
+                if value.translation.height < 0 {
+                    dragOffset = value.translation.height
+                }
+            }
+            .onEnded { value in
+                if value.translation.height < -40 {
+                    onDismiss()
+                } else {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
+                        dragOffset = 0
+                    }
+                }
+            }
     }
 
     private var iconBadge: some View {
