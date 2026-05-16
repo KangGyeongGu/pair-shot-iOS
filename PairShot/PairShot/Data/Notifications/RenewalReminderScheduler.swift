@@ -1,5 +1,4 @@
 import Foundation
-import OSLog
 import UserNotifications
 
 @MainActor
@@ -31,18 +30,10 @@ final class RenewalReminderScheduler {
             calendar: calendar,
         ) else {
             await removePending(productID: productID)
-            AppLogger.subscription
-                .info(
-                    "RenewalReminder skip product=\(productID, privacy: .public) reason=trigger_in_past",
-                )
             return
         }
 
         guard await ensureAuthorization() else {
-            AppLogger.subscription
-                .info(
-                    "RenewalReminder skip product=\(productID, privacy: .public) reason=permission_denied",
-                )
             return
         }
 
@@ -57,18 +48,7 @@ final class RenewalReminderScheduler {
         let identifier = Self.identifier(for: productID)
         let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
 
-        do {
-            try await center.add(request)
-            AppLogger.subscription
-                .info(
-                    "RenewalReminder scheduled product=\(productID, privacy: .public) fire=\(triggerDate.timeIntervalSince1970, privacy: .public)",
-                )
-        } catch {
-            AppLogger.subscription
-                .error(
-                    "RenewalReminder add failed product=\(productID, privacy: .public) error=\(error.localizedDescription, privacy: .public)",
-                )
-        }
+        try? await center.add(request)
     }
 
     func cancelAll() async {
@@ -78,8 +58,6 @@ final class RenewalReminderScheduler {
             .filter { $0.hasPrefix(Self.identifierPrefix) }
         guard !identifiers.isEmpty else { return }
         center.removePendingNotificationRequests(withIdentifiers: identifiers)
-        AppLogger.subscription
-            .info("RenewalReminder cancelAll removed=\(identifiers.count, privacy: .public)")
     }
 
     @discardableResult
@@ -93,15 +71,7 @@ final class RenewalReminderScheduler {
                 return false
 
             case .notDetermined:
-                do {
-                    return try await center.requestAuthorization(options: [.alert, .sound])
-                } catch {
-                    AppLogger.subscription
-                        .error(
-                            "RenewalReminder authorization error=\(error.localizedDescription, privacy: .public)",
-                        )
-                    return false
-                }
+                return await (try? center.requestAuthorization(options: [.alert, .sound])) ?? false
 
             @unknown default:
                 return false

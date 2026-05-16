@@ -1,7 +1,6 @@
 import AppTrackingTransparency
 import Foundation
 import Observation
-import OSLog
 
 struct SystemTrackingAuthorizationProvider {
     var currentStatus: ATTrackingManager.AuthorizationStatus {
@@ -36,10 +35,8 @@ final class TrackingAuthorizationService {
             currentStatus = snapshot
             return snapshot
         }
-        AppLogger.ads.debug("ATT prompt requested")
         let result = await provider.requestAuthorization()
         currentStatus = result
-        AppLogger.ads.debug("ATT prompt result rawValue=\(result.rawValue, privacy: .public)")
         return result
     }
 }

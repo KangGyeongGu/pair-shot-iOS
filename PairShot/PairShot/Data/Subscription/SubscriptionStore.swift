@@ -1,6 +1,5 @@
 import Foundation
 import Observation
-import OSLog
 import StoreKit
 
 struct EntitlementSnapshot {
@@ -35,26 +34,14 @@ final class SubscriptionStore {
     func refresh() async {
         let now = Date.now
         var entitlements: [EntitlementSnapshot] = []
-        var unverifiedEntitlementCount = 0
         for await result in Transaction.currentEntitlements {
-            switch result {
-                case let .verified(transaction):
-                    entitlements.append(EntitlementSnapshot(
-                        productID: transaction.productID,
-                        revocationDate: transaction.revocationDate,
-                        expirationDate: transaction.expirationDate,
-                    ))
-
-                case let .unverified(_, error):
-                    unverifiedEntitlementCount += 1
-                    AppLogger.subscription
-                        .error("Entitlement verification failed: \(error.localizedDescription, privacy: .public)")
+            if case let .verified(transaction) = result {
+                entitlements.append(EntitlementSnapshot(
+                    productID: transaction.productID,
+                    revocationDate: transaction.revocationDate,
+                    expirationDate: transaction.expirationDate,
+                ))
             }
-        }
-
-        if unverifiedEntitlementCount > 0 {
-            AppLogger.subscription
-                .error("Unverified entitlements dropped count=\(unverifiedEntitlementCount, privacy: .public)")
         }
 
         let statuses = await Self.fetchStatuses(productIDs: ProductIDs.allLoadable)
@@ -158,8 +145,6 @@ final class SubscriptionStore {
         do {
             products = try await Product.products(for: productIDs)
         } catch {
-            AppLogger.subscription
-                .error("Product.products failed: \(error.localizedDescription, privacy: .public)")
             return snapshots
         }
         for product in products {
@@ -168,10 +153,6 @@ final class SubscriptionStore {
             do {
                 statuses = try await subscription.status
             } catch {
-                AppLogger.subscription
-                    .error(
-                        "SubscriptionInfo.status failed product=\(product.id, privacy: .public) error=\(error.localizedDescription, privacy: .public)",
-                    )
                 continue
             }
             for status in statuses {

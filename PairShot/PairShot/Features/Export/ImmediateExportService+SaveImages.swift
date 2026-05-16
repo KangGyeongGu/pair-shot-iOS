@@ -1,5 +1,4 @@
 import Foundation
-import OSLog
 import Photos
 
 extension ImmediateExportService {
@@ -133,10 +132,6 @@ extension ImmediateExportService {
                 kind: kind,
                 photoLocalIdentifier: identifier,
             )
-        } catch {
-            AppLogger.storage.error(
-                "ExportHistory persist failed: \(error.localizedDescription, privacy: .public)",
-            )
-        }
+        } catch {}
     }
 }

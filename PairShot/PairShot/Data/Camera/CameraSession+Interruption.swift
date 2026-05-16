@@ -1,6 +1,5 @@
 @preconcurrency import AVFoundation
 import Foundation
-import OSLog
 
 final nonisolated class InterruptionObserverBox: @unchecked Sendable {
     var observers: [NSObjectProtocol] = []
@@ -24,14 +23,7 @@ nonisolated extension CameraSession {
             forName: AVCaptureSession.wasInterruptedNotification,
             object: session,
             queue: nil,
-        ) { notification in
-            if let reasonValue = notification.userInfo?[AVCaptureSessionInterruptionReasonKey] as? Int,
-               let reason = AVCaptureSession.InterruptionReason(rawValue: reasonValue)
-            {
-                AppLogger.camera.info("Capture session interrupted: reason \(reason.rawValue, privacy: .public)")
-            } else {
-                AppLogger.camera.info("Capture session interrupted: reason unknown")
-            }
+        ) { _ in
         }
         let resumed = center.addObserver(
             forName: AVCaptureSession.interruptionEndedNotification,
@@ -45,12 +37,8 @@ nonisolated extension CameraSession {
             forName: AVCaptureSession.runtimeErrorNotification,
             object: session,
             queue: nil,
-        ) { [weak self] notification in
+        ) { [weak self] _ in
             guard let self else { return }
-            let description =
-                (notification.userInfo?[AVCaptureSessionErrorKey] as? Error)?
-                    .localizedDescription ?? "unknown"
-            AppLogger.camera.error("Capture session runtime error: \(description, privacy: .public)")
             Task { await self.resumeAfterRuntimeError() }
         }
         observerBox.observers = [interrupted, resumed, runtimeError]
@@ -63,7 +51,6 @@ nonisolated extension CameraSession {
             guard !session.isRunning else { return }
             session.startRunning()
         }
-        AppLogger.camera.info("Capture session resumed after interruption")
     }
 
     func resumeAfterRuntimeError() async {
@@ -75,6 +62,5 @@ nonisolated extension CameraSession {
             }
             session.startRunning()
         }
-        AppLogger.camera.info("Capture session resumed after runtime error")
     }
 }

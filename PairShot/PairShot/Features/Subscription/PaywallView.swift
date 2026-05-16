@@ -1,4 +1,3 @@
-import OSLog
 import StoreKit
 import SwiftUI
 import UIKit
@@ -68,28 +67,13 @@ struct PaywallView: View {
         }
         .interactiveDismissDisabled(mode == .firstRun)
         .onAppear {
-            AppLogger.ads
-                .debug(
-                    "PAYWALL onAppear mode=\(String(describing: mode), privacy: .public) isPro=\(store.isPro, privacy: .public)",
-                )
             if !didCaptureInitial {
                 wasInitiallyPro = store.isPro
                 didCaptureInitial = true
             }
         }
-        .onDisappear {
-            AppLogger.ads
-                .debug(
-                    "PAYWALL onDisappear mode=\(String(describing: mode), privacy: .public) isPro=\(store.isPro, privacy: .public)",
-                )
-        }
-        .onChange(of: store.isPro) { oldValue, newValue in
-            AppLogger.ads
-                .debug(
-                    "PAYWALL isPro change \(oldValue, privacy: .public) -> \(newValue, privacy: .public) wasInitially=\(wasInitiallyPro, privacy: .public)",
-                )
+        .onChange(of: store.isPro) { _, newValue in
             guard didCaptureInitial, !wasInitiallyPro, newValue else { return }
-            AppLogger.ads.debug("PAYWALL onCompletion via isPro change")
             onCompletion()
         }
         .snackbarOverlay(env.snackbarQueue)

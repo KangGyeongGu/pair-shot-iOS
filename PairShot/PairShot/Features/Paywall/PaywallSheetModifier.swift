@@ -1,4 +1,3 @@
-import OSLog
 import SwiftUI
 
 struct PaywallSheetModifier: ViewModifier {
@@ -14,14 +13,11 @@ struct PaywallSheetModifier: ViewModifier {
     func body(content: Content) -> some View {
         content.fullScreenCover(isPresented: $isPresented) {
             PaywallView(mode: .upgrade) {
-                AppLogger.ads.debug("PAYWALL_SHEET onCompletion called, setting isPresented=false")
                 didCompleteIntentionally = true
                 isPresented = false
             }
         }
         .onChange(of: isPresented) { oldValue, newValue in
-            AppLogger.ads
-                .debug("PAYWALL_SHEET isPresented \(oldValue, privacy: .public) -> \(newValue, privacy: .public)")
             handleIsPresentedChange(oldValue: oldValue, newValue: newValue)
         }
     }
@@ -43,8 +39,6 @@ struct PaywallSheetModifier: ViewModifier {
             return
         }
         recoveryAttempts += 1
-        AppLogger.ads
-            .debug("PAYWALL_SHEET auto-dismiss detected, re-presenting (attempt \(recoveryAttempts, privacy: .public))")
         Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(150))
             isPresented = true

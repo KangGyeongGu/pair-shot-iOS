@@ -1,6 +1,5 @@
 @preconcurrency import AVFoundation
 import Foundation
-import OSLog
 
 nonisolated extension CameraSession {
     func switchLens(to position: CameraLensPosition) async {
@@ -26,9 +25,7 @@ nonisolated extension CameraSession {
                 activeDevice = device
                 activeInput = input
                 hasInputInternal = true
-                AppLogger.camera.debug("Camera lens switched to \(position.rawValue, privacy: .public)")
             } catch {
-                AppLogger.camera.error("Camera lens switch failed: \(error.localizedDescription, privacy: .public)")
                 return
             }
         }
@@ -59,8 +56,6 @@ nonisolated extension CameraSession {
             try device.lockForConfiguration()
             defer { device.unlockForConfiguration() }
             device.videoZoomFactor = max(target, device.minAvailableVideoZoomFactor)
-        } catch {
-            AppLogger.camera.error("Default zoom set failed: \(error.localizedDescription, privacy: .public)")
-        }
+        } catch {}
     }
 }

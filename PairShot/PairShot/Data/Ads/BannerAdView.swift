@@ -1,5 +1,4 @@
 import AppTrackingTransparency
-import OSLog
 import SwiftUI
 import UIKit
 #if canImport(GoogleMobileAds)
@@ -70,7 +69,6 @@ struct BannerAdView: UIViewRepresentable {
             view.rootViewController = Self.resolveRootViewController()
             context.coordinator.lastWidth = width
             let request = AdRequestBuilder.build(attStatus: attStatus)
-            AppLogger.ads.debug("Banner load requested width=\(width, privacy: .public)")
             view.load(request)
             return view
         }
@@ -83,7 +81,6 @@ struct BannerAdView: UIViewRepresentable {
                 context.coordinator.lastWidth = width
                 uiView.adSize = BannerAdSize.adaptive(width: width)
                 let request = AdRequestBuilder.build(attStatus: attStatus)
-                AppLogger.ads.debug("Banner reload width=\(width, privacy: .public)")
                 uiView.load(request)
             }
         }

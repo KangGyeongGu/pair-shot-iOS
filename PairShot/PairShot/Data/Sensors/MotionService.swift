@@ -1,7 +1,6 @@
 @preconcurrency import CoreMotion
 import Foundation
 import Observation
-import OSLog
 
 @MainActor
 @Observable
@@ -30,7 +29,6 @@ final class MotionService {
         subscriberCount += 1
         guard !isStreaming else { return }
         guard manager.isDeviceMotionAvailable else {
-            AppLogger.camera.info("MotionService: deviceMotion unavailable")
             return
         }
         manager.deviceMotionUpdateInterval = updateInterval

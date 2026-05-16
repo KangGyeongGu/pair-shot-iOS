@@ -1,7 +1,6 @@
 import AppTrackingTransparency
 import Foundation
 import Observation
-import OSLog
 import UIKit
 #if canImport(GoogleMobileAds)
     @preconcurrency import GoogleMobileAds
@@ -41,7 +40,6 @@ final class NativeAdLoader: NSObject {
             let attStatus = trackingService?.currentStatus ?? .notDetermined
             let request = AdRequestBuilder.build(attStatus: attStatus)
             isLoading = true
-            AppLogger.ads.debug("Native prefetch requested count=\(count, privacy: .public)")
             let multipleOptions = MultipleAdsAdLoaderOptions()
             multipleOptions.numberOfAds = count
             let loader = AdLoader(
@@ -93,7 +91,6 @@ final class NativeAdLoader: NSObject {
         ) {
             let description = error.localizedDescription
             Task { @MainActor [weak self] in
-                AppLogger.ads.error("Native load failed: \(description, privacy: .public)")
                 self?.lastErrorDescription = description
                 self?.isLoading = false
                 self?.inflightLoader = nil

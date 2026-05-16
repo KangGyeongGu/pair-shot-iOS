@@ -1,7 +1,6 @@
 import CoreLocation
 import Foundation
 import Observation
-import OSLog
 
 @MainActor
 @Observable
@@ -74,12 +73,7 @@ extension CoreLocationService: CLLocationManagerDelegate {
         }
     }
 
-    nonisolated func locationManager(_: CLLocationManager, didFailWithError error: Error) {
-        let description = error.localizedDescription
-        Task { @MainActor in
-            AppLogger.camera.error("Location update failed: \(description, privacy: .public)")
-        }
-    }
+    nonisolated func locationManager(_: CLLocationManager, didFailWithError _: Error) {}
 
     @MainActor
     private func applyLocation(_ location: CLLocation?) {

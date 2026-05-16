@@ -1,6 +1,5 @@
 @preconcurrency import AVFoundation
 import Foundation
-import OSLog
 import UIKit
 import UniformTypeIdentifiers
 
@@ -129,16 +128,12 @@ final nonisolated class CameraSession: @unchecked Sendable {
     }
 
     func start() async {
-        AppLogger.camera.debug("Camera session start requested")
         let state = await permissionResolver()
         switch state {
             case .authorized:
                 break
 
             case .notDetermined, .denied, .restricted:
-                AppLogger.camera.debug(
-                    "Camera permission unavailable state=\(String(describing: state), privacy: .public)",
-                )
                 return
         }
 
@@ -153,7 +148,6 @@ final nonisolated class CameraSession: @unchecked Sendable {
             self?.hasInputInternal ?? false
         }
         guard canStart else {
-            AppLogger.camera.error("Camera session start aborted: no input device")
             return
         }
 
@@ -162,7 +156,6 @@ final nonisolated class CameraSession: @unchecked Sendable {
             guard !session.isRunning else { return }
             session.startRunning()
         }
-        AppLogger.camera.debug("Camera session started")
         await MainActor.run { [weak self] in
             self?.setupRotationCoordinator()
             self?.setupReadinessCoordinator()
@@ -175,7 +168,6 @@ final nonisolated class CameraSession: @unchecked Sendable {
             guard session.isRunning else { return }
             session.stopRunning()
         }
-        AppLogger.camera.debug("Camera session stopped")
     }
 
     private func configureInitialInput() async {
@@ -220,7 +212,6 @@ final nonisolated class CameraSession: @unchecked Sendable {
 
             let output = AVCapturePhotoOutput()
             guard session.canAddOutput(output) else {
-                AppLogger.camera.error("Camera session canAddOutput=false; rolling back input")
                 session.removeInput(input)
                 return
             }

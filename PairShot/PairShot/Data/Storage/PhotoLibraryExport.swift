@@ -1,5 +1,4 @@
 import Foundation
-import OSLog
 import Photos
 import UniformTypeIdentifiers
 
@@ -40,47 +39,37 @@ final class PhotoLibraryExport: Sendable {
     ) async throws -> String {
         let status = PHPhotoLibrary.authorizationStatus(for: .addOnly)
         guard status == .authorized || status == .limited else {
-            AppLogger.storage.error("PhotoLibraryExport not authorized")
             throw PhotoLibraryExportError.notAuthorized
         }
         let typeIdentifier = utType.identifier
-        do {
-            typealias StringContinuation = CheckedContinuation<String, Error>
-            let identifier: String = try await withCheckedThrowingContinuation { (continuation: StringContinuation) in
-                let placeholderBox = PlaceholderBox()
-                let resourceType: PHAssetResourceType =
-                    switch type {
-                        case .photo: .photo
-                    }
-                let changesBlock: @Sendable () -> Void = {
-                    let request = PHAssetCreationRequest.forAsset()
-                    let options = PHAssetResourceCreationOptions()
-                    options.uniformTypeIdentifier = typeIdentifier
-                    request.addResource(with: resourceType, data: data, options: options)
-                    placeholderBox.placeholder = request.placeholderForCreatedAsset
+        typealias StringContinuation = CheckedContinuation<String, Error>
+        return try await withCheckedThrowingContinuation { (continuation: StringContinuation) in
+            let placeholderBox = PlaceholderBox()
+            let resourceType: PHAssetResourceType =
+                switch type {
+                    case .photo: .photo
                 }
-                let completionBlock: @Sendable (Bool, Error?) -> Void = { success, error in
-                    if success, let id = placeholderBox.placeholder?.localIdentifier {
-                        continuation.resume(returning: id)
-                    } else if let error {
-                        continuation.resume(
-                            throwing: PhotoLibraryExportError.writeFailed(
-                                String(describing: error),
-                            ),
-                        )
-                    } else {
-                        continuation.resume(throwing: PhotoLibraryExportError.writeFailed("unknown"))
-                    }
-                }
-                PHPhotoLibrary.shared().performChanges(changesBlock, completionHandler: completionBlock)
+            let changesBlock: @Sendable () -> Void = {
+                let request = PHAssetCreationRequest.forAsset()
+                let options = PHAssetResourceCreationOptions()
+                options.uniformTypeIdentifier = typeIdentifier
+                request.addResource(with: resourceType, data: data, options: options)
+                placeholderBox.placeholder = request.placeholderForCreatedAsset
             }
-            AppLogger.storage.info("PhotoLibraryExport saveImageData success")
-            return identifier
-        } catch {
-            AppLogger.storage.error(
-                "PhotoLibraryExport saveImageData failed: \(error.localizedDescription, privacy: .public)",
-            )
-            throw error
+            let completionBlock: @Sendable (Bool, Error?) -> Void = { success, error in
+                if success, let id = placeholderBox.placeholder?.localIdentifier {
+                    continuation.resume(returning: id)
+                } else if let error {
+                    continuation.resume(
+                        throwing: PhotoLibraryExportError.writeFailed(
+                            String(describing: error),
+                        ),
+                    )
+                } else {
+                    continuation.resume(throwing: PhotoLibraryExportError.writeFailed("unknown"))
+                }
+            }
+            PHPhotoLibrary.shared().performChanges(changesBlock, completionHandler: completionBlock)
         }
     }
 }

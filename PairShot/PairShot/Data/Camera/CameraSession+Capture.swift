@@ -1,6 +1,5 @@
 @preconcurrency import AVFoundation
 import Foundation
-import OSLog
 import UniformTypeIdentifiers
 
 nonisolated extension CameraSession {
@@ -39,7 +38,6 @@ nonisolated extension CameraSession {
         }
 
         guard let captureContext else {
-            AppLogger.camera.error("Camera capturePhoto failed: not configured")
             throw CameraSessionError.notConfigured
         }
 
@@ -80,8 +78,6 @@ nonisolated extension CameraSession {
                         )
 
                     case let .failure(err):
-                        AppLogger.camera
-                            .error("Camera capturePhoto failed: \(String(describing: err), privacy: .public)")
                         cont.resume(throwing: err)
                 }
             }

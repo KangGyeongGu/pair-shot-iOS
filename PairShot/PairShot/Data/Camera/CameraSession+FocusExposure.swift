@@ -1,6 +1,5 @@
 @preconcurrency import AVFoundation
 import Foundation
-import OSLog
 
 nonisolated extension CameraSession {
     func focus(at point: CGPoint) async {
@@ -22,7 +21,6 @@ nonisolated extension CameraSession {
                     device.exposureMode = .autoExpose
                 }
             } catch {
-                AppLogger.camera.error("Camera focus configure failed: \(error.localizedDescription, privacy: .public)")
                 return
             }
         }
@@ -44,8 +42,6 @@ nonisolated extension CameraSession {
                         cont.resume()
                     }
                 } catch {
-                    AppLogger.camera
-                        .error("Camera exposure bias set failed: \(error.localizedDescription, privacy: .public)")
                     cont.resume()
                 }
             }
@@ -71,8 +67,6 @@ nonisolated extension CameraSession {
                 defer { device.unlockForConfiguration() }
                 device.automaticallyEnablesLowLightBoostWhenAvailable = enabled
             } catch {
-                AppLogger.camera
-                    .error("Camera low-light boost configure failed: \(error.localizedDescription, privacy: .public)")
                 return
             }
         }
@@ -102,7 +96,6 @@ nonisolated extension CameraSession {
                         }
                 }
             } catch {
-                AppLogger.camera.error("Camera torch configure failed: \(error.localizedDescription, privacy: .public)")
                 return
             }
         }

@@ -1,7 +1,6 @@
 import AppTrackingTransparency
 import Foundation
 import Observation
-import OSLog
 import UIKit
 #if canImport(GoogleMobileAds)
     @preconcurrency import GoogleMobileAds
@@ -56,11 +55,10 @@ final class InterstitialAdManager {
             let attStatus = trackingService?.currentStatus ?? .notDetermined
             let request = AdRequestBuilder.build(attStatus: attStatus)
             isLoading = true
-            AppLogger.ads.debug("Interstitial load requested")
             InterstitialAd.load(
                 with: resolvedUnitID,
                 request: request,
-            ) { [weak self] ad, error in
+            ) { [weak self] ad, _ in
                 let adBox = InterstitialAdBox(ad: ad)
                 Task { @MainActor [weak self] in
                     guard let self else { return }
@@ -69,15 +67,9 @@ final class InterstitialAdManager {
                         self.ad = resolvedAd
                         isLoaded = true
                         resolvedAd.fullScreenContentDelegate = presentationDelegate
-                        AppLogger.ads.debug("Interstitial loaded")
                     } else {
                         self.ad = nil
                         isLoaded = false
-                        if let error {
-                            AppLogger.ads.error(
-                                "Interstitial load failed: \(error.localizedDescription, privacy: .public)",
-                            )
-                        }
                     }
                 }
             }
@@ -190,7 +182,6 @@ final class InterstitialAdManager {
                         resume()
                     }
                 }
-                AppLogger.ads.debug("Interstitial showIfAvailable presented")
                 ad.present(from: context.rootViewController)
             }
             return true
@@ -255,11 +246,9 @@ extension InterstitialAdManager {
 
         nonisolated func ad(
             _: any FullScreenPresentingAd,
-            didFailToPresentFullScreenContentWithError error: Error,
+            didFailToPresentFullScreenContentWithError _: Error,
         ) {
-            let description = error.localizedDescription
             Task { @MainActor [weak self] in
-                AppLogger.ads.error("Interstitial failed to present: \(description, privacy: .public)")
                 self?.onFailToPresent?()
             }
         }

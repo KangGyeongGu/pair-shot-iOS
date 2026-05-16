@@ -1,5 +1,4 @@
 import Foundation
-import OSLog
 import Photos
 
 extension ExportSettingsViewModel {
@@ -249,10 +248,6 @@ extension ExportSettingsViewModel {
                 kind: kind,
                 photoLocalIdentifier: identifier,
             )
-        } catch {
-            AppLogger.storage.error(
-                "ExportHistory persist failed: \(error.localizedDescription, privacy: .public)",
-            )
-        }
+        } catch {}
     }
 }

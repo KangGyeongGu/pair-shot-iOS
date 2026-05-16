@@ -1,6 +1,5 @@
 import Foundation
 import Observation
-import OSLog
 import Photos
 import UIKit
 

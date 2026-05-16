@@ -1,5 +1,4 @@
 import Foundation
-import OSLog
 import SwiftUI
 
 actor FullscreenAdCoordinator {
@@ -9,7 +8,6 @@ actor FullscreenAdCoordinator {
 
     func tryAcquire() -> Bool {
         guard !isShowing else {
-            AppLogger.ads.debug("FullscreenAdCoordinator acquire denied (already showing)")
             return false
         }
         isShowing = true

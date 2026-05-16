@@ -1,7 +1,6 @@
 import AppTrackingTransparency
 import Foundation
 import Observation
-import OSLog
 import UIKit
 #if canImport(GoogleMobileAds)
     @preconcurrency import GoogleMobileAds
@@ -66,11 +65,10 @@ final class RewardedAdManager {
             let attStatus = trackingService?.currentStatus ?? .notDetermined
             let request = AdRequestBuilder.build(attStatus: attStatus)
             isLoading = true
-            AppLogger.ads.debug("Rewarded load requested")
             RewardedAd.load(
                 with: resolvedUnitID,
                 request: request,
-            ) { [weak self] ad, error in
+            ) { [weak self] ad, _ in
                 let adBox = RewardedAdBox(ad: ad)
                 Task { @MainActor [weak self] in
                     guard let self else { return }
@@ -79,15 +77,9 @@ final class RewardedAdManager {
                         self.ad = resolvedAd
                         isLoaded = true
                         resolvedAd.fullScreenContentDelegate = presentationDelegate
-                        AppLogger.ads.debug("Rewarded loaded")
                     } else {
                         self.ad = nil
                         isLoaded = false
-                        if let error {
-                            AppLogger.ads.error(
-                                "Rewarded load failed: \(error.localizedDescription, privacy: .public)",
-                            )
-                        }
                     }
                 }
             }
@@ -114,7 +106,6 @@ final class RewardedAdManager {
 
         guard isLoaded else { return .failed(reason: "not-loaded") }
         if let rootViewController, rootViewController.presentedViewController != nil {
-            AppLogger.ads.warning("Rewarded skipped — root already presenting another view controller")
             return .failed(reason: "already-presenting")
         }
         guard await coordinator.tryAcquire() else {
@@ -146,7 +137,6 @@ final class RewardedAdManager {
                         resume(.failed(reason: reason))
                     }
                 }
-                AppLogger.ads.debug("Rewarded presented")
                 ad.present(from: rootViewController) {
                     earned = true
                 }
@@ -197,7 +187,6 @@ final class RewardedAdManager {
         ) {
             let reason = error.localizedDescription
             Task { @MainActor [weak self] in
-                AppLogger.ads.error("Rewarded failed to present: \(reason, privacy: .public)")
                 self?.onFailToPresent?(reason)
             }
         }

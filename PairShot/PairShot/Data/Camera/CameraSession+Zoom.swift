@@ -1,6 +1,5 @@
 @preconcurrency import AVFoundation
 import Foundation
-import OSLog
 
 nonisolated extension CameraSession {
     var currentZoomFactor: Double {
@@ -42,7 +41,6 @@ nonisolated extension CameraSession {
                 defer { device.unlockForConfiguration() }
                 device.ramp(toVideoZoomFactor: CGFloat(clamped), withRate: rate)
             } catch {
-                AppLogger.camera.error("Camera zoom ramp failed: \(error.localizedDescription, privacy: .public)")
                 return
             }
         }
@@ -60,7 +58,6 @@ nonisolated extension CameraSession {
                 if device.isRampingVideoZoom { device.cancelVideoZoomRamp() }
                 device.videoZoomFactor = CGFloat(clamped)
             } catch {
-                AppLogger.camera.error("Camera zoom set failed: \(error.localizedDescription, privacy: .public)")
                 return
             }
         }
