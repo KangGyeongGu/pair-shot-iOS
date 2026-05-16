@@ -207,6 +207,33 @@ nonisolated enum CompositeLayoutResolver {
     }
 }
 
+private actor ExportPerfTracker {
+    private(set) var inFlight = 0
+    private(set) var maxConcurrent = 0
+    private(set) var totalDurationMs = 0
+    private(set) var completedCount = 0
+
+    func enter() -> Int {
+        inFlight += 1
+        if inFlight > maxConcurrent {
+            maxConcurrent = inFlight
+        }
+        return inFlight
+    }
+
+    func leave(durationMs: Int) -> Int {
+        inFlight -= 1
+        totalDurationMs += durationMs
+        completedCount += 1
+        return inFlight
+    }
+
+    func averageDurationMs() -> Int {
+        guard completedCount > 0 else { return 0 }
+        return totalDurationMs / completedCount
+    }
+}
+
 nonisolated enum ExportSlidingWindow {
     static func map<Job: Sendable, Result: Sendable>(
         jobs: [Job],
@@ -221,6 +248,9 @@ nonisolated enum ExportSlidingWindow {
         let safeCap = max(1, min(cap, total))
         var results: [Result?] = Array(repeating: nil, count: total)
 
+        let tracker = ExportPerfTracker()
+        let startedAt = Date()
+
         try await withThrowingTaskGroup(of: (Int, Result).self) { group in
             var nextIndex = 0
             let initial = min(safeCap, total)
@@ -230,7 +260,18 @@ nonisolated enum ExportSlidingWindow {
                 nextIndex += 1
                 group.addTask {
                     try Task.checkCancellation()
-                    return try await (index, transform(index, job))
+                    let inFlight = await tracker.enter()
+                    let elapsedMs = Self.elapsedMs(since: startedAt)
+                    print("[ExportPerf] +job[\(index)] start in-flight=\(inFlight) elapsed=\(elapsedMs)ms")
+                    let jobStart = Date()
+                    let value = try await transform(index, job)
+                    let durMs = Self.elapsedMs(since: jobStart)
+                    let remaining = await tracker.leave(durationMs: durMs)
+                    let doneElapsedMs = Self.elapsedMs(since: startedAt)
+                    print(
+                        "[ExportPerf] -job[\(index)] done dur=\(durMs)ms in-flight=\(remaining) elapsed=\(doneElapsedMs)ms",
+                    )
+                    return (index, value)
                 }
             }
             while let (index, value) = try await group.next() {
@@ -245,13 +286,35 @@ nonisolated enum ExportSlidingWindow {
                     nextIndex += 1
                     group.addTask {
                         try Task.checkCancellation()
-                        return try await (nextSlot, transform(nextSlot, job))
+                        let inFlight = await tracker.enter()
+                        let elapsedMs = Self.elapsedMs(since: startedAt)
+                        print("[ExportPerf] +job[\(nextSlot)] start in-flight=\(inFlight) elapsed=\(elapsedMs)ms")
+                        let jobStart = Date()
+                        let value = try await transform(nextSlot, job)
+                        let durMs = Self.elapsedMs(since: jobStart)
+                        let remaining = await tracker.leave(durationMs: durMs)
+                        let doneElapsedMs = Self.elapsedMs(since: startedAt)
+                        print(
+                            "[ExportPerf] -job[\(nextSlot)] done dur=\(durMs)ms in-flight=\(remaining) elapsed=\(doneElapsedMs)ms",
+                        )
+                        return (nextSlot, value)
                     }
                 }
             }
         }
 
+        let totalElapsedMs = Self.elapsedMs(since: startedAt)
+        let avgDur = await tracker.averageDurationMs()
+        let maxConcurrent = await tracker.maxConcurrent
+        print(
+            "[ExportPerf] complete total=\(total) elapsed=\(totalElapsedMs)ms avgDur=\(avgDur)ms maxConcurrent=\(maxConcurrent)",
+        )
+
         return results.compactMap(\.self)
+    }
+
+    private static func elapsedMs(since start: Date) -> Int {
+        Int(Date().timeIntervalSince(start) * 1000)
     }
 }
 
@@ -262,6 +325,11 @@ nonisolated enum ExportEntryBatchRenderer {
         counter: ExportProgressCounter?,
         cap: Int = ExportConcurrency.recommendedCap(),
     ) async throws -> [RenderedExportPayload] {
+        let detail = ExportConcurrency.recommendedCapDetails()
+        let availMemMB = detail.availableMemoryBytes / (1024 * 1024)
+        print(
+            "[ExportPerf] start total=\(jobs.count) cap=\(cap) cores=\(detail.cores) availMemMB=\(availMemMB) memCap=\(detail.memCap) coreCap=\(detail.coreCap) hardCap=\(detail.hardCap)",
+        )
         let onItemComplete: (@Sendable () async -> Void)? = if let counter {
             { await counter.tick() }
         } else {
