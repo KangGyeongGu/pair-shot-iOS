@@ -50,6 +50,7 @@ final class AppEnvironment {
     let membership: Membership
 
     let tutorialCoordinator: TutorialCoordinator
+    let tutorialCleanupService: TutorialCleanupService
 
     private var sharedSettingsViewModel: SettingsViewModel?
 
@@ -140,6 +141,10 @@ final class AppEnvironment {
         photoLibrary = dataServices.photoLibrary
         pairRepo = dataServices.pairRepo
         albumRepo = dataServices.albumRepo
+        tutorialCleanupService = TutorialCleanupService(
+            container: modelContainer,
+            photoLibrary: dataServices.photoLibrary,
+        )
 
         let useCases = bundles.useCases
         createPair = useCases.createPair

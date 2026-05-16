@@ -2,7 +2,11 @@ import SwiftData
 import SwiftUI
 
 struct PhotoPairQueryHost<Content: View>: View {
-    @Query(sort: \PhotoPairEntity.createdAt, order: .reverse)
+    @Query(
+        filter: #Predicate<PhotoPairEntity> { !$0.isTutorial },
+        sort: \PhotoPairEntity.createdAt,
+        order: .reverse,
+    )
     private var entities: [PhotoPairEntity]
 
     let content: ([PhotoPair]) -> Content

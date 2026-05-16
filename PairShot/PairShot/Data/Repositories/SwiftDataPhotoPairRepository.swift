@@ -24,7 +24,7 @@ final class SwiftDataPhotoPairRepository: PhotoPairRepository {
         guard !ids.isEmpty else { return [] }
         let idSet = Set(ids)
         let descriptor = FetchDescriptor<PhotoPairEntity>(
-            predicate: #Predicate { idSet.contains($0.id) },
+            predicate: #Predicate { idSet.contains($0.id) && !$0.isTutorial },
         )
         let entities = try context.fetch(descriptor)
         let byId = Dictionary(uniqueKeysWithValues: entities.map { ($0.id, $0.toDomain()) })
@@ -33,7 +33,7 @@ final class SwiftDataPhotoPairRepository: PhotoPairRepository {
 
     func countCreated(since date: Date) async throws -> Int {
         let descriptor = FetchDescriptor<PhotoPairEntity>(
-            predicate: #Predicate { $0.createdAt >= date },
+            predicate: #Predicate { $0.createdAt >= date && !$0.isTutorial },
         )
         return try context.fetchCount(descriptor)
     }
@@ -131,6 +131,7 @@ final class SwiftDataPhotoPairRepository: PhotoPairRepository {
 
     private func fetchAllSync() throws -> [PhotoPairEntity] {
         let descriptor = FetchDescriptor<PhotoPairEntity>(
+            predicate: #Predicate { !$0.isTutorial },
             sortBy: [SortDescriptor(\.createdAt, order: .reverse)],
         )
         return try context.fetch(descriptor)
@@ -138,7 +139,7 @@ final class SwiftDataPhotoPairRepository: PhotoPairRepository {
 
     private func fetchEntity(id: UUID) throws -> PhotoPairEntity? {
         let descriptor = FetchDescriptor<PhotoPairEntity>(
-            predicate: #Predicate { $0.id == id },
+            predicate: #Predicate { $0.id == id && !$0.isTutorial },
         )
         return try context.fetch(descriptor).first
     }
@@ -157,6 +158,7 @@ final class SwiftDataPhotoPairRepository: PhotoPairRepository {
             capturedAt: domain.createdAt,
             updatedAt: domain.updatedAt,
             afterCapturedAt: domain.afterCapturedAt,
+            isTutorial: domain.isTutorial,
         )
     }
 

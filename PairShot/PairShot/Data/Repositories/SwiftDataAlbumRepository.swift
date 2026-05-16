@@ -64,7 +64,7 @@ final class SwiftDataAlbumRepository: AlbumRepository {
 
     private func fetchPair(id: UUID) throws -> PhotoPairEntity? {
         let descriptor = FetchDescriptor<PhotoPairEntity>(
-            predicate: #Predicate { $0.id == id },
+            predicate: #Predicate { $0.id == id && !$0.isTutorial },
         )
         return try context.fetch(descriptor).first
     }

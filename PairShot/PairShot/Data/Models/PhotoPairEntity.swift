@@ -14,6 +14,7 @@ final class PhotoPairEntity {
     var latitude: Double?
     var longitude: Double?
     var locationLabel: String?
+    var isTutorial: Bool = false
 
     @Attribute(.externalStorage) var cameraSettingsData: Data?
 
@@ -49,6 +50,7 @@ final class PhotoPairEntity {
         capturedAt: Date = .now,
         updatedAt: Date? = nil,
         afterCapturedAt: Date? = nil,
+        isTutorial: Bool = false,
     ) {
         self.id = id
         self.beforePhotoLocalIdentifier = beforePhotoLocalIdentifier
@@ -61,6 +63,7 @@ final class PhotoPairEntity {
         self.latitude = latitude
         self.longitude = longitude
         self.locationLabel = locationLabel
+        self.isTutorial = isTutorial
         if let cameraSettings {
             cameraSettingsData = try? JSONEncoder().encode(cameraSettings)
         }
@@ -86,6 +89,7 @@ extension PhotoPairEntity {
             albumIds: albums.map(\.id),
             firstAlbumName: albums.first?.name,
             hasCombinedExport: exportHistory.contains { $0.kind == .combined },
+            isTutorial: isTutorial,
         )
     }
 }

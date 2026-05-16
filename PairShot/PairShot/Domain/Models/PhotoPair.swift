@@ -16,6 +16,7 @@ struct PhotoPair: Identifiable, Equatable {
     var albumIds: [UUID]
     var firstAlbumName: String?
     var hasCombinedExport: Bool
+    var isTutorial: Bool
 
     init(
         id: UUID = UUID(),
@@ -33,6 +34,7 @@ struct PhotoPair: Identifiable, Equatable {
         albumIds: [UUID] = [],
         firstAlbumName: String? = nil,
         hasCombinedExport: Bool = false,
+        isTutorial: Bool = false,
     ) {
         self.id = id
         self.beforePhotoLocalIdentifier = beforePhotoLocalIdentifier
@@ -49,5 +51,6 @@ struct PhotoPair: Identifiable, Equatable {
         self.albumIds = albumIds
         self.firstAlbumName = firstAlbumName
         self.hasCombinedExport = hasCombinedExport
+        self.isTutorial = isTutorial
     }
 }
