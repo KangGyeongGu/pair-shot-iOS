@@ -24,6 +24,11 @@ final class TutorialCoordinator {
         current = .homeCaptureHighlight
     }
 
+    func restart() {
+        current = nil
+        start()
+    }
+
     func advance() {
         guard let cur = current, let nxt = TutorialStep(rawValue: cur.rawValue + 1) else { return }
         current = nxt

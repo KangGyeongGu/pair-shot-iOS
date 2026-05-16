@@ -39,6 +39,11 @@ struct RootView: View {
                 .onChange(of: env.membership.proIsActive) { _, _ in
                     evaluateFirstRunPaywall()
                 }
+                .onChange(of: env.tutorialCoordinator.current) { _, newValue in
+                    if newValue == .done {
+                        tutorialCompleted = true
+                    }
+                }
             }
         }
         .alert(

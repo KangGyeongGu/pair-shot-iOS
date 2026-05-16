@@ -4,7 +4,7 @@ import SwiftUI
 import UIKit
 
 extension BeforeCameraViewModel {
-    func shutter(rollDegrees: Double = 0) async {
+    func shutter(rollDegrees: Double) async {
         guard !isCapturing, session.captureReadiness == .ready else { return }
         if let tutorialCoordinator, tutorialCoordinator.isActive {
             await handleTutorialShutter(coord: tutorialCoordinator, rollDegrees: rollDegrees)
@@ -46,16 +46,14 @@ extension BeforeCameraViewModel {
     ) async {
         guard let step = coord.current else { return }
         if TutorialMotionGuide.postureRequiringStep(step) {
-            let posture = TutorialMotionGuide.posture(forRollDegrees: rollDegrees)
-            guard TutorialMotionGuide.matches(step: step, posture: posture) else { return }
-            await captureTutorialPair(rollDegrees: rollDegrees)
-            coord.advance()
+            guard coord.advanceIfPostureMatches(rollDegrees: rollDegrees) else { return }
+            await captureTutorialPair()
             return
         }
         coord.advance()
     }
 
-    private func captureTutorialPair(rollDegrees _: Double) async {
+    private func captureTutorialPair() async {
         isCapturing = true
         let captured: CapturedPhoto
         do {

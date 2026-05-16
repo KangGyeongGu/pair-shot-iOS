@@ -187,6 +187,9 @@ struct SettingsCombineSection: View {
 struct SettingsGeneralSection: View {
     @Bindable var viewModel: SettingsViewModel
     @Binding var path: [Route]
+    @Environment(AppEnvironment.self) private var env
+    @AppStorage("tutorial.completed") private var tutorialCompleted = false
+    @State private var showTutorialRestartDialog = false
 
     var body: some View {
         Section {
@@ -211,9 +214,48 @@ struct SettingsGeneralSection: View {
                 )
             }
             .buttonStyle(.plain)
+
+            tutorialRestartRow
         } header: {
             Text(String(localized: "settings_section_general"))
         }
+        .alert(
+            String(localized: "settings_tutorial_restart_confirm_title"),
+            isPresented: $showTutorialRestartDialog,
+        ) {
+            Button(String(localized: "common_button_cancel"), role: .cancel) {}
+            Button(String(localized: "common_button_confirm")) {
+                restartTutorial()
+            }
+        } message: {
+            Text(String(localized: "settings_tutorial_restart_confirm_message"))
+        }
+    }
+
+    private var tutorialRestartRow: some View {
+        Button {
+            showTutorialRestartDialog = true
+        } label: {
+            HStack(spacing: 12) {
+                SettingsIconBadge(
+                    icon: SettingsRowIcon(systemImage: "questionmark.circle", color: .blue),
+                )
+                Text(String(localized: "settings_item_tutorial_restart"))
+                    .foregroundStyle(.primary)
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.caption.bold())
+                    .foregroundStyle(.tertiary)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func restartTutorial() {
+        tutorialCompleted = false
+        env.tutorialCoordinator.restart()
+        path.removeAll()
     }
 }
 

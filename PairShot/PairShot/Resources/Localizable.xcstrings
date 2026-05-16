@@ -4761,6 +4761,57 @@
         }
       }
     },
+    "settings_item_tutorial_restart" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Replay tutorial"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "튜토리얼 다시 보기"
+          }
+        }
+      }
+    },
+    "settings_tutorial_restart_confirm_title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Replay tutorial"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "튜토리얼 다시 보기"
+          }
+        }
+      }
+    },
+    "settings_tutorial_restart_confirm_message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Would you like to see the tutorial again?"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "튜토리얼을 다시 보시겠습니까?"
+          }
+        }
+      }
+    },
     "settings_item_user_settings" : {
       "extractionState" : "manual",
       "localizations" : {
