@@ -5,6 +5,7 @@ struct WatermarkSettingsView: View {
     @Bindable var viewModel: WatermarkSettingsViewModel
     @Environment(AppSettings.self) private var appSettings
     @Environment(Membership.self) private var membership
+    @Environment(AppEnvironment.self) private var env
     @State private var showPaywall: Bool = false
 
     var body: some View {
@@ -106,6 +107,11 @@ struct WatermarkSettingsView: View {
         let isSelected = viewModel.settings.type == value
         return Button {
             if locked {
+                env.snackbarQueue.enqueue(
+                    "settings_promotion_guide_pro_feature",
+                    variant: .info,
+                    debounceKey: "pro_gate_pro_feature"
+                )
                 showPaywall = true
             } else {
                 viewModel.settings.type = value

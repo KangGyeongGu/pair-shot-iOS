@@ -7,6 +7,11 @@ extension BeforeCameraViewModel {
     func shutter() async {
         guard !isCapturing, session.captureReadiness == .ready else { return }
         if await shouldGateForPaywall() {
+            snackbarQueue.enqueue(
+                "settings_promotion_guide_daily_limit",
+                variant: .info,
+                debounceKey: "pro_gate_daily_limit"
+            )
             showPaywall = true
             return
         }

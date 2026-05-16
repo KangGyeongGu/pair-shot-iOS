@@ -5191,6 +5191,40 @@
         }
       }
     },
+    "settings_promotion_guide_daily_limit" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You've reached today's free limit. Subscribe to Pro for unlimited capture."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "일일 무료 한도를 초과했어요. Pro 구독으로 무제한 촬영"
+          }
+        }
+      }
+    },
+    "settings_promotion_guide_pro_feature" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Subscribe to Pro to unlock this feature."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro 구독으로 기능 잠금을 해제하세요"
+          }
+        }
+      }
+    },
     "settings_section_shooting_files" : {
       "extractionState" : "manual",
       "localizations" : {

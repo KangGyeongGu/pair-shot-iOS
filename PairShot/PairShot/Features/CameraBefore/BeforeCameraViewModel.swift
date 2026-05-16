@@ -67,6 +67,7 @@ final class BeforeCameraViewModel {
     let hapticService: HapticService
     let location: CoreLocationService
     let membership: Membership
+    let snackbarQueue: SnackbarQueue
     let permissionProbe: @Sendable () async -> Bool
     let eventsContinuation: AsyncStream<Event>.Continuation
     var dragAccumulatorPx: Double = 0
@@ -90,6 +91,7 @@ final class BeforeCameraViewModel {
         hapticService: HapticService,
         location: CoreLocationService,
         membership: Membership,
+        snackbarQueue: SnackbarQueue,
         sortOrder: HomeSortOrder = .newest,
         refillPairId: UUID? = nil,
         session: CameraSession? = nil,
@@ -104,6 +106,7 @@ final class BeforeCameraViewModel {
         self.hapticService = hapticService
         self.location = location
         self.membership = membership
+        self.snackbarQueue = snackbarQueue
         self.sortOrder = sortOrder
         let resolvedSession = session ?? CameraSession()
         self.session = resolvedSession

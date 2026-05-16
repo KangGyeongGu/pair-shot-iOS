@@ -3,6 +3,7 @@ import SwiftUI
 struct CombineSettingsView: View {
     @Bindable var viewModel: CombineSettingsViewModel
     @Environment(Membership.self) private var membership
+    @Environment(AppEnvironment.self) private var env
     @State private var showPaywall: Bool = false
 
     var body: some View {
@@ -111,6 +112,11 @@ struct CombineSettingsView: View {
                 }
             } else {
                 Button {
+                    env.snackbarQueue.enqueue(
+                        "settings_promotion_guide_pro_feature",
+                        variant: .info,
+                        debounceKey: "pro_gate_pro_feature"
+                    )
                     showPaywall = true
                 } label: {
                     HStack(spacing: 12) {

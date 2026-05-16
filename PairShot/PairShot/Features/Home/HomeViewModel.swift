@@ -99,6 +99,7 @@ final class HomeViewModel {
     let interstitialAdManager: InterstitialAdManager
     let membership: Membership
     let fullscreenAdCoordinator: FullscreenAdCoordinator
+    let snackbarQueue: SnackbarQueue
 
     init(
         pairRepo: PhotoPairRepository,
@@ -112,7 +113,8 @@ final class HomeViewModel {
         membership: Membership,
         fullscreenAdCoordinator: FullscreenAdCoordinator,
         deleteCombinedExports: DeleteCombinedExportsUseCase,
-        deletePairsKeepingCombined: DeletePairsKeepingCombinedUseCase
+        deletePairsKeepingCombined: DeletePairsKeepingCombinedUseCase,
+        snackbarQueue: SnackbarQueue
     ) {
         self.pairRepo = pairRepo
         self.albumRepo = albumRepo
@@ -126,6 +128,7 @@ final class HomeViewModel {
         self.interstitialAdManager = interstitialAdManager
         self.membership = membership
         self.fullscreenAdCoordinator = fullscreenAdCoordinator
+        self.snackbarQueue = snackbarQueue
     }
 
     func reload() async {}

@@ -202,6 +202,11 @@ final class ExportSettingsViewModel {
 
     func ensureExportEligibility() -> Bool {
         if format == .zip, !isProUser {
+            snackbarQueue.enqueue(
+                "settings_promotion_guide_pro_feature",
+                variant: .info,
+                debounceKey: "pro_gate_pro_feature"
+            )
             showPaywall = true
             return false
         }
@@ -218,6 +223,11 @@ final class ExportSettingsViewModel {
 
     func selectFormat(_ newFormat: ExportFormat) {
         if newFormat == .zip, !isProUser {
+            snackbarQueue.enqueue(
+                "settings_promotion_guide_pro_feature",
+                variant: .info,
+                debounceKey: "pro_gate_pro_feature"
+            )
             showPaywall = true
             return
         }

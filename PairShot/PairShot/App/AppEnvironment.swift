@@ -166,6 +166,7 @@ final class AppEnvironment {
             hapticService: hapticService,
             location: location,
             membership: membership,
+            snackbarQueue: snackbarQueue,
             sortOrder: HomeSortOrderMapping.sortOrder(from: appSettings.homeSortOrder),
             refillPairId: refillPairId,
             session: makeCameraSession(),
@@ -231,7 +232,8 @@ final class AppEnvironment {
             membership: membership,
             fullscreenAdCoordinator: fullscreenAdCoordinator,
             deleteCombinedExports: deleteCombinedExports,
-            deletePairsKeepingCombined: deletePairsKeepingCombined
+            deletePairsKeepingCombined: deletePairsKeepingCombined,
+            snackbarQueue: snackbarQueue
         )
     }
 
@@ -256,7 +258,8 @@ final class AppEnvironment {
             membership: membership,
             fullscreenAdCoordinator: fullscreenAdCoordinator,
             deleteCombinedExports: deleteCombinedExports,
-            deletePairsKeepingCombined: deletePairsKeepingCombined
+            deletePairsKeepingCombined: deletePairsKeepingCombined,
+            snackbarQueue: snackbarQueue
         )
     }
 

@@ -13,6 +13,7 @@ struct PaywallView: View {
     let onCompletion: () -> Void
 
     @Environment(SubscriptionStore.self) private var store
+    @Environment(AppEnvironment.self) private var env
     @State private var didCaptureInitial: Bool = false
     @State private var wasInitiallyPro: Bool = false
 
@@ -91,6 +92,7 @@ struct PaywallView: View {
             AppLogger.ads.debug("PAYWALL onCompletion via isPro change")
             onCompletion()
         }
+        .snackbarOverlay(env.snackbarQueue)
     }
 }
 

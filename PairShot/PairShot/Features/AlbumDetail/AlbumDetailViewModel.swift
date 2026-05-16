@@ -70,6 +70,7 @@ final class AlbumDetailViewModel {
     let interstitialAdManager: InterstitialAdManager
     let membership: Membership
     let fullscreenAdCoordinator: FullscreenAdCoordinator
+    let snackbarQueue: SnackbarQueue
 
     init(
         albumId: UUID,
@@ -83,7 +84,8 @@ final class AlbumDetailViewModel {
         membership: Membership,
         fullscreenAdCoordinator: FullscreenAdCoordinator,
         deleteCombinedExports: DeleteCombinedExportsUseCase,
-        deletePairsKeepingCombined: DeletePairsKeepingCombinedUseCase
+        deletePairsKeepingCombined: DeletePairsKeepingCombinedUseCase,
+        snackbarQueue: SnackbarQueue
     ) {
         self.albumId = albumId
         self.pairRepo = pairRepo
@@ -97,6 +99,7 @@ final class AlbumDetailViewModel {
         self.interstitialAdManager = interstitialAdManager
         self.membership = membership
         self.fullscreenAdCoordinator = fullscreenAdCoordinator
+        self.snackbarQueue = snackbarQueue
     }
 
     func reload() async {}
