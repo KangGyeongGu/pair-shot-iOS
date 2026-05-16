@@ -19,7 +19,7 @@ final class NativeAdLoader: NSObject {
     private let trackingService: TrackingAuthorizationService?
 
     #if canImport(GoogleMobileAds)
-        private var inflightLoader: GADAdLoader?
+        private var inflightLoader: AdLoader?
     #endif
 
     init(trackingService: TrackingAuthorizationService? = nil) {
@@ -31,7 +31,7 @@ final class NativeAdLoader: NSObject {
         count: Int,
         adUnitID: String? = nil,
         promotionStore: PromotionStore? = nil,
-        subscriptionStore: SubscriptionStore? = nil
+        subscriptionStore: SubscriptionStore? = nil,
     ) {
         if AdSuppression.isSuppressed(promotionStore: promotionStore, subscriptionStore: subscriptionStore) { return }
         guard count > 0 else { return }
@@ -42,13 +42,13 @@ final class NativeAdLoader: NSObject {
             let request = AdRequestBuilder.build(attStatus: attStatus)
             isLoading = true
             AppLogger.ads.debug("Native prefetch requested count=\(count, privacy: .public)")
-            let multipleOptions = GADMultipleAdsAdLoaderOptions()
+            let multipleOptions = MultipleAdsAdLoaderOptions()
             multipleOptions.numberOfAds = count
-            let loader = GADAdLoader(
+            let loader = AdLoader(
                 adUnitID: resolvedUnitID,
                 rootViewController: BannerAdView.resolveRootViewController(),
-                adTypes: [GADAdLoaderAdType.native],
-                options: [multipleOptions]
+                adTypes: [AdLoaderAdType.native],
+                options: [multipleOptions],
             )
             loader.delegate = self
             inflightLoader = loader
@@ -60,7 +60,7 @@ final class NativeAdLoader: NSObject {
 
     func dequeue(
         promotionStore: PromotionStore? = nil,
-        subscriptionStore: SubscriptionStore? = nil
+        subscriptionStore: SubscriptionStore? = nil,
     ) -> Any? {
         if AdSuppression
             .isSuppressed(promotionStore: promotionStore, subscriptionStore: subscriptionStore) { return nil }
@@ -77,10 +77,10 @@ final class NativeAdLoader: NSObject {
 }
 
 #if canImport(GoogleMobileAds)
-    extension NativeAdLoader: GADNativeAdLoaderDelegate {
+    extension NativeAdLoader: NativeAdLoaderDelegate {
         nonisolated func adLoader(
-            _: GADAdLoader,
-            didReceive nativeAd: GADNativeAd
+            _: AdLoader,
+            didReceive nativeAd: NativeAd,
         ) {
             Task { @MainActor [weak self] in
                 self?.loadedAds.append(nativeAd)
@@ -88,8 +88,8 @@ final class NativeAdLoader: NSObject {
         }
 
         nonisolated func adLoader(
-            _: GADAdLoader,
-            didFailToReceiveAdWithError error: Error
+            _: AdLoader,
+            didFailToReceiveAdWithError error: Error,
         ) {
             let description = error.localizedDescription
             Task { @MainActor [weak self] in
@@ -100,7 +100,7 @@ final class NativeAdLoader: NSObject {
             }
         }
 
-        nonisolated func adLoaderDidFinishLoading(_: GADAdLoader) {
+        nonisolated func adLoaderDidFinishLoading(_: AdLoader) {
             Task { @MainActor [weak self] in
                 self?.isLoading = false
                 self?.inflightLoader = nil

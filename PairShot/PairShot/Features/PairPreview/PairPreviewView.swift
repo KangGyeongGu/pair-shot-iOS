@@ -130,7 +130,7 @@ private struct PairPreviewSheetModifiers: ViewModifier {
     private var errorBinding: Binding<Bool> {
         Binding(
             get: { viewModel.errorMessage != nil },
-            set: { if !$0 { viewModel.clearError() } }
+            set: { if !$0 { viewModel.clearError() } },
         )
     }
 
@@ -139,7 +139,7 @@ private struct PairPreviewSheetModifiers: ViewModifier {
             .alert(
                 String(localized: "common_dialog_error_title"),
                 isPresented: errorBinding,
-                presenting: viewModel.errorMessage
+                presenting: viewModel.errorMessage,
             ) { _ in
                 Button(String(localized: "common_button_confirm"), role: .cancel) {
                     viewModel.clearError()

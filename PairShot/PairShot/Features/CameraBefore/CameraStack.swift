@@ -47,7 +47,7 @@ struct BeforeCameraStack: View {
             let layout = CameraLayoutMath.compute(
                 totalSize: geo.size,
                 isAdFree: membership.adFreeIsActive,
-                aspect: aspect
+                aspect: aspect,
             )
 
             ZStack(alignment: .top) {
@@ -61,7 +61,7 @@ struct BeforeCameraStack: View {
                             .frame(width: layout.previewWidth, height: layout.previewHeight)
                             .offset(
                                 x: layout.previewLeadingInsetInSlot,
-                                y: layout.previewTopInsetInSlot
+                                y: layout.previewTopInsetInSlot,
                             )
                     }
                     .frame(width: layout.slotWidth, height: layout.slotHeight)
@@ -69,7 +69,7 @@ struct BeforeCameraStack: View {
                     BeforeCameraStrip(
                         pendingPairs: pendingPairs,
                         activePairId: activePairId,
-                        stripZoneHeight: layout.stripHeight
+                        stripZoneHeight: layout.stripHeight,
                     )
                     .frame(maxWidth: .infinity)
                     .frame(height: layout.stripHeight)
@@ -81,7 +81,7 @@ struct BeforeCameraStack: View {
                         zoneHeight: layout.shutterHeight,
                         onLeadingTap: onLeadingTap,
                         onShutter: onShutter,
-                        onSettingsTap: onSettingsTap
+                        onSettingsTap: onSettingsTap,
                     )
                     .frame(maxWidth: .infinity)
                     .frame(height: layout.shutterHeight)
@@ -128,7 +128,7 @@ struct BeforeCameraStack: View {
                             maxRatio: maxZoomRatio,
                             onSelect: onApplyPreset,
                             onDragChanged: onZoomDragChanged,
-                            onDragEnded: onZoomDragEnded
+                            onDragEnded: onZoomDragEnded,
                         )
                         Spacer()
                     }
@@ -159,7 +159,7 @@ struct BeforeCameraStack: View {
         ZStack {
             BeforeCameraPreviewLayer(
                 session: captureSession,
-                onMakeView: onMakePreviewView
+                onMakeView: onMakePreviewView,
             )
             .clipped()
 
@@ -173,7 +173,7 @@ struct BeforeCameraStack: View {
                 onTapFocus: onTapFocus,
                 onExposureBias: onExposureBias,
                 exposureRangeProvider: exposureRangeProvider,
-                indicator: focusIndicator
+                indicator: focusIndicator,
             )
             .gesture(pinchGesture)
 
@@ -230,7 +230,7 @@ enum CameraLayoutMath {
     static func compute(
         totalSize: CGSize,
         isAdFree: Bool,
-        aspect: AspectRatio
+        aspect: AspectRatio,
     ) -> CameraLayoutResult {
         let bannerHeight: CGFloat = isAdFree ? 0 : BannerAdSize.adaptiveHeight(width: totalSize.width)
 
@@ -240,7 +240,7 @@ enum CameraLayoutMath {
         let preview = previewPlacement(
             slotWidth: slotWidth,
             slotHeight: slotHeight,
-            aspect: aspect
+            aspect: aspect,
         )
 
         let remaining = max(0, totalSize.height - slotHeight)
@@ -257,14 +257,14 @@ enum CameraLayoutMath {
             previewLeadingInsetInSlot: preview.leadingInset,
             previewTopInsetInSlot: preview.topInset,
             stripHeight: stripHeight,
-            shutterHeight: shutterHeight
+            shutterHeight: shutterHeight,
         )
     }
 
     private static func previewPlacement(
         slotWidth: CGFloat,
         slotHeight: CGFloat,
-        aspect: AspectRatio
+        aspect: AspectRatio,
     ) -> PreviewPlacement {
         switch aspect {
             case .fourThree:
@@ -272,7 +272,7 @@ enum CameraLayoutMath {
                     width: slotWidth,
                     height: slotHeight,
                     leadingInset: 0,
-                    topInset: 0
+                    topInset: 0,
                 )
 
             case .square:
@@ -283,7 +283,7 @@ enum CameraLayoutMath {
                     width: side,
                     height: side,
                     leadingInset: leading,
-                    topInset: top
+                    topInset: top,
                 )
 
             case .sixteenNine:
@@ -297,7 +297,7 @@ enum CameraLayoutMath {
                     width: width,
                     height: height,
                     leadingInset: leading,
-                    topInset: top
+                    topInset: top,
                 )
         }
     }

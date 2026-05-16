@@ -23,7 +23,7 @@ struct HomeSelectionToolbar: ToolbarContent {
                 Text(
                     allSelected
                         ? String(localized: "home_button_deselect_all")
-                        : String(localized: "home_button_select_all")
+                        : String(localized: "home_button_select_all"),
                 )
             }
         }
@@ -68,7 +68,7 @@ struct HomeDefaultToolbar: ToolbarContent {
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
                         .background(
-                            Capsule().stroke(Color.accentColor, lineWidth: 1.5)
+                            Capsule().stroke(Color.accentColor, lineWidth: 1.5),
                         )
                 }
             }
@@ -120,7 +120,7 @@ struct HomeCameraCovers: ViewModifier {
                 NavigationStack {
                     AfterCameraView(
                         initialPairId: viewModel.afterCameraTargetPairId,
-                        sortOrder: viewModel.sortOrder
+                        sortOrder: viewModel.sortOrder,
                     )
                 }
             }
@@ -144,11 +144,11 @@ struct HomeSheets: ViewModifier {
         content
             .alert(
                 String(localized: "home_button_create_album"),
-                isPresented: $viewModel.showCreateAlbum
+                isPresented: $viewModel.showCreateAlbum,
             ) {
                 TextField(
                     HomeCreateAlbumPlaceholder.text(label: viewModel.resolvedAlbumLabel),
-                    text: $viewModel.albumNameInput
+                    text: $viewModel.albumNameInput,
                 )
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled(true)
@@ -180,13 +180,13 @@ struct HomeSheets: ViewModifier {
                                 if newValue == nil, viewModel.pendingZipExport != nil {
                                     viewModel.handleZipExportCompleted(false)
                                 }
-                            }
-                        )
+                            },
+                        ),
                     ) { item in
                         DocumentExporter(url: item.url) { saved in
                             viewModel.handleZipExportCompleted(saved)
                         }
-                    }
+                    },
             )
     }
 }
@@ -197,42 +197,42 @@ struct HomeDeleteDialogs: ViewModifier {
     private var pairDeleteBinding: Binding<Bool> {
         Binding(
             get: { viewModel.pendingPairDelete != nil },
-            set: { if !$0 { viewModel.pendingPairDelete = nil } }
+            set: { if !$0 { viewModel.pendingPairDelete = nil } },
         )
     }
 
     private var albumDeleteBinding: Binding<Bool> {
         Binding(
             get: { viewModel.pendingAlbumDelete != nil },
-            set: { if !$0 { viewModel.pendingAlbumDelete = nil } }
+            set: { if !$0 { viewModel.pendingAlbumDelete = nil } },
         )
     }
 
     private var albumDestructiveBinding: Binding<Bool> {
         Binding(
             get: { viewModel.pendingAlbumDestructive != nil },
-            set: { if !$0 { viewModel.pendingAlbumDestructive = nil } }
+            set: { if !$0 { viewModel.pendingAlbumDestructive = nil } },
         )
     }
 
     private var singlePairDeleteBinding: Binding<Bool> {
         Binding(
             get: { viewModel.pendingSinglePairDelete != nil },
-            set: { if !$0 { viewModel.pendingSinglePairDelete = nil } }
+            set: { if !$0 { viewModel.pendingSinglePairDelete = nil } },
         )
     }
 
     private var singleAlbumDeleteBinding: Binding<Bool> {
         Binding(
             get: { viewModel.pendingSingleAlbumDelete != nil },
-            set: { if !$0 { viewModel.pendingSingleAlbumDelete = nil } }
+            set: { if !$0 { viewModel.pendingSingleAlbumDelete = nil } },
         )
     }
 
     private var singleAlbumDestructiveBinding: Binding<Bool> {
         Binding(
             get: { viewModel.pendingSingleAlbumDestructive != nil },
-            set: { if !$0 { viewModel.pendingSingleAlbumDestructive = nil } }
+            set: { if !$0 { viewModel.pendingSingleAlbumDestructive = nil } },
         )
     }
 
@@ -241,7 +241,7 @@ struct HomeDeleteDialogs: ViewModifier {
             .confirmationDialog(
                 String(localized: "dialog_delete_pair_title"),
                 isPresented: pairDeleteBinding,
-                presenting: viewModel.pendingPairDelete
+                presenting: viewModel.pendingPairDelete,
             ) { request in
                 pairDeleteButtons(request: request)
             } message: { request in
@@ -251,7 +251,7 @@ struct HomeDeleteDialogs: ViewModifier {
                 String(localized: "album_dialog_delete_title"),
                 isPresented: albumDeleteBinding,
                 titleVisibility: .visible,
-                presenting: viewModel.pendingAlbumDelete
+                presenting: viewModel.pendingAlbumDelete,
             ) { request in
                 albumDeleteButtons(request: request)
             } message: { _ in
@@ -261,7 +261,7 @@ struct HomeDeleteDialogs: ViewModifier {
                 String(localized: "album_dialog_delete_title"),
                 isPresented: albumDestructiveBinding,
                 titleVisibility: .visible,
-                presenting: viewModel.pendingAlbumDestructive
+                presenting: viewModel.pendingAlbumDestructive,
             ) { request in
                 albumDestructiveButtons(request: request)
             } message: { _ in
@@ -271,7 +271,7 @@ struct HomeDeleteDialogs: ViewModifier {
                 String(localized: "dialog_delete_pair_title"),
                 isPresented: singlePairDeleteBinding,
                 titleVisibility: .visible,
-                presenting: viewModel.pendingSinglePairDelete
+                presenting: viewModel.pendingSinglePairDelete,
             ) { request in
                 singlePairDeleteButtons(request: request)
             } message: { _ in
@@ -281,7 +281,7 @@ struct HomeDeleteDialogs: ViewModifier {
                 String(localized: "album_dialog_delete_title"),
                 isPresented: singleAlbumDeleteBinding,
                 titleVisibility: .visible,
-                presenting: viewModel.pendingSingleAlbumDelete
+                presenting: viewModel.pendingSingleAlbumDelete,
             ) { request in
                 singleAlbumDeleteButtons(request: request)
             } message: { _ in
@@ -291,7 +291,7 @@ struct HomeDeleteDialogs: ViewModifier {
                 String(localized: "album_dialog_delete_title"),
                 isPresented: singleAlbumDestructiveBinding,
                 titleVisibility: .visible,
-                presenting: viewModel.pendingSingleAlbumDestructive
+                presenting: viewModel.pendingSingleAlbumDestructive,
             ) { request in
                 singleAlbumDestructiveButtons(request: request)
             } message: { _ in

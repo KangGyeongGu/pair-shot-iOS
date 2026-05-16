@@ -3,20 +3,20 @@ import SwiftData
 import Testing
 
 struct MigrationTests {
-    @Test("SchemaV1 in-memory container opens without error")
-    func schemaV1OpensCleanly() throws {
+    @Test
+    func `SchemaV1 in-memory container opens without error`() throws {
         let schema = Schema(versionedSchema: SchemaV1.self)
         let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
         let container = try ModelContainer(
             for: schema,
             migrationPlan: PairShotMigrationPlan.self,
-            configurations: [configuration]
+            configurations: [configuration],
         )
         #expect(container.schema.entities.count == 3)
     }
 
-    @Test("PairShotMigrationPlan declares SchemaV1")
-    func migrationPlanIncludesV1() {
+    @Test
+    func `PairShotMigrationPlan declares SchemaV1`() {
         let schemas = PairShotMigrationPlan.schemas
         let schemaV1Identifier = ObjectIdentifier(SchemaV1.self)
         #expect(schemas.contains { ObjectIdentifier($0) == schemaV1Identifier })

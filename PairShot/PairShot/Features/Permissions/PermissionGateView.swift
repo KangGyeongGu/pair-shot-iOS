@@ -74,7 +74,7 @@ private struct BlockingReasonRow: View {
         .padding(.horizontal, 16)
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color(.secondarySystemBackground))
+                .fill(Color(.secondarySystemBackground)),
         )
     }
 
@@ -92,7 +92,7 @@ private struct BlockingReasonRow: View {
 #Preview {
     PermissionGateView(
         viewModel: PermissionGateViewModel(
-            permissionStatusService: PermissionStatusService()
-        )
+            permissionStatusService: PermissionStatusService(),
+        ),
     )
 }

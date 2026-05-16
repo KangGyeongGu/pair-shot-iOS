@@ -69,12 +69,12 @@ struct CombineSettingsView: View {
                     value: $viewModel.settings.border.thickness,
                     range: CombineSettings.borderThicknessRange,
                     step: 1,
-                    valueLabel: "\(Int(viewModel.settings.border.thickness))pt"
+                    valueLabel: "\(Int(viewModel.settings.border.thickness))pt",
                 )
                 ColorPicker(
                     String(localized: "combine_field_color"),
                     selection: borderColorBinding,
-                    supportsOpacity: false
+                    supportsOpacity: false,
                 )
             }
         } header: {
@@ -91,23 +91,23 @@ struct CombineSettingsView: View {
                 if viewModel.settings.label.isEnabled {
                     CombineLabelTextField(
                         title: String(localized: "combine_field_label_before"),
-                        text: $viewModel.settings.label.beforeText
+                        text: $viewModel.settings.label.beforeText,
                     )
                     CombineLabelTextField(
                         title: String(localized: "combine_field_label_after"),
-                        text: $viewModel.settings.label.afterText
+                        text: $viewModel.settings.label.afterText,
                     )
                     CombineSliderRow(
                         title: String(localized: "combine_field_text_size"),
                         value: $viewModel.settings.label.textSizePercent,
                         range: CombineSettings.labelTextSizeRange,
                         step: 1,
-                        valueLabel: "\(Int(viewModel.settings.label.textSizePercent))%"
+                        valueLabel: "\(Int(viewModel.settings.label.textSizePercent))%",
                     )
                     ColorPicker(
                         String(localized: "combine_field_text_color"),
                         selection: labelTextColorBinding,
-                        supportsOpacity: false
+                        supportsOpacity: false,
                     )
                 }
             } else {
@@ -115,7 +115,7 @@ struct CombineSettingsView: View {
                     env.snackbarQueue.enqueue(
                         "settings_promotion_guide_pro_feature",
                         variant: .info,
-                        debounceKey: "pro_gate_pro_feature"
+                        debounceKey: "pro_gate_pro_feature",
                     )
                     showPaywall = true
                 } label: {
@@ -156,11 +156,11 @@ struct CombineSettingsView: View {
             } else {
                 CombinePositionPicker3x3(
                     label: String(localized: "combine_field_position_before"),
-                    selection: $viewModel.settings.beforePosition
+                    selection: $viewModel.settings.beforePosition,
                 )
                 CombinePositionPicker3x3(
                     label: String(localized: "combine_field_position_after"),
-                    selection: $viewModel.settings.afterPosition
+                    selection: $viewModel.settings.afterPosition,
                 )
             }
         } header: {
@@ -181,7 +181,7 @@ struct CombineSettingsView: View {
                     ColorPicker(
                         String(localized: "combine_field_color"),
                         selection: labelBackgroundColorBinding,
-                        supportsOpacity: false
+                        supportsOpacity: false,
                     )
                 }
                 CombineSliderRow(
@@ -189,7 +189,7 @@ struct CombineSettingsView: View {
                     value: $viewModel.settings.labelBackground.opacity,
                     range: CombineSettings.labelBackgroundOpacityRange,
                     step: nil,
-                    valueLabel: "\(Int((viewModel.settings.labelBackground.opacity * 100).rounded()))%"
+                    valueLabel: "\(Int((viewModel.settings.labelBackground.opacity * 100).rounded()))%",
                 )
                 if viewModel.settings.labelMode == .free {
                     CombineSliderRow(
@@ -197,7 +197,7 @@ struct CombineSettingsView: View {
                         value: $viewModel.settings.labelBackground.cornerRadius,
                         range: CombineSettings.labelBackgroundCornerRadiusRange,
                         step: 1,
-                        valueLabel: "\(Int(viewModel.settings.labelBackground.cornerRadius))pt"
+                        valueLabel: "\(Int(viewModel.settings.labelBackground.cornerRadius))pt",
                     )
                 }
             }
@@ -211,21 +211,21 @@ struct CombineSettingsView: View {
     private var borderColorBinding: Binding<Color> {
         Binding(
             get: { Color(rgba: viewModel.settings.border.color) },
-            set: { viewModel.settings.border.color = ColorRGBA(color: $0) }
+            set: { viewModel.settings.border.color = ColorRGBA(color: $0) },
         )
     }
 
     private var labelTextColorBinding: Binding<Color> {
         Binding(
             get: { Color(rgba: viewModel.settings.label.textColor) },
-            set: { viewModel.settings.label.textColor = ColorRGBA(color: $0) }
+            set: { viewModel.settings.label.textColor = ColorRGBA(color: $0) },
         )
     }
 
     private var labelBackgroundColorBinding: Binding<Color> {
         Binding(
             get: { Color(rgba: viewModel.settings.labelBackground.color) },
-            set: { viewModel.settings.labelBackground.color = ColorRGBA(color: $0) }
+            set: { viewModel.settings.labelBackground.color = ColorRGBA(color: $0) },
         )
     }
 }
@@ -276,7 +276,7 @@ private struct CombineSettingsViewPreviewWrapper: View {
 
     @State private var viewModel = CombineSettingsViewModel(
         appSettingsRepo: UserDefaultsAppSettingsRepository(defaults: previewDefaults),
-        appSettings: AppSettings(defaults: previewDefaults)
+        appSettings: AppSettings(defaults: previewDefaults),
     )
 
     var body: some View {

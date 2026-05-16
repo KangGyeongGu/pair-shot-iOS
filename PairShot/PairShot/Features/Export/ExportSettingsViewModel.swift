@@ -101,7 +101,7 @@ final class ExportSettingsViewModel {
         preferences: ExportPreferences = ExportPreferences(),
         interstitialAdManager: InterstitialAdManager? = nil,
         membership: Membership? = nil,
-        fullscreenAdCoordinator: FullscreenAdCoordinator? = nil
+        fullscreenAdCoordinator: FullscreenAdCoordinator? = nil,
     ) {
         self.pairIds = pairIds
         self.pairRepo = pairRepo
@@ -145,7 +145,7 @@ final class ExportSettingsViewModel {
             manager: interstitialAdManager,
             promotionStore: membership?.promotionStore,
             subscriptionStore: membership?.subscriptionStore,
-            coordinator: fullscreenAdCoordinator
+            coordinator: fullscreenAdCoordinator,
         ) { [weak self] in
             await self?.performShare()
         }
@@ -158,7 +158,7 @@ final class ExportSettingsViewModel {
             manager: interstitialAdManager,
             promotionStore: membership?.promotionStore,
             subscriptionStore: membership?.subscriptionStore,
-            coordinator: fullscreenAdCoordinator
+            coordinator: fullscreenAdCoordinator,
         ) { [weak self] in
             await self?.performSaveToDevice()
         }
@@ -172,7 +172,7 @@ final class ExportSettingsViewModel {
                 snackbarQueue.completeProgress(
                     progress,
                     finalMessage: "snackbar_success_saved_zip",
-                    finalVariant: .success
+                    finalVariant: .success,
                 )
             } else {
                 snackbarQueue.cancelProgress(progress)
@@ -189,14 +189,14 @@ final class ExportSettingsViewModel {
         ExportContents(
             includeCombined: includeCombined,
             includeBefore: includeBefore,
-            includeAfter: includeAfter
+            includeAfter: includeAfter,
         )
     }
 
     func makeRenderOptions() -> ExportRenderOptions {
         ExportRenderOptions(
             applyCombineSettings: applyCombineSettings,
-            isPro: membership?.proIsActive ?? false
+            isPro: membership?.proIsActive ?? false,
         )
     }
 
@@ -205,7 +205,7 @@ final class ExportSettingsViewModel {
             snackbarQueue.enqueue(
                 "settings_promotion_guide_pro_feature",
                 variant: .info,
-                debounceKey: "pro_gate_pro_feature"
+                debounceKey: "pro_gate_pro_feature",
             )
             showPaywall = true
             return false
@@ -214,7 +214,7 @@ final class ExportSettingsViewModel {
             snackbarQueue.enqueue(
                 "snackbar_warning_watermark_setup_required",
                 variant: .warning,
-                debounceKey: "watermark-setup-required"
+                debounceKey: "watermark-setup-required",
             )
             return false
         }
@@ -226,7 +226,7 @@ final class ExportSettingsViewModel {
             snackbarQueue.enqueue(
                 "settings_promotion_guide_pro_feature",
                 variant: .info,
-                debounceKey: "pro_gate_pro_feature"
+                debounceKey: "pro_gate_pro_feature",
             )
             showPaywall = true
             return

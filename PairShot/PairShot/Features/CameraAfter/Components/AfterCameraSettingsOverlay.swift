@@ -30,37 +30,37 @@ struct AfterCameraSettingsOverlay: View {
     private var chipRow: some View {
         LazyVGrid(
             columns: CameraSettingsOverlayLayout.gridColumns,
-            spacing: CameraSettingsOverlayMetrics.chipSpacing
+            spacing: CameraSettingsOverlayMetrics.chipSpacing,
         ) {
             CameraSettingsOverlayChip(
                 systemImage: "square.grid.3x3",
                 isOn: isGridOn,
                 label: String(localized: "camera_settings_grid"),
-                action: onToggleGrid
+                action: onToggleGrid,
             )
             CameraSettingsOverlayChip(
                 systemImage: FlashChipPresentation.iconName(for: flashMode),
                 isOn: FlashChipPresentation.isActive(flashMode),
                 label: String(localized: "camera_settings_section_flash"),
-                action: onCycleFlash
+                action: onCycleFlash,
             )
             CameraSettingsOverlayChip(
                 systemImage: "moon.fill",
                 isOn: isNightModeOn,
                 label: String(localized: "camera_settings_night_mode"),
-                action: onToggleNightMode
+                action: onToggleNightMode,
             )
             CameraSettingsOverlayChip(
                 systemImage: "level",
                 isOn: isLevelOn,
                 label: String(localized: "camera_settings_level"),
-                action: onToggleLevel
+                action: onToggleLevel,
             )
             CameraSettingsOverlayChip(
                 systemImage: "circle.lefthalf.filled",
                 isOn: overlayEnabled,
                 label: String(localized: "camera_settings_section_overlay"),
-                action: onToggleOverlay
+                action: onToggleOverlay,
             )
         }
         .frame(maxWidth: .infinity)

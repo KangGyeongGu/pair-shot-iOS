@@ -10,7 +10,7 @@ struct ImageQualityPickerView: View {
                 ForEach(CaptureQualityPreset.allCases) { preset in
                     ImageQualityPickerRow(
                         preset: preset,
-                        isSelected: viewModel.imageQualityPreset == preset
+                        isSelected: viewModel.imageQualityPreset == preset,
                     ) {
                         viewModel.setImageQuality(preset)
                         dismiss()

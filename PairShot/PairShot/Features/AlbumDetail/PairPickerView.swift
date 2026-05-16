@@ -26,7 +26,7 @@ struct PairPickerView: View {
         ToolbarItem(placement: .topBarLeading) {
             Button(
                 action: { dismiss() },
-                label: { Image(systemName: "xmark") }
+                label: { Image(systemName: "xmark") },
             )
             .accessibilityLabel(String(localized: "common_button_close"))
         }
@@ -69,7 +69,7 @@ struct PairPickerView: View {
     private func content(
         for viewModel: PairPickerViewModel,
         allPairs: [PhotoPair],
-        membership: Set<UUID>
+        membership: Set<UUID>,
     ) -> some View {
         VStack(spacing: 0) {
             grid(viewModel: viewModel, allPairs: allPairs, membership: membership)
@@ -78,12 +78,12 @@ struct PairPickerView: View {
             PairPickerBottomBar(
                 buttonLabel: viewModel.buttonLabel,
                 isDisabled: viewModel.isConfirmDisabled,
-                action: { Task { await viewModel.confirm() } }
+                action: { Task { await viewModel.confirm() } },
             )
         }
         .alert(
             String(localized: "common_dialog_error_title"),
-            isPresented: errorBinding(for: viewModel)
+            isPresented: errorBinding(for: viewModel),
         ) {
             Button(String(localized: "common_button_confirm"), role: .cancel) {
                 viewModel.clearError()
@@ -97,7 +97,7 @@ struct PairPickerView: View {
     private func grid(
         viewModel: PairPickerViewModel,
         allPairs: [PhotoPair],
-        membership: Set<UUID>
+        membership: Set<UUID>,
     ) -> some View {
         if allPairs.isEmpty {
             PairPickerEmptyState()
@@ -111,13 +111,13 @@ struct PairPickerView: View {
                         PairPickerCardView(
                             pair: pair,
                             isAlreadyInAlbum: alreadyIn,
-                            isSelected: isSelected
+                            isSelected: isSelected,
                         )
                         .contentShape(.rect)
                         .onTapGesture {
                             viewModel.toggleSelection(
                                 pair.id,
-                                isAlreadyInAlbum: alreadyIn
+                                isAlreadyInAlbum: alreadyIn,
                             )
                         }
                         .disabled(alreadyIn)
@@ -134,7 +134,7 @@ struct PairPickerView: View {
             get: { viewModel.errorMessage != nil },
             set: { newValue in
                 if !newValue { viewModel.clearError() }
-            }
+            },
         )
     }
 }

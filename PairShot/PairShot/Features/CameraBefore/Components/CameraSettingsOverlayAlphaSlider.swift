@@ -18,9 +18,9 @@ struct CameraSettingsOverlayAlphaSlider: View {
             Slider(
                 value: Binding(
                     get: { GhostOverlayMath.clamp(alpha) },
-                    set: { onChange(GhostOverlayMath.clamp($0)) }
+                    set: { onChange(GhostOverlayMath.clamp($0)) },
                 ),
-                in: GhostOverlayMath.alphaRange
+                in: GhostOverlayMath.alphaRange,
             )
             .tint(Color.accentColor)
             .accessibilityLabel(String(localized: "camera_settings_overlay_opacity"))

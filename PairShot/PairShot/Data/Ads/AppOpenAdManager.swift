@@ -13,7 +13,7 @@ enum AppOpenAdGate {
     static func shouldPresent(
         lastShownAt: Date?,
         now: Date,
-        minimumInterval: TimeInterval = defaultMinimumInterval
+        minimumInterval: TimeInterval = defaultMinimumInterval,
     ) -> Bool {
         guard let lastShownAt else { return true }
         return now.timeIntervalSince(lastShownAt) >= minimumInterval
@@ -33,13 +33,13 @@ final class AppOpenAdManager {
     private let trackingService: TrackingAuthorizationService?
 
     #if canImport(GoogleMobileAds)
-        private var ad: GADAppOpenAd?
+        private var ad: AppOpenAd?
         private let presentationDelegate: AppOpenPresentationDelegate
     #endif
 
     init(
         minimumInterval: TimeInterval = AppOpenAdGate.defaultMinimumInterval,
-        trackingService: TrackingAuthorizationService? = nil
+        trackingService: TrackingAuthorizationService? = nil,
     ) {
         self.minimumInterval = minimumInterval
         self.trackingService = trackingService
@@ -51,7 +51,7 @@ final class AppOpenAdManager {
     func loadIfNeeded(
         adUnitID: String? = nil,
         promotionStore: PromotionStore? = nil,
-        subscriptionStore: SubscriptionStore? = nil
+        subscriptionStore: SubscriptionStore? = nil,
     ) {
         if AdSuppression.isSuppressed(promotionStore: promotionStore, subscriptionStore: subscriptionStore) { return }
         guard !isLoaded, !isLoading else { return }
@@ -61,9 +61,9 @@ final class AppOpenAdManager {
             let request = AdRequestBuilder.build(attStatus: attStatus)
             isLoading = true
             AppLogger.ads.debug("AppOpen load requested")
-            GADAppOpenAd.load(
-                withAdUnitID: resolvedUnitID,
-                request: request
+            AppOpenAd.load(
+                with: resolvedUnitID,
+                request: request,
             ) { [weak self] ad, error in
                 let adBox = AppOpenAdBox(ad: ad)
                 Task { @MainActor [weak self] in
@@ -79,7 +79,7 @@ final class AppOpenAdManager {
                         isLoaded = false
                         if let error {
                             AppLogger.ads.error(
-                                "AppOpen load failed: \(error.localizedDescription, privacy: .public)"
+                                "AppOpen load failed: \(error.localizedDescription, privacy: .public)",
                             )
                         }
                     }
@@ -95,7 +95,7 @@ final class AppOpenAdManager {
         promotionStore: PromotionStore? = nil,
         subscriptionStore: SubscriptionStore? = nil,
         adUnitID: String? = nil,
-        now: Date = .now
+        now: Date = .now,
     ) async -> Bool {
         if AdSuppression
             .isSuppressed(promotionStore: promotionStore, subscriptionStore: subscriptionStore) { return false }
@@ -113,7 +113,7 @@ final class AppOpenAdManager {
             AppOpenAdGate.shouldPresent(
                 lastShownAt: lastShownAt,
                 now: now,
-                minimumInterval: minimumInterval
+                minimumInterval: minimumInterval,
             )
         else { return false }
         guard await coordinator.tryAcquire() else { return false }
@@ -129,7 +129,7 @@ final class AppOpenAdManager {
             presentationDelegate.onFailToPresent = { [weak coordinator] in
                 Task { await coordinator?.release() }
             }
-            ad.present(fromRootViewController: rootViewController)
+            ad.present(from: rootViewController)
             AppLogger.ads.debug("AppOpen presented")
             lastShownAt = now
             self.ad = nil
@@ -137,7 +137,7 @@ final class AppOpenAdManager {
             loadIfNeeded(
                 adUnitID: adUnitID ?? AdsConfig.appOpen,
                 promotionStore: promotionStore,
-                subscriptionStore: subscriptionStore
+                subscriptionStore: subscriptionStore,
             )
             return true
         #else
@@ -150,26 +150,26 @@ final class AppOpenAdManager {
 
 #if canImport(GoogleMobileAds)
     private final nonisolated class AppOpenAdBox: @unchecked Sendable {
-        let ad: GADAppOpenAd?
-        init(ad: GADAppOpenAd?) {
+        let ad: AppOpenAd?
+        init(ad: AppOpenAd?) {
             self.ad = ad
         }
     }
 
     @MainActor
-    private final class AppOpenPresentationDelegate: NSObject, GADFullScreenContentDelegate {
+    private final class AppOpenPresentationDelegate: NSObject, FullScreenContentDelegate {
         var onDismiss: (() -> Void)?
         var onFailToPresent: (() -> Void)?
 
-        nonisolated func adDidDismissFullScreenContent(_: any GADFullScreenPresentingAd) {
+        nonisolated func adDidDismissFullScreenContent(_: any FullScreenPresentingAd) {
             Task { @MainActor [weak self] in
                 self?.onDismiss?()
             }
         }
 
         nonisolated func ad(
-            _: any GADFullScreenPresentingAd,
-            didFailToPresentFullScreenContentWithError error: Error
+            _: any FullScreenPresentingAd,
+            didFailToPresentFullScreenContentWithError error: Error,
         ) {
             let description = error.localizedDescription
             Task { @MainActor [weak self] in

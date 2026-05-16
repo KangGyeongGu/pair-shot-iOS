@@ -72,7 +72,7 @@ final class AppEnvironment {
         motionService: MotionService? = nil,
         productsService: ProductsService? = nil,
         subscriptionStore: SubscriptionStore? = nil,
-        transactionListener: TransactionListener? = nil
+        transactionListener: TransactionListener? = nil,
     ) {
         let bundles = Self.makeAllBundles(
             input: AppEnvironmentInitInput(
@@ -88,7 +88,7 @@ final class AppEnvironment {
                     permissionStatusService: permissionStatusService,
                     thumbnailCache: thumbnailCache,
                     hapticService: hapticService,
-                    motionService: motionService
+                    motionService: motionService,
                 ),
                 adServicesOverrides: AdServicesOverrides(
                     interstitial: interstitialAdManager,
@@ -96,14 +96,14 @@ final class AppEnvironment {
                     nativeAd: nativeAdLoader,
                     appOpen: appOpenAdManager,
                     fullscreen: fullscreenAdCoordinator,
-                    consent: consentManager
+                    consent: consentManager,
                 ),
                 subscriptionOverrides: SubscriptionServicesOverrides(
                     productsService: productsService,
                     subscriptionStore: subscriptionStore,
-                    transactionListener: transactionListener
-                )
-            )
+                    transactionListener: transactionListener,
+                ),
+            ),
         )
         let foundation = bundles.foundation
         self.appSettings = foundation.appSettings
@@ -155,7 +155,7 @@ final class AppEnvironment {
 
     func makeBeforeCameraViewModel(
         albumId: UUID?,
-        refillPairId: UUID? = nil
+        refillPairId: UUID? = nil,
     ) -> BeforeCameraViewModel {
         BeforeCameraViewModel(
             albumId: albumId,
@@ -170,7 +170,7 @@ final class AppEnvironment {
             sortOrder: HomeSortOrderMapping.sortOrder(from: appSettings.homeSortOrder),
             refillPairId: refillPairId,
             session: makeCameraSession(),
-            permissionProbe: makeCameraPermissionProbe()
+            permissionProbe: makeCameraPermissionProbe(),
         )
     }
 
@@ -178,7 +178,7 @@ final class AppEnvironment {
         albumId: UUID?,
         initialPairId: UUID? = nil,
         sortOrder: HomeSortOrder = .newest,
-        recaptureTargetPair: PhotoPair? = nil
+        recaptureTargetPair: PhotoPair? = nil,
     ) -> AfterCameraViewModel {
         AfterCameraViewModel(
             albumId: albumId,
@@ -193,7 +193,7 @@ final class AppEnvironment {
             sortOrder: sortOrder,
             recaptureTargetPair: recaptureTargetPair,
             session: makeCameraSession(),
-            permissionProbe: makeCameraPermissionProbe()
+            permissionProbe: makeCameraPermissionProbe(),
         )
     }
 
@@ -215,7 +215,7 @@ final class AppEnvironment {
             pair: pair,
             photoLibrary: photoLibrary,
             appSettings: appSettings,
-            membership: membership
+            membership: membership,
         )
     }
 
@@ -233,7 +233,7 @@ final class AppEnvironment {
             fullscreenAdCoordinator: fullscreenAdCoordinator,
             deleteCombinedExports: deleteCombinedExports,
             deletePairsKeepingCombined: deletePairsKeepingCombined,
-            snackbarQueue: snackbarQueue
+            snackbarQueue: snackbarQueue,
         )
     }
 
@@ -241,7 +241,7 @@ final class AppEnvironment {
         PairPickerViewModel(
             albumId: albumId,
             albumRepo: albumRepo,
-            photoLibrary: photoLibrary
+            photoLibrary: photoLibrary,
         )
     }
 
@@ -259,7 +259,7 @@ final class AppEnvironment {
             fullscreenAdCoordinator: fullscreenAdCoordinator,
             deleteCombinedExports: deleteCombinedExports,
             deletePairsKeepingCombined: deletePairsKeepingCombined,
-            snackbarQueue: snackbarQueue
+            snackbarQueue: snackbarQueue,
         )
     }
 
@@ -267,7 +267,7 @@ final class AppEnvironment {
         if let sharedSettingsViewModel { return sharedSettingsViewModel }
         let viewModel = SettingsViewModel(
             appSettings: appSettings,
-            membership: membership
+            membership: membership,
         )
         sharedSettingsViewModel = viewModel
         return viewModel
@@ -292,7 +292,7 @@ final class AppEnvironment {
             appSettings: appSettings,
             interstitialAdManager: interstitialAdManager,
             membership: membership,
-            fullscreenAdCoordinator: fullscreenAdCoordinator
+            fullscreenAdCoordinator: fullscreenAdCoordinator,
         )
     }
 }

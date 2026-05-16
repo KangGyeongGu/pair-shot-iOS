@@ -9,7 +9,7 @@ struct AlbumEmptyActionBar: View {
             Button(action: onCapture) {
                 Label(
                     String(localized: "common_button_start_capture"),
-                    systemImage: "camera.fill"
+                    systemImage: "camera.fill",
                 )
                 .font(.subheadline.weight(.semibold))
                 .frame(maxWidth: .infinity, minHeight: 36)
@@ -20,7 +20,7 @@ struct AlbumEmptyActionBar: View {
             Button(action: onPickPair) {
                 Label(
                     String(localized: "album_button_add_pair"),
-                    systemImage: "plus.rectangle.on.rectangle"
+                    systemImage: "plus.rectangle.on.rectangle",
                 )
                 .font(.subheadline.weight(.semibold))
                 .frame(maxWidth: .infinity, minHeight: 36)
@@ -49,12 +49,12 @@ struct AlbumDetailBottomBarHost: View {
                 onShare: { Task { await viewModel.shareSelectedPairs(from: sortedPairs) } },
                 onSaveToDevice: { Task { await viewModel.saveSelectedPairsToDevice(from: sortedPairs) } },
                 onDelete: { viewModel.requestPairDeletion(from: sortedPairs) },
-                onExportSettings: pushExport
+                onExportSettings: pushExport,
             )
         } else {
             AlbumEmptyActionBar(
                 onCapture: { Task { await viewModel.startCapture() } },
-                onPickPair: viewModel.startPairPicker
+                onPickPair: viewModel.startPairPicker,
             )
         }
     }
@@ -86,26 +86,26 @@ struct AlbumDetailSelectionBottomBar: View {
                 title: String(localized: "common_button_share"),
                 systemImage: "square.and.arrow.up",
                 isEnabled: enabled,
-                action: onShare
+                action: onShare,
             ),
             PairShotActionItem(
                 title: String(localized: "common_button_save_to_device"),
                 systemImage: "arrow.down.to.line",
                 isEnabled: enabled,
-                action: onSaveToDevice
+                action: onSaveToDevice,
             ),
             PairShotActionItem(
                 title: String(localized: "common_button_delete"),
                 systemImage: "trash",
                 role: .destructive,
                 isEnabled: enabled,
-                action: onDelete
+                action: onDelete,
             ),
             PairShotActionItem(
                 title: String(localized: "common_button_export"),
                 systemImage: "slider.horizontal.3",
                 isEnabled: enabled,
-                action: onExportSettings
+                action: onExportSettings,
             ),
         ])
     }

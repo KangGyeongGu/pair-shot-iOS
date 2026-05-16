@@ -52,7 +52,7 @@ nonisolated struct CameraZoomSnapshot {
         firstSwitchOver: 1,
         displayMultiplier: 1,
         presets: [],
-        exposureBiasRange: nil
+        exposureBiasRange: nil,
     )
 
     let minFactor: Double
@@ -120,7 +120,7 @@ final nonisolated class CameraSession: @unchecked Sendable {
 
     init(
         permissionResolver: @escaping @Sendable () async -> CameraAuthorizationState =
-            CameraSessionPermissionResolver.systemDefault
+            CameraSessionPermissionResolver.systemDefault,
     ) {
         self.permissionResolver = permissionResolver
         registerInterruptionObservers()
@@ -135,7 +135,7 @@ final nonisolated class CameraSession: @unchecked Sendable {
 
             case .notDetermined, .denied, .restricted:
                 AppLogger.camera.debug(
-                    "Camera permission unavailable state=\(String(describing: state), privacy: .public)"
+                    "Camera permission unavailable state=\(String(describing: state), privacy: .public)",
                 )
                 return
         }
@@ -268,7 +268,7 @@ final nonisolated class CameraSession: @unchecked Sendable {
         applyCaptureRotationAngle(coordinator.videoRotationAngleForHorizonLevelCapture)
         let prevObserver = coordinator.observe(
             \.videoRotationAngleForHorizonLevelPreview,
-            options: [.new]
+            options: [.new],
         ) { [weak self] _, change in
             guard let angle = change.newValue else { return }
             Task { @MainActor in
@@ -277,7 +277,7 @@ final nonisolated class CameraSession: @unchecked Sendable {
         }
         let captureObserver = coordinator.observe(
             \.videoRotationAngleForHorizonLevelCapture,
-            options: [.new]
+            options: [.new],
         ) { [weak self] _, change in
             guard let angle = change.newValue else { return }
             Task { @MainActor in
@@ -300,7 +300,7 @@ final nonisolated class CameraSession: @unchecked Sendable {
     }
 
     func runOnSessionQueue<T: Sendable>(
-        _ body: @escaping @Sendable () -> T
+        _ body: @escaping @Sendable () -> T,
     ) async -> T {
         let queue = sessionQueue
         return await withCheckedContinuation { (cont: CheckedContinuation<T, Never>) in
@@ -311,7 +311,7 @@ final nonisolated class CameraSession: @unchecked Sendable {
     }
 
     func runOnSessionQueueVoid(
-        _ body: @escaping @Sendable () -> Void
+        _ body: @escaping @Sendable () -> Void,
     ) async {
         let queue = sessionQueue
         await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
@@ -383,7 +383,7 @@ final class CameraReadinessAdapter: NSObject, AVCapturePhotoOutputReadinessCoord
 
     nonisolated func readinessCoordinator(
         _: AVCapturePhotoOutputReadinessCoordinator,
-        captureReadinessDidChange captureReadiness: AVCapturePhotoOutput.CaptureReadiness
+        captureReadinessDidChange captureReadiness: AVCapturePhotoOutput.CaptureReadiness,
     ) {
         Task { @MainActor in self.onChange(captureReadiness) }
     }

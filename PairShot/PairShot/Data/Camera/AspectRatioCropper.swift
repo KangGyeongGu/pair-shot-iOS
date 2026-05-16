@@ -7,7 +7,7 @@ nonisolated enum AspectRatioCropper {
     static func cropJPEG(
         data: Data,
         targetAspect: AspectRatio,
-        compressionQuality: CGFloat = 0.95
+        compressionQuality: CGFloat = 0.95,
     ) -> Data {
         guard targetAspect != .fourThree else { return data }
         guard let source = CGImageSourceCreateWithData(data as CFData, nil),
@@ -20,7 +20,7 @@ nonisolated enum AspectRatioCropper {
         let cropRect = centerCropRect(
             imageWidth: imageWidth,
             imageHeight: imageHeight,
-            targetAspect: targetAspect
+            targetAspect: targetAspect,
         )
         guard let cropped = cgImage.cropping(to: cropRect) else { return data }
 
@@ -28,14 +28,14 @@ nonisolated enum AspectRatioCropper {
         return encodeJPEG(
             image: cropped,
             metadata: metadata,
-            compressionQuality: compressionQuality
+            compressionQuality: compressionQuality,
         ) ?? data
     }
 
     static func centerCropRect(
         imageWidth: CGFloat,
         imageHeight: CGFloat,
-        targetAspect: AspectRatio
+        targetAspect: AspectRatio,
     ) -> CGRect {
         let portraitRatio = targetAspect.portraitHeightMultiplier
         let isLandscape = imageWidth >= imageHeight
@@ -53,7 +53,7 @@ nonisolated enum AspectRatioCropper {
                 x: originX,
                 y: 0,
                 width: newWidth.rounded(),
-                height: imageHeight
+                height: imageHeight,
             )
         }
         let newHeight = imageWidth / targetRatio
@@ -62,21 +62,21 @@ nonisolated enum AspectRatioCropper {
             x: 0,
             y: originY,
             width: imageWidth,
-            height: newHeight.rounded()
+            height: newHeight.rounded(),
         )
     }
 
     private static func encodeJPEG(
         image: CGImage,
         metadata: [CFString: Any],
-        compressionQuality: CGFloat
+        compressionQuality: CGFloat,
     ) -> Data? {
         let mutable = NSMutableData()
         guard let destination = CGImageDestinationCreateWithData(
             mutable as CFMutableData,
             UTType.jpeg.identifier as CFString,
             1,
-            nil
+            nil,
         ) else { return nil }
 
         var properties = metadata

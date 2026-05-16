@@ -16,7 +16,7 @@ struct Album: Identifiable, Equatable {
         longitude: Double? = nil,
         locationLabel: String? = nil,
         createdAt: Date = .now,
-        pairIds: [UUID] = []
+        pairIds: [UUID] = [],
     ) {
         self.id = id
         self.name = name

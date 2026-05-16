@@ -22,7 +22,7 @@ final class SwiftDataPhotoPairRepository: PhotoPairRepository {
 
     func countCreated(since date: Date) async throws -> Int {
         let descriptor = FetchDescriptor<PhotoPairEntity>(
-            predicate: #Predicate { $0.createdAt >= date }
+            predicate: #Predicate { $0.createdAt >= date },
         )
         return try context.fetchCount(descriptor)
     }
@@ -43,7 +43,7 @@ final class SwiftDataPhotoPairRepository: PhotoPairRepository {
     func delete(ids: Set<UUID>) async throws {
         guard !ids.isEmpty else { return }
         let descriptor = FetchDescriptor<PhotoPairEntity>(
-            predicate: #Predicate { ids.contains($0.id) }
+            predicate: #Predicate { ids.contains($0.id) },
         )
         let matches = try context.fetch(descriptor)
         for entity in matches {
@@ -55,7 +55,7 @@ final class SwiftDataPhotoPairRepository: PhotoPairRepository {
     func deleteCombinedExportRecords(forPairIds ids: Set<UUID>) async throws {
         guard !ids.isEmpty else { return }
         let descriptor = FetchDescriptor<PhotoPairEntity>(
-            predicate: #Predicate { ids.contains($0.id) }
+            predicate: #Predicate { ids.contains($0.id) },
         )
         let entities = try context.fetch(descriptor)
         var didDelete = false
@@ -74,7 +74,7 @@ final class SwiftDataPhotoPairRepository: PhotoPairRepository {
     func combinedExportPhotoIdentifiers(forPairIds ids: Set<UUID>) async throws -> [String] {
         guard !ids.isEmpty else { return [] }
         let descriptor = FetchDescriptor<PhotoPairEntity>(
-            predicate: #Predicate { ids.contains($0.id) }
+            predicate: #Predicate { ids.contains($0.id) },
         )
         let entities = try context.fetch(descriptor)
         var collected: [String] = []
@@ -91,7 +91,7 @@ final class SwiftDataPhotoPairRepository: PhotoPairRepository {
     func allExportPhotoIdentifiers(forPairIds ids: Set<UUID>) async throws -> [String] {
         guard !ids.isEmpty else { return [] }
         let descriptor = FetchDescriptor<PhotoPairEntity>(
-            predicate: #Predicate { ids.contains($0.id) }
+            predicate: #Predicate { ids.contains($0.id) },
         )
         let entities = try context.fetch(descriptor)
         var collected: [String] = []
@@ -106,13 +106,13 @@ final class SwiftDataPhotoPairRepository: PhotoPairRepository {
     func recordExportHistory(
         pairId: UUID,
         kind: ExportHistoryKind,
-        photoLocalIdentifier: String
+        photoLocalIdentifier: String,
     ) async throws {
         let pairEntity = try fetchEntity(id: pairId)
         let record = ExportHistoryEntity(
             kind: kind,
             photoLocalIdentifier: photoLocalIdentifier,
-            pair: pairEntity
+            pair: pairEntity,
         )
         context.insert(record)
         try context.save()
@@ -120,14 +120,14 @@ final class SwiftDataPhotoPairRepository: PhotoPairRepository {
 
     private func fetchAllSync() throws -> [PhotoPairEntity] {
         let descriptor = FetchDescriptor<PhotoPairEntity>(
-            sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
+            sortBy: [SortDescriptor(\.createdAt, order: .reverse)],
         )
         return try context.fetch(descriptor)
     }
 
     private func fetchEntity(id: UUID) throws -> PhotoPairEntity? {
         let descriptor = FetchDescriptor<PhotoPairEntity>(
-            predicate: #Predicate { $0.id == id }
+            predicate: #Predicate { $0.id == id },
         )
         return try context.fetch(descriptor).first
     }
@@ -145,7 +145,7 @@ final class SwiftDataPhotoPairRepository: PhotoPairRepository {
             locationLabel: domain.locationLabel,
             capturedAt: domain.createdAt,
             updatedAt: domain.updatedAt,
-            afterCapturedAt: domain.afterCapturedAt
+            afterCapturedAt: domain.afterCapturedAt,
         )
     }
 

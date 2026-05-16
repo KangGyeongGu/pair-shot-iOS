@@ -32,7 +32,7 @@ enum CameraSettingsOverlayLayout {
         GridItem(
             .adaptive(minimum: CameraSettingsOverlayMetrics.chipMinColumnWidth),
             spacing: CameraSettingsOverlayMetrics.chipSpacing,
-            alignment: .center
+            alignment: .center,
         ),
     ]
 }
@@ -59,35 +59,35 @@ struct BeforeCameraSettingsOverlay: View {
     private var chipRow: some View {
         LazyVGrid(
             columns: CameraSettingsOverlayLayout.gridColumns,
-            spacing: CameraSettingsOverlayMetrics.chipSpacing
+            spacing: CameraSettingsOverlayMetrics.chipSpacing,
         ) {
             CameraSettingsOverlayChip(
                 systemImage: "square.grid.3x3",
                 isOn: isGridOn,
                 label: String(localized: "camera_settings_grid"),
-                action: onToggleGrid
+                action: onToggleGrid,
             )
             CameraSettingsOverlayChip(
                 systemImage: FlashChipPresentation.iconName(for: flashMode),
                 isOn: FlashChipPresentation.isActive(flashMode),
                 label: String(localized: "camera_settings_section_flash"),
-                action: onCycleFlash
+                action: onCycleFlash,
             )
             CameraSettingsOverlayChip(
                 systemImage: "moon.fill",
                 isOn: isNightModeOn,
                 label: String(localized: "camera_settings_night_mode"),
-                action: onToggleNightMode
+                action: onToggleNightMode,
             )
             CameraSettingsOverlayChip(
                 systemImage: "level",
                 isOn: isLevelOn,
                 label: String(localized: "camera_settings_level"),
-                action: onToggleLevel
+                action: onToggleLevel,
             )
             AspectRatioChip(
                 aspect: aspect,
-                action: onCycleAspect
+                action: onCycleAspect,
             )
         }
         .frame(maxWidth: .infinity)
@@ -109,10 +109,10 @@ struct AspectRatioChip: View {
                     .foregroundStyle(Color.black)
                     .frame(
                         width: CameraSettingsOverlayMetrics.chipSize,
-                        height: CameraSettingsOverlayMetrics.chipSize
+                        height: CameraSettingsOverlayMetrics.chipSize,
                     )
                     .background(
-                        Circle().fill(Color.accentColor)
+                        Circle().fill(Color.accentColor),
                     )
 
                 Text(String(localized: "camera_settings_aspect_ratio"))
@@ -149,7 +149,7 @@ struct AspectRatioChip: View {
             onToggleLevel: {},
             onToggleNightMode: {},
             onCycleFlash: {},
-            onCycleAspect: {}
+            onCycleAspect: {},
         )
     }
 }

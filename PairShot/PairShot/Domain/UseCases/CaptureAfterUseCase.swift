@@ -13,7 +13,7 @@ final class CaptureAfterUseCase {
     init(
         pairRepo: PhotoPairRepository,
         photoLibrary: PhotoLibraryService,
-        now: @escaping @Sendable () -> Date = { .now }
+        now: @escaping @Sendable () -> Date = { .now },
     ) {
         self.pairRepo = pairRepo
         self.photoLibrary = photoLibrary
@@ -24,7 +24,7 @@ final class CaptureAfterUseCase {
         pairId: UUID,
         afterJPEG: Data,
         aspectRatio: AspectRatio = .default,
-        isDeferredProxy: Bool = false
+        isDeferredProxy: Bool = false,
     ) async throws -> PhotoPair {
         guard var pair = try await pairRepo.fetch(id: pairId) else {
             throw CaptureAfterError.pairNotFound

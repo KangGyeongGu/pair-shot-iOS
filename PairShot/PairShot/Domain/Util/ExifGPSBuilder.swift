@@ -5,7 +5,7 @@ import ImageIO
 nonisolated enum ExifGPSBuilder {
     static func metadata(
         from location: DomainLocation?,
-        timestamp: Date = .now
+        timestamp: Date = .now,
     ) -> [String: Any] {
         guard let location else { return [:] }
         let formatter = ISO8601DateFormatter()

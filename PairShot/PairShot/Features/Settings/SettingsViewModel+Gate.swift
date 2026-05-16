@@ -12,7 +12,7 @@ extension SettingsViewModel {
         requestGate(
             unlockID: .watermarkSettings,
             rewardedManager: rewardedManager,
-            dialogFlag: \.showWatermarkGateDialog
+            dialogFlag: \.showWatermarkGateDialog,
         )
     }
 
@@ -20,40 +20,40 @@ extension SettingsViewModel {
         requestGate(
             unlockID: .compositionSettings,
             rewardedManager: rewardedManager,
-            dialogFlag: \.showCombineGateDialog
+            dialogFlag: \.showCombineGateDialog,
         )
     }
 
     func confirmWatermarkGateAd(
         rewardedManager: RewardedAdManager,
         coordinator: FullscreenAdCoordinator,
-        rootViewController: UIViewController?
+        rootViewController: UIViewController?,
     ) async -> GateResult {
         await presentGateAd(
             unlockID: .watermarkSettings,
             rewardedManager: rewardedManager,
             coordinator: coordinator,
-            rootViewController: rootViewController
+            rootViewController: rootViewController,
         )
     }
 
     func confirmCombineGateAd(
         rewardedManager: RewardedAdManager,
         coordinator: FullscreenAdCoordinator,
-        rootViewController: UIViewController?
+        rootViewController: UIViewController?,
     ) async -> GateResult {
         await presentGateAd(
             unlockID: .compositionSettings,
             rewardedManager: rewardedManager,
             coordinator: coordinator,
-            rootViewController: rootViewController
+            rootViewController: rootViewController,
         )
     }
 
     private func requestGate(
         unlockID: RewardedAdManager.UnlockID,
         rewardedManager: RewardedAdManager,
-        dialogFlag: ReferenceWritableKeyPath<SettingsViewModel, Bool>
+        dialogFlag: ReferenceWritableKeyPath<SettingsViewModel, Bool>,
     ) -> Bool {
         lastGateFailureReason = nil
         let coordinator = gateCoordinator
@@ -69,14 +69,14 @@ extension SettingsViewModel {
         unlockID: RewardedAdManager.UnlockID,
         rewardedManager: RewardedAdManager,
         coordinator: FullscreenAdCoordinator,
-        rootViewController: UIViewController?
+        rootViewController: UIViewController?,
     ) async -> GateResult {
         lastGateFailureReason = nil
         let outcome = await gateCoordinator.presentGateAd(
             unlockID: unlockID,
             rewardedManager: rewardedManager,
             coordinator: coordinator,
-            rootViewController: rootViewController
+            rootViewController: rootViewController,
         )
         lastGateFailureReason = outcome.failureReason
         return outcome.result

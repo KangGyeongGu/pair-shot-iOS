@@ -60,7 +60,7 @@ extension HomeViewModel {
                 snackbarQueue.enqueue(
                     "settings_promotion_guide_daily_limit",
                     variant: .info,
-                    debounceKey: "pro_gate_daily_limit"
+                    debounceKey: "pro_gate_daily_limit",
                 )
                 showPaywall = true
                 return

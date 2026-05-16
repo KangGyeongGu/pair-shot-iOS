@@ -10,7 +10,7 @@ struct LanguagePickerView: View {
                 ForEach(AppLanguage.allCases, id: \.self) { language in
                     LanguagePickerRow(
                         language: language,
-                        isSelected: viewModel.appSettings.language == language
+                        isSelected: viewModel.appSettings.language == language,
                     ) {
                         viewModel.setLanguage(language)
                         dismiss()

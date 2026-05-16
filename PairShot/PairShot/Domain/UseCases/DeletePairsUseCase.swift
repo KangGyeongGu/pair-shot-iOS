@@ -7,7 +7,7 @@ final class DeletePairsUseCase {
 
     init(
         pairRepo: PhotoPairRepository,
-        photoLibrary: PhotoLibraryService
+        photoLibrary: PhotoLibraryService,
     ) {
         self.pairRepo = pairRepo
         self.photoLibrary = photoLibrary

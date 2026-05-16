@@ -10,28 +10,28 @@ final class Membership {
     var proIsActive: Bool {
         MembershipResolver.proIsActive(
             subscription: subscriptionStore,
-            promotion: promotionStore
+            promotion: promotionStore,
         )
     }
 
     var proExpiresAt: Date? {
         MembershipResolver.proExpiresAt(
             subscription: subscriptionStore,
-            promotion: promotionStore
+            promotion: promotionStore,
         )
     }
 
     var adFreeIsActive: Bool {
         MembershipResolver.adFreeIsActive(
             subscription: subscriptionStore,
-            promotion: promotionStore
+            promotion: promotionStore,
         )
     }
 
     var adFreeExpiresAt: Date? {
         MembershipResolver.adFreeExpiresAt(
             subscription: subscriptionStore,
-            promotion: promotionStore
+            promotion: promotionStore,
         )
     }
 

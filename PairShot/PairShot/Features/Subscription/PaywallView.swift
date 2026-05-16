@@ -70,7 +70,7 @@ struct PaywallView: View {
         .onAppear {
             AppLogger.ads
                 .debug(
-                    "PAYWALL onAppear mode=\(String(describing: mode), privacy: .public) isPro=\(store.isPro, privacy: .public)"
+                    "PAYWALL onAppear mode=\(String(describing: mode), privacy: .public) isPro=\(store.isPro, privacy: .public)",
                 )
             if !didCaptureInitial {
                 wasInitiallyPro = store.isPro
@@ -80,13 +80,13 @@ struct PaywallView: View {
         .onDisappear {
             AppLogger.ads
                 .debug(
-                    "PAYWALL onDisappear mode=\(String(describing: mode), privacy: .public) isPro=\(store.isPro, privacy: .public)"
+                    "PAYWALL onDisappear mode=\(String(describing: mode), privacy: .public) isPro=\(store.isPro, privacy: .public)",
                 )
         }
         .onChange(of: store.isPro) { oldValue, newValue in
             AppLogger.ads
                 .debug(
-                    "PAYWALL isPro change \(oldValue, privacy: .public) -> \(newValue, privacy: .public) wasInitially=\(wasInitiallyPro, privacy: .public)"
+                    "PAYWALL isPro change \(oldValue, privacy: .public) -> \(newValue, privacy: .public) wasInitially=\(wasInitiallyPro, privacy: .public)",
                 )
             guard didCaptureInitial, !wasInitiallyPro, newValue else { return }
             AppLogger.ads.debug("PAYWALL onCompletion via isPro change")
@@ -145,7 +145,7 @@ private struct AppIconBadge: View {
                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                 .overlay(
                     RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .stroke(Color.white.opacity(0.15), lineWidth: 0.5)
+                        .stroke(Color.white.opacity(0.15), lineWidth: 0.5),
                 )
                 .shadow(color: .black.opacity(0.18), radius: 8, x: 0, y: 4)
         } else {

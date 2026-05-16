@@ -30,7 +30,7 @@ extension HomeViewModel {
             name: finalName,
             latitude: resolvedAlbumLatitude,
             longitude: resolvedAlbumLongitude,
-            locationLabel: resolvedAlbumLabel
+            locationLabel: resolvedAlbumLabel,
         )
         resetCreateAlbumState()
     }
@@ -43,7 +43,7 @@ extension HomeViewModel {
         name: String,
         latitude: Double?,
         longitude: Double?,
-        locationLabel: String?
+        locationLabel: String?,
     ) async {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
@@ -51,7 +51,7 @@ extension HomeViewModel {
             name: trimmed,
             latitude: latitude,
             longitude: longitude,
-            locationLabel: locationLabel
+            locationLabel: locationLabel,
         )
         try? await albumRepo.add(album)
     }

@@ -13,7 +13,7 @@ struct AlbumDetailDefaultToolbar: ToolbarContent {
                 } label: {
                     Label(
                         String(localized: "home_desc_selection_mode"),
-                        systemImage: "checkmark.circle"
+                        systemImage: "checkmark.circle",
                     )
                 }
 
@@ -62,7 +62,7 @@ struct AlbumDetailSelectionToolbar: ToolbarContent {
                 Text(
                     allSelected
                         ? String(localized: "home_button_deselect_all")
-                        : String(localized: "home_button_select_all")
+                        : String(localized: "home_button_select_all"),
                 )
             }
         }
@@ -77,7 +77,7 @@ struct AlbumDetailRenameAlert: ViewModifier {
         content
             .alert(
                 String(localized: "album_dialog_rename_title"),
-                isPresented: $viewModel.showRenameAlert
+                isPresented: $viewModel.showRenameAlert,
             ) {
                 TextField(String(localized: "album_dialog_rename_placeholder"), text: $viewModel.renameDraft)
                     .textInputAutocapitalization(.never)
@@ -99,14 +99,14 @@ struct AlbumDetailDeleteAlbumAlert: ViewModifier {
     private var albumDeleteBinding: Binding<Bool> {
         Binding(
             get: { viewModel.pendingAlbumDelete != nil },
-            set: { if !$0 { viewModel.pendingAlbumDelete = nil } }
+            set: { if !$0 { viewModel.pendingAlbumDelete = nil } },
         )
     }
 
     private var albumDestructiveBinding: Binding<Bool> {
         Binding(
             get: { viewModel.pendingAlbumDestructive != nil },
-            set: { if !$0 { viewModel.pendingAlbumDestructive = nil } }
+            set: { if !$0 { viewModel.pendingAlbumDestructive = nil } },
         )
     }
 
@@ -116,7 +116,7 @@ struct AlbumDetailDeleteAlbumAlert: ViewModifier {
                 String(localized: "album_dialog_delete_title"),
                 isPresented: albumDeleteBinding,
                 titleVisibility: .visible,
-                presenting: viewModel.pendingAlbumDelete
+                presenting: viewModel.pendingAlbumDelete,
             ) { album in
                 Button(String(localized: "album_delete_method_button_album_only")) {
                     Task {
@@ -138,7 +138,7 @@ struct AlbumDetailDeleteAlbumAlert: ViewModifier {
                 String(localized: "album_dialog_delete_title"),
                 isPresented: albumDestructiveBinding,
                 titleVisibility: .visible,
-                presenting: viewModel.pendingAlbumDestructive
+                presenting: viewModel.pendingAlbumDestructive,
             ) { album in
                 Button(String(localized: "dialog_delete_pair_button_all"), role: .destructive) {
                     Task {

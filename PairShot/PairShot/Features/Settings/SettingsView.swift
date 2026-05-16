@@ -45,7 +45,7 @@ struct SettingsView: View {
         SettingsFormBody(
             viewModel: viewModel,
             openURL: openURL,
-            path: $path
+            path: $path,
         )
     }
 }
@@ -78,7 +78,7 @@ private struct SettingsFormBody: View {
         .paywallSheet(isPresented: $showPaywall)
         .alert(
             String(localized: "settings_language_restart_title"),
-            isPresented: $viewModel.showLanguageRestartAlert
+            isPresented: $viewModel.showLanguageRestartAlert,
         ) {
             Button(String(localized: "common_button_confirm"), role: .cancel) {
                 viewModel.showLanguageRestartAlert = false
@@ -88,7 +88,7 @@ private struct SettingsFormBody: View {
         }
         .alert(
             String(localized: "rewarded_gate_title"),
-            isPresented: $viewModel.showWatermarkGateDialog
+            isPresented: $viewModel.showWatermarkGateDialog,
         ) {
             Button(String(localized: "rewarded_gate_confirm")) {
                 Task { await confirmWatermarkGate() }
@@ -99,7 +99,7 @@ private struct SettingsFormBody: View {
         }
         .alert(
             String(localized: "rewarded_gate_title"),
-            isPresented: $viewModel.showCombineGateDialog
+            isPresented: $viewModel.showCombineGateDialog,
         ) {
             Button(String(localized: "rewarded_gate_confirm")) {
                 Task { await confirmCombineGate() }
@@ -115,7 +115,7 @@ private struct SettingsFormBody: View {
         let result = await viewModel.confirmWatermarkGateAd(
             rewardedManager: rewardedManager,
             coordinator: coordinator,
-            rootViewController: BannerAdView.resolveTopPresentedViewController()
+            rootViewController: BannerAdView.resolveTopPresentedViewController(),
         )
         if case .proceed = result {
             path.append(.watermarkSettings)
@@ -127,7 +127,7 @@ private struct SettingsFormBody: View {
         let result = await viewModel.confirmCombineGateAd(
             rewardedManager: rewardedManager,
             coordinator: coordinator,
-            rootViewController: BannerAdView.resolveTopPresentedViewController()
+            rootViewController: BannerAdView.resolveTopPresentedViewController(),
         )
         if case .proceed = result {
             path.append(.combineSettings)

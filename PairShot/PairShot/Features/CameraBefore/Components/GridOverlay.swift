@@ -28,7 +28,7 @@ struct GridOverlay: View {
                 context.stroke(
                     path,
                     with: .color(lineColor),
-                    lineWidth: lineWidth
+                    lineWidth: lineWidth,
                 )
             }
             .frame(width: geometry.size.width, height: geometry.size.height)

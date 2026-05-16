@@ -10,7 +10,7 @@ extension BeforeCameraViewModel {
             snackbarQueue.enqueue(
                 "settings_promotion_guide_daily_limit",
                 variant: .info,
-                debounceKey: "pro_gate_daily_limit"
+                debounceKey: "pro_gate_daily_limit",
             )
             showPaywall = true
             return
@@ -50,7 +50,7 @@ extension BeforeCameraViewModel {
         let cameraSettings = CameraSettings(
             zoomFactor: captured.zoomFactor,
             lensPosition: lensPosition,
-            aspectRatio: aspect
+            aspectRatio: aspect,
         )
         do {
             if let refillPairId {
@@ -59,7 +59,7 @@ extension BeforeCameraViewModel {
                     beforeJPEG: captured.jpegData,
                     cameraSettings: cameraSettings,
                     aspectRatio: aspect,
-                    isDeferredProxy: captured.isDeferredProxy
+                    isDeferredProxy: captured.isDeferredProxy,
                 )
                 eventsContinuation.yield(.dismiss)
                 return
@@ -68,7 +68,7 @@ extension BeforeCameraViewModel {
                 beforeJPEG: captured.jpegData,
                 cameraSettings: cameraSettings,
                 aspectRatio: aspect,
-                isDeferredProxy: captured.isDeferredProxy
+                isDeferredProxy: captured.isDeferredProxy,
             )
             if let albumId {
                 try? await albumRepo.addPair(pairId: pair.id, toAlbum: albumId)

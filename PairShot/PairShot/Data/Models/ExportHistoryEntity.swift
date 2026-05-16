@@ -18,7 +18,7 @@ final class ExportHistoryEntity {
         photoLocalIdentifier: String,
         id: UUID = UUID(),
         createdAt: Date = .now,
-        pair: PhotoPairEntity? = nil
+        pair: PhotoPairEntity? = nil,
     ) {
         self.id = id
         kindRaw = kind.rawValue

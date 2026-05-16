@@ -47,7 +47,7 @@ nonisolated enum KeychainDeviceUUID {
             ]
             SecItemUpdate(
                 query as CFDictionary,
-                [kSecValueData as String: Data(value.utf8)] as CFDictionary
+                [kSecValueData as String: Data(value.utf8)] as CFDictionary,
             )
         }
     }

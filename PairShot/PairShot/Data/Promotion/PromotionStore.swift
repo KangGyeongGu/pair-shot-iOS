@@ -18,7 +18,7 @@ final class PromotionStore {
     init(
         fetcher: any PromotionFetching,
         deviceHashProvider: DeviceHashProvider,
-        defaults: UserDefaults = .standard
+        defaults: UserDefaults = .standard,
     ) {
         self.fetcher = fetcher
         self.deviceHashProvider = deviceHashProvider

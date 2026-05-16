@@ -108,7 +108,7 @@ final class AfterCameraViewModel {
         sortOrder: HomeSortOrder = .newest,
         recaptureTargetPair: PhotoPair? = nil,
         session: CameraSession? = nil,
-        permissionProbe: @escaping @Sendable () async -> Bool = CameraPermissionProbe.resolve
+        permissionProbe: @escaping @Sendable () async -> Bool = CameraPermissionProbe.resolve,
     ) {
         self.albumId = albumId
         self.initialPairId = initialPairId
@@ -194,7 +194,7 @@ final class AfterCameraViewModel {
                 pairId: capturedPairId,
                 afterJPEG: captured.jpegData,
                 aspectRatio: currentAspect,
-                isDeferredProxy: captured.isDeferredProxy
+                isDeferredProxy: captured.isDeferredProxy,
             )
         } catch {
             rollbackOnPersistFailure(pair)
@@ -243,21 +243,21 @@ final class AfterCameraViewModel {
         pairId: UUID,
         afterJPEG: Data,
         aspectRatio: AspectRatio,
-        isDeferredProxy: Bool
+        isDeferredProxy: Bool,
     ) async throws -> PhotoPair {
         if isRecaptureMode {
             return try await recaptureAfter(
                 pairId: pairId,
                 afterJPEG: afterJPEG,
                 aspectRatio: aspectRatio,
-                isDeferredProxy: isDeferredProxy
+                isDeferredProxy: isDeferredProxy,
             )
         }
         return try await captureAfter(
             pairId: pairId,
             afterJPEG: afterJPEG,
             aspectRatio: aspectRatio,
-            isDeferredProxy: isDeferredProxy
+            isDeferredProxy: isDeferredProxy,
         )
     }
 
@@ -273,7 +273,7 @@ final class AfterCameraViewModel {
         guard
             let initialPair = AfterCameraInitialPairResolver.resolve(
                 initialPairId: initialPairId,
-                pending: pairs
+                pending: pairs,
             )
         else {
             eventsContinuation.yield(.dismiss)
@@ -379,7 +379,7 @@ enum AfterCameraZoomHaptics {
             minorIndex: minorIndex,
             majorIndex: majorIndex,
             didCrossMinor: didCrossMinor,
-            didCrossMajor: didCrossMajor
+            didCrossMajor: didCrossMajor,
         )
     }
 }

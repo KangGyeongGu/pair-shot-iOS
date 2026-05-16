@@ -12,7 +12,7 @@ enum RewardedSessionGate {
         unlockID: RewardedAdManager.UnlockID,
         sessionUnlocks: Set<RewardedAdManager.UnlockID>,
         isAdFree: Bool,
-        isPro: Bool = false
+        isPro: Bool = false,
     ) -> Bool {
         if AdSuppression.isSuppressed(isAdFree: isAdFree, isPro: isPro) { return false }
         if sessionUnlocks.contains(unlockID) { return false }
@@ -43,7 +43,7 @@ final class RewardedAdManager {
     private let trackingService: TrackingAuthorizationService?
 
     #if canImport(GoogleMobileAds)
-        private var ad: GADRewardedAd?
+        private var ad: RewardedAd?
         private let presentationDelegate: RewardedPresentationDelegate
     #endif
 
@@ -57,7 +57,7 @@ final class RewardedAdManager {
     func loadIfNeeded(
         adUnitID: String? = nil,
         promotionStore: PromotionStore? = nil,
-        subscriptionStore: SubscriptionStore? = nil
+        subscriptionStore: SubscriptionStore? = nil,
     ) {
         if AdSuppression.isSuppressed(promotionStore: promotionStore, subscriptionStore: subscriptionStore) { return }
         guard !isLoaded, !isLoading else { return }
@@ -67,9 +67,9 @@ final class RewardedAdManager {
             let request = AdRequestBuilder.build(attStatus: attStatus)
             isLoading = true
             AppLogger.ads.debug("Rewarded load requested")
-            GADRewardedAd.load(
-                withAdUnitID: resolvedUnitID,
-                request: request
+            RewardedAd.load(
+                with: resolvedUnitID,
+                request: request,
             ) { [weak self] ad, error in
                 let adBox = RewardedAdBox(ad: ad)
                 Task { @MainActor [weak self] in
@@ -85,7 +85,7 @@ final class RewardedAdManager {
                         isLoaded = false
                         if let error {
                             AppLogger.ads.error(
-                                "Rewarded load failed: \(error.localizedDescription, privacy: .public)"
+                                "Rewarded load failed: \(error.localizedDescription, privacy: .public)",
                             )
                         }
                     }
@@ -101,7 +101,7 @@ final class RewardedAdManager {
         coordinator: FullscreenAdCoordinator,
         promotionStore: PromotionStore? = nil,
         subscriptionStore: SubscriptionStore? = nil,
-        adUnitID: String? = nil
+        adUnitID: String? = nil,
     ) async -> RewardOutcome {
         if AdSuppression.isSuppressed(promotionStore: promotionStore, subscriptionStore: subscriptionStore) {
             sessionUnlocks.insert(unlockID)
@@ -147,7 +147,7 @@ final class RewardedAdManager {
                     }
                 }
                 AppLogger.ads.debug("Rewarded presented")
-                ad.present(fromRootViewController: rootViewController) {
+                ad.present(from: rootViewController) {
                     earned = true
                 }
             }
@@ -157,7 +157,7 @@ final class RewardedAdManager {
             loadIfNeeded(
                 adUnitID: adUnitID ?? AdsConfig.rewarded,
                 promotionStore: promotionStore,
-                subscriptionStore: subscriptionStore
+                subscriptionStore: subscriptionStore,
             )
 
             if case .granted = outcome {
@@ -174,26 +174,26 @@ final class RewardedAdManager {
 
 #if canImport(GoogleMobileAds)
     private final nonisolated class RewardedAdBox: @unchecked Sendable {
-        let ad: GADRewardedAd?
-        init(ad: GADRewardedAd?) {
+        let ad: RewardedAd?
+        init(ad: RewardedAd?) {
             self.ad = ad
         }
     }
 
     @MainActor
-    private final class RewardedPresentationDelegate: NSObject, GADFullScreenContentDelegate {
+    private final class RewardedPresentationDelegate: NSObject, FullScreenContentDelegate {
         var onDismiss: (() -> Void)?
         var onFailToPresent: ((_ reason: String) -> Void)?
 
-        nonisolated func adDidDismissFullScreenContent(_: any GADFullScreenPresentingAd) {
+        nonisolated func adDidDismissFullScreenContent(_: any FullScreenPresentingAd) {
             Task { @MainActor [weak self] in
                 self?.onDismiss?()
             }
         }
 
         nonisolated func ad(
-            _: any GADFullScreenPresentingAd,
-            didFailToPresentFullScreenContentWithError error: Error
+            _: any FullScreenPresentingAd,
+            didFailToPresentFullScreenContentWithError error: Error,
         ) {
             let reason = error.localizedDescription
             Task { @MainActor [weak self] in

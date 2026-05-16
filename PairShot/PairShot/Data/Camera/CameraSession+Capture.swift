@@ -4,7 +4,7 @@ import OSLog
 
 nonisolated extension CameraSession {
     func capturePhoto(
-        metadata: [String: Any] = [:]
+        metadata: [String: Any] = [:],
     ) async throws -> CapturedPhoto {
         let metadataBox = CaptureMetadataBox(metadata)
         let captureContext = await runOnSessionQueue { [weak self] () -> CaptureContext? in
@@ -31,7 +31,7 @@ nonisolated extension CameraSession {
                 settings: settings,
                 zoom: Double(device.videoZoomFactor),
                 lens: Self.lensIdentifier(for: device),
-                aspectRatio: currentAspectRatio
+                aspectRatio: currentAspectRatio,
             )
         }
 
@@ -62,15 +62,15 @@ nonisolated extension CameraSession {
                     case let .success(payload):
                         let finalData = AspectRatioCropper.cropJPEG(
                             data: payload.data,
-                            targetAspect: aspect
+                            targetAspect: aspect,
                         )
                         cont.resume(
                             returning: CapturedPhoto(
                                 jpegData: finalData,
                                 zoomFactor: captureContext.zoom,
                                 lensIdentifier: captureContext.lens,
-                                isDeferredProxy: payload.isDeferredProxy && aspect == .fourThree
-                            )
+                                isDeferredProxy: payload.isDeferredProxy && aspect == .fourThree,
+                            ),
                         )
 
                     case let .failure(err):
@@ -110,7 +110,7 @@ private final nonisolated class CaptureContext: @unchecked Sendable {
         settings: AVCapturePhotoSettings,
         zoom: Double,
         lens: String,
-        aspectRatio: AspectRatio
+        aspectRatio: AspectRatio,
     ) {
         self.photoOutput = photoOutput
         self.settings = settings
@@ -143,7 +143,7 @@ final nonisolated class PhotoCaptureDelegate: NSObject, AVCapturePhotoCaptureDel
     func photoOutput(
         _: AVCapturePhotoOutput,
         didFinishProcessingPhoto photo: AVCapturePhoto,
-        error: Error?
+        error: Error?,
     ) {
         if didDeliver { return }
         if let error {
@@ -163,7 +163,7 @@ final nonisolated class PhotoCaptureDelegate: NSObject, AVCapturePhotoCaptureDel
     func photoOutput(
         _: AVCapturePhotoOutput,
         didFinishCapturingDeferredPhotoProxy proxy: AVCaptureDeferredPhotoProxy?,
-        error: Error?
+        error: Error?,
     ) {
         if didDeliver { return }
         if let error {

@@ -28,7 +28,7 @@ struct AlbumDetailView: View {
             get: { viewModel?.navigateToPairPicker ?? false },
             set: { newValue in
                 if !newValue { viewModel?.navigateToPairPicker = false }
-            }
+            },
         )
     }
 
@@ -46,7 +46,7 @@ struct AlbumDetailView: View {
 
     init(
         albumId: UUID,
-        onPushExportSettings: (([UUID]) -> Void)? = nil
+        onPushExportSettings: (([UUID]) -> Void)? = nil,
     ) {
         self.albumId = albumId
         self.onPushExportSettings = onPushExportSettings
@@ -92,13 +92,13 @@ struct AlbumDetailView: View {
                     selectionCount: viewModel.selectedPairIds.count,
                     allSelected: viewModel.areAllPairsSelected(from: sorted),
                     onCancel: viewModel.cancelSelection,
-                    onToggleSelectAll: { viewModel.selectAllPairs(from: sorted) }
+                    onToggleSelectAll: { viewModel.selectAllPairs(from: sorted) },
                 )
             } else {
                 AlbumDetailDefaultToolbar(
                     onSelect: viewModel.enterSelectionMode,
                     onRename: { viewModel.beginRename(currentName: album.name) },
-                    onDelete: { viewModel.requestAlbumDeletion(album: album) }
+                    onDelete: { viewModel.requestAlbumDeletion(album: album) },
                 )
             }
         }
@@ -114,7 +114,7 @@ struct AlbumDetailView: View {
     private func content(
         for viewModel: AlbumDetailViewModel,
         album: Album,
-        albumPairs: [PhotoPair]
+        albumPairs: [PhotoPair],
     ) -> some View {
         let sortedPairs = viewModel.sortedPairs(from: albumPairs)
 
@@ -127,7 +127,7 @@ struct AlbumDetailView: View {
             AlbumDetailBottomBarHost(
                 viewModel: viewModel,
                 sortedPairs: sortedPairs,
-                onPushExportSettings: onPushExportSettings
+                onPushExportSettings: onPushExportSettings,
             )
         }
         .modifier(AlbumDetailCameraCovers(viewModel: viewModel))
@@ -145,7 +145,7 @@ struct AlbumDetailView: View {
         } else {
             let chunks = PairListWithAdsBuilder.buildChunks(
                 pairs: pairs,
-                adFree: membership.adFreeIsActive
+                adFree: membership.adFreeIsActive,
             ).chunks
             ScrollView {
                 LazyVStack(spacing: 12) {
@@ -172,12 +172,12 @@ struct AlbumDetailView: View {
     private func pairCell(
         viewModel: AlbumDetailViewModel,
         pair: PhotoPair,
-        allPairs: [PhotoPair]
+        allPairs: [PhotoPair],
     ) -> some View {
         HomePairCardView(
             pair: pair,
             isSelectionMode: viewModel.isSelectionMode,
-            isSelected: viewModel.selectedPairIds.contains(pair.id)
+            isSelected: viewModel.selectedPairIds.contains(pair.id),
         )
         .contentShape(.rect)
         .onTapGesture { viewModel.tapPair(pair, allPairs: allPairs) }
@@ -190,7 +190,7 @@ struct AlbumDetailView: View {
                     } label: {
                         Label(
                             String(localized: "pair_preview_menu_recapture"),
-                            systemImage: "camera.rotate"
+                            systemImage: "camera.rotate",
                         )
                     }
                 }
@@ -199,7 +199,7 @@ struct AlbumDetailView: View {
                 } label: {
                     Label(
                         String(localized: "common_button_share"),
-                        systemImage: "square.and.arrow.up"
+                        systemImage: "square.and.arrow.up",
                     )
                 }
                 Button {
@@ -207,7 +207,7 @@ struct AlbumDetailView: View {
                 } label: {
                     Label(
                         String(localized: "common_button_export"),
-                        systemImage: "square.and.arrow.down"
+                        systemImage: "square.and.arrow.down",
                     )
                 }
                 Button(role: .destructive) {
@@ -238,7 +238,7 @@ struct AlbumDetailCameraCovers: ViewModifier {
                 NavigationStack {
                     BeforeCameraView(
                         albumId: viewModel.albumId,
-                        refillPairId: viewModel.beforeCameraTargetPairId
+                        refillPairId: viewModel.beforeCameraTargetPairId,
                     )
                 }
             }
@@ -247,7 +247,7 @@ struct AlbumDetailCameraCovers: ViewModifier {
                     AfterCameraView(
                         albumId: viewModel.albumId,
                         initialPairId: viewModel.afterCameraTargetPairId,
-                        sortOrder: viewModel.sortOrder
+                        sortOrder: viewModel.sortOrder,
                     )
                 }
             }
@@ -283,13 +283,13 @@ struct AlbumDetailShareSheet: ViewModifier {
                                 if newValue == nil, viewModel.pendingZipExport != nil {
                                     viewModel.handleZipExportCompleted(false)
                                 }
-                            }
-                        )
+                            },
+                        ),
                     ) { item in
                         DocumentExporter(url: item.url) { saved in
                             viewModel.handleZipExportCompleted(saved)
                         }
-                    }
+                    },
             )
     }
 }

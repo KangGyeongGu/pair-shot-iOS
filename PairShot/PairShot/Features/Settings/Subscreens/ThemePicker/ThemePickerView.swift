@@ -10,7 +10,7 @@ struct ThemePickerView: View {
                 ForEach(AppTheme.allCases, id: \.self) { theme in
                     ThemePickerRow(
                         theme: theme,
-                        isSelected: viewModel.appSettings.theme == theme
+                        isSelected: viewModel.appSettings.theme == theme,
                     ) {
                         viewModel.setTheme(theme)
                         dismiss()

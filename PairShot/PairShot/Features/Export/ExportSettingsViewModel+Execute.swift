@@ -10,7 +10,7 @@ extension ExportSettingsViewModel {
         let handle = snackbarQueue.enqueueProgress(
             "snackbar_progress_share",
             token: token,
-            initialValue: 0
+            initialValue: 0,
         )
         do {
             switch format {
@@ -20,7 +20,7 @@ extension ExportSettingsViewModel {
                         ids: pairIds,
                         selection: makeSelection(),
                         renderOptions: makeRenderOptions(),
-                        tempDirectory: tempDirectoryProvider()
+                        tempDirectory: tempDirectoryProvider(),
                     )
                     pendingZipURL = url
                     snackbarQueue.completeProgress(handle, finalMessage: nil)
@@ -50,7 +50,7 @@ extension ExportSettingsViewModel {
         let handle = snackbarQueue.enqueueProgress(
             "snackbar_progress_save_to_device",
             token: token,
-            initialValue: 0
+            initialValue: 0,
         )
         switch format {
             case .individualImages:
@@ -79,7 +79,7 @@ extension ExportSettingsViewModel {
                 allEntries,
                 progress: progress,
                 renderOptions: renderOptions,
-                now: now
+                now: now,
             )
         } catch {
             snackbarQueue.cancelProgress(progress)
@@ -93,14 +93,14 @@ extension ExportSettingsViewModel {
 
     func buildEntries(
         pairs: [PhotoPair],
-        selection: ExportContents
+        selection: ExportContents,
     ) -> [(pair: PhotoPair, entry: ExportSelection.Entry)] {
         pairs.enumerated().flatMap { offset, pair in
             ExportSelection.relativePaths(
                 for: pair,
                 selection: selection,
                 sequenceNumber: offset + 1,
-                prefix: appSettings.fileNamePrefix
+                prefix: appSettings.fileNamePrefix,
             )
             .map { (pair: pair, entry: $0) }
         }
@@ -110,7 +110,7 @@ extension ExportSettingsViewModel {
         _ allEntries: [(pair: PhotoPair, entry: ExportSelection.Entry)],
         progress: SnackbarProgressHandle,
         renderOptions: ExportRenderOptions,
-        now: Date
+        now: Date,
     ) async -> Int {
         let total = max(1, allEntries.count)
         var saved = 0
@@ -119,7 +119,7 @@ extension ExportSettingsViewModel {
             let didSave = await processSingleEntry(
                 item: item,
                 renderOptions: renderOptions,
-                now: now
+                now: now,
             )
             if didSave { saved += 1 }
             processed += 1
@@ -131,7 +131,7 @@ extension ExportSettingsViewModel {
     func processSingleEntry(
         item: (pair: PhotoPair, entry: ExportSelection.Entry),
         renderOptions: ExportRenderOptions,
-        now: Date
+        now: Date,
     ) async -> Bool {
         guard
             let data = await ExportEntryRenderer.render(
@@ -140,7 +140,7 @@ extension ExportSettingsViewModel {
                 photoLibrary: photoLibrary,
                 appSettings: appSettings,
                 renderOptions: renderOptions,
-                now: now
+                now: now,
             )
         else { return false }
         do {
@@ -149,7 +149,7 @@ extension ExportSettingsViewModel {
                 identifier: identifier,
                 pair: item.pair,
                 entry: item.entry,
-                renderOptions: renderOptions
+                renderOptions: renderOptions,
             )
             return true
         } catch {
@@ -162,13 +162,13 @@ extension ExportSettingsViewModel {
             snackbarQueue.completeProgress(
                 progress,
                 finalMessage: "snackbar_warning_nothing_to_save",
-                finalVariant: .warning
+                finalVariant: .warning,
             )
         } else {
             snackbarQueue.completeProgress(
                 progress,
                 finalMessage: "snackbar_success_saved_to_device",
-                finalVariant: .success
+                finalVariant: .success,
             )
         }
     }
@@ -180,7 +180,7 @@ extension ExportSettingsViewModel {
                 ids: pairIds,
                 selection: makeSelection(),
                 renderOptions: makeRenderOptions(),
-                tempDirectory: tempDirectoryProvider()
+                tempDirectory: tempDirectoryProvider(),
             )
             pendingZipURL = url
             snackbarQueue.updateProgress(progress, value: 1.0)
@@ -204,7 +204,7 @@ extension ExportSettingsViewModel {
                 for: pair,
                 selection: selection,
                 sequenceNumber: offset + 1,
-                prefix: appSettings.fileNamePrefix
+                prefix: appSettings.fileNamePrefix,
             )
             for entry in entries {
                 guard
@@ -214,14 +214,14 @@ extension ExportSettingsViewModel {
                         photoLibrary: photoLibrary,
                         appSettings: appSettings,
                         renderOptions: renderOptions,
-                        now: now
+                        now: now,
                     )
                 else { continue }
                 let fileName = ExportTempFileWriter.sanitizedName(from: entry.relativeName)
                 if let url = ExportTempFileWriter.write(
                     data: data,
                     fileName: fileName,
-                    tempDirectory: tempDir
+                    tempDirectory: tempDir,
                 ) {
                     urls.append(url)
                 }
@@ -244,24 +244,24 @@ extension ExportSettingsViewModel {
         identifier: String,
         pair: PhotoPair,
         entry: ExportSelection.Entry,
-        renderOptions: ExportRenderOptions
+        renderOptions: ExportRenderOptions,
     ) async {
         guard
             let kind = ExportHistoryKindResolver.resolve(
                 entryKind: entry.kind,
                 renderOptions: renderOptions,
-                appSettings: appSettings
+                appSettings: appSettings,
             )
         else { return }
         do {
             try await pairRepo.recordExportHistory(
                 pairId: pair.id,
                 kind: kind,
-                photoLocalIdentifier: identifier
+                photoLocalIdentifier: identifier,
             )
         } catch {
             AppLogger.storage.error(
-                "ExportHistory persist failed: \(error.localizedDescription, privacy: .public)"
+                "ExportHistory persist failed: \(error.localizedDescription, privacy: .public)",
             )
         }
     }

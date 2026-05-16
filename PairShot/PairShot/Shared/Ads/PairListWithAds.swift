@@ -18,7 +18,7 @@ enum PairListWithAdsBuilder {
     static func buildChunks(
         pairs: [PhotoPair],
         adFree: Bool = false,
-        startingAdSlotIndex: Int = 0
+        startingAdSlotIndex: Int = 0,
     ) -> ChunkResult {
         if adFree || pairs.count < minPairsForAds {
             let single = PairChunk(id: 0, pairs: pairs, adSlotIndex: nil)

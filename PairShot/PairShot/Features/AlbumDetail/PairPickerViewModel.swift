@@ -34,7 +34,7 @@ final class PairPickerViewModel {
     init(
         albumId: UUID,
         albumRepo: AlbumRepository,
-        photoLibrary _: PhotoLibraryService
+        photoLibrary _: PhotoLibraryService,
     ) {
         self.albumId = albumId
         self.albumRepo = albumRepo

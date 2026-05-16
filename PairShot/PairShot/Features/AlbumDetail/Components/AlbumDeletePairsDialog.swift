@@ -6,28 +6,28 @@ struct AlbumDeletePairsDialog: ViewModifier {
     private var pairDeleteBinding: Binding<Bool> {
         Binding(
             get: { viewModel.pendingPairDelete != nil },
-            set: { if !$0 { viewModel.pendingPairDelete = nil } }
+            set: { if !$0 { viewModel.pendingPairDelete = nil } },
         )
     }
 
     private var pairDestructiveBinding: Binding<Bool> {
         Binding(
             get: { viewModel.pendingPairDestructive != nil },
-            set: { if !$0 { viewModel.pendingPairDestructive = nil } }
+            set: { if !$0 { viewModel.pendingPairDestructive = nil } },
         )
     }
 
     private var singlePairDeleteBinding: Binding<Bool> {
         Binding(
             get: { viewModel.pendingSinglePairDelete != nil },
-            set: { if !$0 { viewModel.pendingSinglePairDelete = nil } }
+            set: { if !$0 { viewModel.pendingSinglePairDelete = nil } },
         )
     }
 
     private var singlePairDestructiveBinding: Binding<Bool> {
         Binding(
             get: { viewModel.pendingSinglePairDestructive != nil },
-            set: { if !$0 { viewModel.pendingSinglePairDestructive = nil } }
+            set: { if !$0 { viewModel.pendingSinglePairDestructive = nil } },
         )
     }
 
@@ -37,7 +37,7 @@ struct AlbumDeletePairsDialog: ViewModifier {
                 String(localized: "dialog_delete_pair_title"),
                 isPresented: pairDeleteBinding,
                 titleVisibility: .visible,
-                presenting: viewModel.pendingPairDelete
+                presenting: viewModel.pendingPairDelete,
             ) { request in
                 pairDeleteButtons(request: request)
             } message: { request in
@@ -47,7 +47,7 @@ struct AlbumDeletePairsDialog: ViewModifier {
                 String(localized: "dialog_delete_pair_title"),
                 isPresented: pairDestructiveBinding,
                 titleVisibility: .visible,
-                presenting: viewModel.pendingPairDestructive
+                presenting: viewModel.pendingPairDestructive,
             ) { request in
                 pairDestructiveButtons(request: request)
             } message: { request in
@@ -57,7 +57,7 @@ struct AlbumDeletePairsDialog: ViewModifier {
                 String(localized: "dialog_delete_pair_title"),
                 isPresented: singlePairDeleteBinding,
                 titleVisibility: .visible,
-                presenting: viewModel.pendingSinglePairDelete
+                presenting: viewModel.pendingSinglePairDelete,
             ) { request in
                 singlePairDeleteButtons(request: request)
             } message: { _ in
@@ -67,7 +67,7 @@ struct AlbumDeletePairsDialog: ViewModifier {
                 String(localized: "dialog_delete_pair_title"),
                 isPresented: singlePairDestructiveBinding,
                 titleVisibility: .visible,
-                presenting: viewModel.pendingSinglePairDestructive
+                presenting: viewModel.pendingSinglePairDestructive,
             ) { request in
                 singlePairDestructiveButtons(request: request)
             } message: { _ in

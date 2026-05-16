@@ -3,8 +3,8 @@
 import Testing
 
 struct CameraInfraTests {
-    @Test("ResponsiveCaptureOptions.apply is a no-op on a fresh, unconfigured output")
-    func responsiveOptionsApplySafelyOnUnconfiguredOutput() {
+    @Test
+    func `ResponsiveCaptureOptions.apply is a no-op on a fresh, unconfigured output`() {
         let output = AVCapturePhotoOutput()
         ResponsiveCaptureOptions.apply(to: output)
         #expect(output.isZeroShutterLagEnabled == output.isZeroShutterLagSupported)
@@ -12,8 +12,8 @@ struct CameraInfraTests {
     }
 
     @MainActor
-    @Test("CameraReadinessAdapter forwards captureReadiness changes")
-    func readinessAdapterForwards() async {
+    @Test
+    func `CameraReadinessAdapter forwards captureReadiness changes`() async {
         let output = AVCapturePhotoOutput()
         let coordinator = AVCapturePhotoOutputReadinessCoordinator(photoOutput: output)
         let collector = ReadinessCollector()
@@ -28,8 +28,8 @@ struct CameraInfraTests {
     }
 
     @MainActor
-    @Test("CameraSession exposes its underlying AVCaptureSession synchronously")
-    func sessionExposesCaptureSession() {
+    @Test
+    func `CameraSession exposes its underlying AVCaptureSession synchronously`() {
         let session = CameraSession()
         let captureSession: AVCaptureSession = session.captureSession
         #expect(captureSession === session.captureSession)

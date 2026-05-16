@@ -19,7 +19,7 @@ final nonisolated class UserDefaultsAppSettingsRepository: AppSettingsRepository
             language: decodeLanguage(),
             theme: decodeTheme(),
             watermark: decodeWatermark(),
-            combine: decodeCombine()
+            combine: decodeCombine(),
         )
     }
 

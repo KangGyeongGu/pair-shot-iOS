@@ -13,7 +13,7 @@ struct PairShotActionItem: Identifiable {
         systemImage: String,
         role: ButtonRole? = nil,
         isEnabled: Bool = true,
-        action: @escaping () -> Void
+        action: @escaping () -> Void,
     ) {
         self.title = title
         self.systemImage = systemImage

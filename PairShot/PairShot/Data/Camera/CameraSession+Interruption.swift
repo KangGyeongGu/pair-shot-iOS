@@ -23,7 +23,7 @@ nonisolated extension CameraSession {
         let interrupted = center.addObserver(
             forName: AVCaptureSession.wasInterruptedNotification,
             object: session,
-            queue: nil
+            queue: nil,
         ) { notification in
             if let reasonValue = notification.userInfo?[AVCaptureSessionInterruptionReasonKey] as? Int,
                let reason = AVCaptureSession.InterruptionReason(rawValue: reasonValue)
@@ -36,7 +36,7 @@ nonisolated extension CameraSession {
         let resumed = center.addObserver(
             forName: AVCaptureSession.interruptionEndedNotification,
             object: session,
-            queue: nil
+            queue: nil,
         ) { [weak self] _ in
             guard let self else { return }
             Task { await self.resumeAfterInterruption() }
@@ -44,7 +44,7 @@ nonisolated extension CameraSession {
         let runtimeError = center.addObserver(
             forName: AVCaptureSession.runtimeErrorNotification,
             object: session,
-            queue: nil
+            queue: nil,
         ) { [weak self] notification in
             guard let self else { return }
             let description =

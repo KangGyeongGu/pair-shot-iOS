@@ -15,28 +15,28 @@ struct HomePairSelectionBottomBar: View {
                 systemImage: "square.and.arrow.up",
                 isEnabled: enabled,
                 role: nil,
-                action: onShare
+                action: onShare,
             )
             actionColumn(
                 title: String(localized: "common_button_save_to_device"),
                 systemImage: "arrow.down.to.line",
                 isEnabled: enabled,
                 role: nil,
-                action: onSaveToDevice
+                action: onSaveToDevice,
             )
             actionColumn(
                 title: String(localized: "common_button_delete"),
                 systemImage: "trash",
                 isEnabled: enabled,
                 role: .destructive,
-                action: onDelete
+                action: onDelete,
             )
             actionColumn(
                 title: String(localized: "common_button_export"),
                 systemImage: "slider.horizontal.3",
                 isEnabled: enabled,
                 role: nil,
-                action: onExportSettings
+                action: onExportSettings,
             )
         }
         .padding(.horizontal, 8)
@@ -45,7 +45,7 @@ struct HomePairSelectionBottomBar: View {
         .clipShape(Capsule(style: .continuous))
         .overlay(
             Capsule(style: .continuous)
-                .strokeBorder(Color.white.opacity(0.18), lineWidth: 0.5)
+                .strokeBorder(Color.white.opacity(0.18), lineWidth: 0.5),
         )
         .shadow(color: Color.black.opacity(0.12), radius: 10, y: 3)
     }
@@ -55,7 +55,7 @@ struct HomePairSelectionBottomBar: View {
         systemImage: String,
         isEnabled: Bool,
         role: ButtonRole?,
-        action: @escaping () -> Void
+        action: @escaping () -> Void,
     ) -> some View {
         Button(role: role, action: action) {
             VStack(spacing: 4) {

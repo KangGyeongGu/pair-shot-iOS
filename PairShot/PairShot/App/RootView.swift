@@ -14,8 +14,8 @@ struct RootView: View {
             if env.permissionStatusService.isBlocked {
                 PermissionGateView(
                     viewModel: PermissionGateViewModel(
-                        permissionStatusService: env.permissionStatusService
-                    )
+                        permissionStatusService: env.permissionStatusService,
+                    ),
                 )
             } else {
                 NavigationStack(path: $path) {
@@ -41,7 +41,7 @@ struct RootView: View {
         }
         .alert(
             String(localized: "root_storage_init_failed_title"),
-            isPresented: $showFallbackAlert
+            isPresented: $showFallbackAlert,
         ) {
             Button(String(localized: "common_button_confirm"), role: .cancel) {
                 showFallbackAlert = false
@@ -93,7 +93,7 @@ struct RootView: View {
             },
             onPushSettings: {
                 path.append(.settings)
-            }
+            },
         )
     }
 
@@ -102,7 +102,7 @@ struct RootView: View {
             albumId: albumId,
             onPushExportSettings: { pairIds in
                 path.append(.exportSettings(pairIds: pairIds))
-            }
+            },
         )
     }
 
@@ -114,7 +114,7 @@ struct RootView: View {
             },
             onPushCombineSettings: {
                 path.append(.combineSettings)
-            }
+            },
         )
     }
 }

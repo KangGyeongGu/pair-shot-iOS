@@ -31,7 +31,7 @@ nonisolated struct CompositeOptions: Equatable {
         watermarkEnabled: false,
         watermark: nil,
         combineSettings: nil,
-        includeGPS: true
+        includeGPS: true,
     )
 
     var layout: CompositeLayout

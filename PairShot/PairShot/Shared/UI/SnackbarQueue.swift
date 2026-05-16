@@ -35,7 +35,7 @@ struct SnackbarItem: Identifiable, Equatable {
         isActionable: Bool,
         createdAt: Date,
         id: UUID = UUID(),
-        token: String? = nil
+        token: String? = nil,
     ) {
         self.id = id
         self.token = token
@@ -71,7 +71,7 @@ final class SnackbarQueue {
 
     init(
         hapticService: HapticService = HapticService(),
-        clock: @escaping @MainActor () -> Date = { Date() }
+        clock: @escaping @MainActor () -> Date = { Date() },
     ) {
         self.hapticService = hapticService
         self.clock = clock
@@ -81,7 +81,7 @@ final class SnackbarQueue {
         _ message: LocalizedStringResource,
         variant: SnackbarVariant = .info,
         isActionable: Bool = false,
-        debounceKey: String? = nil
+        debounceKey: String? = nil,
     ) {
         let now = clock()
         if let key = debounceKey,
@@ -97,7 +97,7 @@ final class SnackbarQueue {
             message: message,
             variant: variant,
             isActionable: isActionable,
-            createdAt: now
+            createdAt: now,
         )
         pending.append(item)
         if let kind = hapticKind(for: variant) {
@@ -121,7 +121,7 @@ final class SnackbarQueue {
     func enqueueProgress(
         _ message: LocalizedStringResource,
         token: String,
-        initialValue: Double? = nil
+        initialValue: Double? = nil,
     ) -> SnackbarProgressHandle {
         let now = clock()
         let variant: SnackbarVariant =
@@ -132,7 +132,7 @@ final class SnackbarQueue {
             variant: variant,
             isActionable: false,
             createdAt: now,
-            token: token
+            token: token,
         )
         if current?.token == token {
             current = item
@@ -158,7 +158,7 @@ final class SnackbarQueue {
                 isActionable: false,
                 createdAt: active.createdAt,
                 id: active.id,
-                token: active.token
+                token: active.token,
             )
         } else if let index = pending.firstIndex(where: { $0.token == handle.token }) {
             let existing = pending[index]
@@ -168,7 +168,7 @@ final class SnackbarQueue {
                 isActionable: false,
                 createdAt: now,
                 id: existing.id,
-                token: existing.token
+                token: existing.token,
             )
         }
     }
@@ -176,7 +176,7 @@ final class SnackbarQueue {
     func completeProgress(
         _ handle: SnackbarProgressHandle,
         finalMessage: LocalizedStringResource? = nil,
-        finalVariant: SnackbarVariant = .success
+        finalVariant: SnackbarVariant = .success,
     ) {
         if let active = current, active.token == handle.token {
             dismissTask?.cancel()
@@ -188,7 +188,7 @@ final class SnackbarQueue {
                     variant: finalVariant,
                     isActionable: false,
                     createdAt: now,
-                    token: nil
+                    token: nil,
                 )
                 current = replacement
                 scheduleDismiss(for: replacement)

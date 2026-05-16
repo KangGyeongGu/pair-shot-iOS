@@ -26,8 +26,8 @@ struct SubscriptionSettingsSection: View {
             SettingsIconBadge(
                 icon: SettingsRowIcon(
                     systemImage: membership.proIsActive ? "checkmark.seal.fill" : "person.crop.circle",
-                    color: membership.proIsActive ? .yellow : .gray
-                )
+                    color: membership.proIsActive ? .yellow : .gray,
+                ),
             )
             VStack(alignment: .leading, spacing: 2) {
                 Text(String(localized: "settings_subscription_membership"))
@@ -72,7 +72,7 @@ struct SubscriptionSettingsSection: View {
             Button {
                 PromotionRedemptionLink.open(
                     config: env.couponApiConfig,
-                    deviceHashProvider: env.deviceHashProvider
+                    deviceHashProvider: env.deviceHashProvider,
                 )
             } label: {
                 HStack(spacing: 4) {
@@ -93,7 +93,7 @@ struct SubscriptionSettingsSection: View {
         } label: {
             HStack(spacing: 12) {
                 SettingsIconBadge(
-                    icon: SettingsRowIcon(systemImage: "crown.fill", color: .yellow)
+                    icon: SettingsRowIcon(systemImage: "crown.fill", color: .yellow),
                 )
                 Text(String(localized: "settings_subscription_upgrade"))
                     .foregroundStyle(.primary)
@@ -112,7 +112,7 @@ struct SubscriptionSettingsSection: View {
         } label: {
             HStack(spacing: 12) {
                 SettingsIconBadge(
-                    icon: SettingsRowIcon(systemImage: "gearshape.fill", color: .blue)
+                    icon: SettingsRowIcon(systemImage: "gearshape.fill", color: .blue),
                 )
                 Text(String(localized: "settings_subscription_manage"))
                     .foregroundStyle(.primary)
@@ -131,7 +131,7 @@ struct SubscriptionSettingsSection: View {
         } label: {
             HStack(spacing: 12) {
                 SettingsIconBadge(
-                    icon: SettingsRowIcon(systemImage: "arrow.clockwise", color: .blue)
+                    icon: SettingsRowIcon(systemImage: "arrow.clockwise", color: .blue),
                 )
                 Text(String(localized: "settings_subscription_restore"))
                     .foregroundStyle(.primary)
@@ -166,7 +166,7 @@ struct SubscriptionSettingsSection: View {
         formatter.timeStyle = .none
         return String(
             format: String(localized: "settings_subscription_membership_expires_template"),
-            formatter.string(from: date)
+            formatter.string(from: date),
         )
     }
 }

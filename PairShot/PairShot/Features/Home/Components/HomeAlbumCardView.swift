@@ -58,8 +58,8 @@ struct HomeAlbumCardView: View {
             Self.accessibilityLabel(
                 for: album,
                 isSelected: isSelected,
-                isSelectionMode: isSelectionMode
-            )
+                isSelectionMode: isSelectionMode,
+            ),
         )
     }
 
@@ -77,7 +77,7 @@ struct HomeAlbumCardView: View {
     static func accessibilityLabel(
         for album: Album,
         isSelected: Bool,
-        isSelectionMode: Bool
+        isSelectionMode: Bool,
     ) -> String {
         let countText = String(format: String(localized: "home_pair_count_int"), album.pairIds.count)
         let selectionText: String? =

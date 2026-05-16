@@ -12,7 +12,7 @@ struct FilenamePrefixView: View {
             Section {
                 TextField(
                     String(localized: "settings_dialog_prefix_hint"),
-                    text: $draft
+                    text: $draft,
                 )
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled(true)

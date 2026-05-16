@@ -25,7 +25,7 @@ struct HomeView: View {
     init(
         onOpenAlbum: ((UUID) -> Void)? = nil,
         onPushExportSettings: (([UUID]) -> Void)? = nil,
-        onPushSettings: (() -> Void)? = nil
+        onPushSettings: (() -> Void)? = nil,
     ) {
         self.onOpenAlbum = onOpenAlbum
         self.onPushExportSettings = onPushExportSettings
@@ -57,13 +57,13 @@ struct HomeView: View {
             HomeSelectionToolbar(
                 viewModel: viewModel,
                 sortedPairs: viewModel.sortedPairs(from: domainPairs),
-                sortedAlbums: viewModel.sortedAlbums(from: domainAlbums)
+                sortedAlbums: viewModel.sortedAlbums(from: domainAlbums),
             )
         } else {
             HomeDefaultToolbar(
                 viewModel: viewModel,
                 onPushSettings: onPushSettings,
-                isPro: membership.proIsActive
+                isPro: membership.proIsActive,
             )
         }
     }
@@ -87,7 +87,7 @@ struct HomeView: View {
     private func content(
         for viewModel: HomeViewModel,
         domainPairs: [PhotoPair],
-        domainAlbums: [Album]
+        domainAlbums: [Album],
     ) -> some View {
         @Bindable var bindable = viewModel
         let sortedPairs = viewModel.sortedPairs(from: domainPairs)
@@ -100,7 +100,7 @@ struct HomeView: View {
                 contentMode: $bindable.contentMode,
                 sortOrder: $bindable.sortOrder,
                 onModeChange: viewModel.switchContentMode(to:),
-                onSortOrderChange: viewModel.setSortOrder(_:)
+                onSortOrderChange: viewModel.setSortOrder(_:),
             )
             .padding(.horizontal, 20)
             .padding(.vertical, 8)
@@ -113,7 +113,7 @@ struct HomeView: View {
                 viewModel: viewModel,
                 sortedPairs: sortedPairs,
                 sortedAlbums: sortedAlbums,
-                onPushExportSettings: onPushExportSettings
+                onPushExportSettings: onPushExportSettings,
             )
         }
         .modifier(HomeViewSheetModifiers(viewModel: viewModel))
@@ -123,7 +123,7 @@ struct HomeView: View {
     private func grids(
         viewModel: HomeViewModel,
         sortedPairs: [PhotoPair],
-        sortedAlbums: [Album]
+        sortedAlbums: [Album],
     ) -> some View {
         switch viewModel.contentMode {
             case .pairs:
@@ -151,7 +151,7 @@ struct HomeView: View {
                     let result = PairListWithAdsBuilder.buildChunks(
                         pairs: group.pairs,
                         adFree: membership.adFreeIsActive,
-                        startingAdSlotIndex: slotIndex
+                        startingAdSlotIndex: slotIndex,
                     )
                     slotIndex = result.nextSlotIndex
                     return (group.date, group.pairs, result.chunks)
@@ -163,7 +163,7 @@ struct HomeView: View {
                         viewModel: viewModel,
                         date: group.date,
                         pairs: group.pairs,
-                        chunks: group.chunks
+                        chunks: group.chunks,
                     )
                 }
             }
@@ -177,7 +177,7 @@ struct HomeView: View {
         viewModel: HomeViewModel,
         date: Date,
         pairs: [PhotoPair],
-        chunks: [PairListWithAdsBuilder.PairChunk]
+        chunks: [PairListWithAdsBuilder.PairChunk],
     ) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(Self.formatDateHeader(date))
@@ -204,12 +204,12 @@ struct HomeView: View {
     private func pairCell(
         viewModel: HomeViewModel,
         pair: PhotoPair,
-        allPairs: [PhotoPair]
+        allPairs: [PhotoPair],
     ) -> some View {
         HomePairCardView(
             pair: pair,
             isSelectionMode: viewModel.isSelectionMode,
-            isSelected: viewModel.selectedPairIds.contains(pair.id)
+            isSelected: viewModel.selectedPairIds.contains(pair.id),
         )
         .contentShape(.rect)
         .onTapGesture { viewModel.tapPair(pair, allPairs: allPairs) }
@@ -221,7 +221,7 @@ struct HomeView: View {
                     } label: {
                         Label(
                             String(localized: "pair_preview_menu_recapture"),
-                            systemImage: "camera.rotate"
+                            systemImage: "camera.rotate",
                         )
                     }
                 }
@@ -230,7 +230,7 @@ struct HomeView: View {
                 } label: {
                     Label(
                         String(localized: "common_button_share"),
-                        systemImage: "square.and.arrow.up"
+                        systemImage: "square.and.arrow.up",
                     )
                 }
                 Button {
@@ -238,7 +238,7 @@ struct HomeView: View {
                 } label: {
                     Label(
                         String(localized: "common_button_export"),
-                        systemImage: "square.and.arrow.down"
+                        systemImage: "square.and.arrow.down",
                     )
                 }
                 Button(role: .destructive) {
@@ -282,7 +282,7 @@ struct HomeView: View {
         HomeAlbumCardView(
             album: album,
             isSelectionMode: viewModel.isSelectionMode,
-            isSelected: viewModel.selectedAlbumIds.contains(album.id)
+            isSelected: viewModel.selectedAlbumIds.contains(album.id),
         )
         .contentShape(.rect)
         .onTapGesture {

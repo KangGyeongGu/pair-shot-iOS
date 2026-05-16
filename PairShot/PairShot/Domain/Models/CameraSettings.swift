@@ -76,7 +76,7 @@ nonisolated struct CameraSettings: Codable, Equatable {
     init(
         zoomFactor: Double = 1.0,
         lensPosition: LensPosition = .backWide,
-        aspectRatio: AspectRatio? = nil
+        aspectRatio: AspectRatio? = nil,
     ) {
         self.zoomFactor = zoomFactor
         self.lensPosition = lensPosition

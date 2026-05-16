@@ -57,7 +57,7 @@ struct CameraBottomBar: View {
                         .clipShape(RoundedRectangle(cornerRadius: thumbnailCornerRadius))
                         .overlay(
                             RoundedRectangle(cornerRadius: thumbnailCornerRadius)
-                                .stroke(Color.white.opacity(0.3), lineWidth: 1)
+                                .stroke(Color.white.opacity(0.3), lineWidth: 1),
                         )
                         .accessibilityLabel(String(localized: "camera_desc_last_thumbnail"))
                 } else {

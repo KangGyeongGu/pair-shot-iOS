@@ -13,35 +13,35 @@ struct MembershipInputs: Equatable {
 enum MembershipResolver {
     static func proIsActive(
         subscription: SubscriptionStore,
-        promotion: PromotionStore
+        promotion: PromotionStore,
     ) -> Bool {
         proIsActive(inputs: snapshot(subscription: subscription, promotion: promotion))
     }
 
     static func proExpiresAt(
         subscription: SubscriptionStore,
-        promotion: PromotionStore
+        promotion: PromotionStore,
     ) -> Date? {
         proExpiresAt(inputs: snapshot(subscription: subscription, promotion: promotion))
     }
 
     static func adFreeIsActive(
         subscription: SubscriptionStore,
-        promotion: PromotionStore
+        promotion: PromotionStore,
     ) -> Bool {
         adFreeIsActive(inputs: snapshot(subscription: subscription, promotion: promotion))
     }
 
     static func adFreeExpiresAt(
         subscription: SubscriptionStore,
-        promotion: PromotionStore
+        promotion: PromotionStore,
     ) -> Date? {
         adFreeExpiresAt(inputs: snapshot(subscription: subscription, promotion: promotion))
     }
 
     private static func snapshot(
         subscription: SubscriptionStore,
-        promotion: PromotionStore
+        promotion: PromotionStore,
     ) -> MembershipInputs {
         MembershipInputs(
             subscriptionIsPro: subscription.isPro,
@@ -49,7 +49,7 @@ enum MembershipResolver {
             promotionProIsActive: promotion.proIsActive,
             promotionProExpiresAt: promotion.proExpiresAt,
             promotionAdFreeIsActive: promotion.adFreeIsActive,
-            promotionAdFreeExpiresAt: promotion.adFreeExpiresAt
+            promotionAdFreeExpiresAt: promotion.adFreeExpiresAt,
         )
     }
 }
@@ -64,7 +64,7 @@ extension MembershipResolver {
             subscriptionActive: inputs.subscriptionIsPro,
             subscriptionExpiry: inputs.subscriptionExpiresAt,
             promotionActive: inputs.promotionProIsActive,
-            promotionExpiry: inputs.promotionProExpiresAt
+            promotionExpiry: inputs.promotionProExpiresAt,
         )
     }
 
@@ -79,7 +79,7 @@ extension MembershipResolver {
             subscriptionActive: proActive,
             subscriptionExpiry: proExpiry,
             promotionActive: inputs.promotionAdFreeIsActive,
-            promotionExpiry: inputs.promotionAdFreeExpiresAt
+            promotionExpiry: inputs.promotionAdFreeExpiresAt,
         )
     }
 
@@ -87,7 +87,7 @@ extension MembershipResolver {
         subscriptionActive: Bool,
         subscriptionExpiry: Date?,
         promotionActive: Bool,
-        promotionExpiry: Date?
+        promotionExpiry: Date?,
     ) -> Date? {
         let subValue = subscriptionActive ? subscriptionExpiry : nil
         let promoValue = promotionActive ? promotionExpiry : nil

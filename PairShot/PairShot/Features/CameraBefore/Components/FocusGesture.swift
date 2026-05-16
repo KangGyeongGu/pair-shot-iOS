@@ -12,7 +12,7 @@ enum FocusGestureMath {
         dragY: CGFloat,
         viewHeight: CGFloat,
         startBias: Float,
-        range: ClosedRange<Float>
+        range: ClosedRange<Float>,
     ) -> Float {
         guard viewHeight > 0 else { return startBias }
         let span = range.upperBound - range.lowerBound
@@ -24,7 +24,7 @@ enum FocusGestureMath {
     @MainActor
     static func devicePoint(
         forTap point: CGPoint,
-        in previewLayer: AVCaptureVideoPreviewLayer?
+        in previewLayer: AVCaptureVideoPreviewLayer?,
     ) -> CGPoint {
         guard let previewLayer else { return CGPoint(x: 0.5, y: 0.5) }
         return previewLayer.captureDevicePointConverted(fromLayerPoint: point)
@@ -55,7 +55,7 @@ struct FocusGestureView: View {
                         }
                         .onEnded { _ in
                             dragStartBias = nil
-                        }
+                        },
                 )
         }
     }
@@ -76,7 +76,7 @@ struct FocusGestureView: View {
             dragY: value.translation.height,
             viewHeight: viewHeight,
             startBias: dragStartBias ?? 0,
-            range: range
+            range: range,
         )
         onExposureBias(bias)
         if var current = indicator {

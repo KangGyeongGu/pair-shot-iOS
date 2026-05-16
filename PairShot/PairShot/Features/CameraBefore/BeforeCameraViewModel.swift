@@ -95,7 +95,7 @@ final class BeforeCameraViewModel {
         sortOrder: HomeSortOrder = .newest,
         refillPairId: UUID? = nil,
         session: CameraSession? = nil,
-        permissionProbe: @escaping @Sendable () async -> Bool = CameraPermissionProbe.resolve
+        permissionProbe: @escaping @Sendable () async -> Bool = CameraPermissionProbe.resolve,
     ) {
         self.albumId = albumId
         self.refillPairId = refillPairId

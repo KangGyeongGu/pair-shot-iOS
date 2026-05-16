@@ -10,7 +10,7 @@ struct ExportPairsUseCase {
 
     init(
         zipExporter: ZipExporterAdapter,
-        now: @escaping @Sendable () -> Date = { .now }
+        now: @escaping @Sendable () -> Date = { .now },
     ) {
         self.zipExporter = zipExporter
         self.now = now
@@ -20,7 +20,7 @@ struct ExportPairsUseCase {
         ids: [UUID],
         selection: ExportContents,
         renderOptions: ExportRenderOptions,
-        tempDirectory: URL = FileManager.default.temporaryDirectory
+        tempDirectory: URL = FileManager.default.temporaryDirectory,
     ) async throws -> URL {
         guard !ids.isEmpty else { throw ExportError.noPairs }
         return try await zipExporter.exportPairsToZip(
@@ -28,7 +28,7 @@ struct ExportPairsUseCase {
             selection: selection,
             renderOptions: renderOptions,
             in: tempDirectory,
-            now: now()
+            now: now(),
         )
     }
 }

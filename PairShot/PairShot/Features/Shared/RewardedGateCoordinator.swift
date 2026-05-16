@@ -14,20 +14,20 @@ struct RewardedGateCoordinator {
 
     func shouldProceedWithoutGate(
         unlockID: RewardedAdManager.UnlockID,
-        rewardedManager: RewardedAdManager
+        rewardedManager: RewardedAdManager,
     ) -> Bool {
         !RewardedSessionGate.shouldShowGate(
             unlockID: unlockID,
             sessionUnlocks: rewardedManager.sessionUnlocks,
             isAdFree: membership?.adFreeBySolePromotion ?? false,
-            isPro: membership?.proIsActive ?? false
+            isPro: membership?.proIsActive ?? false,
         )
     }
 
     func loadAd(rewardedManager: RewardedAdManager) {
         rewardedManager.loadIfNeeded(
             promotionStore: membership?.promotionStore,
-            subscriptionStore: membership?.subscriptionStore
+            subscriptionStore: membership?.subscriptionStore,
         )
     }
 
@@ -35,7 +35,7 @@ struct RewardedGateCoordinator {
         unlockID: RewardedAdManager.UnlockID,
         rewardedManager: RewardedAdManager,
         coordinator: FullscreenAdCoordinator,
-        rootViewController: UIViewController?
+        rootViewController: UIViewController?,
     ) async -> RewardedGateOutcome {
         if shouldProceedWithoutGate(unlockID: unlockID, rewardedManager: rewardedManager) {
             return RewardedGateOutcome(result: .proceed, failureReason: nil)
@@ -44,7 +44,7 @@ struct RewardedGateCoordinator {
             loadAd(rewardedManager: rewardedManager)
             return RewardedGateOutcome(
                 result: .adNotReady,
-                failureReason: String(localized: "rewarded_gate_load_failed")
+                failureReason: String(localized: "rewarded_gate_load_failed"),
             )
         }
         let outcome = await rewardedManager.presentForReward(
@@ -52,7 +52,7 @@ struct RewardedGateCoordinator {
             from: rootViewController,
             coordinator: coordinator,
             promotionStore: membership?.promotionStore,
-            subscriptionStore: membership?.subscriptionStore
+            subscriptionStore: membership?.subscriptionStore,
         )
         return mapOutcome(outcome)
     }
@@ -65,17 +65,17 @@ struct RewardedGateCoordinator {
             case .userClosed:
                 return RewardedGateOutcome(
                     result: .userClosed,
-                    failureReason: String(localized: "rewarded_gate_failure_not_completed")
+                    failureReason: String(localized: "rewarded_gate_failure_not_completed"),
                 )
 
             case let .failed(reason):
                 let formatted = String(
                     format: String(localized: "rewarded_gate_failure_show_failed_template"),
-                    reason
+                    reason,
                 )
                 return RewardedGateOutcome(
                     result: .failed(reason: reason),
-                    failureReason: formatted
+                    failureReason: formatted,
                 )
         }
     }

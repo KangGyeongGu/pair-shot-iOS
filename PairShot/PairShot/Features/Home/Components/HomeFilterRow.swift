@@ -47,7 +47,7 @@ struct HomeFilterRow: View {
             set: { newValue in
                 sortOrder = newValue
                 onSortOrderChange(newValue)
-            }
+            },
         )
     }
 }

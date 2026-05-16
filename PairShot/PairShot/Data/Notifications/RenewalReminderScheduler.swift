@@ -12,7 +12,7 @@ final class RenewalReminderScheduler {
 
     init(
         center: UNUserNotificationCenter = .current(),
-        calendar: Calendar = .autoupdatingCurrent
+        calendar: Calendar = .autoupdatingCurrent,
     ) {
         self.center = center
         self.calendar = calendar
@@ -22,18 +22,18 @@ final class RenewalReminderScheduler {
         productID: String,
         expirationDate: Date,
         productDisplayName: String,
-        now: Date = .now
+        now: Date = .now,
     ) async {
         guard let triggerDate = Self.reminderTriggerDate(
             expirationDate: expirationDate,
             leadDays: Self.leadDays,
             now: now,
-            calendar: calendar
+            calendar: calendar,
         ) else {
             await removePending(productID: productID)
             AppLogger.subscription
                 .info(
-                    "RenewalReminder skip product=\(productID, privacy: .public) reason=trigger_in_past"
+                    "RenewalReminder skip product=\(productID, privacy: .public) reason=trigger_in_past",
                 )
             return
         }
@@ -41,7 +41,7 @@ final class RenewalReminderScheduler {
         guard await ensureAuthorization() else {
             AppLogger.subscription
                 .info(
-                    "RenewalReminder skip product=\(productID, privacy: .public) reason=permission_denied"
+                    "RenewalReminder skip product=\(productID, privacy: .public) reason=permission_denied",
                 )
             return
         }
@@ -61,12 +61,12 @@ final class RenewalReminderScheduler {
             try await center.add(request)
             AppLogger.subscription
                 .info(
-                    "RenewalReminder scheduled product=\(productID, privacy: .public) fire=\(triggerDate.timeIntervalSince1970, privacy: .public)"
+                    "RenewalReminder scheduled product=\(productID, privacy: .public) fire=\(triggerDate.timeIntervalSince1970, privacy: .public)",
                 )
         } catch {
             AppLogger.subscription
                 .error(
-                    "RenewalReminder add failed product=\(productID, privacy: .public) error=\(error.localizedDescription, privacy: .public)"
+                    "RenewalReminder add failed product=\(productID, privacy: .public) error=\(error.localizedDescription, privacy: .public)",
                 )
         }
     }
@@ -98,7 +98,7 @@ final class RenewalReminderScheduler {
                 } catch {
                     AppLogger.subscription
                         .error(
-                            "RenewalReminder authorization error=\(error.localizedDescription, privacy: .public)"
+                            "RenewalReminder authorization error=\(error.localizedDescription, privacy: .public)",
                         )
                     return false
                 }
@@ -130,12 +130,12 @@ final class RenewalReminderScheduler {
         expirationDate: Date,
         leadDays: Int,
         now: Date,
-        calendar: Calendar
+        calendar: Calendar,
     ) -> Date? {
         guard let triggerDate = calendar.date(
             byAdding: .day,
             value: -leadDays,
-            to: expirationDate
+            to: expirationDate,
         ) else { return nil }
         guard triggerDate > now else { return nil }
         return triggerDate

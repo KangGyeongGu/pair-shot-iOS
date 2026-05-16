@@ -44,7 +44,7 @@ struct SnackbarBanner: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .adaptiveGlass(
             in: RoundedRectangle(cornerRadius: 22, style: .continuous),
-            kind: .regular
+            kind: .regular,
         )
         .shadow(color: Color.black.opacity(0.18), radius: 10, y: 3)
         .padding(.horizontal, 12)

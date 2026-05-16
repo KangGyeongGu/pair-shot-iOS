@@ -57,8 +57,8 @@ final class PhotoLibraryExport: Sendable {
                     } else if let error {
                         continuation.resume(
                             throwing: PhotoLibraryExportError.writeFailed(
-                                String(describing: error)
-                            )
+                                String(describing: error),
+                            ),
                         )
                     } else {
                         continuation.resume(throwing: PhotoLibraryExportError.writeFailed("unknown"))
@@ -70,7 +70,7 @@ final class PhotoLibraryExport: Sendable {
             return identifier
         } catch {
             AppLogger.storage.error(
-                "PhotoLibraryExport saveImageData failed: \(error.localizedDescription, privacy: .public)"
+                "PhotoLibraryExport saveImageData failed: \(error.localizedDescription, privacy: .public)",
             )
             throw error
         }

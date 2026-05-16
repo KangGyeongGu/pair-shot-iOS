@@ -9,7 +9,7 @@ extension AlbumDetailViewModel {
             manager: interstitialAdManager,
             promotionStore: membership.promotionStore,
             subscriptionStore: membership.subscriptionStore,
-            coordinator: fullscreenAdCoordinator
+            coordinator: fullscreenAdCoordinator,
         ) { [weak self] in
             await self?.performShare(pairs: chosen)
         }
@@ -23,7 +23,7 @@ extension AlbumDetailViewModel {
             manager: interstitialAdManager,
             promotionStore: membership.promotionStore,
             subscriptionStore: membership.subscriptionStore,
-            coordinator: fullscreenAdCoordinator
+            coordinator: fullscreenAdCoordinator,
         ) { [weak self] in
             await self?.performSaveToDevice(pairs: chosen)
         }
@@ -35,7 +35,7 @@ extension AlbumDetailViewModel {
             manager: interstitialAdManager,
             promotionStore: membership.promotionStore,
             subscriptionStore: membership.subscriptionStore,
-            coordinator: fullscreenAdCoordinator
+            coordinator: fullscreenAdCoordinator,
         ) { [weak self] in
             await self?.performShare(pairs: [pair])
         }
@@ -47,7 +47,7 @@ extension AlbumDetailViewModel {
             manager: interstitialAdManager,
             promotionStore: membership.promotionStore,
             subscriptionStore: membership.subscriptionStore,
-            coordinator: fullscreenAdCoordinator
+            coordinator: fullscreenAdCoordinator,
         ) { [weak self] in
             await self?.performSaveToDevice(pairs: [pair])
         }

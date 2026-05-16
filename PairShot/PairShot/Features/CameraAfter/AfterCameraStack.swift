@@ -45,7 +45,7 @@ struct AfterCameraStack: View {
             let layout = CameraLayoutMath.compute(
                 totalSize: geo.size,
                 isAdFree: membership.adFreeIsActive,
-                aspect: aspect
+                aspect: aspect,
             )
 
             ZStack(alignment: .top) {
@@ -59,7 +59,7 @@ struct AfterCameraStack: View {
                             .frame(width: layout.previewWidth, height: layout.previewHeight)
                             .offset(
                                 x: layout.previewLeadingInsetInSlot,
-                                y: layout.previewTopInsetInSlot
+                                y: layout.previewTopInsetInSlot,
                             )
                     }
                     .frame(width: layout.slotWidth, height: layout.slotHeight)
@@ -67,7 +67,7 @@ struct AfterCameraStack: View {
                     AfterCameraStrip(
                         pairs: pairs,
                         selectedPairId: selectedPairId,
-                        stripZoneHeight: layout.stripHeight
+                        stripZoneHeight: layout.stripHeight,
                     )
                     .frame(maxWidth: .infinity)
                     .frame(height: layout.stripHeight)
@@ -79,7 +79,7 @@ struct AfterCameraStack: View {
                         zoneHeight: layout.shutterHeight,
                         onLeadingTap: onLeadingTap,
                         onShutter: onShutter,
-                        onSettingsTap: onSettingsTap
+                        onSettingsTap: onSettingsTap,
                     )
                     .opacity(canCapture ? 1.0 : 0.6)
                     .frame(maxWidth: .infinity)
@@ -115,7 +115,7 @@ struct AfterCameraStack: View {
                         maxRatio: maxZoomRatio,
                         onSelect: onApplyPreset,
                         onDragChanged: onZoomDragChanged,
-                        onDragEnded: onZoomDragEnded
+                        onDragEnded: onZoomDragEnded,
                     )
                     Spacer()
                 }
@@ -145,7 +145,7 @@ struct AfterCameraStack: View {
         ZStack {
             AfterCameraPreviewLayer(
                 session: captureSession,
-                onMakeView: onMakePreviewView
+                onMakeView: onMakePreviewView,
             )
             .clipped()
 
@@ -155,7 +155,7 @@ struct AfterCameraStack: View {
                 isEnabled: overlayEnabled,
                 rotationDegrees: ghostRotationDegrees,
                 width: width,
-                height: previewHeight
+                height: previewHeight,
             )
 
             if isGridOn {

@@ -14,7 +14,7 @@ struct PhotosLimitedAccessButton: View {
                 } label: {
                     Label(
                         String(localized: "photos_add_more"),
-                        systemImage: "photo.badge.plus"
+                        systemImage: "photo.badge.plus",
                     )
                 }
             }

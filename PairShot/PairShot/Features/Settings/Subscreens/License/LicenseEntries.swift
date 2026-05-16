@@ -18,19 +18,19 @@ enum LicenseEntries {
             name: "Google Mobile Ads SDK",
             author: "Google",
             licenseType: "Apache 2.0",
-            url: apacheTwoURL
+            url: apacheTwoURL,
         ),
         LicenseEntry(
             name: "Google User Messaging Platform",
             author: "Google",
             licenseType: "Apache 2.0",
-            url: apacheTwoURL
+            url: apacheTwoURL,
         ),
         LicenseEntry(
             name: "ZIPFoundation",
             author: "Thomas Zoechling",
             licenseType: "MIT",
-            url: zipFoundationURL
+            url: zipFoundationURL,
         ),
     ]
 

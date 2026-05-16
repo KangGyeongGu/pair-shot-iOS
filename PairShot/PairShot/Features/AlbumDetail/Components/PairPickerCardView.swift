@@ -10,7 +10,7 @@ struct PairPickerCardView: View {
             HomePairCardView(
                 pair: pair,
                 isSelectionMode: false,
-                isSelected: false
+                isSelected: false,
             )
 
             if isAlreadyInAlbum {
@@ -54,7 +54,7 @@ struct PairPickerCardView: View {
             RoundedRectangle(cornerRadius: 10)
                 .strokeBorder(
                     Color(uiColor: .separator).opacity(0.8),
-                    lineWidth: 2
+                    lineWidth: 2,
                 )
                 .allowsHitTesting(false)
         } else if isSelected {
@@ -77,7 +77,7 @@ struct PairPickerCardView: View {
         let base = HomePairCardView.accessibilityLabel(
             for: pair,
             isSelected: false,
-            isSelectionMode: false
+            isSelectionMode: false,
         )
         if isAlreadyInAlbum {
             return base + ", " + String(localized: "pair_picker_already_added")

@@ -4,50 +4,50 @@ import Testing
 
 @MainActor
 struct PairLimitGateTests {
-    @Test("Pro user is never gated regardless of today's count")
-    func proIsNeverGated() {
+    @Test
+    func `Pro user is never gated regardless of today's count`() {
         for count in [0, 3, 4, 5, 6, 100] {
             #expect(
-                PairLimitGate.shouldGatePairCreation(isPro: true, todayCreatedCount: count) == false
+                PairLimitGate.shouldGatePairCreation(isPro: true, todayCreatedCount: count) == false,
             )
         }
     }
 
-    @Test("Free user with today's count below 5 is not gated")
-    func freeBelowLimitIsNotGated() {
+    @Test
+    func `Free user with today's count below 5 is not gated`() {
         for count in 0 ..< PairLimitGate.freeTierDailyLimit {
             #expect(
-                PairLimitGate.shouldGatePairCreation(isPro: false, todayCreatedCount: count) == false
+                PairLimitGate.shouldGatePairCreation(isPro: false, todayCreatedCount: count) == false,
             )
         }
     }
 
-    @Test("Free user at exactly 5 pairs created today is gated")
-    func freeAtLimitIsGated() {
+    @Test
+    func `Free user at exactly 5 pairs created today is gated`() {
         #expect(
             PairLimitGate.shouldGatePairCreation(
                 isPro: false,
-                todayCreatedCount: PairLimitGate.freeTierDailyLimit
-            ) == true
+                todayCreatedCount: PairLimitGate.freeTierDailyLimit,
+            ) == true,
         )
     }
 
-    @Test("Free user above 5 pairs today is gated")
-    func freeAboveLimitIsGated() {
+    @Test
+    func `Free user above 5 pairs today is gated`() {
         for count in [6, 7, 50] {
             #expect(
-                PairLimitGate.shouldGatePairCreation(isPro: false, todayCreatedCount: count) == true
+                PairLimitGate.shouldGatePairCreation(isPro: false, todayCreatedCount: count) == true,
             )
         }
     }
 
-    @Test("freeTierDailyLimit constant is 5")
-    func freeTierDailyIsFive() {
+    @Test
+    func `freeTierDailyLimit constant is 5`() {
         #expect(PairLimitGate.freeTierDailyLimit == 5)
     }
 
-    @Test("startOfToday returns midnight in given calendar")
-    func startOfTodayReturnsMidnight() {
+    @Test
+    func `startOfToday returns midnight in given calendar`() {
         let calendar = Calendar(identifier: .gregorian)
         var components = DateComponents()
         components.year = 2026

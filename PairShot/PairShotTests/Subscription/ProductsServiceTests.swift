@@ -7,10 +7,9 @@ import Testing
 @MainActor
 struct ProductsServiceTests {
     @Test(
-        "loadProducts populates configured monthly and annual products",
-        .disabled("Xcode 26 SKTestSession 회귀 — Apple radar 트래킹")
+        .disabled("Xcode 26 SKTestSession 회귀 — Apple radar 트래킹"),
     )
-    func loadProductsReturnsConfiguredProducts() async throws {
+    func `loadProducts populates configured monthly and annual products`() async throws {
         let session = try SKTestSession(configurationFileNamed: "Configuration")
         session.disableDialogs = true
         session.clearTransactions()
@@ -24,10 +23,9 @@ struct ProductsServiceTests {
     }
 
     @Test(
-        "loadProducts returns subscription products with non-empty display name",
-        .disabled("Xcode 26 SKTestSession 회귀 — Apple radar 트래킹")
+        .disabled("Xcode 26 SKTestSession 회귀 — Apple radar 트래킹"),
     )
-    func loadedProductsHaveDisplayName() async throws {
+    func `loadProducts returns subscription products with non-empty display name`() async throws {
         let session = try SKTestSession(configurationFileNamed: "Configuration")
         session.disableDialogs = true
         session.clearTransactions()
@@ -43,8 +41,8 @@ struct ProductsServiceTests {
         _ = session
     }
 
-    @Test("loadProducts initial state has empty products array")
-    func initialStateIsEmpty() {
+    @Test
+    func `loadProducts initial state has empty products array`() {
         let service = ProductsService()
         #expect(service.products.isEmpty)
     }

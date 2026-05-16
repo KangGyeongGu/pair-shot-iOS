@@ -51,7 +51,7 @@ struct BeforeCameraView: View {
                             from: BannerAdView.resolveRootViewController(),
                             coordinator: env.fullscreenAdCoordinator,
                             promotionStore: promotionStore,
-                            subscriptionStore: subscriptionStore
+                            subscriptionStore: subscriptionStore,
                         )
                     }
                 }
@@ -74,21 +74,21 @@ struct BeforeCameraView: View {
                 AfterCameraView(
                     albumId: albumId,
                     initialPairId: target.pairId,
-                    sortOrder: .newest
+                    sortOrder: .newest,
                 )
             }
         }
         .captureErrorAlert(
             message: Binding(
                 get: { viewModel?.captureErrorMessage },
-                set: { viewModel?.captureErrorMessage = $0 }
-            )
+                set: { viewModel?.captureErrorMessage = $0 },
+            ),
         )
         .paywallSheet(
             isPresented: Binding(
                 get: { viewModel?.showPaywall ?? false },
-                set: { newValue in viewModel?.showPaywall = newValue }
-            )
+                set: { newValue in viewModel?.showPaywall = newValue },
+            ),
         )
     }
 
@@ -106,7 +106,7 @@ struct BeforeCameraView: View {
                 onToggleLevel: viewModel.toggleLevel,
                 onToggleNightMode: viewModel.toggleNightMode,
                 onCycleFlash: viewModel.cycleFlash,
-                onCycleAspect: viewModel.cycleAspect
+                onCycleAspect: viewModel.cycleAspect,
             )
             .animation(.spring(response: 0.3, dampingFraction: 0.85), value: showSettingsSheet)
         }
@@ -115,7 +115,7 @@ struct BeforeCameraView: View {
     init(
         albumId: UUID? = nil,
         refillPairId: UUID? = nil,
-        onHome: (() -> Void)? = nil
+        onHome: (() -> Void)? = nil,
     ) {
         self.albumId = albumId
         self.refillPairId = refillPairId
@@ -161,7 +161,7 @@ struct BeforeCameraView: View {
                 onShutter: { handleShutter(viewModel: viewModel) },
                 onLeadingTap: handleLeadingTap,
                 onToggleLens: viewModel.toggleLens,
-                onSettingsTap: { showSettingsSheet = true }
+                onSettingsTap: { showSettingsSheet = true },
             )
         }
     }
@@ -189,7 +189,7 @@ struct BeforeCameraView: View {
         guard viewModel == nil else { return }
         viewModel = env.makeBeforeCameraViewModel(
             albumId: albumId,
-            refillPairId: refillPairId
+            refillPairId: refillPairId,
         )
     }
 

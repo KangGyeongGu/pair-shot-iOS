@@ -96,25 +96,25 @@ struct PairShotApp: App {
         guard !hasBootstrappedAds else { return }
         hasBootstrappedAds = true
         #if canImport(GoogleMobileAds)
-            _ = await GADMobileAds.sharedInstance().start()
+            _ = await MobileAds.shared.start()
         #endif
         await env.promotionStore.refresh()
         env.interstitialAdManager.loadIfNeeded(
             promotionStore: env.promotionStore,
-            subscriptionStore: env.subscriptionStore
+            subscriptionStore: env.subscriptionStore,
         )
         env.appOpenAdManager.loadIfNeeded(
             promotionStore: env.promotionStore,
-            subscriptionStore: env.subscriptionStore
+            subscriptionStore: env.subscriptionStore,
         )
         env.rewardedAdManager.loadIfNeeded(
             promotionStore: env.promotionStore,
-            subscriptionStore: env.subscriptionStore
+            subscriptionStore: env.subscriptionStore,
         )
         env.nativeAdLoader.prefetch(
             count: 5,
             promotionStore: env.promotionStore,
-            subscriptionStore: env.subscriptionStore
+            subscriptionStore: env.subscriptionStore,
         )
     }
 
@@ -131,20 +131,20 @@ struct PairShotApp: App {
             await env.promotionStore.refresh()
             env.interstitialAdManager.loadIfNeeded(
                 promotionStore: env.promotionStore,
-                subscriptionStore: env.subscriptionStore
+                subscriptionStore: env.subscriptionStore,
             )
             env.appOpenAdManager.loadIfNeeded(
                 promotionStore: env.promotionStore,
-                subscriptionStore: env.subscriptionStore
+                subscriptionStore: env.subscriptionStore,
             )
             env.rewardedAdManager.loadIfNeeded(
                 promotionStore: env.promotionStore,
-                subscriptionStore: env.subscriptionStore
+                subscriptionStore: env.subscriptionStore,
             )
             env.nativeAdLoader.prefetch(
                 count: 5,
                 promotionStore: env.promotionStore,
-                subscriptionStore: env.subscriptionStore
+                subscriptionStore: env.subscriptionStore,
             )
             guard let backgroundedAt = enteredBackgroundAt,
                   Date().timeIntervalSince(backgroundedAt) >= Self.backgroundDwellThreshold
@@ -154,7 +154,7 @@ struct PairShotApp: App {
                 from: BannerAdView.resolveRootViewController(),
                 coordinator: env.fullscreenAdCoordinator,
                 promotionStore: env.promotionStore,
-                subscriptionStore: env.subscriptionStore
+                subscriptionStore: env.subscriptionStore,
             )
         }
     }
@@ -171,13 +171,13 @@ struct ModelContainerBootstrap {
                 for: .applicationSupportDirectory,
                 in: .userDomainMask,
                 appropriateFor: nil,
-                create: true
+                create: true,
             )
             let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
             let container = try ModelContainer(
                 for: schema,
                 migrationPlan: PairShotMigrationPlan.self,
-                configurations: [configuration]
+                configurations: [configuration],
             )
             return Self(container: container, fallbackActive: false)
         } catch {
@@ -186,7 +186,7 @@ struct ModelContainerBootstrap {
                 let container = try ModelContainer(
                     for: schema,
                     migrationPlan: PairShotMigrationPlan.self,
-                    configurations: [configuration]
+                    configurations: [configuration],
                 )
                 return Self(container: container, fallbackActive: true)
             } catch {

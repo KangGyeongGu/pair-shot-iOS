@@ -4,28 +4,28 @@ import Testing
 
 @MainActor
 struct AdSuppressionMergeTests {
-    @Test("Both flags false → ads shown (suppression = false)")
-    func bothFalseShowsAds() {
+    @Test
+    func `Both flags false → ads shown (suppression = false)`() {
         #expect(AdSuppression.isSuppressed(isAdFree: false, isPro: false) == false)
     }
 
-    @Test("Coupon active only → ads suppressed")
-    func couponOnlySuppresses() {
+    @Test
+    func `Coupon active only → ads suppressed`() {
         #expect(AdSuppression.isSuppressed(isAdFree: true, isPro: false) == true)
     }
 
-    @Test("Pro subscription only → ads suppressed")
-    func proOnlySuppresses() {
+    @Test
+    func `Pro subscription only → ads suppressed`() {
         #expect(AdSuppression.isSuppressed(isAdFree: false, isPro: true) == true)
     }
 
-    @Test("Both coupon and Pro → ads suppressed")
-    func bothActiveSuppresses() {
+    @Test
+    func `Both coupon and Pro → ads suppressed`() {
         #expect(AdSuppression.isSuppressed(isAdFree: true, isPro: true) == true)
     }
 
-    @Test("BannerAdGate.shouldShow mirrors OR-suppression for all 4 cases")
-    func bannerGateMatchesSuppression() {
+    @Test
+    func `BannerAdGate.shouldShow mirrors OR-suppression for all 4 cases`() {
         let cases: [(isAdFree: Bool, isPro: Bool, expected: Bool)] = [
             (false, false, true),
             (true, false, false),
@@ -34,37 +34,37 @@ struct AdSuppressionMergeTests {
         ]
         for input in cases {
             #expect(
-                BannerAdGate.shouldShow(isAdFree: input.isAdFree, isPro: input.isPro) == input.expected
+                BannerAdGate.shouldShow(isAdFree: input.isAdFree, isPro: input.isPro) == input.expected,
             )
         }
     }
 
-    @Test("RewardedSessionGate.shouldShowGate suppresses gate when Pro is active")
-    func rewardedGateRespectsPro() {
+    @Test
+    func `RewardedSessionGate.shouldShowGate suppresses gate when Pro is active`() {
         let unlock: RewardedAdManager.UnlockID = .compositionSettings
         #expect(
             RewardedSessionGate.shouldShowGate(
                 unlockID: unlock,
                 sessionUnlocks: [],
                 isAdFree: false,
-                isPro: true
-            ) == false
+                isPro: true,
+            ) == false,
         )
         #expect(
             RewardedSessionGate.shouldShowGate(
                 unlockID: unlock,
                 sessionUnlocks: [],
                 isAdFree: false,
-                isPro: false
-            ) == true
+                isPro: false,
+            ) == true,
         )
         #expect(
             RewardedSessionGate.shouldShowGate(
                 unlockID: unlock,
                 sessionUnlocks: [],
                 isAdFree: true,
-                isPro: false
-            ) == false
+                isPro: false,
+            ) == false,
         )
     }
 }

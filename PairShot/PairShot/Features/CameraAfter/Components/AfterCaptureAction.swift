@@ -27,7 +27,7 @@ struct AfterCameraScopeFetch {
     func fetch(
         initialPairId: UUID? = nil,
         sortOrder: HomeSortOrder = .newest,
-        calendar: Calendar = .current
+        calendar: Calendar = .current,
     ) async -> AfterCameraScopeSnapshot {
         let fetched = try? await pairRepo.fetchAll()
         let all = fetched ?? []

@@ -4,34 +4,34 @@ import Testing
 
 @MainActor
 struct ExportSettingsViewModelGateTests {
-    @Test("Free user with ZIP format triggers paywall on share")
-    func freeUserZipShareTriggersPaywall() async {
+    @Test
+    func `Free user with ZIP format triggers paywall on share`() async {
         let viewModel = Self.makeViewModel(format: .zip, watermarkEnabled: false)
         await viewModel.share()
         #expect(viewModel.showPaywall == true)
     }
 
-    @Test("Free user with ZIP format triggers paywall on save")
-    func freeUserZipSaveTriggersPaywall() async {
+    @Test
+    func `Free user with ZIP format triggers paywall on save`() async {
         let viewModel = Self.makeViewModel(format: .zip, watermarkEnabled: false)
         await viewModel.saveToDevice()
         #expect(viewModel.showPaywall == true)
     }
 
-    @Test("Free user selectFormat zip triggers paywall and does not switch format")
-    func selectZipTriggersPaywall() {
+    @Test
+    func `Free user selectFormat zip triggers paywall and does not switch format`() {
         let viewModel = Self.makeViewModel(format: .individualImages, watermarkEnabled: false)
         viewModel.selectFormat(.zip)
         #expect(viewModel.showPaywall == true)
         #expect(viewModel.format == .individualImages)
     }
 
-    @Test("Watermark enabled but blank triggers snackbar on share")
-    func watermarkBlankShareEnqueuesSnackbar() async {
+    @Test
+    func `Watermark enabled but blank triggers snackbar on share`() async {
         let viewModel = Self.makeViewModel(
             format: .individualImages,
             watermarkEnabled: true,
-            watermarkText: ""
+            watermarkText: "",
         )
         await viewModel.share()
         let item = viewModel.snackbarQueue.current
@@ -41,40 +41,40 @@ struct ExportSettingsViewModelGateTests {
         }
     }
 
-    @Test("Watermark enabled with non-blank text proceeds past gate")
-    func watermarkFilledPasses() {
+    @Test
+    func `Watermark enabled with non-blank text proceeds past gate`() {
         let viewModel = Self.makeViewModel(
             format: .individualImages,
             watermarkEnabled: true,
-            watermarkText: "Hello"
+            watermarkText: "Hello",
         )
         #expect(viewModel.ensureExportEligibility() == true)
     }
 
-    @Test("Watermark disabled bypasses watermark blank check")
-    func watermarkDisabledBypasses() {
+    @Test
+    func `Watermark disabled bypasses watermark blank check`() {
         let viewModel = Self.makeViewModel(
             format: .individualImages,
             watermarkEnabled: false,
-            watermarkText: ""
+            watermarkText: "",
         )
         #expect(viewModel.ensureExportEligibility() == true)
     }
 
-    @Test("watermarkSettingsBlank reflects appSettings.watermarkSettings.isBlank")
-    func watermarkBlankReflectsAppSettings() {
+    @Test
+    func `watermarkSettingsBlank reflects appSettings.watermarkSettings.isBlank`() {
         let viewModel = Self.makeViewModel(
             format: .individualImages,
             watermarkEnabled: true,
-            watermarkText: ""
+            watermarkText: "",
         )
         #expect(viewModel.watermarkSettingsBlank == true)
         viewModel.appSettings.watermarkSettings = WatermarkSettings(type: .text, text: "Brand")
         #expect(viewModel.watermarkSettingsBlank == false)
     }
 
-    @Test("applyWatermark setter mutates appSettings.watermarkEnabled (single source)")
-    func applyWatermarkRoutesToAppSettings() {
+    @Test
+    func `applyWatermark setter mutates appSettings.watermarkEnabled (single source)`() {
         let viewModel = Self.makeViewModel(format: .individualImages, watermarkEnabled: false)
         viewModel.applyWatermark = true
         #expect(viewModel.appSettings.watermarkEnabled == true)
@@ -85,7 +85,7 @@ struct ExportSettingsViewModelGateTests {
     private static func makeViewModel(
         format: ExportFormat,
         watermarkEnabled: Bool,
-        watermarkText: String = ""
+        watermarkText: String = "",
     ) -> ExportSettingsViewModel {
         let suiteName = "test-export-gate-\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName) ?? .standard
@@ -102,14 +102,14 @@ struct ExportSettingsViewModelGateTests {
                 zipExporter: ZipExporterAdapter(
                     photoLibrary: PhotoLibraryService(),
                     pairRepo: StubPhotoPairRepository(),
-                    appSettings: appSettings
-                )
+                    appSettings: appSettings,
+                ),
             ),
             photoLibraryExporter: PhotoLibraryExport(),
             snackbarQueue: SnackbarQueue(),
             appSettings: appSettings,
             preferences: preferences,
-            membership: nil
+            membership: nil,
         )
     }
 }

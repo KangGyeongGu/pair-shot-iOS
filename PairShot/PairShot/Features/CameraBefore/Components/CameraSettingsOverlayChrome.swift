@@ -24,7 +24,7 @@ struct CameraSettingsOverlayChrome<Content: View>: View {
     private var panel: some View {
         let panelShape = RoundedRectangle(
             cornerRadius: CameraSettingsOverlayMetrics.panelCornerRadius,
-            style: .continuous
+            style: .continuous,
         )
         return
             content
@@ -33,7 +33,7 @@ struct CameraSettingsOverlayChrome<Content: View>: View {
                 .adaptiveGlass(in: panelShape)
                 .clipShape(panelShape)
                 .overlay(
-                    panelShape.strokeBorder(Color.white.opacity(0.18), lineWidth: 0.5)
+                    panelShape.strokeBorder(Color.white.opacity(0.18), lineWidth: 0.5),
                 )
                 .shadow(color: Color.black.opacity(0.45), radius: 24, y: 8)
                 .accessibilityAddTraits(.isModal)

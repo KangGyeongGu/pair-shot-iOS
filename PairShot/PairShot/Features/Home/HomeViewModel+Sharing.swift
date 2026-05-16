@@ -9,7 +9,7 @@ extension HomeViewModel {
             manager: interstitialAdManager,
             promotionStore: membership.promotionStore,
             subscriptionStore: membership.subscriptionStore,
-            coordinator: fullscreenAdCoordinator
+            coordinator: fullscreenAdCoordinator,
         ) { [weak self] in
             await self?.performShare(pairs: chosen)
         }
@@ -23,7 +23,7 @@ extension HomeViewModel {
             manager: interstitialAdManager,
             promotionStore: membership.promotionStore,
             subscriptionStore: membership.subscriptionStore,
-            coordinator: fullscreenAdCoordinator
+            coordinator: fullscreenAdCoordinator,
         ) { [weak self] in
             await self?.performSaveToDevice(pairs: chosen)
         }
@@ -31,7 +31,7 @@ extension HomeViewModel {
 
     func shareSelectedAlbumPairs(from albums: [Album], allPairs: [PhotoPair]) async {
         let pairIds = Set(
-            albums.filter { selectedAlbumIds.contains($0.id) }.flatMap(\.pairIds)
+            albums.filter { selectedAlbumIds.contains($0.id) }.flatMap(\.pairIds),
         )
         guard !pairIds.isEmpty else { return }
         let chosen = allPairs.filter { pairIds.contains($0.id) }
@@ -40,7 +40,7 @@ extension HomeViewModel {
             manager: interstitialAdManager,
             promotionStore: membership.promotionStore,
             subscriptionStore: membership.subscriptionStore,
-            coordinator: fullscreenAdCoordinator
+            coordinator: fullscreenAdCoordinator,
         ) { [weak self] in
             await self?.performShare(pairs: chosen)
         }
@@ -48,7 +48,7 @@ extension HomeViewModel {
 
     func saveSelectedAlbumPairsToDevice(from albums: [Album], allPairs: [PhotoPair]) async {
         let pairIds = Set(
-            albums.filter { selectedAlbumIds.contains($0.id) }.flatMap(\.pairIds)
+            albums.filter { selectedAlbumIds.contains($0.id) }.flatMap(\.pairIds),
         )
         guard !pairIds.isEmpty else { return }
         let chosen = allPairs.filter { pairIds.contains($0.id) }
@@ -57,7 +57,7 @@ extension HomeViewModel {
             manager: interstitialAdManager,
             promotionStore: membership.promotionStore,
             subscriptionStore: membership.subscriptionStore,
-            coordinator: fullscreenAdCoordinator
+            coordinator: fullscreenAdCoordinator,
         ) { [weak self] in
             await self?.performSaveToDevice(pairs: chosen)
         }
@@ -69,7 +69,7 @@ extension HomeViewModel {
             manager: interstitialAdManager,
             promotionStore: membership.promotionStore,
             subscriptionStore: membership.subscriptionStore,
-            coordinator: fullscreenAdCoordinator
+            coordinator: fullscreenAdCoordinator,
         ) { [weak self] in
             await self?.performShare(pairs: [pair])
         }
@@ -81,7 +81,7 @@ extension HomeViewModel {
             manager: interstitialAdManager,
             promotionStore: membership.promotionStore,
             subscriptionStore: membership.subscriptionStore,
-            coordinator: fullscreenAdCoordinator
+            coordinator: fullscreenAdCoordinator,
         ) { [weak self] in
             await self?.performSaveToDevice(pairs: [pair])
         }

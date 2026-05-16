@@ -7,11 +7,11 @@ import Foundation
 enum AdRequestBuilder {
     #if canImport(GoogleMobileAds)
         static func build(
-            attStatus: ATTrackingManager.AuthorizationStatus
-        ) -> GADRequest {
-            let request = GADRequest()
+            attStatus: ATTrackingManager.AuthorizationStatus,
+        ) -> Request {
+            let request = Request()
             if shouldAttachNonPersonalised(attStatus: attStatus) {
-                let extras = GADExtras()
+                let extras = Extras()
                 extras.additionalParameters = ["npa": "1"]
                 request.register(extras)
             }
@@ -20,7 +20,7 @@ enum AdRequestBuilder {
     #endif
 
     static func shouldAttachNonPersonalised(
-        attStatus: ATTrackingManager.AuthorizationStatus
+        attStatus: ATTrackingManager.AuthorizationStatus,
     ) -> Bool {
         attStatus != .authorized
     }

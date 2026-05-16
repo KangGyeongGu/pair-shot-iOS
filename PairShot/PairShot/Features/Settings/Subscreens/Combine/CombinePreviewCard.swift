@@ -70,14 +70,14 @@ struct CombinePreviewCard: View {
                         background: Color.appOnSurfaceVariant.opacity(0.4),
                         position: settings.beforePosition,
                         scaleFactor: scaleFactor,
-                        paneHeight: paneHeight
+                        paneHeight: paneHeight,
                     )
                     pane(
                         text: settings.label.afterText,
                         background: Color.appOnSurfaceVariant.opacity(0.6),
                         position: settings.afterPosition,
                         scaleFactor: scaleFactor,
-                        paneHeight: paneHeight
+                        paneHeight: paneHeight,
                     )
                 }
 
@@ -88,14 +88,14 @@ struct CombinePreviewCard: View {
                         background: Color.appOnSurfaceVariant.opacity(0.4),
                         position: settings.beforePosition,
                         scaleFactor: scaleFactor,
-                        paneHeight: paneHeight
+                        paneHeight: paneHeight,
                     )
                     pane(
                         text: settings.label.afterText,
                         background: Color.appOnSurfaceVariant.opacity(0.6),
                         position: settings.afterPosition,
                         scaleFactor: scaleFactor,
-                        paneHeight: paneHeight
+                        paneHeight: paneHeight,
                     )
                 }
         }
@@ -106,7 +106,7 @@ struct CombinePreviewCard: View {
         background: Color,
         position: CombineSettings.LabelPosition,
         scaleFactor: CGFloat,
-        paneHeight: CGFloat
+        paneHeight: CGFloat,
     ) -> some View {
         let padding = max(2, 8 * scaleFactor)
         return ZStack {
@@ -116,7 +116,7 @@ struct CombinePreviewCard: View {
                     .frame(
                         maxWidth: .infinity,
                         maxHeight: .infinity,
-                        alignment: alignment(for: position)
+                        alignment: alignment(for: position),
                     )
                     .padding(padding)
             }
@@ -143,9 +143,9 @@ struct CombinePreviewCard: View {
                 .background(
                     RoundedRectangle(
                         cornerRadius: settings.labelMode == .free ? scaledCornerRadius : 0,
-                        style: .continuous
+                        style: .continuous,
                     )
-                    .fill(labelBackgroundColor)
+                    .fill(labelBackgroundColor),
                 )
         } else {
             textView

@@ -8,7 +8,7 @@ nonisolated struct MembershipSnapshot: Equatable, Codable {
 
     static let empty = Self(
         pro: EntitlementState(active: false, expiresAt: nil),
-        adFree: EntitlementState(active: false, expiresAt: nil)
+        adFree: EntitlementState(active: false, expiresAt: nil),
     )
 
     let pro: EntitlementState
@@ -63,12 +63,12 @@ private nonisolated struct PromotionResponseDto: Decodable {
         MembershipSnapshot(
             pro: MembershipSnapshot.EntitlementState(
                 active: pro.active,
-                expiresAt: pro.expiresAt
+                expiresAt: pro.expiresAt,
             ),
             adFree: MembershipSnapshot.EntitlementState(
                 active: adFree.active,
-                expiresAt: adFree.expiresAt
-            )
+                expiresAt: adFree.expiresAt,
+            ),
         )
     }
 }

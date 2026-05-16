@@ -9,7 +9,7 @@ struct PreviewEnvironment<Content: View>: View {
         do {
             return try ModelContainer(
                 for: Schema([AlbumEntity.self, PhotoPairEntity.self, ExportHistoryEntity.self]),
-                configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+                configurations: ModelConfiguration(isStoredInMemoryOnly: true),
             )
         } catch {
             fatalError("PreviewEnvironment failed to create in-memory ModelContainer: \(error)")

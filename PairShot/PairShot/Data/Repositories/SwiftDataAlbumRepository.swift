@@ -57,14 +57,14 @@ final class SwiftDataAlbumRepository: AlbumRepository {
 
     private func fetchAlbumEntity(id: UUID) throws -> AlbumEntity? {
         let descriptor = FetchDescriptor<AlbumEntity>(
-            predicate: #Predicate { $0.id == id }
+            predicate: #Predicate { $0.id == id },
         )
         return try context.fetch(descriptor).first
     }
 
     private func fetchPair(id: UUID) throws -> PhotoPairEntity? {
         let descriptor = FetchDescriptor<PhotoPairEntity>(
-            predicate: #Predicate { $0.id == id }
+            predicate: #Predicate { $0.id == id },
         )
         return try context.fetch(descriptor).first
     }
@@ -76,7 +76,7 @@ final class SwiftDataAlbumRepository: AlbumRepository {
             latitude: domain.latitude,
             longitude: domain.longitude,
             locationLabel: domain.locationLabel,
-            createdAt: domain.createdAt
+            createdAt: domain.createdAt,
         )
     }
 

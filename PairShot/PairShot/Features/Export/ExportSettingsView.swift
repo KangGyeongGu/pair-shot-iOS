@@ -43,7 +43,7 @@ struct ExportSettingsView: View {
         .alert(
             String(localized: "export_picker_dialog_failed_title"),
             isPresented: errorBinding,
-            presenting: viewModel.errorMessage
+            presenting: viewModel.errorMessage,
         ) { _ in
             Button(String(localized: "common_button_confirm"), role: .cancel) {
                 viewModel.errorMessage = nil
@@ -62,7 +62,7 @@ struct ExportSettingsView: View {
                     DocumentExporter(url: item.url) { saved in
                         viewModel.handleZipExportCompleted(saved)
                     }
-                }
+                },
         )
         .onDisappear {
             viewModel.cleanupPendingZip()
@@ -72,12 +72,12 @@ struct ExportSettingsView: View {
         .task {
             rewardedManager.loadIfNeeded(
                 promotionStore: promotionStore,
-                subscriptionStore: subscriptionStore
+                subscriptionStore: subscriptionStore,
             )
         }
         .alert(
             String(localized: "rewarded_gate_title"),
-            isPresented: $viewModel.showWatermarkGateDialog
+            isPresented: $viewModel.showWatermarkGateDialog,
         ) {
             Button(String(localized: "rewarded_gate_confirm")) {
                 Task { await confirmWatermarkGate() }
@@ -88,7 +88,7 @@ struct ExportSettingsView: View {
         }
         .alert(
             String(localized: "rewarded_gate_title"),
-            isPresented: $viewModel.showCombineGateDialog
+            isPresented: $viewModel.showCombineGateDialog,
         ) {
             Button(String(localized: "rewarded_gate_confirm")) {
                 Task { await confirmCombineGate() }
@@ -116,7 +116,7 @@ struct ExportSettingsView: View {
             Picker(String(localized: "export_settings_field_format"), selection: formatBinding) {
                 Label(
                     String(localized: "export_settings_format_image"),
-                    systemImage: "photo"
+                    systemImage: "photo",
                 )
                 .tag(ExportFormat.individualImages)
                 zipFormatLabel
@@ -133,7 +133,7 @@ struct ExportSettingsView: View {
         HStack(spacing: 6) {
             Label(
                 String(localized: "ZIP"),
-                systemImage: "doc.zipper"
+                systemImage: "doc.zipper",
             )
             if !viewModel.isProUser {
                 ProLockBadge()
@@ -144,7 +144,7 @@ struct ExportSettingsView: View {
     private var formatBinding: Binding<ExportFormat> {
         Binding(
             get: { viewModel.format },
-            set: { viewModel.selectFormat($0) }
+            set: { viewModel.selectFormat($0) },
         )
     }
 
@@ -152,7 +152,7 @@ struct ExportSettingsView: View {
         Section {
             Toggle(
                 String(localized: "export_settings_apply_watermark"),
-                isOn: applyWatermarkBinding
+                isOn: applyWatermarkBinding,
             )
             if viewModel.applyWatermark {
                 Button {
@@ -172,7 +172,7 @@ struct ExportSettingsView: View {
     private var applyWatermarkBinding: Binding<Bool> {
         Binding(
             get: { viewModel.applyWatermark },
-            set: { viewModel.applyWatermark = $0 }
+            set: { viewModel.applyWatermark = $0 },
         )
     }
 
@@ -200,7 +200,7 @@ struct ExportSettingsView: View {
         } label: {
             Label(
                 String(localized: "common_button_share"),
-                systemImage: "square.and.arrow.up"
+                systemImage: "square.and.arrow.up",
             )
         }
         .disabled(!viewModel.canExecute)
@@ -212,7 +212,7 @@ struct ExportSettingsView: View {
         } label: {
             Label(
                 String(localized: "common_button_save_to_device"),
-                systemImage: "arrow.down.to.line"
+                systemImage: "arrow.down.to.line",
             )
         }
         .disabled(!viewModel.canExecute)
@@ -221,14 +221,14 @@ struct ExportSettingsView: View {
     private var errorBinding: Binding<Bool> {
         Binding(
             get: { viewModel.errorMessage != nil },
-            set: { if !$0 { viewModel.errorMessage = nil } }
+            set: { if !$0 { viewModel.errorMessage = nil } },
         )
     }
 
     private var shareItemsBinding: Binding<ExportShareItems?> {
         Binding(
             get: { viewModel.shareItems },
-            set: { viewModel.shareItems = $0 }
+            set: { viewModel.shareItems = $0 },
         )
     }
 
@@ -239,14 +239,14 @@ struct ExportSettingsView: View {
                 if newValue == nil, viewModel.zipExportItem != nil {
                     viewModel.handleZipExportCompleted(false)
                 }
-            }
+            },
         )
     }
 
     init(
         viewModel: ExportSettingsViewModel,
         onPushWatermarkSettings: (() -> Void)? = nil,
-        onPushCombineSettings: (() -> Void)? = nil
+        onPushCombineSettings: (() -> Void)? = nil,
     ) {
         self.viewModel = viewModel
         self.onPushWatermarkSettings = onPushWatermarkSettings
@@ -275,7 +275,7 @@ struct ExportSettingsView: View {
         let result = await viewModel.confirmWatermarkGateAd(
             rewardedManager: rewardedManager,
             coordinator: coordinator,
-            rootViewController: BannerAdView.resolveTopPresentedViewController()
+            rootViewController: BannerAdView.resolveTopPresentedViewController(),
         )
         if case .proceed = result {
             onPushWatermarkSettings?()
@@ -287,7 +287,7 @@ struct ExportSettingsView: View {
         let result = await viewModel.confirmCombineGateAd(
             rewardedManager: rewardedManager,
             coordinator: coordinator,
-            rootViewController: BannerAdView.resolveTopPresentedViewController()
+            rootViewController: BannerAdView.resolveTopPresentedViewController(),
         )
         if case .proceed = result {
             onPushCombineSettings?()

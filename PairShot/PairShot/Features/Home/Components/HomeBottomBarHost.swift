@@ -25,7 +25,7 @@ struct HomeBottomBarHost: View {
                         onShare: { Task { await viewModel.shareSelectedPairs(from: sortedPairs) } },
                         onSaveToDevice: { Task { await viewModel.saveSelectedPairsToDevice(from: sortedPairs) } },
                         onDelete: { viewModel.requestPairDeletion(from: sortedPairs) },
-                        onExportSettings: pushExport
+                        onExportSettings: pushExport,
                     )
 
                 case .albums:
@@ -35,7 +35,7 @@ struct HomeBottomBarHost: View {
                             Task {
                                 await viewModel.shareSelectedAlbumPairs(
                                     from: sortedAlbums,
-                                    allPairs: sortedPairs
+                                    allPairs: sortedPairs,
                                 )
                             }
                         },
@@ -43,12 +43,12 @@ struct HomeBottomBarHost: View {
                             Task {
                                 await viewModel.saveSelectedAlbumPairsToDevice(
                                     from: sortedAlbums,
-                                    allPairs: sortedPairs
+                                    allPairs: sortedPairs,
                                 )
                             }
                         },
                         onDelete: { viewModel.requestAlbumDeletion(from: sortedAlbums) },
-                        onExportSettings: pushAlbumExport
+                        onExportSettings: pushAlbumExport,
                     )
             }
         } else {
@@ -58,13 +58,13 @@ struct HomeBottomBarHost: View {
                         title: sortedPairs.isEmpty
                             ? String(localized: "common_button_start_capture")
                             : String(localized: "camera_desc_capture"),
-                        systemImage: "camera.fill"
+                        systemImage: "camera.fill",
                     ) { Task { await viewModel.startCapture() } }
 
                 case .albums:
                     HomePrimaryActionBar(
                         title: String(localized: "home_button_create_album"),
-                        systemImage: "plus.rectangle.on.rectangle"
+                        systemImage: "plus.rectangle.on.rectangle",
                     ) { viewModel.openCreateAlbum() }
             }
         }

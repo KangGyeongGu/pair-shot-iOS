@@ -9,7 +9,7 @@ final class RecaptureAfterUseCase {
     init(
         pairRepo: PhotoPairRepository,
         photoLibrary: PhotoLibraryService,
-        captureAfter: CaptureAfterUseCase
+        captureAfter: CaptureAfterUseCase,
     ) {
         self.pairRepo = pairRepo
         self.photoLibrary = photoLibrary
@@ -20,7 +20,7 @@ final class RecaptureAfterUseCase {
         pairId: UUID,
         afterJPEG: Data,
         aspectRatio: AspectRatio = .default,
-        isDeferredProxy: Bool = false
+        isDeferredProxy: Bool = false,
     ) async throws -> PhotoPair {
         guard let pair = try await pairRepo.fetch(id: pairId) else {
             throw CaptureAfterUseCase.CaptureAfterError.pairNotFound
@@ -36,7 +36,7 @@ final class RecaptureAfterUseCase {
             pairId: pairId,
             afterJPEG: afterJPEG,
             aspectRatio: aspectRatio,
-            isDeferredProxy: isDeferredProxy
+            isDeferredProxy: isDeferredProxy,
         )
 
         try await photoLibrary.deleteAssets(localIdentifiers: staleAssetIds)

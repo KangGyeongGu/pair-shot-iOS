@@ -24,7 +24,7 @@ struct ZoomControl: View {
                         currentRatio: currentRatio,
                         minRatio: minRatio,
                         maxRatio: maxRatio,
-                        displayMultiplier: displayMultiplier
+                        displayMultiplier: displayMultiplier,
                     )
                     .frame(maxWidth: .infinity)
                     .padding(.horizontal, AppSpacing.lg)
@@ -74,7 +74,7 @@ struct ZoomControl: View {
         maxRatio: Double = 1.0,
         onSelect: @escaping (ZoomPresetSpec) -> Void,
         onDragChanged: @escaping (Double) -> Void = { _ in },
-        onDragEnded: @escaping () -> Void = {}
+        onDragEnded: @escaping () -> Void = {},
     ) {
         self.presets = presets
         self.displayMultiplier = displayMultiplier
@@ -101,7 +101,7 @@ struct ZoomControl: View {
                 .foregroundStyle(isActive ? Color.black : Color.white.opacity(0.85))
                 .frame(width: size, height: size)
                 .background(
-                    Circle().fill(isActive ? Color.accentColor : Color.clear)
+                    Circle().fill(isActive ? Color.accentColor : Color.clear),
                 )
                 .accessibilityLabel(display)
         }
@@ -133,7 +133,7 @@ struct ZoomControl: View {
             maxRatio: 5.0,
             onSelect: { _ in },
             onDragChanged: { _ in },
-            onDragEnded: {}
+            onDragEnded: {},
         )
     }
 }

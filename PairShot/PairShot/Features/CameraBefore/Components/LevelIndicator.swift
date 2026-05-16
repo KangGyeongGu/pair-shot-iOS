@@ -23,7 +23,7 @@ struct LevelIndicator: View {
         .padding(.vertical, 5)
         .foregroundStyle(.white)
         .background(
-            Capsule().fill((isLevel ? Color.appSnackbarSuccess : Color.black).opacity(0.55))
+            Capsule().fill((isLevel ? Color.appSnackbarSuccess : Color.black).opacity(0.55)),
         )
         .accessibilityLabel(String(localized: "camera_settings_level"))
         .accessibilityValue(label)

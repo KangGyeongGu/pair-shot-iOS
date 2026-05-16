@@ -21,7 +21,7 @@ struct CompositionSettingsView: View {
                         .foregroundStyle(.tint)
                     Slider(
                         value: alphaBinding,
-                        in: CompositionDefaults.alphaRange
+                        in: CompositionDefaults.alphaRange,
                     )
                     Text(percentLabel(appSettings.defaultOverlayAlpha))
                         .font(.body.monospacedDigit())
@@ -39,7 +39,7 @@ struct CompositionSettingsView: View {
     private var alphaBinding: Binding<Double> {
         Binding(
             get: { CompositionDefaults.clampAlpha(appSettings.defaultOverlayAlpha) },
-            set: { appSettings.defaultOverlayAlpha = CompositionDefaults.clampAlpha($0) }
+            set: { appSettings.defaultOverlayAlpha = CompositionDefaults.clampAlpha($0) },
         )
     }
 
@@ -62,7 +62,7 @@ struct CompositionSettingsView: View {
     private var layoutBinding: Binding<CompositeLayout> {
         Binding(
             get: { appSettings.defaultCompositeLayout },
-            set: { appSettings.defaultCompositeLayout = $0 }
+            set: { appSettings.defaultCompositeLayout = $0 },
         )
     }
 
@@ -81,7 +81,7 @@ struct CompositionSettingsView: View {
             Toggle(isOn: watermarkBinding) {
                 Label(
                     String(localized: "composition_overlay_show_watermark"),
-                    systemImage: "signature"
+                    systemImage: "signature",
                 )
             }
         } header: {
@@ -94,7 +94,7 @@ struct CompositionSettingsView: View {
     private var watermarkBinding: Binding<Bool> {
         Binding(
             get: { appSettings.watermarkEnabled },
-            set: { appSettings.watermarkEnabled = $0 }
+            set: { appSettings.watermarkEnabled = $0 },
         )
     }
 

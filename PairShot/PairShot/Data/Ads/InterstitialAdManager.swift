@@ -31,12 +31,12 @@ final class InterstitialAdManager {
     private let trackingService: TrackingAuthorizationService?
 
     #if canImport(GoogleMobileAds)
-        private var ad: GADInterstitialAd?
+        private var ad: InterstitialAd?
         private let presentationDelegate: InterstitialPresentationDelegate
     #endif
 
     init(
-        trackingService: TrackingAuthorizationService? = nil
+        trackingService: TrackingAuthorizationService? = nil,
     ) {
         self.trackingService = trackingService
         #if canImport(GoogleMobileAds)
@@ -47,7 +47,7 @@ final class InterstitialAdManager {
     func loadIfNeeded(
         adUnitID: String? = nil,
         promotionStore: PromotionStore? = nil,
-        subscriptionStore: SubscriptionStore? = nil
+        subscriptionStore: SubscriptionStore? = nil,
     ) {
         if AdSuppression.isSuppressed(promotionStore: promotionStore, subscriptionStore: subscriptionStore) { return }
         guard !isLoaded, !isLoading else { return }
@@ -57,9 +57,9 @@ final class InterstitialAdManager {
             let request = AdRequestBuilder.build(attStatus: attStatus)
             isLoading = true
             AppLogger.ads.debug("Interstitial load requested")
-            GADInterstitialAd.load(
-                withAdUnitID: resolvedUnitID,
-                request: request
+            InterstitialAd.load(
+                with: resolvedUnitID,
+                request: request,
             ) { [weak self] ad, error in
                 let adBox = InterstitialAdBox(ad: ad)
                 Task { @MainActor [weak self] in
@@ -75,7 +75,7 @@ final class InterstitialAdManager {
                         isLoaded = false
                         if let error {
                             AppLogger.ads.error(
-                                "Interstitial load failed: \(error.localizedDescription, privacy: .public)"
+                                "Interstitial load failed: \(error.localizedDescription, privacy: .public)",
                             )
                         }
                     }
@@ -92,7 +92,7 @@ final class InterstitialAdManager {
         subscriptionStore: SubscriptionStore? = nil,
         adUnitID: String? = nil,
         now: Date = .now,
-        onFinished: @escaping @MainActor () -> Void
+        onFinished: @escaping @MainActor () -> Void,
     ) async -> Bool {
         let context = PresentContext(
             rootViewController: rootViewController,
@@ -101,7 +101,7 @@ final class InterstitialAdManager {
             subscriptionStore: subscriptionStore,
             adUnitID: adUnitID,
             now: now,
-            onFinished: onFinished
+            onFinished: onFinished,
         )
         guard shouldShow(context: context) else {
             return false
@@ -116,7 +116,7 @@ final class InterstitialAdManager {
     private func shouldShow(context: PresentContext) -> Bool {
         if AdSuppression.isSuppressed(
             promotionStore: context.promotionStore,
-            subscriptionStore: context.subscriptionStore
+            subscriptionStore: context.subscriptionStore,
         ) {
             context.onFinished()
             return false
@@ -126,7 +126,7 @@ final class InterstitialAdManager {
             loadIfNeeded(
                 adUnitID: context.adUnitID,
                 promotionStore: context.promotionStore,
-                subscriptionStore: context.subscriptionStore
+                subscriptionStore: context.subscriptionStore,
             )
             return false
         }
@@ -135,7 +135,7 @@ final class InterstitialAdManager {
             loadIfNeeded(
                 adUnitID: context.adUnitID,
                 promotionStore: context.promotionStore,
-                subscriptionStore: context.subscriptionStore
+                subscriptionStore: context.subscriptionStore,
             )
             return false
         }
@@ -150,7 +150,7 @@ final class InterstitialAdManager {
                 loadIfNeeded(
                     adUnitID: context.adUnitID,
                     promotionStore: context.promotionStore,
-                    subscriptionStore: context.subscriptionStore
+                    subscriptionStore: context.subscriptionStore,
                 )
                 return false
             }
@@ -170,7 +170,7 @@ final class InterstitialAdManager {
                         self?.loadIfNeeded(
                             adUnitID: context.adUnitID,
                             promotionStore: context.promotionStore,
-                            subscriptionStore: context.subscriptionStore
+                            subscriptionStore: context.subscriptionStore,
                         )
                         context.onFinished()
                         resume()
@@ -184,14 +184,14 @@ final class InterstitialAdManager {
                         self?.loadIfNeeded(
                             adUnitID: context.adUnitID,
                             promotionStore: context.promotionStore,
-                            subscriptionStore: context.subscriptionStore
+                            subscriptionStore: context.subscriptionStore,
                         )
                         context.onFinished()
                         resume()
                     }
                 }
                 AppLogger.ads.debug("Interstitial showIfAvailable presented")
-                ad.present(fromRootViewController: context.rootViewController)
+                ad.present(from: context.rootViewController)
             }
             return true
         #else
@@ -210,7 +210,7 @@ extension InterstitialAdManager {
         promotionStore: PromotionStore?,
         subscriptionStore: SubscriptionStore?,
         coordinator: FullscreenAdCoordinator?,
-        work: @escaping @MainActor () async -> Void
+        work: @escaping @MainActor () async -> Void,
     ) async {
         guard let manager, let coordinator else {
             await work()
@@ -222,7 +222,7 @@ extension InterstitialAdManager {
                     from: BannerAdView.resolveTopPresentedViewController(),
                     coordinator: coordinator,
                     promotionStore: promotionStore,
-                    subscriptionStore: subscriptionStore
+                    subscriptionStore: subscriptionStore,
                 ) {
                     Task { @MainActor in
                         await work()
@@ -236,26 +236,26 @@ extension InterstitialAdManager {
 
 #if canImport(GoogleMobileAds)
     private final nonisolated class InterstitialAdBox: @unchecked Sendable {
-        let ad: GADInterstitialAd?
-        init(ad: GADInterstitialAd?) {
+        let ad: InterstitialAd?
+        init(ad: InterstitialAd?) {
             self.ad = ad
         }
     }
 
     @MainActor
-    private final class InterstitialPresentationDelegate: NSObject, GADFullScreenContentDelegate {
+    private final class InterstitialPresentationDelegate: NSObject, FullScreenContentDelegate {
         var onDismiss: (() -> Void)?
         var onFailToPresent: (() -> Void)?
 
-        nonisolated func adDidDismissFullScreenContent(_: any GADFullScreenPresentingAd) {
+        nonisolated func adDidDismissFullScreenContent(_: any FullScreenPresentingAd) {
             Task { @MainActor [weak self] in
                 self?.onDismiss?()
             }
         }
 
         nonisolated func ad(
-            _: any GADFullScreenPresentingAd,
-            didFailToPresentFullScreenContentWithError error: Error
+            _: any FullScreenPresentingAd,
+            didFailToPresentFullScreenContentWithError error: Error,
         ) {
             let description = error.localizedDescription
             Task { @MainActor [weak self] in

@@ -13,13 +13,13 @@ actor ZipExporter {
     func makeZip(
         for entries: [ZipEntryPayload],
         in tempDirectory: URL,
-        now: Date = .now
+        now: Date = .now,
     ) async throws -> URL {
         guard !entries.isEmpty else { throw ExportError.noPairs }
 
         try FileManager.default.createDirectory(
             at: tempDirectory,
-            withIntermediateDirectories: true
+            withIntermediateDirectories: true,
         )
 
         let zipURL = tempDirectory.appendingPathComponent(Self.makeFileName(now: now))
@@ -29,7 +29,7 @@ actor ZipExporter {
 
         let stagingDir = tempDirectory.appendingPathComponent(
             "pairshot-zip-\(UUID().uuidString)",
-            isDirectory: true
+            isDirectory: true,
         )
         try FileManager.default.createDirectory(at: stagingDir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: stagingDir) }
@@ -52,7 +52,7 @@ actor ZipExporter {
                 try archive.addEntry(
                     with: entry.relativeName,
                     fileURL: stagedURL,
-                    compressionMethod: .none
+                    compressionMethod: .none,
                 )
             } catch {
                 throw ExportError.archiveFailed
@@ -87,7 +87,7 @@ nonisolated struct ZipExporterAdapter {
         photoLibrary: PhotoLibraryService,
         pairRepo: PhotoPairRepository,
         appSettings: AppSettings,
-        exporter: ZipExporter = ZipExporter()
+        exporter: ZipExporter = ZipExporter(),
     ) {
         self.exporter = exporter
         self.photoLibrary = photoLibrary
@@ -100,7 +100,7 @@ nonisolated struct ZipExporterAdapter {
         selection: ExportContents,
         renderOptions: ExportRenderOptions,
         in tempDirectory: URL,
-        now: Date
+        now: Date,
     ) async throws -> URL {
         var resolved: [PhotoPair] = []
         for id in pairIds {
@@ -115,7 +115,7 @@ nonisolated struct ZipExporterAdapter {
                 for: pair,
                 selection: selection,
                 sequenceNumber: offset + 1,
-                prefix: prefix
+                prefix: prefix,
             )
             for entry in entries {
                 guard
@@ -125,7 +125,7 @@ nonisolated struct ZipExporterAdapter {
                         photoLibrary: photoLibrary,
                         appSettings: appSettings,
                         renderOptions: renderOptions,
-                        now: now
+                        now: now,
                     )
                 else { continue }
                 payloads.append(ZipEntryPayload(relativeName: entry.relativeName, data: data))
@@ -152,7 +152,7 @@ nonisolated enum ExportSelection {
         for pair: PhotoPair,
         selection: ExportContents,
         sequenceNumber: Int,
-        prefix: String
+        prefix: String,
     ) -> [Entry] {
         let folder = sanitizeFolderName(pair.firstAlbumName ?? "PairShot")
         var out: [Entry] = []
@@ -166,42 +166,42 @@ nonisolated enum ExportSelection {
             let fileName = FileNameBuilder.combined(
                 prefix: prefix,
                 timestamp: pair.createdAt,
-                sequenceNumber: sequenceNumber
+                sequenceNumber: sequenceNumber,
             )
             out.append(
                 Entry(
                     relativeName: "\(folder)/COMBINED/\(fileName)",
                     kind: .combined,
-                    localIdentifier: nil
-                )
+                    localIdentifier: nil,
+                ),
             )
         }
         if selection.includeBefore, let beforeId, !beforeId.isEmpty {
             let fileName = FileNameBuilder.before(
                 prefix: prefix,
                 timestamp: pair.createdAt,
-                sequenceNumber: sequenceNumber
+                sequenceNumber: sequenceNumber,
             )
             out.append(
                 Entry(
                     relativeName: "\(folder)/BEFORE/\(fileName)",
                     kind: .before,
-                    localIdentifier: beforeId
-                )
+                    localIdentifier: beforeId,
+                ),
             )
         }
         if selection.includeAfter, let afterId, !afterId.isEmpty {
             let fileName = FileNameBuilder.after(
                 prefix: prefix,
                 timestamp: pair.createdAt,
-                sequenceNumber: sequenceNumber
+                sequenceNumber: sequenceNumber,
             )
             out.append(
                 Entry(
                     relativeName: "\(folder)/AFTER/\(fileName)",
                     kind: .after,
-                    localIdentifier: afterId
-                )
+                    localIdentifier: afterId,
+                ),
             )
         }
         return out

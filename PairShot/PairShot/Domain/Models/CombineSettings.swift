@@ -43,7 +43,7 @@ nonisolated struct CombineSettings: Codable, Equatable {
         init(
             isEnabled: Bool = true,
             thickness: Double = 16.0,
-            color: ColorRGBA = .white
+            color: ColorRGBA = .white,
         ) {
             self.isEnabled = isEnabled
             self.thickness = thickness
@@ -65,7 +65,7 @@ nonisolated struct CombineSettings: Codable, Equatable {
             beforeText: String = "BEFORE",
             afterText: String = "AFTER",
             textSizePercent: Double = 5.0,
-            textColor: ColorRGBA = .black
+            textColor: ColorRGBA = .black,
         ) {
             self.isEnabled = isEnabled
             self.beforeText = beforeText
@@ -111,7 +111,7 @@ nonisolated struct CombineSettings: Codable, Equatable {
             color: ColorRGBA = .black,
             opacity: Double = 0.5,
             cornerRadius: Double = 25.0,
-            matchBorderColor: Bool = true
+            matchBorderColor: Bool = true,
         ) {
             self.isEnabled = isEnabled
             self.color = color
@@ -145,7 +145,7 @@ nonisolated struct CombineSettings: Codable, Equatable {
         beforePosition: LabelPosition = LabelPosition(horizontal: .leading, vertical: .top),
         afterPosition: LabelPosition = LabelPosition(horizontal: .leading, vertical: .top),
         fullWidthVertical: LabelPosition.Vertical = .bottom,
-        labelBackground: LabelBackground = .default
+        labelBackground: LabelBackground = .default,
     ) {
         self.direction = direction
         self.border = border

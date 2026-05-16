@@ -21,7 +21,7 @@ struct NativeAdCard: View {
                     .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                     .overlay(
                         RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .strokeBorder(Color(uiColor: .separator).opacity(0.5), lineWidth: 0.5)
+                            .strokeBorder(Color(uiColor: .separator).opacity(0.5), lineWidth: 0.5),
                     )
                     .onAppear { ensureAdLoaded() }
                     .id("native-ad-slot-\(slotIndex)")
@@ -32,7 +32,7 @@ struct NativeAdCard: View {
     @ViewBuilder
     private var cardBody: some View {
         #if canImport(GoogleMobileAds)
-            if let nativeAd = ad as? GADNativeAd {
+            if let nativeAd = ad as? NativeAd {
                 NativeAdMediumRepresentable(nativeAd: nativeAd)
                     .background(Color.appOnSurfaceVariant.opacity(0.05))
             } else {
@@ -56,17 +56,17 @@ struct NativeAdCard: View {
         guard ad == nil else { return }
         ad = loader.dequeue(
             promotionStore: membership.promotionStore,
-            subscriptionStore: membership.subscriptionStore
+            subscriptionStore: membership.subscriptionStore,
         )
     }
 }
 
 #if canImport(GoogleMobileAds)
     private struct NativeAdMediumRepresentable: UIViewRepresentable {
-        let nativeAd: GADNativeAd
+        let nativeAd: NativeAd
 
-        func makeUIView(context _: Context) -> GADNativeAdView {
-            let adView = GADNativeAdView()
+        func makeUIView(context _: Context) -> NativeAdView {
+            let adView = NativeAdView()
             let icon = Self.makeIconView()
             let headline = Self.makeHeadlineLabel()
             let body = Self.makeBodyLabel()
@@ -90,14 +90,14 @@ struct NativeAdCard: View {
                 icon: icon,
                 headline: headline,
                 body: body,
-                cta: cta
+                cta: cta,
             )
 
             adView.nativeAd = nativeAd
             return adView
         }
 
-        func updateUIView(_ adView: GADNativeAdView, context _: Context) {
+        func updateUIView(_ adView: NativeAdView, context _: Context) {
             adView.nativeAd = nativeAd
             (adView.headlineView as? UILabel)?.text = nativeAd.headline
             (adView.bodyView as? UILabel)?.text = nativeAd.body
@@ -145,7 +145,7 @@ struct NativeAdCard: View {
             ctaConfig.baseForegroundColor = .white
             ctaConfig.cornerStyle = .small
             ctaConfig.contentInsets = NSDirectionalEdgeInsets(
-                top: 6, leading: 12, bottom: 6, trailing: 12
+                top: 6, leading: 12, bottom: 6, trailing: 12,
             )
             let cta = UIButton(configuration: ctaConfig)
             cta.translatesAutoresizingMaskIntoConstraints = false
@@ -172,7 +172,7 @@ struct NativeAdCard: View {
             icon: UIImageView,
             headline: UILabel,
             body: UILabel,
-            cta: UIButton
+            cta: UIButton,
         ) {
             NSLayoutConstraint.activate([
                 adLabel.topAnchor.constraint(equalTo: adView.topAnchor, constant: 6),

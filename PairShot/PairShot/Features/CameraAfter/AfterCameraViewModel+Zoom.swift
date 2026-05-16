@@ -105,7 +105,7 @@ extension AfterCameraViewModel {
         let result = AfterCameraZoomHaptics.evaluate(
             ratio: ratio,
             lastMinorIndex: zoomDragState.lastMinorTickIndex,
-            lastMajorIndex: zoomDragState.lastMajorTickIndex
+            lastMajorIndex: zoomDragState.lastMajorTickIndex,
         )
         zoomDragState.lastMinorTickIndex = result.minorIndex
         zoomDragState.lastMajorTickIndex = result.majorIndex

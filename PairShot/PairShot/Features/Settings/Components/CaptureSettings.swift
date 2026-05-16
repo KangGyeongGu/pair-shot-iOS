@@ -35,7 +35,7 @@ struct CaptureSettingsView: View {
     private var qualityBinding: Binding<CaptureQualityPreset> {
         Binding(
             get: { CaptureQualityPreset.nearest(to: appSettings.jpegQuality) },
-            set: { appSettings.jpegQuality = $0.rawValue }
+            set: { appSettings.jpegQuality = $0.rawValue },
         )
     }
 
@@ -45,7 +45,7 @@ struct CaptureSettingsView: View {
         return String(
             format: String(localized: "capture_settings_overlay_summary_template"),
             preset.label,
-            percent
+            percent,
         )
     }
 
@@ -53,7 +53,7 @@ struct CaptureSettingsView: View {
         Section {
             TextField(
                 String(localized: "capture_settings_filename_prefix_placeholder"),
-                text: $prefixDraft
+                text: $prefixDraft,
             )
             .textInputAutocapitalization(.never)
             .autocorrectionDisabled(true)
@@ -79,7 +79,7 @@ struct CaptureSettingsView: View {
         return String(
             format: String(localized: "capture_settings_filename_format_template"),
             safe,
-            FileNamePrefixValidator.maxLength
+            FileNamePrefixValidator.maxLength,
         )
     }
 }

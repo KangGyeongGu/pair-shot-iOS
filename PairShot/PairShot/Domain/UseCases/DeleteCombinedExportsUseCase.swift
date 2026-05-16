@@ -7,7 +7,7 @@ final class DeleteCombinedExportsUseCase {
 
     init(
         pairRepo: PhotoPairRepository,
-        photoLibrary: PhotoLibraryService
+        photoLibrary: PhotoLibraryService,
     ) {
         self.pairRepo = pairRepo
         self.photoLibrary = photoLibrary

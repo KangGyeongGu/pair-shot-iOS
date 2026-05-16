@@ -42,7 +42,7 @@ final class SubscriptionStore {
                     entitlements.append(EntitlementSnapshot(
                         productID: transaction.productID,
                         revocationDate: transaction.revocationDate,
-                        expirationDate: transaction.expirationDate
+                        expirationDate: transaction.expirationDate,
                     ))
 
                 case let .unverified(_, error):
@@ -65,8 +65,8 @@ final class SubscriptionStore {
             target: Self.renewalReminderTarget(
                 entitlements: entitlements,
                 statuses: statuses,
-                now: now
-            )
+                now: now,
+            ),
         )
     }
 
@@ -79,14 +79,14 @@ final class SubscriptionStore {
         await renewalReminderScheduler.schedule(
             productID: target.productID,
             expirationDate: target.expirationDate,
-            productDisplayName: String(localized: "paywall_title")
+            productDisplayName: String(localized: "paywall_title"),
         )
     }
 
     nonisolated static func computeIsPro(
         entitlements: [EntitlementSnapshot],
         statuses: [SubscriptionStatusSnapshot],
-        now: Date
+        now: Date,
     ) -> Bool {
         for entitlement in entitlements where isActivePro(snapshot: entitlement, now: now) {
             return true
@@ -106,7 +106,7 @@ final class SubscriptionStore {
 
     nonisolated static func computeProExpiresAt(
         entitlements: [EntitlementSnapshot],
-        now: Date
+        now: Date,
     ) -> Date? {
         let activeExpirations = entitlements.compactMap { entitlement -> Date? in
             guard isActivePro(snapshot: entitlement, now: now) else { return nil }
@@ -129,12 +129,12 @@ final class SubscriptionStore {
     nonisolated static func renewalReminderTarget(
         entitlements: [EntitlementSnapshot],
         statuses: [SubscriptionStatusSnapshot],
-        now: Date
+        now: Date,
     ) -> RenewalReminderTarget? {
         let activeStatusProducts = Set(
             statuses
                 .filter(isActiveProStatus)
-                .map(\.productID)
+                .map(\.productID),
         )
         let knownStatusProducts = Set(statuses.map(\.productID))
         let candidates: [(String, Date)] = entitlements.compactMap { snapshot in
@@ -170,14 +170,14 @@ final class SubscriptionStore {
             } catch {
                 AppLogger.subscription
                     .error(
-                        "SubscriptionInfo.status failed product=\(product.id, privacy: .public) error=\(error.localizedDescription, privacy: .public)"
+                        "SubscriptionInfo.status failed product=\(product.id, privacy: .public) error=\(error.localizedDescription, privacy: .public)",
                     )
                 continue
             }
             for status in statuses {
                 snapshots.append(SubscriptionStatusSnapshot(
                     productID: product.id,
-                    state: status.state
+                    state: status.state,
                 ))
             }
         }

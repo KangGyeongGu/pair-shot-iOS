@@ -17,7 +17,7 @@ nonisolated extension CameraSession {
 
     private func applyDeferredDeliveryPolicy(
         on output: AVCapturePhotoOutput,
-        for ratio: AspectRatio
+        for ratio: AspectRatio,
     ) {
         let supportsDeferred = output.isAutoDeferredPhotoDeliverySupported
         let shouldEnableDeferred = ratio == .fourThree && supportsDeferred

@@ -6,7 +6,7 @@ extension AlbumDetailViewModel {
             deletePairs: deletePairs,
             deleteCombinedExports: deleteCombinedExports,
             deletePairsKeepingCombined: deletePairsKeepingCombined,
-            thumbnailCache: thumbnailCache
+            thumbnailCache: thumbnailCache,
         )
     }
 

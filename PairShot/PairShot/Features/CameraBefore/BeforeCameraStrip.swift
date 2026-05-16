@@ -24,18 +24,18 @@ struct BeforeCameraStrip: View {
             let cardWidth = StripDesign.cardWidth(stripHeight: stripZoneHeight)
             let sideInset = max(
                 StripDesign.stripPaddingHorizontal,
-                (proxy.size.width - cardWidth) / 2
+                (proxy.size.width - cardWidth) / 2,
             )
             ScrollView(.horizontal, showsIndicators: false) {
                 LazyHStack(
                     alignment: .center,
-                    spacing: StripDesign.cardSpacing(stripHeight: stripZoneHeight)
+                    spacing: StripDesign.cardSpacing(stripHeight: stripZoneHeight),
                 ) {
                     ForEach(pendingPairs) { pair in
                         StripCard(
                             pair: pair,
                             isActive: pair.id == activePairId,
-                            stripZoneHeight: stripZoneHeight
+                            stripZoneHeight: stripZoneHeight,
                         )
                         .id(pair.id)
                         .scrollTransition(.interactive, axis: .horizontal) { effect, phase in
@@ -49,7 +49,7 @@ struct BeforeCameraStrip: View {
             .contentMargins(
                 .vertical,
                 StripDesign.paddingVertical(stripHeight: stripZoneHeight),
-                for: .scrollContent
+                for: .scrollContent,
             )
             .scrollTargetBehavior(.viewAligned)
             .scrollPosition(id: $scrolledId, anchor: .center)

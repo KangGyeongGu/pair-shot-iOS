@@ -21,7 +21,7 @@ nonisolated enum WatermarkOverlay {
     private static func applyText(
         source: UIImage,
         settings: WatermarkSettings,
-        canvasSize: CGSize
+        canvasSize: CGSize,
     ) -> UIImage {
         guard !settings.text.isEmpty else { return source }
         let format = UIGraphicsImageRendererFormat()
@@ -36,7 +36,7 @@ nonisolated enum WatermarkOverlay {
                 lineCount: settings.lineCount,
                 repeatCount: settings.repeatCount,
                 textSizeRatio: settings.textSizeRatio,
-                canvas: canvasSize
+                canvas: canvasSize,
             )
         }
     }
@@ -44,7 +44,7 @@ nonisolated enum WatermarkOverlay {
     private static func applyLogo(
         source: UIImage,
         settings: WatermarkSettings,
-        canvasSize: CGSize
+        canvasSize: CGSize,
     ) -> UIImage {
         guard let data = settings.logoImageData,
               let logo = UIImage(data: data),
@@ -63,7 +63,7 @@ nonisolated enum WatermarkOverlay {
                 widthRatio: settings.logoWidthRatio,
                 alpha: settings.logoAlpha,
                 position: settings.logoPosition,
-                canvas: canvasSize
+                canvas: canvasSize,
             )
         }
     }
@@ -74,11 +74,11 @@ nonisolated enum WatermarkOverlay {
         lineCount: Int,
         repeatCount: Double,
         textSizeRatio: Double,
-        canvas: CGSize
+        canvas: CGSize,
     ) {
         let safeRatio = max(
             WatermarkSettings.textSizeRatioRange.lowerBound,
-            min(WatermarkSettings.textSizeRatioRange.upperBound, textSizeRatio)
+            min(WatermarkSettings.textSizeRatioRange.upperBound, textSizeRatio),
         )
         let fontSize = max(14, canvas.width * CGFloat(safeRatio))
         let attributes: [NSAttributedString.Key: Any] = [
@@ -123,11 +123,11 @@ nonisolated enum WatermarkOverlay {
         widthRatio: Double,
         alpha: Double,
         position: LogoPosition,
-        canvas: CGSize
+        canvas: CGSize,
     ) {
         let safeRatio = max(
             WatermarkSettings.logoWidthRatioRange.lowerBound,
-            min(WatermarkSettings.logoWidthRatioRange.upperBound, widthRatio)
+            min(WatermarkSettings.logoWidthRatioRange.upperBound, widthRatio),
         )
         let targetWidth = canvas.width * CGFloat(safeRatio)
         let aspect = logo.size.height / logo.size.width
@@ -138,7 +138,7 @@ nonisolated enum WatermarkOverlay {
             canvas: canvas,
             targetWidth: targetWidth,
             targetHeight: targetHeight,
-            padding: padding
+            padding: padding,
         )
         let safeAlpha = CGFloat(max(0, min(1, alpha)))
         logo.draw(in: rect, blendMode: .normal, alpha: safeAlpha)
@@ -149,7 +149,7 @@ nonisolated enum WatermarkOverlay {
         canvas: CGSize,
         targetWidth: CGFloat,
         targetHeight: CGFloat,
-        padding: CGFloat
+        padding: CGFloat,
     ) -> CGRect {
         let originX: CGFloat
         let originY: CGFloat

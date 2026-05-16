@@ -21,7 +21,7 @@ nonisolated enum CompositeRenderer {
         for pair: PhotoPair,
         photoLibrary: PhotoLibraryService,
         options: CompositeOptions = .default,
-        now: Date = .now
+        now: Date = .now,
     ) async throws -> Data {
         guard
             let beforeId = pair.beforePhotoLocalIdentifier, !beforeId.isEmpty
@@ -61,11 +61,11 @@ nonisolated enum CompositeRenderer {
                     before: stampedBefore,
                     after: stampedAfter,
                     layout: options.layout,
-                    combineSettings: options.combineSettings
+                    combineSettings: options.combineSettings,
                 )
                 guard
                     let baseJPEG = composite.jpegData(
-                        compressionQuality: options.jpegQuality
+                        compressionQuality: options.jpegQuality,
                     )
                 else {
                     throw RenderError.encodeFailed
@@ -74,7 +74,7 @@ nonisolated enum CompositeRenderer {
                     into: baseJPEG,
                     capturedAt: now,
                     latitude: pairLatitude,
-                    longitude: pairLongitude
+                    longitude: pairLongitude,
                 ) ?? baseJPEG
             }
         }.value
@@ -86,7 +86,7 @@ nonisolated enum CompositeRenderer {
         combineSettings: CombineSettings?,
         isBefore: Bool,
         watermark: WatermarkSettings?,
-        jpegQuality: CGFloat
+        jpegQuality: CGFloat,
     ) -> Data? {
         let stamped: UIImage =
             if let watermark {
@@ -97,7 +97,7 @@ nonisolated enum CompositeRenderer {
         let composed = renderSingleComposite(
             image: stamped,
             combineSettings: combineSettings,
-            isBefore: isBefore
+            isBefore: isBefore,
         )
         return composed.jpegData(compressionQuality: jpegQuality)
     }
@@ -105,7 +105,7 @@ nonisolated enum CompositeRenderer {
     nonisolated static func renderSingleComposite(
         image: UIImage,
         combineSettings: CombineSettings?,
-        isBefore: Bool
+        isBefore: Bool,
     ) -> UIImage {
         let imageWidth = max(image.size.width, 1)
         let scaleFactor = imageWidth / referenceImageWidth
@@ -113,13 +113,13 @@ nonisolated enum CompositeRenderer {
         let borderPx = baseBorderPx * scaleFactor
         let canvasSize = CGSize(
             width: image.size.width + borderPx * 2,
-            height: image.size.height + borderPx * 2
+            height: image.size.height + borderPx * 2,
         )
         let imageRect = CGRect(
             x: borderPx,
             y: borderPx,
             width: image.size.width,
-            height: image.size.height
+            height: image.size.height,
         )
         let format = UIGraphicsImageRendererFormat()
         format.scale = 1
@@ -129,7 +129,7 @@ nonisolated enum CompositeRenderer {
             CompositeLabelDrawer.paintCanvasBackground(
                 context: context,
                 canvas: canvasSize,
-                combineSettings: combineSettings
+                combineSettings: combineSettings,
             )
             image.draw(in: imageRect)
             CompositeLabelDrawer.drawSingleIfEnabled(
@@ -137,7 +137,7 @@ nonisolated enum CompositeRenderer {
                 combineSettings: combineSettings,
                 imageRect: imageRect,
                 isBefore: isBefore,
-                scaleFactor: scaleFactor
+                scaleFactor: scaleFactor,
             )
         }
     }
@@ -146,7 +146,7 @@ nonisolated enum CompositeRenderer {
         before: UIImage,
         after: UIImage,
         layout: CompositeLayout,
-        combineSettings: CombineSettings? = nil
+        combineSettings: CombineSettings? = nil,
     ) -> UIImage {
         let imageMaxWidth = max(before.size.width, after.size.width, 1)
         let scaleFactor = imageMaxWidth / referenceImageWidth
@@ -156,7 +156,7 @@ nonisolated enum CompositeRenderer {
             beforeSize: before.size,
             afterSize: after.size,
             layout: layout,
-            borderPx: borderPx
+            borderPx: borderPx,
         )
         let format = UIGraphicsImageRendererFormat()
         format.scale = 1
@@ -166,7 +166,7 @@ nonisolated enum CompositeRenderer {
             CompositeLabelDrawer.paintCanvasBackground(
                 context: context,
                 canvas: frames.canvas,
-                combineSettings: combineSettings
+                combineSettings: combineSettings,
             )
             before.draw(in: frames.beforeRect)
             after.draw(in: frames.afterRect)
@@ -175,7 +175,7 @@ nonisolated enum CompositeRenderer {
                 combineSettings: combineSettings,
                 beforeRect: frames.beforeRect,
                 afterRect: frames.afterRect,
-                scaleFactor: scaleFactor
+                scaleFactor: scaleFactor,
             )
         }
     }
@@ -184,7 +184,7 @@ nonisolated enum CompositeRenderer {
         beforeSize: CGSize,
         afterSize: CGSize,
         layout: CompositeLayout,
-        borderPx: CGFloat = 0
+        borderPx: CGFloat = 0,
     ) -> (canvas: CGSize, beforeRect: CGRect, afterRect: CGRect) {
         let beforeWidth = max(beforeSize.width, 1)
         let beforeHeight = max(beforeSize.height, 1)
@@ -198,7 +198,7 @@ nonisolated enum CompositeRenderer {
                     beforeHeight: beforeHeight,
                     afterWidth: afterWidth,
                     afterHeight: afterHeight,
-                    border: border
+                    border: border,
                 )
 
             case .vertical:
@@ -207,7 +207,7 @@ nonisolated enum CompositeRenderer {
                     beforeHeight: beforeHeight,
                     afterWidth: afterWidth,
                     afterHeight: afterHeight,
-                    border: border
+                    border: border,
                 )
         }
     }
@@ -217,26 +217,26 @@ nonisolated enum CompositeRenderer {
         beforeHeight: CGFloat,
         afterWidth: CGFloat,
         afterHeight: CGFloat,
-        border: CGFloat
+        border: CGFloat,
     ) -> (canvas: CGSize, beforeRect: CGRect, afterRect: CGRect) {
         let commonHeight = min(beforeHeight, afterHeight)
         let scaledBeforeWidth = beforeWidth * (commonHeight / beforeHeight)
         let scaledAfterWidth = afterWidth * (commonHeight / afterHeight)
         let canvas = CGSize(
             width: scaledBeforeWidth + scaledAfterWidth + border * 3,
-            height: commonHeight + border * 2
+            height: commonHeight + border * 2,
         )
         let beforeRect = CGRect(
             x: border,
             y: border,
             width: scaledBeforeWidth,
-            height: commonHeight
+            height: commonHeight,
         )
         let afterRect = CGRect(
             x: border + scaledBeforeWidth + border,
             y: border,
             width: scaledAfterWidth,
-            height: commonHeight
+            height: commonHeight,
         )
         return (canvas, beforeRect, afterRect)
     }
@@ -246,26 +246,26 @@ nonisolated enum CompositeRenderer {
         beforeHeight: CGFloat,
         afterWidth: CGFloat,
         afterHeight: CGFloat,
-        border: CGFloat
+        border: CGFloat,
     ) -> (canvas: CGSize, beforeRect: CGRect, afterRect: CGRect) {
         let commonWidth = min(beforeWidth, afterWidth)
         let scaledBeforeHeight = beforeHeight * (commonWidth / beforeWidth)
         let scaledAfterHeight = afterHeight * (commonWidth / afterWidth)
         let canvas = CGSize(
             width: commonWidth + border * 2,
-            height: scaledBeforeHeight + scaledAfterHeight + border * 3
+            height: scaledBeforeHeight + scaledAfterHeight + border * 3,
         )
         let beforeRect = CGRect(
             x: border,
             y: border,
             width: commonWidth,
-            height: scaledBeforeHeight
+            height: scaledBeforeHeight,
         )
         let afterRect = CGRect(
             x: border,
             y: border + scaledBeforeHeight + border,
             width: commonWidth,
-            height: scaledAfterHeight
+            height: scaledAfterHeight,
         )
         return (canvas, beforeRect, afterRect)
     }
@@ -278,7 +278,7 @@ nonisolated enum ExifEmbedder {
         into jpeg: Data,
         capturedAt: Date,
         latitude: Double?,
-        longitude: Double?
+        longitude: Double?,
     ) -> Data? {
         guard let source = CGImageSourceCreateWithData(jpeg as CFData, nil) else {
             return nil
@@ -290,20 +290,20 @@ nonisolated enum ExifEmbedder {
                 destinationData,
                 UTType.jpeg.identifier as CFString,
                 1,
-                nil
+                nil,
             )
         else { return nil }
 
         let metadata = makeMetadata(
             capturedAt: capturedAt,
             latitude: latitude,
-            longitude: longitude
+            longitude: longitude,
         )
         CGImageDestinationAddImageFromSource(
             destination,
             source,
             0,
-            metadata as CFDictionary
+            metadata as CFDictionary,
         )
         guard CGImageDestinationFinalize(destination) else { return nil }
         return destinationData as Data
@@ -312,7 +312,7 @@ nonisolated enum ExifEmbedder {
     static func makeMetadata(
         capturedAt: Date,
         latitude: Double?,
-        longitude: Double?
+        longitude: Double?,
     ) -> [String: Any] {
         var top: [String: Any] = [:]
 

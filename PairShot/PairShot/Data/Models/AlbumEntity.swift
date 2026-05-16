@@ -20,7 +20,7 @@ final class AlbumEntity {
         latitude: Double? = nil,
         longitude: Double? = nil,
         locationLabel: String? = nil,
-        createdAt: Date = .now
+        createdAt: Date = .now,
     ) {
         self.id = id
         self.name = name
@@ -42,7 +42,7 @@ extension AlbumEntity {
             longitude: longitude,
             locationLabel: locationLabel,
             createdAt: createdAt,
-            pairIds: pairs.map(\.id)
+            pairIds: pairs.map(\.id),
         )
     }
 }

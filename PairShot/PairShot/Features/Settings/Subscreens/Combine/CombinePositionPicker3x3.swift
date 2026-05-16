@@ -47,7 +47,7 @@ struct CombinePositionPicker3x3: View {
         Button {
             selection = CombineSettings.LabelPosition(
                 horizontal: position.0,
-                vertical: position.1
+                vertical: position.1,
             )
         } label: {
             ZStack {
@@ -68,7 +68,7 @@ struct CombinePositionPicker3x3: View {
 
     private func accessibilityLabel(
         horizontal: CombineSettings.LabelPosition.Horizontal,
-        vertical: CombineSettings.LabelPosition.Vertical
+        vertical: CombineSettings.LabelPosition.Vertical,
     ) -> String {
         let horizontalText = horizontalLabel(horizontal)
         let verticalText = verticalLabel(vertical)
@@ -109,7 +109,7 @@ private struct CombinePositionPicker3x3PreviewWrapper: View {
         Form {
             CombinePositionPicker3x3(
                 label: String(localized: "combine_field_position_before"),
-                selection: $selection
+                selection: $selection,
             )
         }
     }

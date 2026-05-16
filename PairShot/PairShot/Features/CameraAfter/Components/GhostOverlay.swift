@@ -42,7 +42,7 @@ struct GhostOverlayView: View {
         isEnabled: Bool = true,
         rotationDegrees: Double = 0,
         width: CGFloat? = nil,
-        height: CGFloat? = nil
+        height: CGFloat? = nil,
     ) {
         self.image = image
         self.alpha = alpha

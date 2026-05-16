@@ -24,7 +24,7 @@ nonisolated enum CompositeLabelDrawer {
         combineSettings: CombineSettings?,
         beforeRect: CGRect,
         afterRect: CGRect,
-        scaleFactor: CGFloat = 1
+        scaleFactor: CGFloat = 1,
     ) {
         guard let settings = combineSettings, settings.label.isEnabled else { return }
         drawLabel(
@@ -34,8 +34,8 @@ nonisolated enum CompositeLabelDrawer {
                 settings: settings,
                 isBefore: true,
                 cgContext: context.cgContext,
-                scaleFactor: scaleFactor
-            )
+                scaleFactor: scaleFactor,
+            ),
         )
         drawLabel(
             LabelDrawContext(
@@ -44,8 +44,8 @@ nonisolated enum CompositeLabelDrawer {
                 settings: settings,
                 isBefore: false,
                 cgContext: context.cgContext,
-                scaleFactor: scaleFactor
-            )
+                scaleFactor: scaleFactor,
+            ),
         )
     }
 
@@ -54,7 +54,7 @@ nonisolated enum CompositeLabelDrawer {
         combineSettings: CombineSettings?,
         imageRect: CGRect,
         isBefore: Bool,
-        scaleFactor: CGFloat = 1
+        scaleFactor: CGFloat = 1,
     ) {
         guard let settings = combineSettings, settings.label.isEnabled else { return }
         let text = isBefore ? settings.label.beforeText : settings.label.afterText
@@ -65,8 +65,8 @@ nonisolated enum CompositeLabelDrawer {
                 settings: settings,
                 isBefore: isBefore,
                 cgContext: context.cgContext,
-                scaleFactor: scaleFactor
-            )
+                scaleFactor: scaleFactor,
+            ),
         )
     }
 
@@ -78,7 +78,7 @@ nonisolated enum CompositeLabelDrawer {
     static func paintCanvasBackground(
         context: UIGraphicsImageRendererContext,
         canvas: CGSize,
-        combineSettings: CombineSettings?
+        combineSettings: CombineSettings?,
     ) {
         let fill: UIColor =
             if let settings = combineSettings, settings.border.isEnabled {
@@ -93,7 +93,7 @@ nonisolated enum CompositeLabelDrawer {
     private static func drawLabel(_ ctx: LabelDrawContext) {
         let fontSize = max(
             CGFloat(ctx.settings.label.textSizePercent) * 0.01 * ctx.imageRect.height,
-            LabelMetrics.minFontSize
+            LabelMetrics.minFontSize,
         )
         let attributed = makeAttributedText(text: ctx.text, settings: ctx.settings, fontSize: fontSize)
         let isFree = ctx.settings.labelMode == .free
@@ -103,7 +103,7 @@ nonisolated enum CompositeLabelDrawer {
             isFree: isFree,
             isBefore: ctx.isBefore,
             fontSize: fontSize,
-            attributed: attributed
+            attributed: attributed,
         )
         if ctx.settings.labelBackground.isEnabled {
             drawLabelBackground(
@@ -111,7 +111,7 @@ nonisolated enum CompositeLabelDrawer {
                 settings: ctx.settings,
                 labelRect: labelRect,
                 isFree: isFree,
-                scaleFactor: ctx.scaleFactor
+                scaleFactor: ctx.scaleFactor,
             )
         }
         let textSize = attributed.size()
@@ -123,7 +123,7 @@ nonisolated enum CompositeLabelDrawer {
     private static func makeAttributedText(
         text: String,
         settings: CombineSettings,
-        fontSize: CGFloat
+        fontSize: CGFloat,
     ) -> NSAttributedString {
         let font = UIFont.systemFont(ofSize: fontSize, weight: .semibold)
         let textColor = UIColor(rgba: settings.label.textColor)
@@ -137,7 +137,7 @@ nonisolated enum CompositeLabelDrawer {
         isFree: Bool,
         isBefore: Bool,
         fontSize: CGFloat,
-        attributed: NSAttributedString
+        attributed: NSAttributedString,
     ) -> CGRect {
         if isFree {
             let anchor = isBefore ? settings.beforePosition : settings.afterPosition
@@ -145,13 +145,13 @@ nonisolated enum CompositeLabelDrawer {
                 imageRect: imageRect,
                 fontSize: fontSize,
                 attributed: attributed,
-                anchor: anchor
+                anchor: anchor,
             )
         }
         return fullWidthLabelRect(
             imageRect: imageRect,
             fontSize: fontSize,
-            vertical: settings.fullWidthVertical
+            vertical: settings.fullWidthVertical,
         )
     }
 
@@ -160,7 +160,7 @@ nonisolated enum CompositeLabelDrawer {
         settings: CombineSettings,
         labelRect: CGRect,
         isFree: Bool,
-        scaleFactor: CGFloat
+        scaleFactor: CGFloat,
     ) {
         let bgColor = effectiveLabelBgColor(settings: settings)
             .withAlphaComponent(CGFloat(max(0, min(1, settings.labelBackground.opacity))))
@@ -187,7 +187,7 @@ nonisolated enum CompositeLabelDrawer {
     private static func fullWidthLabelRect(
         imageRect: CGRect,
         fontSize: CGFloat,
-        vertical: CombineSettings.LabelPosition.Vertical
+        vertical: CombineSettings.LabelPosition.Vertical,
     ) -> CGRect {
         let rectHeight = fontSize * LabelMetrics.rectHeightFactor
         let top: CGFloat =
@@ -208,7 +208,7 @@ nonisolated enum CompositeLabelDrawer {
         imageRect: CGRect,
         fontSize: CGFloat,
         attributed: NSAttributedString,
-        anchor: CombineSettings.LabelPosition
+        anchor: CombineSettings.LabelPosition,
     ) -> CGRect {
         let rectHeight = fontSize * LabelMetrics.rectHeightFactor
         let textSize = attributed.size()
@@ -219,13 +219,13 @@ nonisolated enum CompositeLabelDrawer {
             anchor: anchor,
             imageRect: imageRect,
             rectWidth: rectWidth,
-            margin: margin
+            margin: margin,
         )
         let topY = anchoredTopY(
             anchor: anchor,
             imageRect: imageRect,
             rectHeight: rectHeight,
-            margin: margin
+            margin: margin,
         )
         return CGRect(x: leftX, y: topY, width: rectWidth, height: rectHeight)
     }
@@ -234,7 +234,7 @@ nonisolated enum CompositeLabelDrawer {
         anchor: CombineSettings.LabelPosition,
         imageRect: CGRect,
         rectWidth: CGFloat,
-        margin: CGFloat
+        margin: CGFloat,
     ) -> CGFloat {
         switch anchor.horizontal {
             case .leading:
@@ -252,7 +252,7 @@ nonisolated enum CompositeLabelDrawer {
         anchor: CombineSettings.LabelPosition,
         imageRect: CGRect,
         rectHeight: CGFloat,
-        margin: CGFloat
+        margin: CGFloat,
     ) -> CGFloat {
         switch anchor.vertical {
             case .top:

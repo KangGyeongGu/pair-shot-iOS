@@ -31,7 +31,7 @@ final class PairPreviewViewModel {
         pair: PhotoPair,
         photoLibrary: PhotoLibraryService,
         appSettings: AppSettings,
-        membership: Membership? = nil
+        membership: Membership? = nil,
     ) {
         self.pair = pair
         self.photoLibrary = photoLibrary
@@ -62,13 +62,13 @@ final class PairPreviewViewModel {
                 watermarkEnabled: watermark != nil,
                 watermark: watermark,
                 combineSettings: combineSettings,
-                includeGPS: appSettings.embedGPSInPhoto
+                includeGPS: appSettings.embedGPSInPhoto,
             )
             let data = try await CompositeRenderer.makeComposite(
                 for: pair,
                 photoLibrary: photoLibrary,
                 options: options,
-                now: .now
+                now: .now,
             )
             livePreviewImage = UIImage(data: data)
         } catch {

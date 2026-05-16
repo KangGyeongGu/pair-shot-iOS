@@ -32,7 +32,7 @@ struct PhotoPair: Identifiable, Equatable {
         cameraSettings: CameraSettings? = nil,
         albumIds: [UUID] = [],
         firstAlbumName: String? = nil,
-        hasCombinedExport: Bool = false
+        hasCombinedExport: Bool = false,
     ) {
         self.id = id
         self.beforePhotoLocalIdentifier = beforePhotoLocalIdentifier

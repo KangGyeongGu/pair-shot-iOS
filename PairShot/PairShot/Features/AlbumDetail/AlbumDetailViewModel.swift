@@ -85,7 +85,7 @@ final class AlbumDetailViewModel {
         fullscreenAdCoordinator: FullscreenAdCoordinator,
         deleteCombinedExports: DeleteCombinedExportsUseCase,
         deletePairsKeepingCombined: DeletePairsKeepingCombinedUseCase,
-        snackbarQueue: SnackbarQueue
+        snackbarQueue: SnackbarQueue,
     ) {
         self.albumId = albumId
         self.pairRepo = pairRepo

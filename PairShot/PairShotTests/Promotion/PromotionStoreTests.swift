@@ -6,13 +6,13 @@ import Testing
 struct PromotionStoreTests {
     private static let frozenNow = Date(timeIntervalSinceReferenceDate: 700_000_000)
 
-    @Test("Initial state: nothing active when no snapshot exists")
-    func initialStateIsInactive() {
+    @Test
+    func `Initial state: nothing active when no snapshot exists`() {
         let defaults = Self.makeIsolatedDefaults()
         let store = PromotionStore(
             fetcher: StubFetcher(snapshot: nil),
             deviceHashProvider: DeviceHashProvider(identifierResolver: { "device-id" }),
-            defaults: defaults
+            defaults: defaults,
         )
 
         #expect(store.proIsActive == false)
@@ -21,18 +21,18 @@ struct PromotionStoreTests {
         #expect(store.adFreeExpiresAt == nil)
     }
 
-    @Test("Ad-free promotion only: refresh sets adFreeIsActive but not proIsActive")
-    func adFreePromotionActivates() async {
+    @Test
+    func `Ad-free promotion only: refresh sets adFreeIsActive but not proIsActive`() async {
         let defaults = Self.makeIsolatedDefaults()
         let expiry = Self.frozenNow.addingTimeInterval(60 * 60 * 24 * 30)
         let snapshot = MembershipSnapshot(
             pro: .init(active: false, expiresAt: nil),
-            adFree: .init(active: true, expiresAt: expiry)
+            adFree: .init(active: true, expiresAt: expiry),
         )
         let store = PromotionStore(
             fetcher: StubFetcher(snapshot: snapshot),
             deviceHashProvider: DeviceHashProvider(identifierResolver: { "device-id" }),
-            defaults: defaults
+            defaults: defaults,
         )
 
         await store.refresh()
@@ -42,18 +42,18 @@ struct PromotionStoreTests {
         #expect(store.adFreeExpiresAt == expiry)
     }
 
-    @Test("Pro promotion: refresh sets proIsActive (and adFree mirror inactive)")
-    func proPromotionActivates() async {
+    @Test
+    func `Pro promotion: refresh sets proIsActive (and adFree mirror inactive)`() async {
         let defaults = Self.makeIsolatedDefaults()
         let expiry = Self.frozenNow.addingTimeInterval(60 * 60 * 24 * 365)
         let snapshot = MembershipSnapshot(
             pro: .init(active: true, expiresAt: expiry),
-            adFree: .init(active: false, expiresAt: nil)
+            adFree: .init(active: false, expiresAt: nil),
         )
         let store = PromotionStore(
             fetcher: StubFetcher(snapshot: snapshot),
             deviceHashProvider: DeviceHashProvider(identifierResolver: { "device-id" }),
-            defaults: defaults
+            defaults: defaults,
         )
 
         await store.refresh()
@@ -63,17 +63,17 @@ struct PromotionStoreTests {
         #expect(store.adFreeIsActive == false)
     }
 
-    @Test("Permanent promotion: nil expiresAt preserved")
-    func permanentPromotionHasNilExpiry() async {
+    @Test
+    func `Permanent promotion: nil expiresAt preserved`() async {
         let defaults = Self.makeIsolatedDefaults()
         let snapshot = MembershipSnapshot(
             pro: .init(active: true, expiresAt: nil),
-            adFree: .init(active: false, expiresAt: nil)
+            adFree: .init(active: false, expiresAt: nil),
         )
         let store = PromotionStore(
             fetcher: StubFetcher(snapshot: snapshot),
             deviceHashProvider: DeviceHashProvider(identifierResolver: { "device-id" }),
-            defaults: defaults
+            defaults: defaults,
         )
 
         await store.refresh()
@@ -82,13 +82,13 @@ struct PromotionStoreTests {
         #expect(store.proExpiresAt == nil)
     }
 
-    @Test("refresh keeps state when fetcher returns nil")
-    func refreshIsNoOpWhenFetcherReturnsNil() async {
+    @Test
+    func `refresh keeps state when fetcher returns nil`() async {
         let defaults = Self.makeIsolatedDefaults()
         let store = PromotionStore(
             fetcher: StubFetcher(snapshot: nil),
             deviceHashProvider: DeviceHashProvider(identifierResolver: { "device-id" }),
-            defaults: defaults
+            defaults: defaults,
         )
 
         await store.refresh()
@@ -97,25 +97,25 @@ struct PromotionStoreTests {
         #expect(store.adFreeIsActive == false)
     }
 
-    @Test("Snapshot persistence: subsequent init restores prior state")
-    func snapshotIsPersistedAcrossInstances() async {
+    @Test
+    func `Snapshot persistence: subsequent init restores prior state`() async {
         let defaults = Self.makeIsolatedDefaults()
         let expiry = Self.frozenNow.addingTimeInterval(60 * 60 * 24 * 7)
         let snapshot = MembershipSnapshot(
             pro: .init(active: false, expiresAt: nil),
-            adFree: .init(active: true, expiresAt: expiry)
+            adFree: .init(active: true, expiresAt: expiry),
         )
         let firstStore = PromotionStore(
             fetcher: StubFetcher(snapshot: snapshot),
             deviceHashProvider: DeviceHashProvider(identifierResolver: { "device-id" }),
-            defaults: defaults
+            defaults: defaults,
         )
         await firstStore.refresh()
 
         let secondStore = PromotionStore(
             fetcher: StubFetcher(snapshot: nil),
             deviceHashProvider: DeviceHashProvider(identifierResolver: { "device-id" }),
-            defaults: defaults
+            defaults: defaults,
         )
 
         #expect(secondStore.adFreeIsActive == true)

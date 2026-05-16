@@ -74,7 +74,7 @@ nonisolated struct WatermarkSettings: Codable, Equatable {
         logoFileName: String? = nil,
         logoPosition: LogoPosition = .center,
         logoWidthRatio: Double = 0.5,
-        logoAlpha: Double = 0.5
+        logoAlpha: Double = 0.5,
     ) {
         self.type = type
         self.text = text

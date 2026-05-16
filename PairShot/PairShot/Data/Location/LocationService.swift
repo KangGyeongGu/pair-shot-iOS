@@ -88,7 +88,7 @@ extension CoreLocationService: CLLocationManagerDelegate {
         guard location.timestamp.timeIntervalSinceNow > -5 else { return }
         currentLocation = DomainLocation(
             latitude: location.coordinate.latitude,
-            longitude: location.coordinate.longitude
+            longitude: location.coordinate.longitude,
         )
     }
 }

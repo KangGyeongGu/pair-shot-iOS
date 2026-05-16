@@ -113,16 +113,16 @@ extension AppEnvironment {
         let foundation = makeFoundation(overrides: input.foundationOverrides)
         let adServices = makeAdServices(
             trackingService: foundation.trackingService,
-            overrides: input.adServicesOverrides
+            overrides: input.adServicesOverrides,
         )
         let dataServices = makeDataServices(
             modelContainer: input.modelContainer,
-            appSettings: foundation.appSettings
+            appSettings: foundation.appSettings,
         )
         let subscription = makeSubscriptionServices(overrides: input.subscriptionOverrides)
         let membership = Membership(
             subscriptionStore: subscription.subscriptionStore,
-            promotionStore: foundation.promotionStore
+            promotionStore: foundation.promotionStore,
         )
         let useCases = makeUseCases(
             dependencies: UseCasesDependencies(
@@ -133,8 +133,8 @@ extension AppEnvironment {
                 zipExporter: dataServices.zipExporter,
                 snackbarQueue: foundation.snackbarQueue,
                 appSettings: foundation.appSettings,
-                membership: membership
-            )
+                membership: membership,
+            ),
         )
         return AppEnvironmentBundles(
             foundation: foundation,
@@ -142,12 +142,12 @@ extension AppEnvironment {
             dataServices: dataServices,
             useCases: useCases,
             subscription: subscription,
-            membership: membership
+            membership: membership,
         )
     }
 
     static func makeFoundation(
-        overrides: AppEnvironmentFoundationOverrides
+        overrides: AppEnvironmentFoundationOverrides,
     ) -> AppEnvironmentFoundation {
         let apiConfig = CouponApiConfig.resolve()
         let hashProvider = DeviceHashProvider()
@@ -167,13 +167,13 @@ extension AppEnvironment {
             hapticService: hapticService,
             motionService: overrides.motionService ?? MotionService(),
             apiConfig: apiConfig,
-            deviceHashProvider: hashProvider
+            deviceHashProvider: hashProvider,
         )
     }
 
     static func makeDataServices(
         modelContainer: ModelContainer,
-        appSettings: AppSettings
+        appSettings: AppSettings,
     ) -> DataServicesBundle {
         let location = CoreLocationService()
         let photoLibraryExporter = PhotoLibraryExport()
@@ -189,14 +189,14 @@ extension AppEnvironment {
             zipExporter: ZipExporterAdapter(
                 photoLibrary: photoLibrary,
                 pairRepo: pairRepo,
-                appSettings: appSettings
-            )
+                appSettings: appSettings,
+            ),
         )
     }
 
     static func makeAdServices(
         trackingService: TrackingAuthorizationService,
-        overrides: AdServicesOverrides
+        overrides: AdServicesOverrides,
     ) -> AdServicesBundle {
         AdServicesBundle(
             interstitial: overrides.interstitial ?? InterstitialAdManager(trackingService: trackingService),
@@ -204,24 +204,24 @@ extension AppEnvironment {
             nativeAd: overrides.nativeAd ?? NativeAdLoader(trackingService: trackingService),
             appOpen: overrides.appOpen ?? AppOpenAdManager(trackingService: trackingService),
             fullscreen: overrides.fullscreen ?? FullscreenAdCoordinator(),
-            consent: overrides.consent ?? ConsentManager()
+            consent: overrides.consent ?? ConsentManager(),
         )
     }
 
     static func makeSubscriptionServices(
-        overrides: SubscriptionServicesOverrides
+        overrides: SubscriptionServicesOverrides,
     ) -> SubscriptionServicesBundle {
         let scheduler = RenewalReminderScheduler()
         return SubscriptionServicesBundle(
             productsService: overrides.productsService ?? ProductsService(),
             subscriptionStore: overrides.subscriptionStore
                 ?? SubscriptionStore(renewalReminderScheduler: scheduler),
-            transactionListener: overrides.transactionListener ?? TransactionListener()
+            transactionListener: overrides.transactionListener ?? TransactionListener(),
         )
     }
 
     static func makeUseCases(
-        dependencies: UseCasesDependencies
+        dependencies: UseCasesDependencies,
     ) -> UseCasesBundle {
         let pairRepo = dependencies.pairRepo
         let photoLibrary = dependencies.photoLibrary
@@ -230,17 +230,17 @@ extension AppEnvironment {
         let recaptureAfter = RecaptureAfterUseCase(
             pairRepo: pairRepo,
             photoLibrary: photoLibrary,
-            captureAfter: captureAfter
+            captureAfter: captureAfter,
         )
         let deletePairsKeepingCombined = DeletePairsKeepingCombinedUseCase(
             pairRepo: pairRepo,
-            photoLibrary: photoLibrary
+            photoLibrary: photoLibrary,
         )
         return UseCasesBundle(
             createPair: CreatePairUseCase(
                 pairRepo: pairRepo,
                 photoLibrary: photoLibrary,
-                location: dependencies.location
+                location: dependencies.location,
             ),
             captureAfter: captureAfter,
             recaptureAfter: recaptureAfter,
@@ -255,8 +255,8 @@ extension AppEnvironment {
                 snackbarQueue: dependencies.snackbarQueue,
                 appSettings: dependencies.appSettings,
                 pairRepo: pairRepo,
-                membership: dependencies.membership
-            )
+                membership: dependencies.membership,
+            ),
         )
     }
 }

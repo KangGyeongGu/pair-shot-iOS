@@ -4,7 +4,7 @@ import Foundation
 enum AdSuppression {
     static func isSuppressed(
         promotionStore: PromotionStore?,
-        subscriptionStore: SubscriptionStore?
+        subscriptionStore: SubscriptionStore?,
     ) -> Bool {
         let promotion = promotionStore?.adFreeIsActive ?? false
         let subscription = subscriptionStore?.isPro ?? false

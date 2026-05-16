@@ -13,7 +13,7 @@ extension ColorRGBA {
                 red: Double(red),
                 green: Double(green),
                 blue: Double(blue),
-                alpha: Double(alpha)
+                alpha: Double(alpha),
             )
             return
         }
@@ -24,7 +24,7 @@ extension ColorRGBA {
                 red: Double(white),
                 green: Double(white),
                 blue: Double(white),
-                alpha: Double(whiteAlpha)
+                alpha: Double(whiteAlpha),
             )
             return
         }
@@ -39,7 +39,7 @@ extension Color {
             red: rgba.red,
             green: rgba.green,
             blue: rgba.blue,
-            opacity: rgba.alpha
+            opacity: rgba.alpha,
         )
     }
 }
@@ -50,7 +50,7 @@ extension UIColor {
             red: CGFloat(rgba.red),
             green: CGFloat(rgba.green),
             blue: CGFloat(rgba.blue),
-            alpha: CGFloat(rgba.alpha)
+            alpha: CGFloat(rgba.alpha),
         )
     }
 }

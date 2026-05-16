@@ -19,8 +19,8 @@ struct HomePairCardView: View {
                 Self.accessibilityLabel(
                     for: pair,
                     isSelected: isSelected,
-                    isSelectionMode: isSelectionMode
-                )
+                    isSelectionMode: isSelectionMode,
+                ),
             )
     }
 
@@ -60,7 +60,7 @@ struct HomePairCardView: View {
         if let identifier = pair.beforePhotoLocalIdentifier, !identifier.isEmpty {
             HomePairCardSide(
                 localIdentifier: identifier,
-                placeholder: .image
+                placeholder: .image,
             )
         } else {
             HomePairCardEmptySlot()
@@ -72,7 +72,7 @@ struct HomePairCardView: View {
         if let identifier = pair.afterPhotoLocalIdentifier, !identifier.isEmpty {
             HomePairCardSide(
                 localIdentifier: identifier,
-                placeholder: .image
+                placeholder: .image,
             )
         } else {
             HomePairCardEmptySlot()
@@ -99,7 +99,7 @@ struct HomePairCardView: View {
         RoundedRectangle(cornerRadius: 10)
             .strokeBorder(
                 isSelected ? Color.accentColor : Color(uiColor: .separator).opacity(0.6),
-                lineWidth: isSelected ? 2 : 1
+                lineWidth: isSelected ? 2 : 1,
             )
     }
 
@@ -115,7 +115,7 @@ struct HomePairCardView: View {
     static func accessibilityLabel(
         for pair: PhotoPair,
         isSelected: Bool,
-        isSelectionMode: Bool
+        isSelectionMode: Bool,
     ) -> String {
         let statusText = statusLabel(for: pair)
         let selectionText: String? =

@@ -21,8 +21,8 @@ nonisolated enum ZoomPresetBuilder {
                 ZoomPresetSpec(
                     id: "uw",
                     factor: minFactor,
-                    label: formatLabel(minFactor / firstSwitch)
-                )
+                    label: formatLabel(minFactor / firstSwitch),
+                ),
             )
         }
 
@@ -38,8 +38,8 @@ nonisolated enum ZoomPresetBuilder {
                 ZoomPresetSpec(
                     id: "tele",
                     factor: topFactor,
-                    label: formatLabel(topFactor / firstSwitch)
-                )
+                    label: formatLabel(topFactor / firstSwitch),
+                ),
             )
         }
 

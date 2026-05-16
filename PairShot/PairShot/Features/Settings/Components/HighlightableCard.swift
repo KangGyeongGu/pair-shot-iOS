@@ -13,7 +13,7 @@ struct HighlightableCard<Content: View>: View {
             .listRowBackground(
                 pulseOpacity > 0
                     ? Color.accentColor.opacity(pulseOpacity)
-                    : Color(.secondarySystemGroupedBackground)
+                    : Color(.secondarySystemGroupedBackground),
             )
             .onAppear {
                 if isHighlighted { startPulse() }

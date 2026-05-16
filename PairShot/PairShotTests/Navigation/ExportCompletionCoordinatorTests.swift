@@ -4,8 +4,8 @@ import Testing
 
 @MainActor
 struct ExportCompletionCoordinatorTests {
-    @Test("Register then notify invokes the registered closure")
-    func registerThenNotifyInvokesClosure() {
+    @Test
+    func `Register then notify invokes the registered closure`() {
         let coordinator = ExportCompletionCoordinator()
         var callCount = 0
         coordinator.register { callCount += 1 }
@@ -15,8 +15,8 @@ struct ExportCompletionCoordinatorTests {
         #expect(callCount == 1)
     }
 
-    @Test("Notify clears the pending closure so subsequent notifications are no-ops")
-    func notifyClearsPendingClosure() {
+    @Test
+    func `Notify clears the pending closure so subsequent notifications are no-ops`() {
         let coordinator = ExportCompletionCoordinator()
         var callCount = 0
         coordinator.register { callCount += 1 }
@@ -27,15 +27,15 @@ struct ExportCompletionCoordinatorTests {
         #expect(callCount == 1)
     }
 
-    @Test("Notify without prior registration is a no-op")
-    func notifyWithoutRegisterIsNoOp() {
+    @Test
+    func `Notify without prior registration is a no-op`() {
         let coordinator = ExportCompletionCoordinator()
 
         coordinator.notifyCompleted()
     }
 
-    @Test("Cancel pending prevents subsequent notification from invoking closure")
-    func cancelPendingSuppressesNextNotification() {
+    @Test
+    func `Cancel pending prevents subsequent notification from invoking closure`() {
         let coordinator = ExportCompletionCoordinator()
         var callCount = 0
         coordinator.register { callCount += 1 }
@@ -46,8 +46,8 @@ struct ExportCompletionCoordinatorTests {
         #expect(callCount == 0)
     }
 
-    @Test("Second register replaces the first closure (single-slot invariant)")
-    func registerReplacesPriorClosure() {
+    @Test
+    func `Second register replaces the first closure (single-slot invariant)`() {
         let coordinator = ExportCompletionCoordinator()
         var firstCount = 0
         var secondCount = 0

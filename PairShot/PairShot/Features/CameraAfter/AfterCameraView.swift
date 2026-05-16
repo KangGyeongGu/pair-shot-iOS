@@ -55,14 +55,14 @@ struct AfterCameraView: View {
         .captureErrorAlert(
             message: Binding(
                 get: { viewModel?.captureErrorMessage },
-                set: { viewModel?.captureErrorMessage = $0 }
-            )
+                set: { viewModel?.captureErrorMessage = $0 },
+            ),
         )
         .ghostWarningToast(
             message: Binding(
                 get: { viewModel?.ghostWarningToast },
-                set: { viewModel?.ghostWarningToast = $0 }
-            )
+                set: { viewModel?.ghostWarningToast = $0 },
+            ),
         )
     }
 
@@ -82,7 +82,7 @@ struct AfterCameraView: View {
                 onToggleNightMode: viewModel.toggleNightMode,
                 onCycleFlash: viewModel.cycleFlash,
                 onToggleOverlay: viewModel.toggleOverlay,
-                onAlphaChange: viewModel.setAlpha
+                onAlphaChange: viewModel.setAlpha,
             )
             .animation(.spring(response: 0.3, dampingFraction: 0.85), value: showSettingsSheet)
         }
@@ -92,7 +92,7 @@ struct AfterCameraView: View {
         albumId: UUID? = nil,
         initialPairId: UUID? = nil,
         sortOrder: HomeSortOrder = .newest,
-        recaptureTargetPair: PhotoPair? = nil
+        recaptureTargetPair: PhotoPair? = nil,
     ) {
         self.albumId = albumId
         self.initialPairId = initialPairId
@@ -116,7 +116,7 @@ struct AfterCameraView: View {
                 ghostRotationDegrees: cachedGhostRotationDegrees,
                 rotationGuideDirection: RotationGuideDirection(
                     capture: cachedGhostCaptureOrientation,
-                    device: env.motionService.orientation ?? cachedGhostCaptureOrientation
+                    device: env.motionService.orientation ?? cachedGhostCaptureOrientation,
                 ),
                 alpha: viewModel.alpha,
                 overlayEnabled: viewModel.overlayEnabled,
@@ -139,7 +139,7 @@ struct AfterCameraView: View {
                 onShutter: { handleShutter(viewModel: viewModel) },
                 onLeadingTap: { dismiss() },
                 onToggleLens: viewModel.toggleLens,
-                onSettingsTap: { showSettingsSheet = true }
+                onSettingsTap: { showSettingsSheet = true },
             )
         }
     }
@@ -150,7 +150,7 @@ struct AfterCameraView: View {
             set: { newValue in
                 viewModel.selectedPairId = newValue
                 viewModel.onSelectionChanged(newValue)
-            }
+            },
         )
     }
 
@@ -188,7 +188,7 @@ struct AfterCameraView: View {
             albumId: albumId,
             initialPairId: initialPairId,
             sortOrder: sortOrder,
-            recaptureTargetPair: recaptureTargetPair
+            recaptureTargetPair: recaptureTargetPair,
         )
     }
 
@@ -206,7 +206,7 @@ struct AfterCameraView: View {
                     env.snackbarQueue.enqueue(
                         "snackbar_success_all_after_captured",
                         variant: .success,
-                        debounceKey: "all-after-captured"
+                        debounceKey: "all-after-captured",
                     )
             }
         }
@@ -241,12 +241,12 @@ private nonisolated func decodeGhostImage(data: Data) -> DecodedGhost? {
     return DecodedGhost(
         image: upright,
         rotationDegrees: degrees,
-        captureOrientation: captureOrientation
+        captureOrientation: captureOrientation,
     )
 }
 
 private nonisolated func captureOrientationFromEXIF(
-    _ orientation: UIImage.Orientation
+    _ orientation: UIImage.Orientation,
 ) -> CameraOrientation {
     switch orientation {
         case .up, .upMirrored: .landscapeLeft

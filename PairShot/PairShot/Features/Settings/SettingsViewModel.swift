@@ -81,7 +81,7 @@ final class SettingsViewModel {
 
     init(
         appSettings: AppSettings,
-        membership: Membership? = nil
+        membership: Membership? = nil,
     ) {
         self.appSettings = appSettings
         self.membership = membership

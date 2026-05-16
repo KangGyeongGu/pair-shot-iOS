@@ -5,7 +5,7 @@ nonisolated enum ExportTempFileWriter {
     static func write(
         data: Data,
         fileName: String,
-        tempDirectory: URL
+        tempDirectory: URL,
     ) -> URL? {
         let folder = tempDirectory.appendingPathComponent("pairshot-share", isDirectory: true)
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)

@@ -13,7 +13,7 @@ struct SettingsCaptureFileSection: View {
                 SettingsNavigationRow(
                     icon: SettingsRowIcon(systemImage: "photo", color: .blue),
                     title: String(localized: "settings_item_image_quality"),
-                    value: viewModel.imageQualityValueText
+                    value: viewModel.imageQualityValueText,
                 )
             }
             .buttonStyle(.plain)
@@ -26,7 +26,7 @@ struct SettingsCaptureFileSection: View {
                 SettingsNavigationRow(
                     icon: SettingsRowIcon(systemImage: "textformat", color: .gray),
                     title: String(localized: "settings_item_file_name_prefix"),
-                    value: viewModel.fileNamePrefixDisplay
+                    value: viewModel.fileNamePrefixDisplay,
                 )
             }
             .buttonStyle(.plain)
@@ -41,12 +41,12 @@ struct SettingsCaptureFileSection: View {
         Toggle(
             isOn: Binding(
                 get: { viewModel.embedGPSInPhoto },
-                set: { viewModel.embedGPSInPhoto = $0 }
-            )
+                set: { viewModel.embedGPSInPhoto = $0 },
+            ),
         ) {
             HStack(spacing: 12) {
                 SettingsIconBadge(
-                    icon: SettingsRowIcon(systemImage: "location.fill", color: .blue)
+                    icon: SettingsRowIcon(systemImage: "location.fill", color: .blue),
                 )
                 VStack(alignment: .leading, spacing: 2) {
                     Text(String(localized: "settings_embed_gps_title"))
@@ -63,12 +63,12 @@ struct SettingsCaptureFileSection: View {
             Toggle(
                 isOn: Binding(
                     get: { viewModel.overlayAlphaEnabled },
-                    set: { viewModel.overlayAlphaEnabled = $0 }
-                )
+                    set: { viewModel.overlayAlphaEnabled = $0 },
+                ),
             ) {
                 HStack(spacing: 12) {
                     SettingsIconBadge(
-                        icon: SettingsRowIcon(systemImage: "square.on.square", color: .indigo)
+                        icon: SettingsRowIcon(systemImage: "square.on.square", color: .indigo),
                     )
                     Text(String(localized: "settings_item_overlay_opacity"))
                 }
@@ -80,9 +80,9 @@ struct SettingsCaptureFileSection: View {
                         Slider(
                             value: Binding(
                                 get: { viewModel.overlayAlphaValue },
-                                set: { viewModel.overlayAlphaValue = $0 }
+                                set: { viewModel.overlayAlphaValue = $0 },
                             ),
-                            in: CompositionDefaults.alphaRange
+                            in: CompositionDefaults.alphaRange,
                         )
                         Text(viewModel.overlayAlphaPercentText)
                             .font(.body.monospacedDigit())
@@ -111,12 +111,12 @@ struct SettingsWatermarkSection: View {
                 Toggle(
                     isOn: Binding(
                         get: { viewModel.watermarkEnabled },
-                        set: { viewModel.watermarkEnabled = $0 }
-                    )
+                        set: { viewModel.watermarkEnabled = $0 },
+                    ),
                 ) {
                     HStack(spacing: 12) {
                         SettingsIconBadge(
-                            icon: SettingsRowIcon(systemImage: "signature", color: .blue)
+                            icon: SettingsRowIcon(systemImage: "signature", color: .blue),
                         )
                         Text(String(localized: "settings_item_watermark_use"))
                     }
@@ -130,7 +130,7 @@ struct SettingsWatermarkSection: View {
                 } label: {
                     HStack(spacing: 12) {
                         SettingsIconBadge(
-                            icon: SettingsRowIcon(systemImage: "slider.horizontal.3", color: .blue)
+                            icon: SettingsRowIcon(systemImage: "slider.horizontal.3", color: .blue),
                         )
                         Text(String(localized: "settings_item_user_settings"))
                             .foregroundStyle(.primary)
@@ -166,7 +166,7 @@ struct SettingsCombineSection: View {
                 } label: {
                     HStack(spacing: 12) {
                         SettingsIconBadge(
-                            icon: SettingsRowIcon(systemImage: "square.on.square", color: .blue)
+                            icon: SettingsRowIcon(systemImage: "square.on.square", color: .blue),
                         )
                         Text(String(localized: "settings_item_user_settings"))
                             .foregroundStyle(.primary)
@@ -196,7 +196,7 @@ struct SettingsGeneralSection: View {
                 SettingsNavigationRow(
                     icon: SettingsRowIcon(systemImage: "globe", color: .blue),
                     title: String(localized: "settings_item_language"),
-                    value: viewModel.languageDisplayText
+                    value: viewModel.languageDisplayText,
                 )
             }
             .buttonStyle(.plain)
@@ -207,7 +207,7 @@ struct SettingsGeneralSection: View {
                 SettingsNavigationRow(
                     icon: SettingsRowIcon(systemImage: "circle.lefthalf.filled", color: .indigo),
                     title: String(localized: "settings_item_theme"),
-                    value: viewModel.themeDisplayText
+                    value: viewModel.themeDisplayText,
                 )
             }
             .buttonStyle(.plain)
@@ -228,19 +228,19 @@ struct SettingsStorageInfoSection: View {
             SettingsValueRow(
                 icon: SettingsRowIcon(systemImage: "info.circle", color: .gray),
                 title: String(localized: "settings_item_app_version"),
-                value: viewModel.appVersionText
+                value: viewModel.appVersionText,
             )
             NavigationLink(value: Route.license) {
                 HStack(spacing: 12) {
                     SettingsIconBadge(
-                        icon: SettingsRowIcon(systemImage: "doc.text", color: .blue)
+                        icon: SettingsRowIcon(systemImage: "doc.text", color: .blue),
                     )
                     Text(String(localized: "settings_item_license"))
                 }
             }
             HStack(spacing: 12) {
                 SettingsIconBadge(
-                    icon: SettingsRowIcon(systemImage: "lock.shield", color: .blue)
+                    icon: SettingsRowIcon(systemImage: "lock.shield", color: .blue),
                 )
                 Text(String(localized: "settings_item_privacy_policy"))
                 Spacer()
@@ -256,7 +256,7 @@ struct SettingsStorageInfoSection: View {
                 } label: {
                     HStack(spacing: 12) {
                         SettingsIconBadge(
-                            icon: SettingsRowIcon(systemImage: "hand.raised.fill", color: .blue)
+                            icon: SettingsRowIcon(systemImage: "hand.raised.fill", color: .blue),
                         )
                         Text(String(localized: "settings_privacy_options"))
                             .foregroundStyle(.primary)
@@ -302,7 +302,7 @@ struct SettingsProPromoCard: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color(uiColor: .secondarySystemGroupedBackground))
+                .fill(Color(uiColor: .secondarySystemGroupedBackground)),
         )
     }
 

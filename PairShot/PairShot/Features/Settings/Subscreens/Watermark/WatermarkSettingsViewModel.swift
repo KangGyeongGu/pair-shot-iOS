@@ -56,7 +56,7 @@ final class WatermarkSettingsViewModel {
         let scale = largest > maxDimension ? maxDimension / largest : 1.0
         let targetSize = CGSize(
             width: floor(originalSize.width * scale),
-            height: floor(originalSize.height * scale)
+            height: floor(originalSize.height * scale),
         )
         let format = UIGraphicsImageRendererFormat()
         format.scale = 1

@@ -44,8 +44,8 @@ struct StripCard: View {
             RoundedRectangle(cornerRadius: cornerRadius)
                 .stroke(
                     isActive ? StripDesign.activeBorderColor : StripDesign.inactiveBorderColor,
-                    lineWidth: isActive ? StripDesign.activeBorderWidth : StripDesign.inactiveBorderWidth
-                )
+                    lineWidth: isActive ? StripDesign.activeBorderWidth : StripDesign.inactiveBorderWidth,
+                ),
         )
         .scaleEffect(isActive ? StripDesign.activeScale : StripDesign.inactiveScale, anchor: .center)
         .animation(.easeInOut(duration: 0.18), value: isActive)
@@ -59,7 +59,7 @@ struct StripCard: View {
         let scale = max(1, displayScale)
         thumbnail = await env.thumbnailCache.image(
             for: identifier,
-            pixelSize: cardWidth * scale
+            pixelSize: cardWidth * scale,
         )
     }
 }

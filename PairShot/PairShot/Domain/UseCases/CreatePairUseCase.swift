@@ -15,7 +15,7 @@ final class CreatePairUseCase {
         pairRepo: PhotoPairRepository,
         photoLibrary: PhotoLibraryService,
         location: CoreLocationService,
-        now: @escaping @Sendable () -> Date = { .now }
+        now: @escaping @Sendable () -> Date = { .now },
     ) {
         self.pairRepo = pairRepo
         self.photoLibrary = photoLibrary
@@ -27,7 +27,7 @@ final class CreatePairUseCase {
         beforeJPEG: Data,
         cameraSettings: CameraSettings,
         aspectRatio: AspectRatio = .default,
-        isDeferredProxy: Bool = false
+        isDeferredProxy: Bool = false,
     ) async throws -> PhotoPair {
         let timestamp = now()
         let pairId = UUID()
@@ -44,7 +44,7 @@ final class CreatePairUseCase {
             latitude: resolvedLocation?.latitude,
             longitude: resolvedLocation?.longitude,
             locationLabel: nil,
-            cameraSettings: settings
+            cameraSettings: settings,
         )
         try await pairRepo.add(pair)
         return pair
@@ -55,7 +55,7 @@ final class CreatePairUseCase {
         beforeJPEG: Data,
         cameraSettings: CameraSettings,
         aspectRatio: AspectRatio = .default,
-        isDeferredProxy: Bool = false
+        isDeferredProxy: Bool = false,
     ) async throws -> PhotoPair {
         guard var pair = try await pairRepo.fetch(id: pairId) else {
             throw RefillError.pairNotFound

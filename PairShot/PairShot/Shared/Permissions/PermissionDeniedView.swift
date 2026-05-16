@@ -29,7 +29,7 @@ struct PermissionDeniedView: View {
         title: String,
         message: String,
         systemImage: String = "exclamationmark.triangle.fill",
-        opener: @MainActor @escaping () -> Void = PermissionDeniedSettingsURL.openSystemSettings
+        opener: @MainActor @escaping () -> Void = PermissionDeniedSettingsURL.openSystemSettings,
     ) {
         self.title = title
         self.message = message
@@ -41,25 +41,25 @@ struct PermissionDeniedView: View {
 extension PermissionDeniedView {
     init(
         forCamera _: Void,
-        opener: @MainActor @escaping () -> Void = PermissionDeniedSettingsURL.openSystemSettings
+        opener: @MainActor @escaping () -> Void = PermissionDeniedSettingsURL.openSystemSettings,
     ) {
         self.init(
             title: String(localized: "permission_camera_title"),
             message: String(localized: "permission_camera_message"),
             systemImage: "camera.metering.unknown",
-            opener: opener
+            opener: opener,
         )
     }
 
     init(
         forPhotoLibrary _: Void,
-        opener: @MainActor @escaping () -> Void = PermissionDeniedSettingsURL.openSystemSettings
+        opener: @MainActor @escaping () -> Void = PermissionDeniedSettingsURL.openSystemSettings,
     ) {
         self.init(
             title: String(localized: "permission_photo_title"),
             message: String(localized: "permission_photo_message"),
             systemImage: "photo.badge.exclamationmark",
-            opener: opener
+            opener: opener,
         )
     }
 }

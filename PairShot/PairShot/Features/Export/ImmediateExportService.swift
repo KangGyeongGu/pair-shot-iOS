@@ -32,7 +32,7 @@ final class ImmediateExportService {
         pairRepo: PhotoPairRepository,
         membership: Membership? = nil,
         preferences: ExportPreferences = ExportPreferences(),
-        tempDirectoryProvider: @escaping @Sendable () -> URL = { FileManager.default.temporaryDirectory }
+        tempDirectoryProvider: @escaping @Sendable () -> URL = { FileManager.default.temporaryDirectory },
     ) {
         self.photoLibrary = photoLibrary
         self.exportPairs = exportPairs
@@ -54,7 +54,7 @@ final class ImmediateExportService {
         let handle = snackbarQueue.enqueueProgress(
             "snackbar_progress_share",
             token: token,
-            initialValue: 0
+            initialValue: 0,
         )
         do {
             snackbarQueue.updateProgress(handle, value: 0.5)
@@ -64,7 +64,7 @@ final class ImmediateExportService {
                         ids: pairs.map(\.id),
                         selection: selection,
                         renderOptions: currentRenderOptions(),
-                        tempDirectory: tempDirectoryProvider()
+                        tempDirectory: tempDirectoryProvider(),
                     )
                     snackbarQueue.completeProgress(handle, finalMessage: nil)
                     return ExportShareItems(values: [url])
@@ -85,7 +85,7 @@ final class ImmediateExportService {
             snackbarQueue.enqueue(
                 "snackbar_warning_nothing_to_save",
                 variant: .warning,
-                debounceKey: "save-nothing"
+                debounceKey: "save-nothing",
             )
             return .completed
         }
@@ -93,7 +93,7 @@ final class ImmediateExportService {
         let handle = snackbarQueue.enqueueProgress(
             "snackbar_progress_save_to_device",
             token: token,
-            initialValue: 0
+            initialValue: 0,
         )
         switch preferences.format {
             case .individualImages:
@@ -110,7 +110,7 @@ final class ImmediateExportService {
             snackbarQueue.completeProgress(
                 progress,
                 finalMessage: "snackbar_success_saved_zip",
-                finalVariant: .success
+                finalVariant: .success,
             )
         } else {
             snackbarQueue.cancelProgress(progress)
@@ -131,7 +131,7 @@ final class ImmediateExportService {
         snackbarQueue.enqueue(
             "snackbar_error_share_failed",
             variant: .error,
-            debounceKey: "share-failure"
+            debounceKey: "share-failure",
         )
     }
 
@@ -139,7 +139,7 @@ final class ImmediateExportService {
         ExportContents(
             includeCombined: preferences.includeCombined,
             includeBefore: preferences.includeBefore,
-            includeAfter: preferences.includeAfter
+            includeAfter: preferences.includeAfter,
         )
     }
 
@@ -147,13 +147,13 @@ final class ImmediateExportService {
     func currentRenderOptions() -> ExportRenderOptions {
         ExportRenderOptions(
             applyCombineSettings: preferences.applyCombineSettings,
-            isPro: membership?.proIsActive ?? false
+            isPro: membership?.proIsActive ?? false,
         )
     }
 
     private func collectIndividualSourceURLs(
         for pairs: [PhotoPair],
-        selection: ExportContents
+        selection: ExportContents,
     ) async -> [URL] {
         let renderOptions = currentRenderOptions()
         let tempDir = tempDirectoryProvider()
@@ -164,7 +164,7 @@ final class ImmediateExportService {
                 for: pair,
                 selection: selection,
                 sequenceNumber: offset + 1,
-                prefix: appSettings.fileNamePrefix
+                prefix: appSettings.fileNamePrefix,
             )
             for entry in entries {
                 guard
@@ -174,14 +174,14 @@ final class ImmediateExportService {
                         photoLibrary: photoLibrary,
                         appSettings: appSettings,
                         renderOptions: renderOptions,
-                        now: now
+                        now: now,
                     )
                 else { continue }
                 let fileName = ExportTempFileWriter.sanitizedName(from: entry.relativeName)
                 if let url = ExportTempFileWriter.write(
                     data: data,
                     fileName: fileName,
-                    tempDirectory: tempDir
+                    tempDirectory: tempDir,
                 ) {
                     urls.append(url)
                 }
@@ -192,14 +192,14 @@ final class ImmediateExportService {
 
     private func prepareZipForExport(
         pairs: [PhotoPair],
-        progress: SnackbarProgressHandle
+        progress: SnackbarProgressHandle,
     ) async -> SaveToDeviceOutcome {
         do {
             let url = try await exportPairs(
                 ids: pairs.map(\.id),
                 selection: currentSelection(),
                 renderOptions: currentRenderOptions(),
-                tempDirectory: tempDirectoryProvider()
+                tempDirectory: tempDirectoryProvider(),
             )
             snackbarQueue.updateProgress(progress, value: 1.0)
             return .zipPendingExport(url: url, progress: progress)
@@ -208,7 +208,7 @@ final class ImmediateExportService {
             snackbarQueue.enqueue(
                 "snackbar_error_save_failed",
                 variant: .error,
-                debounceKey: "save-failure"
+                debounceKey: "save-failure",
             )
             return .completed
         }

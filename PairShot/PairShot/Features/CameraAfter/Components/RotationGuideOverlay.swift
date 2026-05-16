@@ -24,7 +24,7 @@ struct RotationGuideOverlay: View {
                         reduceMotion
                             ? nil
                             : .easeInOut(duration: 1.0).repeatForever(autoreverses: true),
-                        value: animateRotation
+                        value: animateRotation,
                     )
                 Text(label)
                     .font(.appBody)
@@ -35,7 +35,7 @@ struct RotationGuideOverlay: View {
             .adaptiveGlass(
                 in: RoundedRectangle(cornerRadius: 12, style: .continuous),
                 legacyFill: .black.opacity(0.6),
-                kind: .regular
+                kind: .regular,
             )
             .accessibilityElement(children: .combine)
             .accessibilityLabel(label)

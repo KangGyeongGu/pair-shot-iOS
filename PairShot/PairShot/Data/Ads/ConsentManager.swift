@@ -21,7 +21,7 @@ final class ConsentManager {
         #if canImport(UserMessagingPlatform)
             guard let viewController = topViewController() else { return }
             await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
-                UMPConsentForm.presentPrivacyOptionsForm(from: viewController) { _ in
+                ConsentForm.presentPrivacyOptionsForm(from: viewController) { _ in
                     continuation.resume()
                 }
             }
@@ -31,10 +31,10 @@ final class ConsentManager {
 
     private func requestUpdate() async {
         #if canImport(UserMessagingPlatform)
-            let parameters = UMPRequestParameters()
-            parameters.tagForUnderAgeOfConsent = false
+            let parameters = RequestParameters()
+            parameters.isTaggedForUnderAgeOfConsent = false
             await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
-                UMPConsentInformation.sharedInstance.requestConsentInfoUpdate(with: parameters) { _ in
+                ConsentInformation.shared.requestConsentInfoUpdate(with: parameters) { _ in
                     continuation.resume()
                 }
             }
@@ -45,7 +45,7 @@ final class ConsentManager {
         #if canImport(UserMessagingPlatform)
             guard let viewController = topViewController() else { return }
             await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
-                UMPConsentForm.loadAndPresentIfRequired(from: viewController) { _ in
+                ConsentForm.loadAndPresentIfRequired(from: viewController) { _ in
                     continuation.resume()
                 }
             }
@@ -54,9 +54,9 @@ final class ConsentManager {
 
     private func refreshFlags() {
         #if canImport(UserMessagingPlatform)
-            canRequestAds = UMPConsentInformation.sharedInstance.canRequestAds
+            canRequestAds = ConsentInformation.shared.canRequestAds
             canShowPrivacyOptionsButton =
-                UMPConsentInformation.sharedInstance
+                ConsentInformation.shared
                     .privacyOptionsRequirementStatus == .required
         #else
             canRequestAds = true

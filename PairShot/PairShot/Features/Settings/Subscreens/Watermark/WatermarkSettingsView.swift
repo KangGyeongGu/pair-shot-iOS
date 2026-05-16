@@ -50,7 +50,7 @@ struct WatermarkSettingsView: View {
             WatermarkLogoPickerRow(
                 imageData: $viewModel.settings.logoImageData,
                 fileName: $viewModel.settings.logoFileName,
-                pickerItem: $viewModel.logoPickerItem
+                pickerItem: $viewModel.logoPickerItem,
             )
             WatermarkLogoAlphaSlider(value: $viewModel.settings.logoAlpha)
             WatermarkLogoSizeSlider(value: $viewModel.settings.logoWidthRatio)
@@ -86,7 +86,7 @@ struct WatermarkSettingsView: View {
             Toggle(isOn: bindable) {
                 Label(
                     String(localized: "settings_item_watermark_use"),
-                    systemImage: "signature"
+                    systemImage: "signature",
                 )
             }
             HStack {
@@ -102,7 +102,7 @@ struct WatermarkSettingsView: View {
     private func typeButton(
         label: String,
         value: WatermarkSettings.WatermarkType,
-        locked: Bool
+        locked: Bool,
     ) -> some View {
         let isSelected = viewModel.settings.type == value
         return Button {
@@ -110,7 +110,7 @@ struct WatermarkSettingsView: View {
                 env.snackbarQueue.enqueue(
                     "settings_promotion_guide_pro_feature",
                     variant: .info,
-                    debounceKey: "pro_gate_pro_feature"
+                    debounceKey: "pro_gate_pro_feature",
                 )
                 showPaywall = true
             } else {
@@ -127,10 +127,10 @@ struct WatermarkSettingsView: View {
             .padding(.horizontal, 12)
             .padding(.vertical, 6)
             .background(
-                Capsule().fill(isSelected ? Color.accentColor.opacity(0.15) : Color.gray.opacity(0.12))
+                Capsule().fill(isSelected ? Color.accentColor.opacity(0.15) : Color.gray.opacity(0.12)),
             )
             .overlay(
-                Capsule().stroke(isSelected ? Color.accentColor : Color.clear, lineWidth: 1.5)
+                Capsule().stroke(isSelected ? Color.accentColor : Color.clear, lineWidth: 1.5),
             )
             .foregroundStyle(isSelected ? Color.accentColor : Color.primary)
         }
@@ -147,7 +147,7 @@ private struct WatermarkTextField: View {
             Spacer()
             TextField(
                 String(localized: "watermark_field_text"),
-                text: $text
+                text: $text,
             )
             .multilineTextAlignment(.trailing)
             .textFieldStyle(.plain)
@@ -205,7 +205,7 @@ private struct WatermarkTextSizeSlider: View {
             Slider(
                 value: $value,
                 in: WatermarkSettings.textSizeRatioRange,
-                step: 0.005
+                step: 0.005,
             )
         }
     }
@@ -217,7 +217,7 @@ private struct WatermarkLineCountSlider: View {
     private var doubleBinding: Binding<Double> {
         Binding(
             get: { Double(value) },
-            set: { value = Int($0.rounded()) }
+            set: { value = Int($0.rounded()) },
         )
     }
 
@@ -233,10 +233,10 @@ private struct WatermarkLineCountSlider: View {
             Slider(
                 value: doubleBinding,
                 in: Double(
-                    WatermarkSettings.lineCountRange.lowerBound
+                    WatermarkSettings.lineCountRange.lowerBound,
                 ) ...
                     Double(WatermarkSettings.lineCountRange.upperBound),
-                step: 1
+                step: 1,
             )
         }
     }
@@ -257,7 +257,7 @@ private struct WatermarkRepeatSlider: View {
             Slider(
                 value: $value,
                 in: WatermarkSettings.repeatCountRange,
-                step: 0.1
+                step: 0.1,
             )
         }
     }
@@ -277,7 +277,7 @@ private struct WatermarkLogoSizeSlider: View {
             }
             Slider(
                 value: $value,
-                in: WatermarkSettings.logoWidthRatioRange
+                in: WatermarkSettings.logoWidthRatioRange,
             )
         }
     }
@@ -365,7 +365,7 @@ private struct WatermarkLogoPickerRow: View {
             PhotosPicker(
                 selection: $pickerItem,
                 matching: .images,
-                photoLibrary: .shared()
+                photoLibrary: .shared(),
             ) {
                 Text(pickerTitle)
                     .font(.footnote)
@@ -398,7 +398,7 @@ private struct WatermarkSettingsViewPreviewWrapper: View {
 
     @State private var viewModel = WatermarkSettingsViewModel(
         appSettingsRepo: UserDefaultsAppSettingsRepository(defaults: previewDefaults),
-        appSettings: AppSettings(defaults: previewDefaults)
+        appSettings: AppSettings(defaults: previewDefaults),
     )
 
     var body: some View {

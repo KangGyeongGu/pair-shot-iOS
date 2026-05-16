@@ -21,7 +21,7 @@ final class TransactionListener {
                     case let .unverified(transaction, error):
                         AppLogger.subscription
                             .error(
-                                "Transaction.updates unverified product=\(transaction.productID, privacy: .public) error=\(error.localizedDescription, privacy: .public)"
+                                "Transaction.updates unverified product=\(transaction.productID, privacy: .public) error=\(error.localizedDescription, privacy: .public)",
                             )
                         await transaction.finish()
                 }
@@ -30,7 +30,7 @@ final class TransactionListener {
     }
 
     private static func drainUnfinished(
-        onUpdate: @escaping @Sendable (Transaction) async -> Void
+        onUpdate: @escaping @Sendable (Transaction) async -> Void,
     ) async {
         var verifiedCount = 0
         var unverifiedCount = 0
@@ -45,7 +45,7 @@ final class TransactionListener {
                     unverifiedCount += 1
                     AppLogger.subscription
                         .error(
-                            "Transaction.unfinished unverified product=\(transaction.productID, privacy: .public) error=\(error.localizedDescription, privacy: .public)"
+                            "Transaction.unfinished unverified product=\(transaction.productID, privacy: .public) error=\(error.localizedDescription, privacy: .public)",
                         )
                     await transaction.finish()
             }
@@ -53,7 +53,7 @@ final class TransactionListener {
         if verifiedCount > 0 || unverifiedCount > 0 {
             AppLogger.subscription
                 .info(
-                    "Drained unfinished transactions verified=\(verifiedCount, privacy: .public) unverified=\(unverifiedCount, privacy: .public)"
+                    "Drained unfinished transactions verified=\(verifiedCount, privacy: .public) unverified=\(unverifiedCount, privacy: .public)",
                 )
         }
     }

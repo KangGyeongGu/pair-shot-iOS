@@ -8,7 +8,7 @@ struct ShareSheet: UIViewControllerRepresentable {
     func makeUIViewController(context _: Context) -> UIActivityViewController {
         let controller = UIActivityViewController(
             activityItems: activityItems,
-            applicationActivities: nil
+            applicationActivities: nil,
         )
         controller.completionWithItemsHandler = { _, completed, _, _ in
             guard completed else { return }

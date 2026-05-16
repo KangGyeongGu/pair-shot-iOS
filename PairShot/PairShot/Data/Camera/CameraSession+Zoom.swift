@@ -26,7 +26,7 @@ nonisolated extension CameraSession {
                 firstSwitchOver: firstSwitch,
                 displayMultiplier: CameraZoomCapabilities.displayMultiplier(for: device),
                 presets: presets,
-                exposureBiasRange: device.minExposureTargetBias ... device.maxExposureTargetBias
+                exposureBiasRange: device.minExposureTargetBias ... device.maxExposureTargetBias,
             )
         }
     }

@@ -8,9 +8,9 @@ struct CaptureErrorAlert: ViewModifier {
             String(localized: "camera_error_capture_title"),
             isPresented: Binding(
                 get: { message != nil },
-                set: { if !$0 { message = nil } }
+                set: { if !$0 { message = nil } },
             ),
-            presenting: message
+            presenting: message,
         ) { _ in
             Button(String(localized: "common_button_confirm"), role: .cancel) { message = nil }
         } message: { text in

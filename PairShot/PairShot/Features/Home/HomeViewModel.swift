@@ -114,7 +114,7 @@ final class HomeViewModel {
         fullscreenAdCoordinator: FullscreenAdCoordinator,
         deleteCombinedExports: DeleteCombinedExportsUseCase,
         deletePairsKeepingCombined: DeletePairsKeepingCombinedUseCase,
-        snackbarQueue: SnackbarQueue
+        snackbarQueue: SnackbarQueue,
     ) {
         self.pairRepo = pairRepo
         self.albumRepo = albumRepo

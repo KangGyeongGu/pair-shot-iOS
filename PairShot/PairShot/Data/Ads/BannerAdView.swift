@@ -21,14 +21,14 @@ struct BannerAdSlot: View {
     var body: some View {
         if BannerAdGate.shouldShow(
             isAdFree: membership.adFreeBySolePromotion,
-            isPro: membership.proIsActive
+            isPro: membership.proIsActive,
         ) {
             let width = BannerAdView.currentBannerWidth()
             let height = BannerAdSize.adaptiveHeight(width: width)
             BannerAdView(
                 width: width,
                 adUnitID: adUnitID,
-                attStatus: tracking.currentStatus
+                attStatus: tracking.currentStatus,
             )
             .frame(width: width, height: height)
             .frame(maxWidth: .infinity, maxHeight: height, alignment: .top)
@@ -56,7 +56,7 @@ struct BannerAdView: UIViewRepresentable {
     init(
         width: CGFloat,
         adUnitID: String = AdsConfig.banner,
-        attStatus: ATTrackingManager.AuthorizationStatus = .notDetermined
+        attStatus: ATTrackingManager.AuthorizationStatus = .notDetermined,
     ) {
         self.adUnitID = adUnitID
         self.width = width
@@ -64,8 +64,8 @@ struct BannerAdView: UIViewRepresentable {
     }
 
     #if canImport(GoogleMobileAds)
-        func makeUIView(context: Context) -> GADBannerView {
-            let view = GADBannerView(adSize: BannerAdSize.adaptive(width: width))
+        func makeUIView(context: Context) -> BannerView {
+            let view = BannerView(adSize: BannerAdSize.adaptive(width: width))
             view.adUnitID = adUnitID
             view.rootViewController = Self.resolveRootViewController()
             context.coordinator.lastWidth = width
@@ -75,7 +75,7 @@ struct BannerAdView: UIViewRepresentable {
             return view
         }
 
-        func updateUIView(_ uiView: GADBannerView, context: Context) {
+        func updateUIView(_ uiView: BannerView, context: Context) {
             if uiView.rootViewController == nil {
                 uiView.rootViewController = Self.resolveRootViewController()
             }
@@ -144,6 +144,8 @@ enum BannerAdSize {
 
     static let fallbackHeight: CGFloat = 50
 
+    static let inlineMaxHeight: CGFloat = 60
+
     static let reloadThreshold: CGFloat = 1.0
 
     static func shouldReload(previous: CGFloat, current: CGFloat) -> Bool {
@@ -153,15 +155,15 @@ enum BannerAdSize {
 
     #if canImport(GoogleMobileAds)
         @MainActor
-        static func adaptive(width: CGFloat) -> GADAdSize {
-            guard width > 0 else { return GADAdSizeBanner }
-            return GADCurrentOrientationAnchoredAdaptiveBannerAdSizeWithWidth(width)
+        static func adaptive(width: CGFloat) -> AdSize {
+            guard width > 0 else { return AdSizeBanner }
+            return inlineAdaptiveBanner(width: width, maxHeight: inlineMaxHeight)
         }
 
         @MainActor
         static func adaptiveHeight(width: CGFloat) -> CGFloat {
             guard width > 0 else { return fallbackHeight }
-            let height = GADCurrentOrientationAnchoredAdaptiveBannerAdSizeWithWidth(width).size.height
+            let height = inlineAdaptiveBanner(width: width, maxHeight: inlineMaxHeight).size.height
             return height > 0 ? height : fallbackHeight
         }
     #else

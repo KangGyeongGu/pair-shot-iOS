@@ -91,7 +91,7 @@ final nonisolated class PhotoLibraryService: Sendable {
 
     nonisolated func requestImageData(
         for asset: PHAsset,
-        progressHandler: (@Sendable (Double) -> Void)? = nil
+        progressHandler: (@Sendable (Double) -> Void)? = nil,
     ) async -> Data? {
         await withCheckedContinuation { (continuation: CheckedContinuation<Data?, Never>) in
             let options = PHImageRequestOptions()
@@ -105,7 +105,7 @@ final nonisolated class PhotoLibraryService: Sendable {
             }
             PHImageManager.default().requestImageDataAndOrientation(
                 for: asset,
-                options: options
+                options: options,
             ) { data, _, _, _ in
                 continuation.resume(returning: data)
             }
@@ -114,7 +114,7 @@ final nonisolated class PhotoLibraryService: Sendable {
 
     nonisolated func requestImageData(
         localIdentifier: String,
-        progressHandler: (@Sendable (Double) -> Void)? = nil
+        progressHandler: (@Sendable (Double) -> Void)? = nil,
     ) async -> Data? {
         guard let asset = fetchAsset(localIdentifier: localIdentifier) else { return nil }
         return await requestImageData(for: asset, progressHandler: progressHandler)
@@ -157,7 +157,7 @@ final class PhotoLibraryThumbnailCache {
 
     func cached(
         localIdentifier: String,
-        pixelSize: CGFloat = PhotoLibraryThumbnailCache.defaultThumbnailPixelSize
+        pixelSize: CGFloat = PhotoLibraryThumbnailCache.defaultThumbnailPixelSize,
     ) -> UIImage? {
         cached(localIdentifier: localIdentifier, targetSize: CGSize(width: pixelSize, height: pixelSize))
     }
@@ -165,19 +165,19 @@ final class PhotoLibraryThumbnailCache {
     func image(
         for localIdentifier: String,
         pixelSize: CGFloat = PhotoLibraryThumbnailCache.defaultThumbnailPixelSize,
-        progressHandler: (@Sendable (Double) -> Void)? = nil
+        progressHandler: (@Sendable (Double) -> Void)? = nil,
     ) async -> UIImage? {
         await image(
             for: localIdentifier,
             targetSize: CGSize(width: pixelSize, height: pixelSize),
-            progressHandler: progressHandler
+            progressHandler: progressHandler,
         )
     }
 
     func image(
         for localIdentifier: String,
         targetSize: CGSize,
-        progressHandler: (@Sendable (Double) -> Void)? = nil
+        progressHandler: (@Sendable (Double) -> Void)? = nil,
     ) async -> UIImage? {
         guard !localIdentifier.isEmpty else { return nil }
         let key = cacheKey(localIdentifier, targetSize)
@@ -204,7 +204,7 @@ final class PhotoLibraryThumbnailCache {
                 for: asset,
                 targetSize: targetSize,
                 contentMode: .aspectFill,
-                options: options
+                options: options,
             ) { result, info in
                 let isDegraded = (info?[PHImageResultIsDegradedKey] as? Bool) ?? false
                 guard !isDegraded else { return }

@@ -16,10 +16,10 @@ struct CameraSettingsOverlayChip: View {
                     .foregroundStyle(isOn ? Color.black : Color.white)
                     .frame(
                         width: CameraSettingsOverlayMetrics.chipSize,
-                        height: CameraSettingsOverlayMetrics.chipSize
+                        height: CameraSettingsOverlayMetrics.chipSize,
                     )
                     .background(
-                        Circle().fill(isOn ? Color.accentColor : Color.white.opacity(0.18))
+                        Circle().fill(isOn ? Color.accentColor : Color.white.opacity(0.18)),
                     )
 
                 Text(label)

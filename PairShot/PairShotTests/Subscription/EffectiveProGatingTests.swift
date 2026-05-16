@@ -4,36 +4,36 @@ import Testing
 
 @MainActor
 struct EffectiveProGatingTests {
-    @Test("Watermark Pro user with logo type keeps logo")
-    func watermarkProLogoStaysLogo() {
+    @Test
+    func `Watermark Pro user with logo type keeps logo`() {
         let settings = WatermarkSettings(type: .logo)
         let result = settings.effective(isPro: true)
         #expect(result.type == .logo)
     }
 
-    @Test("Watermark Pro user with text type keeps text")
-    func watermarkProTextStaysText() {
+    @Test
+    func `Watermark Pro user with text type keeps text`() {
         let settings = WatermarkSettings(type: .text)
         let result = settings.effective(isPro: true)
         #expect(result.type == .text)
     }
 
-    @Test("Watermark Free user with logo type is forced to text")
-    func watermarkFreeLogoBecomesText() {
+    @Test
+    func `Watermark Free user with logo type is forced to text`() {
         let settings = WatermarkSettings(type: .logo)
         let result = settings.effective(isPro: false)
         #expect(result.type == .text)
     }
 
-    @Test("Watermark Free user with text type stays text")
-    func watermarkFreeTextStaysText() {
+    @Test
+    func `Watermark Free user with text type stays text`() {
         let settings = WatermarkSettings(type: .text)
         let result = settings.effective(isPro: false)
         #expect(result.type == .text)
     }
 
-    @Test("Watermark Free user with logo type preserves logo-related fields")
-    func watermarkFreeLogoPreservesLogoFields() {
+    @Test
+    func `Watermark Free user with logo type preserves logo-related fields`() {
         let logoData = Data([0x01, 0x02, 0x03, 0x04])
         let settings = WatermarkSettings(
             type: .logo,
@@ -41,7 +41,7 @@ struct EffectiveProGatingTests {
             logoFileName: "company.png",
             logoPosition: .bottomRight,
             logoWidthRatio: 0.7,
-            logoAlpha: 0.8
+            logoAlpha: 0.8,
         )
         let result = settings.effective(isPro: false)
         #expect(result.type == .text)
@@ -52,8 +52,8 @@ struct EffectiveProGatingTests {
         #expect(result.logoAlpha == 0.8)
     }
 
-    @Test("Watermark Pro user with logo type preserves all fields including text fields")
-    func watermarkProLogoPreservesAllFields() {
+    @Test
+    func `Watermark Pro user with logo type preserves all fields including text fields`() {
         let logoData = Data([0xFF, 0xEE])
         let settings = WatermarkSettings(
             type: .logo,
@@ -66,48 +66,48 @@ struct EffectiveProGatingTests {
             logoFileName: "brand.png",
             logoPosition: .topLeft,
             logoWidthRatio: 0.6,
-            logoAlpha: 0.9
+            logoAlpha: 0.9,
         )
         let result = settings.effective(isPro: true)
         #expect(result == settings)
     }
 
-    @Test("Combine Pro user with label enabled keeps label enabled")
-    func combineProLabelEnabledStaysEnabled() {
+    @Test
+    func `Combine Pro user with label enabled keeps label enabled`() {
         let settings = CombineSettings(label: CombineSettings.Label(isEnabled: true))
         let result = settings.effective(isPro: true)
         #expect(result.label.isEnabled == true)
     }
 
-    @Test("Combine Pro user with label disabled keeps label disabled")
-    func combineProLabelDisabledStaysDisabled() {
+    @Test
+    func `Combine Pro user with label disabled keeps label disabled`() {
         let settings = CombineSettings(label: CombineSettings.Label(isEnabled: false))
         let result = settings.effective(isPro: true)
         #expect(result.label.isEnabled == false)
     }
 
-    @Test("Combine Free user with label enabled is forced to disabled")
-    func combineFreeLabelEnabledBecomesDisabled() {
+    @Test
+    func `Combine Free user with label enabled is forced to disabled`() {
         let settings = CombineSettings(label: CombineSettings.Label(isEnabled: true))
         let result = settings.effective(isPro: false)
         #expect(result.label.isEnabled == false)
     }
 
-    @Test("Combine Free user with label disabled stays disabled")
-    func combineFreeLabelDisabledStaysDisabled() {
+    @Test
+    func `Combine Free user with label disabled stays disabled`() {
         let settings = CombineSettings(label: CombineSettings.Label(isEnabled: false))
         let result = settings.effective(isPro: false)
         #expect(result.label.isEnabled == false)
     }
 
-    @Test("Combine Free user with label enabled preserves label text and style fields")
-    func combineFreeLabelEnabledPreservesOtherLabelFields() {
+    @Test
+    func `Combine Free user with label enabled preserves label text and style fields`() {
         let label = CombineSettings.Label(
             isEnabled: true,
             beforeText: "전",
             afterText: "후",
             textSizePercent: 7.5,
-            textColor: ColorRGBA(red: 0.2, green: 0.4, blue: 0.6)
+            textColor: ColorRGBA(red: 0.2, green: 0.4, blue: 0.6),
         )
         let settings = CombineSettings(label: label)
         let result = settings.effective(isPro: false)
@@ -120,12 +120,12 @@ struct EffectiveProGatingTests {
         #expect(result.label.textColor.blue == 0.6)
     }
 
-    @Test("Combine Free user with label enabled preserves direction border and positions")
-    func combineFreeLabelEnabledPreservesNonLabelFields() {
+    @Test
+    func `Combine Free user with label enabled preserves direction border and positions`() {
         let border = CombineSettings.Border(
             isEnabled: true,
             thickness: 24.0,
-            color: ColorRGBA(red: 1, green: 0, blue: 0)
+            color: ColorRGBA(red: 1, green: 0, blue: 0),
         )
         let beforePos = CombineSettings.LabelPosition(horizontal: .trailing, vertical: .bottom)
         let afterPos = CombineSettings.LabelPosition(horizontal: .leading, vertical: .top)
@@ -134,7 +134,7 @@ struct EffectiveProGatingTests {
             color: ColorRGBA(red: 0, green: 1, blue: 0),
             opacity: 0.75,
             cornerRadius: 12.0,
-            matchBorderColor: false
+            matchBorderColor: false,
         )
         let settings = CombineSettings(
             direction: .vertical,
@@ -144,7 +144,7 @@ struct EffectiveProGatingTests {
             beforePosition: beforePos,
             afterPosition: afterPos,
             fullWidthVertical: .middle,
-            labelBackground: background
+            labelBackground: background,
         )
         let result = settings.effective(isPro: false)
         #expect(result.label.isEnabled == false)
@@ -157,11 +157,11 @@ struct EffectiveProGatingTests {
         #expect(result.labelBackground == background)
     }
 
-    @Test("Combine Pro user with label enabled preserves entire struct")
-    func combineProLabelEnabledPreservesAll() {
+    @Test
+    func `Combine Pro user with label enabled preserves entire struct`() {
         let settings = CombineSettings(
             direction: .vertical,
-            label: CombineSettings.Label(isEnabled: true, beforeText: "B", afterText: "A")
+            label: CombineSettings.Label(isEnabled: true, beforeText: "B", afterText: "A"),
         )
         let result = settings.effective(isPro: true)
         #expect(result == settings)

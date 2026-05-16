@@ -48,7 +48,7 @@ final class PhotoPairEntity {
         locationLabel: String? = nil,
         capturedAt: Date = .now,
         updatedAt: Date? = nil,
-        afterCapturedAt: Date? = nil
+        afterCapturedAt: Date? = nil,
     ) {
         self.id = id
         self.beforePhotoLocalIdentifier = beforePhotoLocalIdentifier
@@ -85,7 +85,7 @@ extension PhotoPairEntity {
             cameraSettings: cameraSettings,
             albumIds: albums.map(\.id),
             firstAlbumName: albums.first?.name,
-            hasCombinedExport: exportHistory.contains { $0.kind == .combined }
+            hasCombinedExport: exportHistory.contains { $0.kind == .combined },
         )
     }
 }

@@ -14,7 +14,7 @@ nonisolated enum FileNameBuilder {
     static func before(
         prefix: String,
         timestamp: Date,
-        sequenceNumber: Int
+        sequenceNumber: Int,
     ) -> String {
         build(type: .before, prefix: prefix, timestamp: timestamp, sequenceNumber: sequenceNumber)
     }
@@ -22,7 +22,7 @@ nonisolated enum FileNameBuilder {
     static func after(
         prefix: String,
         timestamp: Date,
-        sequenceNumber: Int
+        sequenceNumber: Int,
     ) -> String {
         build(type: .after, prefix: prefix, timestamp: timestamp, sequenceNumber: sequenceNumber)
     }
@@ -30,7 +30,7 @@ nonisolated enum FileNameBuilder {
     static func combined(
         prefix: String,
         timestamp: Date,
-        sequenceNumber: Int
+        sequenceNumber: Int,
     ) -> String {
         build(type: .combined, prefix: prefix, timestamp: timestamp, sequenceNumber: sequenceNumber)
     }
@@ -39,7 +39,7 @@ nonisolated enum FileNameBuilder {
         type: PhotoType,
         prefix: String,
         timestamp: Date,
-        sequenceNumber: Int
+        sequenceNumber: Int,
     ) -> String {
         let safePrefix = FileNamePrefixValidator.sanitize(prefix)
         let prefixPart = safePrefix.isEmpty ? "" : "\(safePrefix)_"

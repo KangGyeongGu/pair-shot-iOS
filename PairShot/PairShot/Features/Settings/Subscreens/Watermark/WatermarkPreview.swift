@@ -25,7 +25,7 @@ struct WatermarkPreview: View {
                 Color(red: 0.78, green: 0.79, blue: 0.82),
             ],
             startPoint: .topLeading,
-            endPoint: .bottomTrailing
+            endPoint: .bottomTrailing,
         )
         .overlay {
             Image(systemName: "photo")
@@ -65,13 +65,13 @@ private struct WatermarkTextPreviewCanvas: View {
             else { return }
             let safeRatio = max(
                 WatermarkSettings.textSizeRatioRange.lowerBound,
-                min(WatermarkSettings.textSizeRatioRange.upperBound, settings.textSizeRatio)
+                min(WatermarkSettings.textSizeRatioRange.upperBound, settings.textSizeRatio),
             )
             let fontSize = max(10, size.width * CGFloat(safeRatio))
             let resolved = context.resolve(
                 Text(verbatim: settings.text)
                     .font(.system(size: fontSize, weight: .semibold))
-                    .foregroundStyle(Color.white.opacity(settings.opacity))
+                    .foregroundStyle(Color.white.opacity(settings.opacity)),
             )
             let textSize = resolved.measure(in: size)
             guard textSize.width > 0, textSize.height > 0 else { return }
@@ -126,7 +126,7 @@ private struct WatermarkLogoPreview: View {
                         width: width,
                         height: height,
                         padding: padding,
-                        position: settings.logoPosition
+                        position: settings.logoPosition,
                     )
                     Image(uiImage: uiImage)
                         .resizable()
@@ -147,7 +147,7 @@ private struct WatermarkLogoPreview: View {
     private func clampedRatio(_ value: Double) -> Double {
         max(
             WatermarkSettings.logoWidthRatioRange.lowerBound,
-            min(WatermarkSettings.logoWidthRatioRange.upperBound, value)
+            min(WatermarkSettings.logoWidthRatioRange.upperBound, value),
         )
     }
 
@@ -156,7 +156,7 @@ private struct WatermarkLogoPreview: View {
         width: CGFloat,
         height: CGFloat,
         padding: CGFloat,
-        position: LogoPosition
+        position: LogoPosition,
     ) -> CGPoint {
         switch position {
             case .topLeft: CGPoint(x: padding, y: padding)

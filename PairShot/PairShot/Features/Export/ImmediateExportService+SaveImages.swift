@@ -15,21 +15,21 @@ extension ImmediateExportService {
         let saved = await processEntries(
             allEntries,
             renderOptions: renderOptions,
-            progress: progress
+            progress: progress,
         )
         finalizeProgress(progress, savedCount: saved)
     }
 
     func collectExportEntries(
         pairs: [PhotoPair],
-        selection: ExportContents
+        selection: ExportContents,
     ) -> [(pair: PhotoPair, entry: ExportSelection.Entry)] {
         pairs.enumerated().flatMap { offset, pair in
             ExportSelection.relativePaths(
                 for: pair,
                 selection: selection,
                 sequenceNumber: offset + 1,
-                prefix: appSettings.fileNamePrefix
+                prefix: appSettings.fileNamePrefix,
             )
             .map { (pair: pair, entry: $0) }
         }
@@ -38,7 +38,7 @@ extension ImmediateExportService {
     func processEntries(
         _ allEntries: [(pair: PhotoPair, entry: ExportSelection.Entry)],
         renderOptions: ExportRenderOptions,
-        progress: SnackbarProgressHandle
+        progress: SnackbarProgressHandle,
     ) async -> Int {
         let total = max(1, allEntries.count)
         let now = Date()
@@ -52,7 +52,7 @@ extension ImmediateExportService {
                     photoLibrary: photoLibrary,
                     appSettings: appSettings,
                     renderOptions: renderOptions,
-                    now: now
+                    now: now,
                 )
             else {
                 processed += 1
@@ -65,7 +65,7 @@ extension ImmediateExportService {
                     identifier: identifier,
                     pair: item.pair,
                     entry: item.entry,
-                    renderOptions: renderOptions
+                    renderOptions: renderOptions,
                 )
                 saved += 1
                 processed += 1
@@ -83,13 +83,13 @@ extension ImmediateExportService {
             snackbarQueue.completeProgress(
                 progress,
                 finalMessage: "snackbar_warning_nothing_to_save",
-                finalVariant: .warning
+                finalVariant: .warning,
             )
         } else {
             snackbarQueue.completeProgress(
                 progress,
                 finalMessage: "snackbar_success_saved_to_device",
-                finalVariant: .success
+                finalVariant: .success,
             )
         }
     }
@@ -99,7 +99,7 @@ extension ImmediateExportService {
         snackbarQueue.enqueue(
             "snackbar_error_save_failed",
             variant: .error,
-            debounceKey: "save-failure"
+            debounceKey: "save-failure",
         )
     }
 
@@ -107,14 +107,14 @@ extension ImmediateExportService {
         identifier: String,
         pair: PhotoPair,
         entry: ExportSelection.Entry,
-        renderOptions: ExportRenderOptions
+        renderOptions: ExportRenderOptions,
     ) async {
         guard
             let kind = await MainActor.run(body: {
                 ExportHistoryKindResolver.resolve(
                     entryKind: entry.kind,
                     renderOptions: renderOptions,
-                    appSettings: appSettings
+                    appSettings: appSettings,
                 )
             })
         else { return }
@@ -122,11 +122,11 @@ extension ImmediateExportService {
             try await pairRepo.recordExportHistory(
                 pairId: pair.id,
                 kind: kind,
-                photoLocalIdentifier: identifier
+                photoLocalIdentifier: identifier,
             )
         } catch {
             AppLogger.storage.error(
-                "ExportHistory persist failed: \(error.localizedDescription, privacy: .public)"
+                "ExportHistory persist failed: \(error.localizedDescription, privacy: .public)",
             )
         }
     }

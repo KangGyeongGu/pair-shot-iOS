@@ -53,7 +53,7 @@ struct ZoomDialOverlay: View {
         currentRatio: Double,
         minRatio: Double,
         maxRatio: Double,
-        displayMultiplier: Double = 1.0
+        displayMultiplier: Double = 1.0,
     ) {
         self.currentRatio = currentRatio
         self.minRatio = minRatio
@@ -85,7 +85,7 @@ struct ZoomDialOverlay: View {
                     ctx: ctx,
                     x: x,
                     baselineY: baselineY,
-                    value: value
+                    value: value,
                 )
             }
         }
@@ -106,12 +106,12 @@ struct ZoomDialOverlay: View {
         let resolved = ctx.resolve(
             Text(label)
                 .font(.system(size: 10, weight: .medium).monospacedDigit())
-                .foregroundColor(.white.opacity(0.85))
+                .foregroundColor(.white.opacity(0.85)),
         )
         let labelSize = resolved.measure(in: CGSize(width: 40, height: 20))
         let labelOrigin = CGPoint(
             x: x - labelSize.width / 2,
-            y: baselineY - ZoomDialDesign.majorTickHeight - labelSize.height - 1
+            y: baselineY - ZoomDialDesign.majorTickHeight - labelSize.height - 1,
         )
         ctx.draw(resolved, at: CGPoint(x: labelOrigin.x + labelSize.width / 2, y: labelOrigin.y + labelSize.height / 2))
     }
