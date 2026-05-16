@@ -80,6 +80,68 @@ nonisolated enum CompositeRenderer {
         }.value
     }
 
+    @MainActor
+    static func renderSingle(
+        image: UIImage,
+        combineSettings: CombineSettings?,
+        isBefore: Bool,
+        watermark: WatermarkSettings?,
+        jpegQuality: CGFloat
+    ) -> Data? {
+        let stamped: UIImage =
+            if let watermark {
+                WatermarkOverlay.apply(to: image, settings: watermark)
+            } else {
+                image
+            }
+        let composed = renderSingleComposite(
+            image: stamped,
+            combineSettings: combineSettings,
+            isBefore: isBefore
+        )
+        return composed.jpegData(compressionQuality: jpegQuality)
+    }
+
+    nonisolated static func renderSingleComposite(
+        image: UIImage,
+        combineSettings: CombineSettings?,
+        isBefore: Bool
+    ) -> UIImage {
+        let imageWidth = max(image.size.width, 1)
+        let scaleFactor = imageWidth / referenceImageWidth
+        let baseBorderPx = CompositeLabelDrawer.resolveBorderPx(combineSettings)
+        let borderPx = baseBorderPx * scaleFactor
+        let canvasSize = CGSize(
+            width: image.size.width + borderPx * 2,
+            height: image.size.height + borderPx * 2
+        )
+        let imageRect = CGRect(
+            x: borderPx,
+            y: borderPx,
+            width: image.size.width,
+            height: image.size.height
+        )
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        format.opaque = true
+        let renderer = UIGraphicsImageRenderer(size: canvasSize, format: format)
+        return renderer.image { context in
+            CompositeLabelDrawer.paintCanvasBackground(
+                context: context,
+                canvas: canvasSize,
+                combineSettings: combineSettings
+            )
+            image.draw(in: imageRect)
+            CompositeLabelDrawer.drawSingleIfEnabled(
+                context: context,
+                combineSettings: combineSettings,
+                imageRect: imageRect,
+                isBefore: isBefore,
+                scaleFactor: scaleFactor
+            )
+        }
+    }
+
     nonisolated static func renderComposite(
         before: UIImage,
         after: UIImage,

@@ -73,11 +73,20 @@ nonisolated enum ExportEntryRenderer {
         guard let id = entry.localIdentifier,
               let raw = await photoLibrary.requestImageData(localIdentifier: id)
         else { return nil }
-        guard let watermark = activeWatermark(appSettings: appSettings, renderOptions: renderOptions),
-              let image = UIImage(data: raw)
-        else { return raw }
-        let stamped = WatermarkOverlay.apply(to: image, settings: watermark)
-        return stamped.jpegData(compressionQuality: 0.95) ?? raw
+        guard let image = UIImage(data: raw) else { return raw }
+        let watermark = activeWatermark(appSettings: appSettings, renderOptions: renderOptions)
+        let combineSettings: CombineSettings? =
+            renderOptions.applyCombineSettings
+                ? appSettings.combineSettings.effective(isPro: renderOptions.isPro)
+                : nil
+        let isBefore = entry.kind == .before
+        return CompositeRenderer.renderSingle(
+            image: image,
+            combineSettings: combineSettings,
+            isBefore: isBefore,
+            watermark: watermark,
+            jpegQuality: 0.95
+        ) ?? raw
     }
 
     @MainActor

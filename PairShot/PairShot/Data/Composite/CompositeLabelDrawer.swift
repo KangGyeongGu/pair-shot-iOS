@@ -49,6 +49,27 @@ nonisolated enum CompositeLabelDrawer {
         )
     }
 
+    static func drawSingleIfEnabled(
+        context: UIGraphicsImageRendererContext,
+        combineSettings: CombineSettings?,
+        imageRect: CGRect,
+        isBefore: Bool,
+        scaleFactor: CGFloat = 1
+    ) {
+        guard let settings = combineSettings, settings.label.isEnabled else { return }
+        let text = isBefore ? settings.label.beforeText : settings.label.afterText
+        drawLabel(
+            LabelDrawContext(
+                text: text,
+                imageRect: imageRect,
+                settings: settings,
+                isBefore: isBefore,
+                cgContext: context.cgContext,
+                scaleFactor: scaleFactor
+            )
+        )
+    }
+
     static func resolveBorderPx(_ combineSettings: CombineSettings?) -> CGFloat {
         guard let settings = combineSettings, settings.border.isEnabled else { return 0 }
         return CGFloat(max(settings.border.thickness, 0))
