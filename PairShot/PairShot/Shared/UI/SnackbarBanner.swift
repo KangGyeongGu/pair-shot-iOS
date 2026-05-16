@@ -17,11 +17,8 @@ struct SnackbarBanner: View {
                     .font(.subheadline)
                     .foregroundStyle(.primary)
                     .lineLimit(3)
-                if case let .progress(value) = item.variant {
-                    ProgressView(value: value, total: 1.0)
-                        .progressViewStyle(.linear)
-                        .tint(accentColor)
-                        .padding(.top, 6)
+                if case let .progress(value, processed, total) = item.variant {
+                    progressRow(value: value, processed: processed, total: total)
                 }
             }
             Spacer(minLength: 0)
@@ -143,6 +140,23 @@ struct SnackbarBanner: View {
             case .info, .progress, .indeterminateProgress:
                 Color.appSnackbarInfo
         }
+    }
+
+    private func progressRow(value: Double, processed: Int?, total: Int?) -> some View {
+        let clamped = max(0, min(1, value))
+        return HStack(alignment: .center, spacing: 8) {
+            ProgressView(value: clamped, total: 1.0)
+                .progressViewStyle(.linear)
+                .tint(accentColor)
+                .animation(.easeOut(duration: 0.25), value: clamped)
+            if let processed, let total {
+                Text("\(processed) / \(total)")
+                    .font(.footnote)
+                    .monospacedDigit()
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.top, 6)
     }
 }
 

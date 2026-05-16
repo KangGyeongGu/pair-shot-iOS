@@ -7,7 +7,7 @@ enum SnackbarVariant: Equatable {
     case error
     case warning
     case info
-    case progress(value: Double)
+    case progress(value: Double, processed: Int?, total: Int?)
     case indeterminateProgress
 }
 
@@ -126,7 +126,8 @@ final class SnackbarQueue {
         let now = clock()
         let variant: SnackbarVariant =
             initialValue
-                .map { .progress(value: max(0, min(1, $0))) } ?? .indeterminateProgress
+                .map { .progress(value: max(0, min(1, $0)), processed: nil, total: nil) }
+                ?? .indeterminateProgress
         let item = SnackbarItem(
             message: message,
             variant: variant,
@@ -148,13 +149,20 @@ final class SnackbarQueue {
         return SnackbarProgressHandle(token: token)
     }
 
-    func updateProgress(_ handle: SnackbarProgressHandle, value: Double, message: LocalizedStringResource? = nil) {
+    func updateProgress(
+        _ handle: SnackbarProgressHandle,
+        value: Double,
+        processed: Int? = nil,
+        total: Int? = nil,
+        message: LocalizedStringResource? = nil,
+    ) {
         let clamped = max(0, min(1, value))
         let now = clock()
+        let variant: SnackbarVariant = .progress(value: clamped, processed: processed, total: total)
         if let active = current, active.token == handle.token {
             current = SnackbarItem(
                 message: message ?? active.message,
-                variant: .progress(value: clamped),
+                variant: variant,
                 isActionable: false,
                 createdAt: active.createdAt,
                 id: active.id,
@@ -164,7 +172,7 @@ final class SnackbarQueue {
             let existing = pending[index]
             pending[index] = SnackbarItem(
                 message: message ?? existing.message,
-                variant: .progress(value: clamped),
+                variant: variant,
                 isActionable: false,
                 createdAt: now,
                 id: existing.id,

@@ -104,9 +104,14 @@ extension ExportSettingsViewModel {
         let total = max(1, jobs.count)
         let snackbar = snackbarQueue
         let progressToken = progress.token
-        let counter = ExportProgressCounter(total: jobs.count) { fraction in
+        let counter = ExportProgressCounter(total: jobs.count) { fraction, done, total in
             Task { @MainActor in
-                snackbar.updateProgress(SnackbarProgressHandle(token: progressToken), value: fraction)
+                snackbar.updateProgress(
+                    SnackbarProgressHandle(token: progressToken),
+                    value: fraction,
+                    processed: done,
+                    total: total,
+                )
             }
         }
         let payloads: [RenderedExportPayload]
@@ -140,7 +145,12 @@ extension ExportSettingsViewModel {
                 return saved
             }
         }
-        snackbarQueue.updateProgress(progress, value: Double(saved) / Double(total))
+        snackbarQueue.updateProgress(
+            progress,
+            value: Double(saved) / Double(total),
+            processed: saved,
+            total: total,
+        )
         return saved
     }
 
