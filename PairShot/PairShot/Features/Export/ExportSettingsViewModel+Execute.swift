@@ -231,13 +231,7 @@ extension ExportSettingsViewModel {
     }
 
     func loadPairs() async throws -> [PhotoPair] {
-        var resolved: [PhotoPair] = []
-        for id in pairIds {
-            if let pair = try await pairRepo.fetch(id: id) {
-                resolved.append(pair)
-            }
-        }
-        return resolved
+        try await pairRepo.fetch(ids: pairIds)
     }
 
     func recordExportHistory(

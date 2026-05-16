@@ -27,13 +27,6 @@ actor ZipExporter {
             try? FileManager.default.removeItem(at: zipURL)
         }
 
-        let stagingDir = tempDirectory.appendingPathComponent(
-            "pairshot-zip-\(UUID().uuidString)",
-            isDirectory: true,
-        )
-        try FileManager.default.createDirectory(at: stagingDir, withIntermediateDirectories: true)
-        defer { try? FileManager.default.removeItem(at: stagingDir) }
-
         let archive: Archive
         do {
             archive = try Archive(url: zipURL, accessMode: .create)
@@ -41,18 +34,22 @@ actor ZipExporter {
             throw ExportError.archiveFailed
         }
 
-        for (index, entry) in entries.enumerated() {
-            let stagedURL = stagingDir.appendingPathComponent("payload-\(index).bin")
-            do {
-                try entry.data.write(to: stagedURL, options: .atomic)
-            } catch {
-                throw ExportError.archiveFailed
-            }
+        for entry in entries {
+            let payload = entry.data
+            let modificationDate = entry.modificationDate ?? now
             do {
                 try archive.addEntry(
                     with: entry.relativeName,
-                    fileURL: stagedURL,
+                    type: .file,
+                    uncompressedSize: Int64(payload.count),
+                    modificationDate: modificationDate,
                     compressionMethod: .none,
+                    provider: { position, size in
+                        let start = Int(position)
+                        let end = min(start + size, payload.count)
+                        guard start < end else { return Data() }
+                        return payload.subdata(in: start ..< end)
+                    },
                 )
             } catch {
                 throw ExportError.archiveFailed
@@ -72,9 +69,16 @@ actor ZipExporter {
     }
 }
 
-struct ZipEntryPayload {
+nonisolated struct ZipEntryPayload {
     let relativeName: String
     let data: Data
+    let modificationDate: Date?
+
+    init(relativeName: String, data: Data, modificationDate: Date? = nil) {
+        self.relativeName = relativeName
+        self.data = data
+        self.modificationDate = modificationDate
+    }
 }
 
 nonisolated struct ZipExporterAdapter {
@@ -102,12 +106,7 @@ nonisolated struct ZipExporterAdapter {
         in tempDirectory: URL,
         now: Date,
     ) async throws -> URL {
-        var resolved: [PhotoPair] = []
-        for id in pairIds {
-            if let pair = try await pairRepo.fetch(id: id) {
-                resolved.append(pair)
-            }
-        }
+        let resolved = try await pairRepo.fetch(ids: pairIds)
         let prefix = await MainActor.run { appSettings.fileNamePrefix }
         var payloads: [ZipEntryPayload] = []
         for (offset, pair) in resolved.enumerated() {

@@ -20,6 +20,17 @@ final class SwiftDataPhotoPairRepository: PhotoPairRepository {
         try fetchEntity(id: id)?.toDomain()
     }
 
+    func fetch(ids: [UUID]) async throws -> [PhotoPair] {
+        guard !ids.isEmpty else { return [] }
+        let idSet = Set(ids)
+        let descriptor = FetchDescriptor<PhotoPairEntity>(
+            predicate: #Predicate { idSet.contains($0.id) },
+        )
+        let entities = try context.fetch(descriptor)
+        let byId = Dictionary(uniqueKeysWithValues: entities.map { ($0.id, $0.toDomain()) })
+        return ids.compactMap { byId[$0] }
+    }
+
     func countCreated(since date: Date) async throws -> Int {
         let descriptor = FetchDescriptor<PhotoPairEntity>(
             predicate: #Predicate { $0.createdAt >= date },

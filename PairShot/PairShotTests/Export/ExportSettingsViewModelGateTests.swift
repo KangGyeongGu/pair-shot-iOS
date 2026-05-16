@@ -123,6 +123,10 @@ private final class StubPhotoPairRepository: PhotoPairRepository, @unchecked Sen
         nil
     }
 
+    func fetch(ids _: [UUID]) async throws -> [PhotoPair] {
+        []
+    }
+
     func countCreated(since _: Date) async throws -> Int {
         0
     }
