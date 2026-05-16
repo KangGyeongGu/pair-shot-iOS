@@ -15,6 +15,7 @@ nonisolated enum CompositeRenderer {
     }
 
     static let referenceImageWidth: CGFloat = 1024
+    static let exifDateFormat = "yyyy:MM:dd HH:mm:ss"
 
     @MainActor
     static func makeComposite(
@@ -36,10 +37,10 @@ nonisolated enum CompositeRenderer {
 
         async let beforeData = photoLibrary.requestImageData(localIdentifier: beforeId)
         async let afterData = photoLibrary.requestImageData(localIdentifier: afterId)
-        guard let bData = await beforeData, let beforeImage = UIImage(data: bData) else {
+        guard let bData = await beforeData else {
             throw RenderError.beforeImageMissing
         }
-        guard let aData = await afterData, let afterImage = UIImage(data: aData) else {
+        guard let aData = await afterData else {
             throw RenderError.afterImageMissing
         }
 
@@ -48,36 +49,52 @@ nonisolated enum CompositeRenderer {
 
         return try await Task.detached(priority: .userInitiated) {
             try autoreleasepool {
-                let stampedBefore: UIImage
-                let stampedAfter: UIImage
-                if options.watermarkEnabled, let watermark = options.watermark {
-                    stampedBefore = WatermarkOverlay.apply(to: beforeImage, settings: watermark)
-                    stampedAfter = WatermarkOverlay.apply(to: afterImage, settings: watermark)
-                } else {
-                    stampedBefore = beforeImage
-                    stampedAfter = afterImage
-                }
-                let composite = renderComposite(
-                    before: stampedBefore,
-                    after: stampedAfter,
-                    layout: options.layout,
-                    combineSettings: options.combineSettings,
-                )
-                guard
-                    let baseJPEG = composite.jpegData(
-                        compressionQuality: options.jpegQuality,
-                    )
-                else {
-                    throw RenderError.encodeFailed
-                }
-                return ExifEmbedder.embed(
-                    into: baseJPEG,
+                try composeJPEG(
+                    beforeData: bData,
+                    afterData: aData,
+                    options: options,
                     capturedAt: now,
                     latitude: pairLatitude,
                     longitude: pairLongitude,
-                ) ?? baseJPEG
+                )
             }
         }.value
+    }
+
+    nonisolated static func composeJPEG(
+        beforeData: Data,
+        afterData: Data,
+        options: CompositeOptions,
+        capturedAt: Date,
+        latitude: Double?,
+        longitude: Double?,
+    ) throws -> Data {
+        guard let beforeImage = CompositeImageDecoder.decode(data: beforeData) else {
+            throw RenderError.beforeImageMissing
+        }
+        guard let afterImage = CompositeImageDecoder.decode(data: afterData) else {
+            throw RenderError.afterImageMissing
+        }
+        let composite = renderComposite(
+            before: beforeImage,
+            after: afterImage,
+            layout: options.layout,
+            combineSettings: options.combineSettings,
+            watermark: options.watermarkEnabled ? options.watermark : nil,
+        )
+        guard let cgImage = composite.cgImage else {
+            throw RenderError.encodeFailed
+        }
+        guard let encoded = CompositeJPEGEncoder.encode(
+            cgImage: cgImage,
+            quality: options.jpegQuality,
+            capturedAt: capturedAt,
+            latitude: latitude,
+            longitude: longitude,
+        ) else {
+            throw RenderError.encodeFailed
+        }
+        return encoded
     }
 
     @MainActor
@@ -88,16 +105,11 @@ nonisolated enum CompositeRenderer {
         watermark: WatermarkSettings?,
         jpegQuality: CGFloat,
     ) -> Data? {
-        let stamped: UIImage =
-            if let watermark {
-                WatermarkOverlay.apply(to: image, settings: watermark)
-            } else {
-                image
-            }
         let composed = renderSingleComposite(
-            image: stamped,
+            image: image,
             combineSettings: combineSettings,
             isBefore: isBefore,
+            watermark: watermark,
         )
         return composed.jpegData(compressionQuality: jpegQuality)
     }
@@ -106,6 +118,7 @@ nonisolated enum CompositeRenderer {
         image: UIImage,
         combineSettings: CombineSettings?,
         isBefore: Bool,
+        watermark: WatermarkSettings? = nil,
     ) -> UIImage {
         let imageWidth = max(image.size.width, 1)
         let scaleFactor = imageWidth / referenceImageWidth
@@ -132,6 +145,9 @@ nonisolated enum CompositeRenderer {
                 combineSettings: combineSettings,
             )
             image.draw(in: imageRect)
+            if let watermark {
+                WatermarkOverlay.draw(in: imageRect, settings: watermark)
+            }
             CompositeLabelDrawer.drawSingleIfEnabled(
                 context: context,
                 combineSettings: combineSettings,
@@ -147,6 +163,7 @@ nonisolated enum CompositeRenderer {
         after: UIImage,
         layout: CompositeLayout,
         combineSettings: CombineSettings? = nil,
+        watermark: WatermarkSettings? = nil,
     ) -> UIImage {
         let imageMaxWidth = max(before.size.width, after.size.width, 1)
         let scaleFactor = imageMaxWidth / referenceImageWidth
@@ -170,6 +187,10 @@ nonisolated enum CompositeRenderer {
             )
             before.draw(in: frames.beforeRect)
             after.draw(in: frames.afterRect)
+            if let watermark {
+                WatermarkOverlay.draw(in: frames.beforeRect, settings: watermark)
+                WatermarkOverlay.draw(in: frames.afterRect, settings: watermark)
+            }
             CompositeLabelDrawer.drawIfEnabled(
                 context: context,
                 combineSettings: combineSettings,
@@ -193,7 +214,7 @@ nonisolated enum CompositeRenderer {
         let border = max(borderPx, 0)
         switch layout {
             case .horizontal:
-                return horizontalFrames(
+                return CompositeFrameMath.horizontal(
                     beforeWidth: beforeWidth,
                     beforeHeight: beforeHeight,
                     afterWidth: afterWidth,
@@ -202,7 +223,7 @@ nonisolated enum CompositeRenderer {
                 )
 
             case .vertical:
-                return verticalFrames(
+                return CompositeFrameMath.vertical(
                     beforeWidth: beforeWidth,
                     beforeHeight: beforeHeight,
                     afterWidth: afterWidth,
@@ -211,8 +232,89 @@ nonisolated enum CompositeRenderer {
                 )
         }
     }
+}
 
-    private static func horizontalFrames(
+private nonisolated enum CompositeImageDecoder {
+    static func decode(data: Data) -> UIImage? {
+        let sourceOptions: [CFString: Any] = [kCGImageSourceShouldCache: false]
+        guard let source = CGImageSourceCreateWithData(data as CFData, sourceOptions as CFDictionary) else {
+            return nil
+        }
+        guard let cgImage = CGImageSourceCreateImageAtIndex(source, 0, sourceOptions as CFDictionary) else {
+            return nil
+        }
+        let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [String: Any]
+        let rawOrientation = properties?[kCGImagePropertyOrientation as String] as? UInt32 ?? 1
+        let cgOrientation = CGImagePropertyOrientation(rawValue: rawOrientation) ?? .up
+        return UIImage(cgImage: cgImage, scale: 1, orientation: uiOrientation(from: cgOrientation))
+    }
+
+    static func uiOrientation(from cgOrientation: CGImagePropertyOrientation) -> UIImage.Orientation {
+        switch cgOrientation {
+            case .up: .up
+            case .upMirrored: .upMirrored
+            case .down: .down
+            case .downMirrored: .downMirrored
+            case .leftMirrored: .leftMirrored
+            case .right: .right
+            case .rightMirrored: .rightMirrored
+            case .left: .left
+        }
+    }
+}
+
+private nonisolated enum CompositeJPEGEncoder {
+    static func encode(
+        cgImage: CGImage,
+        quality: CGFloat,
+        capturedAt: Date,
+        latitude: Double?,
+        longitude: Double?,
+    ) -> Data? {
+        let destinationData = NSMutableData()
+        guard let destination = CGImageDestinationCreateWithData(
+            destinationData,
+            UTType.jpeg.identifier as CFString,
+            1,
+            nil,
+        ) else {
+            return nil
+        }
+        let stamp = exifTimestamp(from: capturedAt)
+        var properties: [CFString: Any] = [
+            kCGImageDestinationLossyCompressionQuality: quality,
+            kCGImagePropertyExifDictionary: [
+                kCGImagePropertyExifDateTimeOriginal: stamp,
+                kCGImagePropertyExifDateTimeDigitized: stamp,
+            ] as [CFString: Any],
+            kCGImagePropertyTIFFDictionary: [
+                kCGImagePropertyTIFFDateTime: stamp,
+            ] as [CFString: Any],
+        ]
+        if let latitude, let longitude {
+            properties[kCGImagePropertyGPSDictionary] = [
+                kCGImagePropertyGPSLatitude: abs(latitude),
+                kCGImagePropertyGPSLatitudeRef: latitude >= 0 ? "N" : "S",
+                kCGImagePropertyGPSLongitude: abs(longitude),
+                kCGImagePropertyGPSLongitudeRef: longitude >= 0 ? "E" : "W",
+            ] as [CFString: Any]
+        }
+        CGImageDestinationAddImage(destination, cgImage, properties as CFDictionary)
+        guard CGImageDestinationFinalize(destination) else { return nil }
+        return destinationData as Data
+    }
+
+    private static func exifTimestamp(from date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone.current
+        formatter.dateFormat = CompositeRenderer.exifDateFormat
+        return formatter.string(from: date)
+    }
+}
+
+private nonisolated enum CompositeFrameMath {
+    static func horizontal(
         beforeWidth: CGFloat,
         beforeHeight: CGFloat,
         afterWidth: CGFloat,
@@ -241,7 +343,7 @@ nonisolated enum CompositeRenderer {
         return (canvas, beforeRect, afterRect)
     }
 
-    private static func verticalFrames(
+    static func vertical(
         beforeWidth: CGFloat,
         beforeHeight: CGFloat,
         afterWidth: CGFloat,
@@ -268,72 +370,5 @@ nonisolated enum CompositeRenderer {
             height: scaledAfterHeight,
         )
         return (canvas, beforeRect, afterRect)
-    }
-}
-
-nonisolated enum ExifEmbedder {
-    static let exifDateFormat = "yyyy:MM:dd HH:mm:ss"
-
-    static func embed(
-        into jpeg: Data,
-        capturedAt: Date,
-        latitude: Double?,
-        longitude: Double?,
-    ) -> Data? {
-        guard let source = CGImageSourceCreateWithData(jpeg as CFData, nil) else {
-            return nil
-        }
-        guard CGImageSourceGetType(source) != nil else { return nil }
-        let destinationData = NSMutableData()
-        guard
-            let destination = CGImageDestinationCreateWithData(
-                destinationData,
-                UTType.jpeg.identifier as CFString,
-                1,
-                nil,
-            )
-        else { return nil }
-
-        let metadata = makeMetadata(
-            capturedAt: capturedAt,
-            latitude: latitude,
-            longitude: longitude,
-        )
-        CGImageDestinationAddImageFromSource(
-            destination,
-            source,
-            0,
-            metadata as CFDictionary,
-        )
-        guard CGImageDestinationFinalize(destination) else { return nil }
-        return destinationData as Data
-    }
-
-    static func makeMetadata(
-        capturedAt: Date,
-        latitude: Double?,
-        longitude: Double?,
-    ) -> [String: Any] {
-        var top: [String: Any] = [:]
-
-        var exif: [String: Any] = [:]
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.timeZone = TimeZone.current
-        formatter.dateFormat = exifDateFormat
-        let stamp = formatter.string(from: capturedAt)
-        exif[kCGImagePropertyExifDateTimeOriginal as String] = stamp
-        exif[kCGImagePropertyExifDateTimeDigitized as String] = stamp
-        top[kCGImagePropertyExifDictionary as String] = exif
-
-        if let lat = latitude, let lon = longitude {
-            var gps: [String: Any] = [:]
-            gps[kCGImagePropertyGPSLatitude as String] = abs(lat)
-            gps[kCGImagePropertyGPSLatitudeRef as String] = lat >= 0 ? "N" : "S"
-            gps[kCGImagePropertyGPSLongitude as String] = abs(lon)
-            gps[kCGImagePropertyGPSLongitudeRef as String] = lon >= 0 ? "E" : "W"
-            top[kCGImagePropertyGPSDictionary as String] = gps
-        }
-        return top
     }
 }

@@ -3,69 +3,48 @@ import Foundation
 import UIKit
 
 nonisolated enum WatermarkOverlay {
-    static func apply(to source: UIImage, settings: WatermarkSettings) -> UIImage {
-        let canvasSize = source.size
-        guard canvasSize.width > 0, canvasSize.height > 0 else {
-            return source
-        }
-
+    static func draw(in rect: CGRect, settings: WatermarkSettings) {
+        guard rect.width > 0, rect.height > 0 else { return }
+        guard let context = UIGraphicsGetCurrentContext() else { return }
+        context.saveGState()
+        context.clip(to: rect)
+        context.translateBy(x: rect.minX, y: rect.minY)
+        let canvasSize = CGSize(width: rect.width, height: rect.height)
         switch settings.type {
             case .text:
-                return applyText(source: source, settings: settings, canvasSize: canvasSize)
+                drawText(settings: settings, canvas: canvasSize)
 
             case .logo:
-                return applyLogo(source: source, settings: settings, canvasSize: canvasSize)
+                drawLogo(settings: settings, canvas: canvasSize)
         }
+        context.restoreGState()
     }
 
-    private static func applyText(
-        source: UIImage,
-        settings: WatermarkSettings,
-        canvasSize: CGSize,
-    ) -> UIImage {
-        guard !settings.text.isEmpty else { return source }
-        let format = UIGraphicsImageRendererFormat()
-        format.scale = source.scale
-        format.opaque = true
-        let renderer = UIGraphicsImageRenderer(size: canvasSize, format: format)
-        return renderer.image { _ in
-            source.draw(in: CGRect(origin: .zero, size: canvasSize))
-            drawDiagonalRepeatingText(
-                text: settings.text,
-                opacity: settings.opacity,
-                lineCount: settings.lineCount,
-                repeatCount: settings.repeatCount,
-                textSizeRatio: settings.textSizeRatio,
-                canvas: canvasSize,
-            )
-        }
+    private static func drawText(settings: WatermarkSettings, canvas: CGSize) {
+        guard !settings.text.isEmpty else { return }
+        drawDiagonalRepeatingText(
+            text: settings.text,
+            opacity: settings.opacity,
+            lineCount: settings.lineCount,
+            repeatCount: settings.repeatCount,
+            textSizeRatio: settings.textSizeRatio,
+            canvas: canvas,
+        )
     }
 
-    private static func applyLogo(
-        source: UIImage,
-        settings: WatermarkSettings,
-        canvasSize: CGSize,
-    ) -> UIImage {
+    private static func drawLogo(settings: WatermarkSettings, canvas: CGSize) {
         guard let data = settings.logoImageData,
               let logo = UIImage(data: data),
               logo.size.width > 0,
               logo.size.height > 0
-        else { return source }
-
-        let format = UIGraphicsImageRendererFormat()
-        format.scale = source.scale
-        format.opaque = true
-        let renderer = UIGraphicsImageRenderer(size: canvasSize, format: format)
-        return renderer.image { _ in
-            source.draw(in: CGRect(origin: .zero, size: canvasSize))
-            drawLogo(
-                logo: logo,
-                widthRatio: settings.logoWidthRatio,
-                alpha: settings.logoAlpha,
-                position: settings.logoPosition,
-                canvas: canvasSize,
-            )
-        }
+        else { return }
+        drawLogo(
+            logo: logo,
+            widthRatio: settings.logoWidthRatio,
+            alpha: settings.logoAlpha,
+            position: settings.logoPosition,
+            canvas: canvas,
+        )
     }
 
     private static func drawDiagonalRepeatingText(
