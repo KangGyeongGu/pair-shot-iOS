@@ -40,14 +40,23 @@ struct HomeSelectionBottomBarTutorialTests {
     }
 
     @Test
-    func `튜토리얼 active 시 export 콜백은 advance 만 수행`() {
+    func `튜토리얼 active 시 export 콜백은 selection 해제 후 advance`() {
         let coord = TutorialCoordinator(current: .selectionExport)
         var actionInvoked = false
-        let onExport = makeGuardedAction(coord: coord) { actionInvoked = true }
+        var didCancelSelection = false
+        let onExport: () -> Void = {
+            if coord.isActive {
+                didCancelSelection = true
+                coord.advance()
+                return
+            }
+            actionInvoked = true
+        }
 
         onExport()
 
-        #expect(coord.current == .saveToDevice)
+        #expect(coord.current == .goSettings)
+        #expect(didCancelSelection)
         #expect(!actionInvoked)
     }
 

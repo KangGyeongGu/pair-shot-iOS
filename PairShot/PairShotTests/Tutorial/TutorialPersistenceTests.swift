@@ -10,7 +10,7 @@ struct TutorialPersistenceTests {
     func `restart 은 nil 상태에서 첫 step 으로 복귀`() {
         let coord = TutorialCoordinator()
         coord.restart()
-        #expect(coord.current == .homeCaptureHighlight)
+        #expect(coord.current == .captureGuidePortrait)
         #expect(coord.isActive == true)
     }
 
@@ -18,7 +18,7 @@ struct TutorialPersistenceTests {
     func `restart 은 중간 step 에서도 첫 step 으로 되돌린다`() {
         let coord = TutorialCoordinator(current: .tapPairCard)
         coord.restart()
-        #expect(coord.current == .homeCaptureHighlight)
+        #expect(coord.current == .captureGuidePortrait)
     }
 
     @Test
@@ -27,7 +27,7 @@ struct TutorialPersistenceTests {
         coord.complete()
         #expect(coord.current == .done)
         coord.restart()
-        #expect(coord.current == .homeCaptureHighlight)
+        #expect(coord.current == .captureGuidePortrait)
     }
 
     @Test
@@ -63,7 +63,7 @@ struct TutorialPersistenceTests {
         let completed = defaults.bool(forKey: Self.key)
         let coord = TutorialCoordinator()
         if !completed, !coord.isActive { coord.start() }
-        #expect(coord.current == .homeCaptureHighlight)
+        #expect(coord.current == .captureGuidePortrait)
     }
 
     @Test

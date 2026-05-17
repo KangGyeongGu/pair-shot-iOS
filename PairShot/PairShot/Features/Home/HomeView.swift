@@ -227,7 +227,7 @@ struct HomeView: View {
         )
         .modifier(FirstPairCardAnchor(isFirst: allPairs.first?.id == pair.id))
         .contentShape(.rect)
-        .onTapGesture { viewModel.tapPair(pair, allPairs: allPairs) }
+        .onTapGesture { handlePairTap(viewModel: viewModel, pair: pair, allPairs: allPairs) }
         .contextMenu {
             if !viewModel.isSelectionMode {
                 if pair.afterPhotoLocalIdentifier != nil {
@@ -272,6 +272,10 @@ struct HomeView: View {
                 }
             }
         }
+    }
+
+    private func handlePairTap(viewModel: HomeViewModel, pair: PhotoPair, allPairs: [PhotoPair]) {
+        viewModel.tapPair(pair, allPairs: allPairs)
     }
 
     private func albumsGrid(viewModel: HomeViewModel, albums: [Album]) -> some View {

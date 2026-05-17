@@ -188,6 +188,9 @@ struct AfterCameraView: View {
 
     private func handleLeadingTap() {
         let coord = env.tutorialCoordinator
+        if coord.isAtStep(.afterCameraGuide) {
+            coord.advance()
+        }
         if coord.isAtStep(.backToHome2) {
             coord.advance()
         }

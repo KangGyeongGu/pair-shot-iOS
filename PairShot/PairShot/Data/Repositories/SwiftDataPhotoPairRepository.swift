@@ -12,8 +12,8 @@ final class SwiftDataPhotoPairRepository: PhotoPairRepository {
         self.container = container
     }
 
-    func fetchAll() async throws -> [PhotoPair] {
-        try fetchAllSync().map { $0.toDomain() }
+    func fetchAll(includeTutorial: Bool) async throws -> [PhotoPair] {
+        try fetchAllSync(includeTutorial: includeTutorial).map { $0.toDomain() }
     }
 
     func fetch(id: UUID) async throws -> PhotoPair? {
@@ -24,7 +24,7 @@ final class SwiftDataPhotoPairRepository: PhotoPairRepository {
         guard !ids.isEmpty else { return [] }
         let idSet = Set(ids)
         let descriptor = FetchDescriptor<PhotoPairEntity>(
-            predicate: #Predicate { idSet.contains($0.id) && !$0.isTutorial },
+            predicate: #Predicate { idSet.contains($0.id) },
         )
         let entities = try context.fetch(descriptor)
         let byId = Dictionary(uniqueKeysWithValues: entities.map { ($0.id, $0.toDomain()) })
@@ -129,17 +129,21 @@ final class SwiftDataPhotoPairRepository: PhotoPairRepository {
         try context.save()
     }
 
-    private func fetchAllSync() throws -> [PhotoPairEntity] {
-        let descriptor = FetchDescriptor<PhotoPairEntity>(
-            predicate: #Predicate { !$0.isTutorial },
-            sortBy: [SortDescriptor(\.createdAt, order: .reverse)],
-        )
+    private func fetchAllSync(includeTutorial: Bool) throws -> [PhotoPairEntity] {
+        let descriptor: FetchDescriptor<PhotoPairEntity> = if includeTutorial {
+            FetchDescriptor(sortBy: [SortDescriptor(\.createdAt, order: .reverse)])
+        } else {
+            FetchDescriptor(
+                predicate: #Predicate { !$0.isTutorial },
+                sortBy: [SortDescriptor(\.createdAt, order: .reverse)],
+            )
+        }
         return try context.fetch(descriptor)
     }
 
     private func fetchEntity(id: UUID) throws -> PhotoPairEntity? {
         let descriptor = FetchDescriptor<PhotoPairEntity>(
-            predicate: #Predicate { $0.id == id && !$0.isTutorial },
+            predicate: #Predicate { $0.id == id },
         )
         return try context.fetch(descriptor).first
     }

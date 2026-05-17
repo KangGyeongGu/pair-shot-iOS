@@ -26,8 +26,8 @@ struct TutorialOverlayTests {
 
     @Test
     func `TutorialStepCopy 매핑은 멱등하다`() {
-        let first = TutorialStepCopy.text(for: .homeCaptureHighlight)
-        let second = TutorialStepCopy.text(for: .homeCaptureHighlight)
+        let first = TutorialStepCopy.text(for: .captureGuidePortrait)
+        let second = TutorialStepCopy.text(for: .captureGuidePortrait)
         #expect(first == second)
     }
 
@@ -70,11 +70,18 @@ struct TutorialOverlayTests {
     }
 
     @Test
-    func `TutorialTooltip 구성 가능하다`() {
-        let view = TutorialTooltip(
+    func `TutorialMessageModal 구성 가능하다`() {
+        let view = TutorialMessageModal(
+            step: .captureGuidePortrait,
             text: "테스트",
+            progress: (current: 1, total: 13),
+            showsNext: true,
+            placement: .bottom,
             targetRect: CGRect(x: 100, y: 100, width: 80, height: 80),
             containerSize: CGSize(width: 400, height: 800),
+            safeAreaInsets: EdgeInsets(top: 47, leading: 0, bottom: 34, trailing: 0),
+            onSkip: {},
+            onNext: {},
         )
         _ = view
     }

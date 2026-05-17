@@ -4,6 +4,10 @@ import Observation
 @MainActor
 @Observable
 final class TutorialCoordinator {
+    static var totalProgressSteps: Int {
+        TutorialStep.allCases.count - 1
+    }
+
     private(set) var current: TutorialStep?
     var cleanupService: TutorialCleanupService?
 
@@ -21,7 +25,7 @@ final class TutorialCoordinator {
     }
 
     func start() {
-        current = .homeCaptureHighlight
+        current = .captureGuidePortrait
     }
 
     func restart() {
@@ -65,5 +69,11 @@ final class TutorialCoordinator {
 
     func isAtStep(_ step: TutorialStep) -> Bool {
         current == step
+    }
+
+    func progress(for step: TutorialStep) -> (current: Int, total: Int)? {
+        guard step != .done else { return nil }
+        guard let index = TutorialStep.allCases.firstIndex(of: step) else { return nil }
+        return (current: index + 1, total: Self.totalProgressSteps)
     }
 }

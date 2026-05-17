@@ -20,26 +20,25 @@ struct TutorialCoordinatorRestartTests {
     }
 
     @Test
-    func `restart 후 advanceIfPostureMatches 는 첫 step 에서는 자세 미요구`() {
+    func `restart 후 첫 step 은 captureGuidePortrait 이며 자세 검증 step`() {
         let coord = TutorialCoordinator()
         coord.start()
+        #expect(coord.current == .captureGuidePortrait)
         let advanced = coord.advanceIfPostureMatches(rollDegrees: 0)
-        #expect(advanced == false)
-        #expect(coord.current == .homeCaptureHighlight)
+        #expect(advanced == true)
+        #expect(coord.current == .captureGuideLeft)
     }
 
     @Test
-    func `restart 후 4번 advance 시 다시 backToHome 도달 (회귀 0 검증)`() {
+    func `restart 후 3번 advance 시 backToHome 도달 (회귀 0 검증)`() {
         let coord = TutorialCoordinator()
         coord.start()
-        coord.advance()
         coord.advance()
         coord.advance()
         coord.advance()
         #expect(coord.current == .backToHome)
         coord.restart()
-        #expect(coord.current == .homeCaptureHighlight)
-        coord.advance()
+        #expect(coord.current == .captureGuidePortrait)
         coord.advance()
         coord.advance()
         coord.advance()

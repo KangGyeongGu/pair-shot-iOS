@@ -30,7 +30,7 @@ struct SettingsTutorialRestartTests {
         let coord = TutorialCoordinator()
         coord.complete()
         coord.restart()
-        #expect(coord.current == .homeCaptureHighlight)
+        #expect(coord.current == .captureGuidePortrait)
         #expect(coord.isActive)
     }
 }

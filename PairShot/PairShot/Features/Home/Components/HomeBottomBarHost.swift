@@ -14,6 +14,11 @@ struct HomeBottomBarHost: View {
             .padding(.horizontal, 20)
             .animation(.easeInOut(duration: 0.2), value: viewModel.isSelectionMode)
             .animation(.easeInOut(duration: 0.2), value: viewModel.contentMode)
+            .onChange(of: tutorialCoordinator.current) { _, newStep in
+                if newStep == .goSettings, viewModel.isSelectionMode {
+                    viewModel.cancelSelection()
+                }
+            }
     }
 
     @ViewBuilder
@@ -24,24 +29,32 @@ struct HomeBottomBarHost: View {
                     HomePairSelectionBottomBar(
                         selectionCount: viewModel.selectedPairIds.count,
                         onShare: {
-                            if tutorialCoordinator.isActive { tutorialCoordinator.advance(); return }
+                            if tutorialCoordinator.isActive {
+                                tutorialCoordinator.advance()
+                                return
+                            }
                             Task { await viewModel.shareSelectedPairs(from: sortedPairs) }
                         },
                         onSaveToDevice: {
                             if tutorialCoordinator.isActive {
-                                let wasSaveToDevice = tutorialCoordinator.isAtStep(.saveToDevice)
                                 tutorialCoordinator.advance()
-                                if wasSaveToDevice { viewModel.cancelSelection() }
                                 return
                             }
                             Task { await viewModel.saveSelectedPairsToDevice(from: sortedPairs) }
                         },
                         onDelete: {
-                            if tutorialCoordinator.isActive { tutorialCoordinator.advance(); return }
+                            if tutorialCoordinator.isActive {
+                                tutorialCoordinator.advance()
+                                return
+                            }
                             viewModel.requestPairDeletion(from: sortedPairs)
                         },
                         onExportSettings: {
-                            if tutorialCoordinator.isActive { tutorialCoordinator.advance(); return }
+                            if tutorialCoordinator.isActive {
+                                viewModel.cancelSelection()
+                                tutorialCoordinator.advance()
+                                return
+                            }
                             pushExport()
                         },
                     )

@@ -1,8 +1,6 @@
 import SwiftUI
-import UIKit
 
 struct CameraBottomBar: View {
-    let lastThumbnail: UIImage?
     let isCapturing: Bool
     let zoneHeight: CGFloat
     let onLeadingTap: () -> Void
@@ -23,16 +21,12 @@ struct CameraBottomBar: View {
         max(0, zoneHeight * 0.414)
     }
 
-    private var thumbnailCornerRadius: CGFloat {
-        max(0, zoneHeight * 0.069)
-    }
-
     private var settingsIconSize: CGFloat {
         max(0, zoneHeight * 0.241)
     }
 
-    private var homeIconScale: CGFloat {
-        max(0, zoneHeight / 116.0)
+    private var homeIconSize: CGFloat {
+        max(0, zoneHeight * 0.276)
     }
 
     var body: some View {
@@ -51,26 +45,12 @@ struct CameraBottomBar: View {
     @ViewBuilder
     private var leadingButton: some View {
         let button = Button(action: onLeadingTap) {
-            ZStack {
-                if let lastThumbnail {
-                    Image(uiImage: lastThumbnail)
-                        .resizable()
-                        .scaledToFill()
-                        .frame(width: sideButtonSize, height: sideButtonSize)
-                        .clipShape(RoundedRectangle(cornerRadius: thumbnailCornerRadius))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: thumbnailCornerRadius)
-                                .stroke(Color.white.opacity(0.3), lineWidth: 1),
-                        )
-                        .accessibilityLabel(String(localized: "camera_desc_last_thumbnail"))
-                } else {
-                    Image(systemName: "house.fill")
-                        .font(.system(size: 28 * homeIconScale))
-                        .foregroundStyle(.white)
-                        .frame(width: sideButtonSize, height: sideButtonSize)
-                        .accessibilityLabel(String(localized: "camera_desc_home"))
-                }
-            }
+            Image(systemName: "house.fill")
+                .font(.system(size: homeIconSize, weight: .regular))
+                .foregroundStyle(.white)
+                .frame(width: sideButtonSize, height: sideButtonSize)
+                .contentShape(Rectangle())
+                .accessibilityLabel(String(localized: "camera_desc_home"))
         }
         .buttonStyle(.plain)
         if let leadingAnchorID {
@@ -120,7 +100,6 @@ struct CameraBottomBar: View {
     }
 
     init(
-        lastThumbnail: UIImage?,
         isCapturing: Bool,
         zoneHeight: CGFloat,
         onLeadingTap: @escaping () -> Void,
@@ -129,7 +108,6 @@ struct CameraBottomBar: View {
         shutterAnchorID: String? = nil,
         leadingAnchorID: String? = nil,
     ) {
-        self.lastThumbnail = lastThumbnail
         self.isCapturing = isCapturing
         self.zoneHeight = zoneHeight
         self.onLeadingTap = onLeadingTap

@@ -177,10 +177,6 @@ final class AfterCameraViewModel {
 
     func shutter() async {
         guard !isCapturing, session.captureReadiness == .ready, let pair = currentPair else { return }
-        if let tutorialCoordinator, tutorialCoordinator.isActive {
-            tutorialCoordinator.advance()
-            return
-        }
         isCapturing = true
         let captured: CapturedPhoto
         do {
@@ -236,8 +232,16 @@ final class AfterCameraViewModel {
             }
         }
         if allCompleted {
+            advanceTutorialOnAllCompleted()
             eventsContinuation.yield(.snackbarAllCompleted)
             scheduleAllCompletedDismiss()
+        }
+    }
+
+    private func advanceTutorialOnAllCompleted() {
+        guard let tutorialCoordinator else { return }
+        if tutorialCoordinator.isAtStep(.afterCameraGuide) {
+            tutorialCoordinator.advance()
         }
     }
 
@@ -342,8 +346,12 @@ final class AfterCameraViewModel {
     }
 
     private func refreshPairs() async {
-        let snapshot = await AfterCameraScopeFetch(pairRepo: pairRepo, albumId: albumId)
-            .fetch(initialPairId: initialPairId, sortOrder: sortOrder)
+        let snapshot = await AfterCameraScopeFetch(
+            pairRepo: pairRepo,
+            albumId: albumId,
+            includeTutorial: tutorialCoordinator?.isActive == true,
+        )
+        .fetch(initialPairId: initialPairId, sortOrder: sortOrder)
         pairs = snapshot.pending
         pendingPairCount = snapshot.pending.count
         completedPairCount = snapshot.completedCount

@@ -74,7 +74,6 @@ struct AfterCameraStack: View {
                     .clipped()
 
                     CameraBottomBar(
-                        lastThumbnail: nil,
                         isCapturing: isCapturing,
                         zoneHeight: layout.shutterHeight,
                         onLeadingTap: onLeadingTap,

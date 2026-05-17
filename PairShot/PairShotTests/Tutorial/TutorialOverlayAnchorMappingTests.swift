@@ -30,9 +30,8 @@ struct TutorialOverlayAnchorMappingTests {
     }
 
     @Test
-    func `step copy 는 P3 8 step 모두 비어있지 않음`() {
+    func `step copy 는 P3 7 step 모두 비어있지 않음`() {
         let p3Steps: [TutorialStep] = [
-            .homeCaptureHighlight,
             .captureGuidePortrait,
             .captureGuideLeft,
             .captureGuideRight,

@@ -15,16 +15,17 @@ struct TutorialCoordinatorTests {
     func `start() 호출 시 첫 step 진입`() {
         let coord = TutorialCoordinator()
         coord.start()
-        #expect(coord.current == .homeCaptureHighlight)
+        #expect(coord.current == .captureGuidePortrait)
         #expect(coord.isActive == true)
-        #expect(coord.mode == .running(.homeCaptureHighlight))
+        #expect(coord.mode == .running(.captureGuidePortrait))
     }
 
     @Test
-    func `advance() 16회 호출 시 .done 에 도달하고 isActive == false`() {
+    func `advance() 호출 시 .done 에 도달하고 isActive == false`() {
         let coord = TutorialCoordinator()
         coord.start()
-        for _ in 0 ..< 15 {
+        let advanceCount = TutorialStep.allCases.count - 1
+        for _ in 0 ..< advanceCount {
             coord.advance()
         }
         #expect(coord.current == .done)
@@ -56,18 +57,18 @@ struct TutorialCoordinatorTests {
         let coord = TutorialCoordinator()
         #expect(coord.mode == .off)
         coord.start()
-        #expect(coord.mode == .running(.homeCaptureHighlight))
-        coord.advance()
         #expect(coord.mode == .running(.captureGuidePortrait))
+        coord.advance()
+        #expect(coord.mode == .running(.captureGuideLeft))
         coord.complete()
         #expect(coord.mode == .running(.done))
     }
 
     @Test
-    func `step rawValue 순서가 16개로 끊김 없이 연속`() {
+    func `step rawValue 순서가 끊김 없이 연속`() {
         let all = TutorialStep.allCases
-        #expect(all.count == 16)
-        #expect(all.first == .homeCaptureHighlight)
+        #expect(all.count == 14)
+        #expect(all.first == .captureGuidePortrait)
         #expect(all.last == .done)
         for (idx, step) in all.enumerated() {
             #expect(step.rawValue == idx)

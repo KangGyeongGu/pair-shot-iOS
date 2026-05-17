@@ -149,7 +149,6 @@ struct BeforeCameraView: View {
                 exposureRangeProvider: { viewModel.cachedExposureRange },
                 focusIndicator: $focusIndicator,
                 isCapturing: viewModel.isCapturing,
-                lastThumbnail: viewModel.lastThumbnail,
                 pendingPairs: viewModel.pendingPairs,
                 activePairId: viewModel.selectedPairId,
                 onTapFocus: viewModel.onTapFocus(devicePoint:),

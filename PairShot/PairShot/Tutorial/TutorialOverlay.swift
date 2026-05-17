@@ -3,9 +3,9 @@ import SwiftUI
 struct TutorialOverlay: View {
     private static let cutoutInset: CGFloat = -8
     private static let cutoutCornerRadius: CGFloat = 12
-    private static let dimOpacity: Double = 0.55
-    private static let fullDimOpacity: Double = 0.5
+    private static let standardDimOpacity: Double = 0.55
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(TutorialCoordinator.self) private var coord
     let anchors: [String: Anchor<CGRect>]
 
@@ -15,6 +15,7 @@ struct TutorialOverlay: View {
         }
         .ignoresSafeArea()
         .allowsHitTesting(coord.isActive || coord.current == .done)
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.25), value: coord.current)
     }
 
     @ViewBuilder
@@ -28,29 +29,76 @@ struct TutorialOverlay: View {
                   let anchorID = anchorID(for: step),
                   let anchor = anchors[anchorID]
         {
-            let rect = proxy[anchor].insetBy(dx: Self.cutoutInset, dy: Self.cutoutInset)
-            ZStack {
+            anchoredContent(
+                step: step,
+                rect: proxy[anchor],
+                containerSize: proxy.size,
+                safeAreaInsets: proxy.safeAreaInsets,
+            )
+        } else if let step = coord.current, Self.dimOpacity(for: step) > 0 {
+            Color.black.opacity(Self.dimOpacity(for: step))
+        }
+    }
+
+    @ViewBuilder
+    private func anchoredContent(
+        step: TutorialStep,
+        rect rawRect: CGRect,
+        containerSize: CGSize,
+        safeAreaInsets: EdgeInsets,
+    ) -> some View {
+        let rect = rawRect.insetBy(dx: Self.cutoutInset, dy: Self.cutoutInset)
+        let opacity = Self.dimOpacity(for: step)
+        let placement = TutorialMessageModal.placement(for: rect, containerSize: containerSize)
+        let progress = coord.progress(for: step) ?? (current: 1, total: TutorialCoordinator.totalProgressSteps)
+        ZStack {
+            if opacity > 0 {
                 DimmedMask(
-                    containerSize: proxy.size,
+                    containerSize: containerSize,
                     cutout: rect,
                     cornerRadius: Self.cutoutCornerRadius,
-                    opacity: Self.dimOpacity,
+                    opacity: opacity,
                 )
-                TutorialTooltip(
-                    text: TutorialStepCopy.text(for: step),
-                    targetRect: rect,
-                    containerSize: proxy.size,
+            } else {
+                SpotlightRing(
+                    cutout: rect,
+                    cornerRadius: Self.cutoutCornerRadius,
                 )
             }
-        } else if coord.isActive {
-            Color.black.opacity(Self.fullDimOpacity)
+            TutorialMessageModal(
+                step: step,
+                text: TutorialStepCopy.text(for: step),
+                progress: progress,
+                showsNext: TutorialMessageModal.showsNext(for: step),
+                placement: placement,
+                targetRect: rect,
+                containerSize: containerSize,
+                safeAreaInsets: safeAreaInsets,
+                onSkip: { coord.cancel() },
+                onNext: { coord.advance() },
+            )
+        }
+    }
+
+    static func dimOpacity(for step: TutorialStep) -> Double {
+        switch step {
+            case .captureGuidePortrait,
+                 .captureGuideLeft,
+                 .captureGuideRight,
+                 .afterCameraGuide,
+                 .backToHome,
+                 .backToHome2,
+                 .tapPairCard:
+                0
+
+            default:
+                standardDimOpacity
         }
     }
 
     private func anchorID(for step: TutorialStep) -> String? {
         switch step {
-            case .homeCaptureHighlight,
-                 .captureGuidePortrait,
+            case .captureGuidePortrait,
                  .captureGuideLeft,
                  .captureGuideRight:
                 TutorialAnchorID.cameraShutter
@@ -73,7 +121,7 @@ struct TutorialOverlay: View {
             case .selectionShare:
                 TutorialAnchorID.selectionShare
 
-            case .selectionSave, .saveToDevice:
+            case .selectionSave:
                 TutorialAnchorID.selectionSave
 
             case .selectionDelete:
@@ -103,6 +151,23 @@ private struct DimmedMask: View {
             .frame(width: containerSize.width, height: containerSize.height)
             .mask(shape.fill(style: FillStyle(eoFill: true)))
             .contentShape(shape, eoFill: true)
+    }
+}
+
+private struct SpotlightRing: View {
+    private static let lineWidth: CGFloat = 3
+    private static let ringOpacity: Double = 0.9
+
+    let cutout: CGRect
+    let cornerRadius: CGFloat
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+            .stroke(Color.white.opacity(Self.ringOpacity), lineWidth: Self.lineWidth)
+            .frame(width: cutout.width, height: cutout.height)
+            .position(x: cutout.midX, y: cutout.midY)
+            .shadow(color: .black.opacity(0.35), radius: 4)
+            .allowsHitTesting(false)
     }
 }
 

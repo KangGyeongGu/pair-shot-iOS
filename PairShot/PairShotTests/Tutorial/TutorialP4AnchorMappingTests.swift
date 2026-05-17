@@ -37,7 +37,6 @@ struct TutorialP4AnchorMappingTests {
             .selectionSave,
             .selectionDelete,
             .selectionExport,
-            .saveToDevice,
             .goSettings,
             .done,
         ]
@@ -55,7 +54,6 @@ struct TutorialP4AnchorMappingTests {
             .selectionSave,
             .selectionDelete,
             .selectionExport,
-            .saveToDevice,
             .goSettings,
             .done,
         ]

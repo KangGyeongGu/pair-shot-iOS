@@ -1,7 +1,6 @@
 @preconcurrency import AVFoundation
 import Foundation
 import SwiftUI
-import UIKit
 
 extension BeforeCameraViewModel {
     func shutter(rollDegrees: Double) async {
@@ -29,28 +28,17 @@ extension BeforeCameraViewModel {
             isCapturing = false
             return
         }
-        updateLastThumbnail(from: captured.data)
         eventsContinuation.yield(.snackbarSuccess)
         isCapturing = false
         await persistCapturedPhoto(captured)
-    }
-
-    func updateLastThumbnail(from data: Data) {
-        guard let image = UIImage(data: data) else { return }
-        lastThumbnail = image
     }
 
     private func handleTutorialShutter(
         coord: TutorialCoordinator,
         rollDegrees: Double,
     ) async {
-        guard let step = coord.current else { return }
-        if TutorialMotionGuide.postureRequiringStep(step) {
-            guard coord.advanceIfPostureMatches(rollDegrees: rollDegrees) else { return }
-            await captureTutorialPair()
-            return
-        }
-        coord.advance()
+        guard coord.advanceIfPostureMatches(rollDegrees: rollDegrees) else { return }
+        await captureTutorialPair()
     }
 
     private func captureTutorialPair() async {
@@ -64,7 +52,6 @@ extension BeforeCameraViewModel {
             isCapturing = false
             return
         }
-        updateLastThumbnail(from: captured.data)
         eventsContinuation.yield(.snackbarSuccess)
         isCapturing = false
         await persistTutorialCapturedPhoto(captured)

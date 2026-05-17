@@ -2,7 +2,6 @@
 import Foundation
 import Observation
 import SwiftUI
-import UIKit
 
 @MainActor
 @Observable
@@ -52,7 +51,6 @@ final class BeforeCameraViewModel {
     var captureErrorMessage: String?
     var cachedExposureRange: ClosedRange<Float>?
 
-    var lastThumbnail: UIImage?
     var pendingPairs: [PhotoPair] = []
     var selectedPairId: UUID?
     var showPaywall: Bool = false

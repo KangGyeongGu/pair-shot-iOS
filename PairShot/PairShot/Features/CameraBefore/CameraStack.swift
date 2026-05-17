@@ -1,6 +1,5 @@
 @preconcurrency import AVFoundation
 import SwiftUI
-import UIKit
 
 struct BeforeCameraStack: View {
     @Environment(Membership.self) private var membership
@@ -25,7 +24,6 @@ struct BeforeCameraStack: View {
     let focusIndicator: Binding<FocusIndicatorState?>
 
     let isCapturing: Bool
-    let lastThumbnail: UIImage?
 
     let pendingPairs: [PhotoPair]
     let activePairId: UUID?
@@ -76,7 +74,6 @@ struct BeforeCameraStack: View {
                     .clipped()
 
                     CameraBottomBar(
-                        lastThumbnail: lastThumbnail,
                         isCapturing: isCapturing,
                         zoneHeight: layout.shutterHeight,
                         onLeadingTap: onLeadingTap,

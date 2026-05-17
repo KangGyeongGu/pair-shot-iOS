@@ -33,15 +33,22 @@ struct RootView: View {
                     }
                 }
                 .task {
-                    evaluateFirstRunPaywall()
-                    startTutorialIfFirstRun()
+                    if tutorialCompleted {
+                        evaluateFirstRunPaywall()
+                    } else {
+                        startTutorialIfFirstRun()
+                    }
                 }
                 .onChange(of: env.membership.proIsActive) { _, _ in
                     evaluateFirstRunPaywall()
                 }
-                .onChange(of: env.tutorialCoordinator.current) { _, newValue in
+                .onChange(of: env.tutorialCoordinator.current) { oldValue, newValue in
                     if newValue == .done {
                         tutorialCompleted = true
+                    }
+                    if oldValue != nil, newValue == nil {
+                        tutorialCompleted = true
+                        evaluateFirstRunPaywall()
                     }
                 }
             }

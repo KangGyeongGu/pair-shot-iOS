@@ -6,7 +6,7 @@ import Testing
 @MainActor
 struct SwiftDataPhotoPairRepositoryTutorialFilterTests {
     @Test
-    func `fetchAll 은 isTutorial true 인 페어를 제외한다`() async throws {
+    func `fetchAll 기본은 isTutorial true 인 페어를 제외한다`() async throws {
         let repository = try makeRepository()
         let normal = PhotoPair(id: UUID(), createdAt: Date(timeIntervalSinceReferenceDate: 100))
         let tutorial = PhotoPair(
@@ -22,17 +22,34 @@ struct SwiftDataPhotoPairRepositoryTutorialFilterTests {
     }
 
     @Test
-    func `fetch by id 는 튜토리얼 페어를 nil 로 반환한다`() async throws {
+    func `fetchAll includeTutorial true 면 튜토리얼 페어도 포함한다`() async throws {
+        let repository = try makeRepository()
+        let normal = PhotoPair(id: UUID(), createdAt: Date(timeIntervalSinceReferenceDate: 100))
+        let tutorial = PhotoPair(
+            id: UUID(),
+            createdAt: Date(timeIntervalSinceReferenceDate: 200),
+            isTutorial: true,
+        )
+        try await repository.add(normal)
+        try await repository.add(tutorial)
+
+        let result = try await repository.fetchAll(includeTutorial: true)
+        #expect(Set(result.map(\.id)) == Set([normal.id, tutorial.id]))
+    }
+
+    @Test
+    func `fetch by id 는 튜토리얼 페어도 반환한다`() async throws {
         let repository = try makeRepository()
         let tutorial = PhotoPair(id: UUID(), isTutorial: true)
         try await repository.add(tutorial)
 
         let result = try await repository.fetch(id: tutorial.id)
-        #expect(result == nil)
+        #expect(result?.id == tutorial.id)
+        #expect(result?.isTutorial == true)
     }
 
     @Test
-    func `fetch by ids 는 튜토리얼 id 를 결과에서 제외한다`() async throws {
+    func `fetch by ids 는 튜토리얼 id 도 결과에 포함한다`() async throws {
         let repository = try makeRepository()
         let normal = PhotoPair(id: UUID())
         let tutorial = PhotoPair(id: UUID(), isTutorial: true)
@@ -40,7 +57,7 @@ struct SwiftDataPhotoPairRepositoryTutorialFilterTests {
         try await repository.add(tutorial)
 
         let result = try await repository.fetch(ids: [normal.id, tutorial.id])
-        #expect(result.map(\.id) == [normal.id])
+        #expect(Set(result.map(\.id)) == Set([normal.id, tutorial.id]))
     }
 
     @Test
@@ -73,7 +90,7 @@ struct SwiftDataPhotoPairRepositoryTutorialFilterTests {
         let normalFetched = try await repository.fetch(id: normal.id)
         #expect(normalFetched?.isTutorial == false)
         let tutorialFetched = try await repository.fetch(id: tutorial.id)
-        #expect(tutorialFetched == nil)
+        #expect(tutorialFetched?.isTutorial == true)
     }
 
     private func makeRepository() throws -> SwiftDataPhotoPairRepository {

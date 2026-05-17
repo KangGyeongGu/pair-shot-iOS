@@ -1,8 +1,7 @@
 import Foundation
 
 nonisolated enum TutorialStep: Int, CaseIterable {
-    case homeCaptureHighlight = 0
-    case captureGuidePortrait
+    case captureGuidePortrait = 0
     case captureGuideLeft
     case captureGuideRight
     case backToHome
@@ -14,7 +13,6 @@ nonisolated enum TutorialStep: Int, CaseIterable {
     case selectionSave
     case selectionDelete
     case selectionExport
-    case saveToDevice
     case goSettings
     case done
 }

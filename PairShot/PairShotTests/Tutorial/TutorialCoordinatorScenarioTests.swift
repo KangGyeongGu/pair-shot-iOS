@@ -4,11 +4,10 @@ import Testing
 @MainActor
 struct TutorialCoordinatorScenarioTests {
     @Test
-    func `시나리오 1~5 step 순서 확인 (homeCaptureHighlight → backToHome2)`() throws {
+    func `시나리오 1~5 step 순서 확인 (captureGuidePortrait → backToHome2)`() throws {
         let coord = TutorialCoordinator()
         coord.start()
         let expected: [TutorialStep] = [
-            .homeCaptureHighlight,
             .captureGuidePortrait,
             .captureGuideLeft,
             .captureGuideRight,
@@ -60,10 +59,10 @@ struct TutorialCoordinatorScenarioTests {
 
     @Test
     func `advanceIfPostureMatches 는 자세 요구 안 하는 step 에서 advance 안 함`() {
-        let coord = TutorialCoordinator(current: .homeCaptureHighlight)
+        let coord = TutorialCoordinator(current: .backToHome)
         let advanced = coord.advanceIfPostureMatches(rollDegrees: 0)
         #expect(!advanced)
-        #expect(coord.current == .homeCaptureHighlight)
+        #expect(coord.current == .backToHome)
     }
 
     @Test
@@ -84,6 +83,6 @@ struct TutorialCoordinatorScenarioTests {
     @Test
     func `isAtStep 은 nil current 에서 false`() {
         let coord = TutorialCoordinator()
-        #expect(!coord.isAtStep(.homeCaptureHighlight))
+        #expect(!coord.isAtStep(.captureGuidePortrait))
     }
 }

@@ -31,8 +31,8 @@ struct TutorialFinishView: View {
             .frame(maxWidth: Self.cardMaxWidth)
             .background(
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(Color.white)
-                    .shadow(color: .black.opacity(0.2), radius: 12, y: 4),
+                    .fill(Color(.systemBackground))
+                    .shadow(color: .black.opacity(0.15), radius: 12, y: 4),
             )
             .padding(.horizontal, 24)
         }
