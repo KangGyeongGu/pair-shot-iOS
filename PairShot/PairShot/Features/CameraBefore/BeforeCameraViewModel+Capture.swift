@@ -18,19 +18,7 @@ extension BeforeCameraViewModel {
             showPaywall = true
             return
         }
-        isCapturing = true
-        let captured: CapturedPhoto
-        do {
-            let metadata = ExifGPSBuilder.metadata(from: location.currentLocation)
-            captured = try await session.capturePhoto(metadata: metadata)
-        } catch {
-            captureErrorMessage = Self.captureErrorText(for: error)
-            isCapturing = false
-            return
-        }
-        eventsContinuation.yield(.snackbarSuccess)
-        isCapturing = false
-        await persistCapturedPhoto(captured)
+        await captureAndPersist(isTutorial: false)
     }
 
     private func handleTutorialShutter(
@@ -38,10 +26,10 @@ extension BeforeCameraViewModel {
         rollDegrees: Double,
     ) async {
         guard coord.advanceIfPostureMatches(rollDegrees: rollDegrees) else { return }
-        await captureTutorialPair()
+        await captureAndPersist(isTutorial: true)
     }
 
-    private func captureTutorialPair() async {
+    private func captureAndPersist(isTutorial: Bool) async {
         isCapturing = true
         let captured: CapturedPhoto
         do {
@@ -54,34 +42,7 @@ extension BeforeCameraViewModel {
         }
         eventsContinuation.yield(.snackbarSuccess)
         isCapturing = false
-        await persistTutorialCapturedPhoto(captured)
-    }
-
-    private func persistTutorialCapturedPhoto(_ captured: CapturedPhoto) async {
-        let lensPosition = LensPosition.resolve(identifier: captured.lensIdentifier)
-        let aspect = currentAspect
-        let cameraSettings = CameraSettings(
-            zoomFactor: captured.zoomFactor,
-            lensPosition: lensPosition,
-            aspectRatio: aspect,
-        )
-        do {
-            let pair = try await createPair(
-                beforeData: captured.data,
-                beforeUTType: captured.utType,
-                cameraSettings: cameraSettings,
-                aspectRatio: aspect,
-                isDeferredProxy: captured.isDeferredProxy,
-                isTutorial: true,
-            )
-            let nextPairs = await fetchSortedPendingPairs()
-            withAnimation(.smooth) {
-                pendingPairs = nextPairs
-                selectedPairId = pair.id
-            }
-        } catch {
-            captureErrorMessage = Self.captureErrorText(for: error)
-        }
+        await persistCapturedPhoto(captured, isTutorial: isTutorial)
     }
 
     private func shouldGateForPaywall() async -> Bool {
@@ -92,7 +53,7 @@ extension BeforeCameraViewModel {
         return PairLimitGate.shouldGatePairCreation(isPro: isPro, todayCreatedCount: createdToday)
     }
 
-    private func persistCapturedPhoto(_ captured: CapturedPhoto) async {
+    private func persistCapturedPhoto(_ captured: CapturedPhoto, isTutorial: Bool) async {
         let lensPosition = LensPosition.resolve(identifier: captured.lensIdentifier)
         let aspect = currentAspect
         let cameraSettings = CameraSettings(
@@ -101,7 +62,7 @@ extension BeforeCameraViewModel {
             aspectRatio: aspect,
         )
         do {
-            if let refillPairId {
+            if !isTutorial, let refillPairId {
                 _ = try await createPair.refillBefore(
                     pairId: refillPairId,
                     beforeData: captured.data,
@@ -119,8 +80,9 @@ extension BeforeCameraViewModel {
                 cameraSettings: cameraSettings,
                 aspectRatio: aspect,
                 isDeferredProxy: captured.isDeferredProxy,
+                isTutorial: isTutorial,
             )
-            if let albumId {
+            if !isTutorial, let albumId {
                 try? await albumRepo.addPair(pairId: pair.id, toAlbum: albumId)
             }
             let nextPairs = await fetchSortedPendingPairs()
@@ -134,8 +96,8 @@ extension BeforeCameraViewModel {
     }
 
     private func fetchSortedPendingPairs() async -> [PhotoPair] {
-        let includeTutorial = tutorialCoordinator?.isActive == true
-        let all = await (try? pairRepo.fetchAll(includeTutorial: includeTutorial)) ?? []
+        let tutorialOnly = tutorialCoordinator?.isActive == true
+        let all = await (try? pairRepo.fetchAll(tutorialOnly: tutorialOnly)) ?? []
         let scoped: [PhotoPair] = if let albumId {
             all.filter { $0.albumIds.contains(albumId) }
         } else { all }

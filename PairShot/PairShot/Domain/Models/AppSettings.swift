@@ -171,23 +171,7 @@ final class AppSettings {
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
-        defaults.register(defaults: [
-            AppSettingsKeys.exportQuality: ExportQuality.high.rawValue,
-            AppSettingsKeys.fileNamePrefix: AndroidParityDefaults.fileNamePrefix,
-            AppSettingsKeys.defaultOverlayAlpha: CompositionDefaults.fallbackAlpha,
-            AppSettingsKeys.defaultCompositeLayout: CompositionDefaults.fallbackLayout.rawValue,
-            AppSettingsKeys.language: AppLanguage.system.rawValue,
-            AppSettingsKeys.theme: AppTheme.system.rawValue,
-            AppSettingsKeys.cameraGridEnabled: false,
-            AppSettingsKeys.cameraLevelEnabled: false,
-            AppSettingsKeys.cameraFlashMode: CameraFlashModePersistence.defaultRawValue,
-            AppSettingsKeys.cameraNightMode: false,
-            AppSettingsKeys.cameraAspectRatio: AspectRatio.default.rawValue,
-            AppSettingsKeys.overlayEnabled: true,
-            AppSettingsKeys.embedGPSInPhoto: true,
-            AppSettingsKeys.homeSortOrder: SortOrderPersistence.defaultRawValue,
-            AppSettingsKeys.albumSortOrder: SortOrderPersistence.defaultRawValue,
-        ])
+        defaults.register(defaults: AppSettingsDefaultsRegistration.registry)
         watermarkEnabled = defaults.bool(forKey: AppSettingsKeys.watermarkEnabled)
         hasCompletedFirstRunPaywall = defaults.bool(forKey: AppSettingsKeys.hasCompletedFirstRunPaywall)
         let storedHome =
@@ -214,6 +198,29 @@ final class AppSettings {
               let decoded = try? JSONDecoder().decode(CombineSettings.self, from: data)
         else { return .default }
         return decoded
+    }
+}
+
+nonisolated enum AppSettingsDefaultsRegistration {
+    static var registry: [String: Any] {
+        [
+            AppSettingsKeys.exportQuality: ExportQuality.high.rawValue,
+            AppSettingsKeys.fileNamePrefix: AndroidParityDefaults.fileNamePrefix,
+            AppSettingsKeys.defaultOverlayAlpha: CompositionDefaults.fallbackAlpha,
+            AppSettingsKeys.defaultCompositeLayout: CompositionDefaults.fallbackLayout.rawValue,
+            AppSettingsKeys.watermarkEnabled: false,
+            AppSettingsKeys.language: AppLanguage.system.rawValue,
+            AppSettingsKeys.theme: AppTheme.system.rawValue,
+            AppSettingsKeys.cameraGridEnabled: false,
+            AppSettingsKeys.cameraLevelEnabled: false,
+            AppSettingsKeys.cameraFlashMode: CameraFlashModePersistence.defaultRawValue,
+            AppSettingsKeys.cameraNightMode: false,
+            AppSettingsKeys.cameraAspectRatio: AspectRatio.default.rawValue,
+            AppSettingsKeys.overlayEnabled: true,
+            AppSettingsKeys.embedGPSInPhoto: true,
+            AppSettingsKeys.homeSortOrder: SortOrderPersistence.defaultRawValue,
+            AppSettingsKeys.albumSortOrder: SortOrderPersistence.defaultRawValue,
+        ]
     }
 }
 

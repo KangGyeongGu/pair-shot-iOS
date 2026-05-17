@@ -69,7 +69,14 @@ final class ImmediateExportService {
                     return ExportShareItems(values: [url])
 
                 case .individualImages:
-                    let urls = await collectIndividualSourceURLs(for: pairs, selection: selection)
+                    let urls = await ExportSaveEngine.collectIndividualSourceURLs(
+                        pairs: pairs,
+                        selection: selection,
+                        renderOptions: currentRenderOptions(),
+                        tempDirectory: tempDirectoryProvider(),
+                        appSettings: appSettings,
+                        photoLibrary: photoLibrary,
+                    )
                     snackbarQueue.completeProgress(handle, finalMessage: nil)
                     return ExportShareItems(values: urls)
             }
@@ -142,53 +149,11 @@ final class ImmediateExportService {
         )
     }
 
-    @MainActor
     func currentRenderOptions() -> ExportRenderOptions {
         ExportRenderOptions(
             applyCombineSettings: preferences.applyCombineSettings,
             isPro: membership?.proIsActive ?? false,
         )
-    }
-
-    private func collectIndividualSourceURLs(
-        for pairs: [PhotoPair],
-        selection: ExportContents,
-    ) async -> [URL] {
-        let renderOptions = currentRenderOptions()
-        let tempDir = tempDirectoryProvider()
-        var urls: [URL] = []
-        let now = Date()
-        let ext = appSettings.exportQuality.fileExtension
-        for (offset, pair) in pairs.enumerated() {
-            let entries = ExportSelection.relativePaths(
-                for: pair,
-                selection: selection,
-                sequenceNumber: offset + 1,
-                prefix: appSettings.fileNamePrefix,
-                fileExtension: ext,
-            )
-            for entry in entries {
-                guard
-                    let rendered = await ExportEntryRenderer.render(
-                        entry: entry,
-                        pair: pair,
-                        photoLibrary: photoLibrary,
-                        appSettings: appSettings,
-                        renderOptions: renderOptions,
-                        now: now,
-                    )
-                else { continue }
-                let fileName = ExportTempFileWriter.sanitizedName(from: entry.relativeName)
-                if let url = ExportTempFileWriter.write(
-                    data: rendered.data,
-                    fileName: fileName,
-                    tempDirectory: tempDir,
-                ) {
-                    urls.append(url)
-                }
-            }
-        }
-        return urls
     }
 
     private func prepareZipForExport(

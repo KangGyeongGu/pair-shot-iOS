@@ -16,14 +16,20 @@ struct HomeFilterRow: View {
     }
 
     private var modePicker: some View {
-        Picker(String(localized: "common_view_label"), selection: $contentMode) {
+        Picker(String(localized: "common_view_label"), selection: modeBinding) {
             Text(String(localized: "home_filter_all")).tag(HomeContentMode.pairs)
             Text(String(localized: "home_filter_album")).tag(HomeContentMode.albums)
         }
         .pickerStyle(.segmented)
-        .onChange(of: contentMode) { _, newValue in
-            onModeChange(newValue)
-        }
+    }
+
+    private var modeBinding: Binding<HomeContentMode> {
+        Binding(
+            get: { contentMode },
+            set: { newValue in
+                onModeChange(newValue)
+            },
+        )
     }
 
     private var sortMenu: some View {
@@ -45,7 +51,6 @@ struct HomeFilterRow: View {
         Binding(
             get: { sortOrder },
             set: { newValue in
-                sortOrder = newValue
                 onSortOrderChange(newValue)
             },
         )

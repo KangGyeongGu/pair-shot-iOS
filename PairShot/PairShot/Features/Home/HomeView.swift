@@ -116,6 +116,13 @@ struct HomeView: View {
             )
         }
         .modifier(HomeViewSheetModifiers(viewModel: viewModel))
+        .modifier(
+            HomeSelectionPruner(
+                viewModel: viewModel,
+                pairIds: domainPairs.map(\.id),
+                albumIds: domainAlbums.map(\.id),
+            ),
+        )
     }
 
     @ViewBuilder
@@ -341,6 +348,22 @@ private struct FirstPairCardAnchor: ViewModifier {
         } else {
             content
         }
+    }
+}
+
+private struct HomeSelectionPruner: ViewModifier {
+    let viewModel: HomeViewModel
+    let pairIds: [UUID]
+    let albumIds: [UUID]
+
+    func body(content: Content) -> some View {
+        content
+            .onChange(of: pairIds) { _, newIds in
+                viewModel.pruneStalePairSelections(currentIds: Set(newIds))
+            }
+            .onChange(of: albumIds) { _, newIds in
+                viewModel.pruneStaleAlbumSelections(currentIds: Set(newIds))
+            }
     }
 }
 

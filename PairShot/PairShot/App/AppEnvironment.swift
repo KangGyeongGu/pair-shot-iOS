@@ -147,7 +147,9 @@ final class AppEnvironment {
             tutorialPhotoStore: dataServices.tutorialPhotoStore,
         )
         resolvedTutorialCoordinator.cleanupService = tutorialCleanupService
-        self.snackbarQueue.tutorialCoordinator = resolvedTutorialCoordinator
+        if self.snackbarQueue.tutorialCoordinator !== resolvedTutorialCoordinator {
+            self.snackbarQueue.tutorialCoordinator = resolvedTutorialCoordinator
+        }
         exportTutorialCoordinator = ExportTutorialCoordinator()
 
         let useCases = bundles.useCases

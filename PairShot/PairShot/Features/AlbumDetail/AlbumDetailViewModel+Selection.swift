@@ -46,4 +46,12 @@ extension AlbumDetailViewModel {
                 pendingPreviewPair = AlbumDetailPairPreviewRequest(pair: pair)
         }
     }
+
+    func pruneStalePairSelections(currentIds: Set<UUID>) {
+        guard !selectedPairIds.isEmpty else { return }
+        let intersected = selectedPairIds.intersection(currentIds)
+        if intersected.count != selectedPairIds.count {
+            selectedPairIds = intersected
+        }
+    }
 }

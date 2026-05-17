@@ -32,6 +32,8 @@ final class AppOpenAdManager {
     private let trackingService: TrackingAuthorizationService?
     private let tutorialCoordinator: TutorialCoordinator?
 
+    private var loadWaiters: [UUID: CheckedContinuation<Void, Never>] = [:]
+
     #if canImport(GoogleMobileAds)
         private var ad: AppOpenAd?
         private let presentationDelegate: AppOpenPresentationDelegate
@@ -82,9 +84,39 @@ final class AppOpenAdManager {
                         self.ad = nil
                         isLoaded = false
                     }
+                    resumeLoadWaiters()
                 }
             }
+        #else
+            resumeLoadWaiters()
         #endif
+    }
+
+    private func resumeLoadWaiters() {
+        let waiters = loadWaiters
+        loadWaiters.removeAll()
+        for (_, waiter) in waiters {
+            waiter.resume()
+        }
+    }
+
+    private func waitForLoad(timeout: TimeInterval) async -> Bool {
+        if isLoaded { return true }
+        let token = UUID()
+        let timeoutTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .seconds(timeout))
+            self?.resumeLoadWaiter(token: token)
+        }
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            loadWaiters[token] = continuation
+        }
+        timeoutTask.cancel()
+        return isLoaded
+    }
+
+    private func resumeLoadWaiter(token: UUID) {
+        guard let continuation = loadWaiters.removeValue(forKey: token) else { return }
+        continuation.resume()
     }
 
     @discardableResult
@@ -105,11 +137,7 @@ final class AppOpenAdManager {
             loadIfNeeded(adUnitID: adUnitID, promotionStore: promotionStore, subscriptionStore: subscriptionStore)
         }
         if !isLoaded {
-            let deadline = Date().addingTimeInterval(5)
-            while !isLoaded, Date() < deadline {
-                try? await Task.sleep(for: .milliseconds(200))
-            }
-            guard isLoaded else { return false }
+            guard await waitForLoad(timeout: 5) else { return false }
         }
         guard
             AppOpenAdGate.shouldPresent(

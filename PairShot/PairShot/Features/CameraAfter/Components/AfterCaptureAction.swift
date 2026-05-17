@@ -23,12 +23,12 @@ enum AfterCameraPairLoader {
 struct AfterCameraScopeFetch {
     let pairRepo: PhotoPairRepository
     let albumId: UUID?
-    let includeTutorial: Bool
+    let tutorialOnly: Bool
 
-    init(pairRepo: PhotoPairRepository, albumId: UUID?, includeTutorial: Bool = false) {
+    init(pairRepo: PhotoPairRepository, albumId: UUID?, tutorialOnly: Bool = false) {
         self.pairRepo = pairRepo
         self.albumId = albumId
-        self.includeTutorial = includeTutorial
+        self.tutorialOnly = tutorialOnly
     }
 
     func fetch(
@@ -36,7 +36,7 @@ struct AfterCameraScopeFetch {
         sortOrder: HomeSortOrder = .newest,
         calendar: Calendar = .current,
     ) async -> AfterCameraScopeSnapshot {
-        let fetched = try? await pairRepo.fetchAll(includeTutorial: includeTutorial)
+        let fetched = try? await pairRepo.fetchAll(tutorialOnly: tutorialOnly)
         let all = fetched ?? []
         let albumScoped: [PhotoPair] =
             if let albumId {

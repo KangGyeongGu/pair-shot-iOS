@@ -57,6 +57,8 @@ final class ExportSettingsViewModel {
 
     var zipSaveProgress: SnackbarProgressHandle?
 
+    private var currentExportTask: Task<Void, Never>?
+
     var hasAnyInclude: Bool {
         includeCombined || includeBefore || includeAfter
     }
@@ -130,6 +132,15 @@ final class ExportSettingsViewModel {
         try? FileManager.default.removeItem(at: url)
     }
 
+    func cancelPendingExport() {
+        currentExportTask?.cancel()
+        currentExportTask = nil
+        if let progress = zipSaveProgress {
+            zipSaveProgress = nil
+            snackbarQueue.cancelProgress(progress)
+        }
+    }
+
     func clearShareItems() {
         shareItems = nil
         cleanupPendingZip()
@@ -140,27 +151,39 @@ final class ExportSettingsViewModel {
     func share() async {
         guard canExecute else { return }
         guard ensureExportEligibility() else { return }
-        await InterstitialAdManager.runGated(
-            manager: interstitialAdManager,
-            promotionStore: membership?.promotionStore,
-            subscriptionStore: membership?.subscriptionStore,
-            coordinator: fullscreenAdCoordinator,
-        ) { [weak self] in
-            await self?.performShare()
+        currentExportTask?.cancel()
+        let task = Task { @MainActor [weak self] in
+            await InterstitialAdManager.runGated(
+                manager: self?.interstitialAdManager,
+                promotionStore: self?.membership?.promotionStore,
+                subscriptionStore: self?.membership?.subscriptionStore,
+                coordinator: self?.fullscreenAdCoordinator,
+            ) {
+                await self?.performShare()
+            }
         }
+        currentExportTask = task
+        await task.value
+        currentExportTask = nil
     }
 
     func saveToDevice() async {
         guard canExecute else { return }
         guard ensureExportEligibility() else { return }
-        await InterstitialAdManager.runGated(
-            manager: interstitialAdManager,
-            promotionStore: membership?.promotionStore,
-            subscriptionStore: membership?.subscriptionStore,
-            coordinator: fullscreenAdCoordinator,
-        ) { [weak self] in
-            await self?.performSaveToDevice()
+        currentExportTask?.cancel()
+        let task = Task { @MainActor [weak self] in
+            await InterstitialAdManager.runGated(
+                manager: self?.interstitialAdManager,
+                promotionStore: self?.membership?.promotionStore,
+                subscriptionStore: self?.membership?.subscriptionStore,
+                coordinator: self?.fullscreenAdCoordinator,
+            ) {
+                await self?.performSaveToDevice()
+            }
         }
+        currentExportTask = task
+        await task.value
+        currentExportTask = nil
     }
 
     func handleZipExportCompleted(_ saved: Bool) {

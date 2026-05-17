@@ -46,7 +46,7 @@ struct ExportTutorialOverlay: View {
         let progress = coord.progress(for: step)
         let isLast = step == ExportTutorialStep.allCases.last
         ZStack {
-            ExportDimmedMask(
+            SpotlightDimmedMask(
                 containerSize: containerSize,
                 cutout: rect,
                 cornerRadius: Self.cutoutCornerRadius,
@@ -76,32 +76,6 @@ struct ExportTutorialOverlay: View {
             case .watermark: ExportTutorialAnchorID.watermark
             case .combine: ExportTutorialAnchorID.combine
         }
-    }
-}
-
-private struct ExportDimmedMask: View {
-    let containerSize: CGSize
-    let cutout: CGRect
-    let cornerRadius: CGFloat
-    let opacity: Double
-
-    var body: some View {
-        let shape = ExportSpotlightHoleShape(cutout: cutout, cornerRadius: cornerRadius)
-        Color.black.opacity(opacity)
-            .frame(width: containerSize.width, height: containerSize.height)
-            .mask(shape.fill(style: FillStyle(eoFill: true)))
-            .contentShape(shape, eoFill: true)
-    }
-}
-
-private struct ExportSpotlightHoleShape: Shape {
-    let cutout: CGRect
-    let cornerRadius: CGFloat
-
-    func path(in rect: CGRect) -> Path {
-        var path = Path(rect)
-        path.addPath(Path(roundedRect: cutout, cornerRadius: cornerRadius))
-        return path
     }
 }
 

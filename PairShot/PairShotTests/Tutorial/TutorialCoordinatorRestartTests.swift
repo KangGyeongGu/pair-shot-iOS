@@ -30,7 +30,7 @@ struct TutorialCoordinatorRestartTests {
     }
 
     @Test
-    func `restart 후 3번 advance 시 backToHome 도달 (회귀 0 검증)`() {
+    func `restart 후 3번 advance 시 backToHome 도달 (회귀 0 검증)`() async {
         let coord = TutorialCoordinator()
         coord.start()
         coord.advance()
@@ -38,6 +38,8 @@ struct TutorialCoordinatorRestartTests {
         coord.advance()
         #expect(coord.current == .backToHome)
         coord.restart()
+        await Task.yield()
+        await Task.yield()
         #expect(coord.current == .captureGuidePortrait)
         coord.advance()
         coord.advance()

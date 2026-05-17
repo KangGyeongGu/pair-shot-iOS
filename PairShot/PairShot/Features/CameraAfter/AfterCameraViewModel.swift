@@ -247,7 +247,7 @@ final class AfterCameraViewModel {
         let snapshot = await AfterCameraScopeFetch(
             pairRepo: pairRepo,
             albumId: albumId,
-            includeTutorial: tutorialCoordinator?.isActive == true,
+            tutorialOnly: tutorialCoordinator?.isActive == true,
         )
         .fetch(initialPairId: initialPairId, sortOrder: sortOrder)
         pairs = snapshot.pending

@@ -26,10 +26,12 @@ struct SettingsTutorialRestartTests {
     }
 
     @Test
-    func `튜토리얼 재시작 시 coordinator 가 첫 step 부터 다시 시작`() {
+    func `튜토리얼 재시작 시 coordinator 가 첫 step 부터 다시 시작`() async {
         let coord = TutorialCoordinator()
         coord.complete()
         coord.restart()
+        await Task.yield()
+        await Task.yield()
         #expect(coord.current == .captureGuidePortrait)
         #expect(coord.isActive)
     }

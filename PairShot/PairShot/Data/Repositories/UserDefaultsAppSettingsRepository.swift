@@ -5,7 +5,7 @@ final nonisolated class UserDefaultsAppSettingsRepository: AppSettingsRepository
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
-        defaults.register(defaults: Self.makeRegisteredDefaults())
+        defaults.register(defaults: AppSettingsDefaultsRegistration.registry)
     }
 
     func load() -> AppSettingsSnapshot {
@@ -89,33 +89,4 @@ final nonisolated class UserDefaultsAppSettingsRepository: AppSettingsRepository
         }
         defaults.set(raw, forKey: AppSettingsKeys.combineSettings)
     }
-
-    private static func makeRegisteredDefaults() -> [String: Any] {
-        [
-            AppSettingsKeys.exportQuality: AppSettingsSnapshot.defaultExportQualityRawValue,
-            AppSettingsKeys.fileNamePrefix: AppSettingsSnapshot.defaultFileNamePrefix,
-            AppSettingsKeys.defaultOverlayAlpha: AppSettingsSnapshot.defaultOverlayAlphaValue,
-            AppSettingsKeys.defaultCompositeLayout: AppSettingsSnapshot.defaultCompositeLayoutFallback,
-            AppSettingsKeys.watermarkEnabled: AppSettingsSnapshot.defaultWatermarkEnabled,
-            AppSettingsKeys.language: AppSettingsSnapshot.defaultLanguage.rawValue,
-            AppSettingsKeys.theme: AppSettingsSnapshot.defaultTheme.rawValue,
-            AppSettingsKeys.cameraGridEnabled: AppSettingsHandoffDefaults.cameraGridEnabled,
-            AppSettingsKeys.cameraLevelEnabled: AppSettingsHandoffDefaults.cameraLevelEnabled,
-            AppSettingsKeys.cameraFlashMode: AppSettingsHandoffDefaults.cameraFlashMode,
-            AppSettingsKeys.cameraNightMode: AppSettingsHandoffDefaults.cameraNightMode,
-            AppSettingsKeys.overlayEnabled: AppSettingsHandoffDefaults.overlayEnabled,
-            AppSettingsKeys.homeSortOrder: AppSettingsHandoffDefaults.homeSortOrder,
-            AppSettingsKeys.albumSortOrder: AppSettingsHandoffDefaults.albumSortOrder,
-        ]
-    }
-}
-
-nonisolated enum AppSettingsHandoffDefaults {
-    static let cameraGridEnabled: Bool = false
-    static let cameraLevelEnabled: Bool = false
-    static let cameraFlashMode: String = "OFF"
-    static let cameraNightMode: Bool = false
-    static let overlayEnabled: Bool = true
-    static let homeSortOrder: String = "DESC"
-    static let albumSortOrder: String = "DESC"
 }

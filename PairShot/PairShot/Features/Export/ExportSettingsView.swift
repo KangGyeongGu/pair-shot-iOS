@@ -65,6 +65,7 @@ struct ExportSettingsView: View {
                 },
         )
         .onDisappear {
+            viewModel.cancelPendingExport()
             viewModel.cleanupPendingZip()
             exportCompletionCoordinator.cancelPending()
         }

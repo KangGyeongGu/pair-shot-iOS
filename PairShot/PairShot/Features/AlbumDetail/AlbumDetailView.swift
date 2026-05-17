@@ -136,6 +136,12 @@ struct AlbumDetailView: View {
         .modifier(AlbumDetailDeleteAlbumAlert(viewModel: viewModel))
         .modifier(AlbumDetailShareSheet(viewModel: viewModel))
         .modifier(AlbumDetailPaywallSheet(viewModel: viewModel))
+        .modifier(
+            AlbumDetailSelectionPruner(
+                viewModel: viewModel,
+                pairIds: albumPairs.map(\.id),
+            ),
+        )
     }
 
     @ViewBuilder
@@ -302,5 +308,16 @@ struct AlbumDetailPaywallSheet: ViewModifier {
 
     func body(content: Content) -> some View {
         content.paywallSheet(isPresented: $viewModel.showPaywall)
+    }
+}
+
+private struct AlbumDetailSelectionPruner: ViewModifier {
+    let viewModel: AlbumDetailViewModel
+    let pairIds: [UUID]
+
+    func body(content: Content) -> some View {
+        content.onChange(of: pairIds) { _, newIds in
+            viewModel.pruneStalePairSelections(currentIds: Set(newIds))
+        }
     }
 }

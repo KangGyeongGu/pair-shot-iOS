@@ -84,7 +84,7 @@ struct TutorialOverlay: View {
         let placement = TutorialMessageModal.placement(for: rect, containerSize: containerSize)
         let progress = coord.progress(for: step) ?? (current: 1, total: TutorialCoordinator.totalProgressSteps)
         ZStack {
-            DimmedMask(
+            SpotlightDimmedMask(
                 containerSize: containerSize,
                 cutout: rect,
                 cornerRadius: Self.cutoutCornerRadius,
@@ -175,21 +175,6 @@ struct TutorialOverlay: View {
     }
 }
 
-private struct DimmedMask: View {
-    let containerSize: CGSize
-    let cutout: CGRect
-    let cornerRadius: CGFloat
-    let opacity: Double
-
-    var body: some View {
-        let shape = SpotlightHoleShape(cutout: cutout, cornerRadius: cornerRadius)
-        Color.black.opacity(opacity)
-            .frame(width: containerSize.width, height: containerSize.height)
-            .mask(shape.fill(style: FillStyle(eoFill: true)))
-            .contentShape(shape, eoFill: true)
-    }
-}
-
 private struct SpotlightRing: View {
     private static let lineWidth: CGFloat = 4
     private static let ringOpacity: Double = 0.95
@@ -208,16 +193,5 @@ private struct SpotlightRing: View {
         .position(x: cutout.midX, y: cutout.midY)
         .shadow(color: .black.opacity(0.4), radius: 6)
         .allowsHitTesting(false)
-    }
-}
-
-private struct SpotlightHoleShape: Shape {
-    let cutout: CGRect
-    let cornerRadius: CGFloat
-
-    func path(in rect: CGRect) -> Path {
-        var path = Path(rect)
-        path.addPath(Path(roundedRect: cutout, cornerRadius: cornerRadius))
-        return path
     }
 }

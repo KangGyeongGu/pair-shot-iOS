@@ -1,7 +1,7 @@
 import Foundation
 
 protocol PhotoPairRepository: Sendable {
-    func fetchAll(includeTutorial: Bool) async throws -> [PhotoPair]
+    func fetchAll(tutorialOnly: Bool) async throws -> [PhotoPair]
     func fetch(id: UUID) async throws -> PhotoPair?
     func fetch(ids: [UUID]) async throws -> [PhotoPair]
     func countCreated(since date: Date) async throws -> Int
@@ -16,6 +16,6 @@ protocol PhotoPairRepository: Sendable {
 
 extension PhotoPairRepository {
     func fetchAll() async throws -> [PhotoPair] {
-        try await fetchAll(includeTutorial: false)
+        try await fetchAll(tutorialOnly: false)
     }
 }

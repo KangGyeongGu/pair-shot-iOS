@@ -60,4 +60,20 @@ extension HomeViewModel {
         contentMode = mode
         cancelSelection()
     }
+
+    func pruneStalePairSelections(currentIds: Set<UUID>) {
+        guard !selectedPairIds.isEmpty else { return }
+        let intersected = selectedPairIds.intersection(currentIds)
+        if intersected.count != selectedPairIds.count {
+            selectedPairIds = intersected
+        }
+    }
+
+    func pruneStaleAlbumSelections(currentIds: Set<UUID>) {
+        guard !selectedAlbumIds.isEmpty else { return }
+        let intersected = selectedAlbumIds.intersection(currentIds)
+        if intersected.count != selectedAlbumIds.count {
+            selectedAlbumIds = intersected
+        }
+    }
 }

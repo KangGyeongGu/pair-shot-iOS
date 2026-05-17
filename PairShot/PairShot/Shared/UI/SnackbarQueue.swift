@@ -72,9 +72,11 @@ final class SnackbarQueue {
 
     init(
         hapticService: HapticService = HapticService(),
+        tutorialCoordinator: TutorialCoordinator? = nil,
         clock: @escaping @MainActor () -> Date = { Date() },
     ) {
         self.hapticService = hapticService
+        self.tutorialCoordinator = tutorialCoordinator
         self.clock = clock
     }
 

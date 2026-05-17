@@ -5243,13 +5243,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "You've reached today's free limit. Subscribe to Pro for unlimited capture."
+            "value" : "You've used today's free limit."
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "일일 무료 한도를 초과했어요. Pro 구독으로 무제한 촬영"
+            "value" : "일일 무료 한도를 모두 사용했어요"
           }
         }
       }
@@ -5260,13 +5260,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Subscribe to Pro to unlock this feature."
+            "value" : "Available with Pro subscription."
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pro 구독으로 기능 잠금을 해제하세요"
+            "value" : "Pro 구독 시 이용할 수 있는 기능입니다"
           }
         }
       }

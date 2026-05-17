@@ -20,11 +20,16 @@ final class TutorialCleanupService {
             predicate: #Predicate { $0.isTutorial },
         )
         let entities = try context.fetch(descriptor)
-        try tutorialPhotoStore.deleteAll()
         guard !entities.isEmpty else { return }
+        let photoIdentifiers = entities.flatMap { entity -> [String] in
+            [entity.beforePhotoLocalIdentifier, entity.afterPhotoLocalIdentifier]
+                .compactMap(\.self)
+                .filter(TutorialPhotoStore.isTutorialIdentifier)
+        }
         for entity in entities {
             context.delete(entity)
         }
         try context.save()
+        try tutorialPhotoStore.delete(localIdentifiers: photoIdentifiers)
     }
 }

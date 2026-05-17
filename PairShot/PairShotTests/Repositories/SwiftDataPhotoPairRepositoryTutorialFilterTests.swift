@@ -33,7 +33,7 @@ struct SwiftDataPhotoPairRepositoryTutorialFilterTests {
         try await repository.add(normal)
         try await repository.add(tutorial)
 
-        let result = try await repository.fetchAll(includeTutorial: true)
+        let result = try await repository.fetchAll(tutorialOnly: true)
         #expect(result.map(\.id) == [tutorial.id])
     }
 

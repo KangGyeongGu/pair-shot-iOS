@@ -30,8 +30,13 @@ final class TutorialCoordinator {
 
     func restart() {
         current = nil
-        runCleanupAsync()
-        start()
+        let service = cleanupService
+        Task { [weak self] in
+            if let service {
+                try? await service.deleteAllTutorialPairs()
+            }
+            self?.start()
+        }
     }
 
     func advance() {

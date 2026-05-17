@@ -7,26 +7,32 @@ struct TutorialPersistenceTests {
     private static let key = "tutorial.completed"
 
     @Test
-    func `restart 은 nil 상태에서 첫 step 으로 복귀`() {
+    func `restart 은 nil 상태에서 첫 step 으로 복귀`() async {
         let coord = TutorialCoordinator()
         coord.restart()
+        await Task.yield()
+        await Task.yield()
         #expect(coord.current == .captureGuidePortrait)
         #expect(coord.isActive == true)
     }
 
     @Test
-    func `restart 은 중간 step 에서도 첫 step 으로 되돌린다`() {
+    func `restart 은 중간 step 에서도 첫 step 으로 되돌린다`() async {
         let coord = TutorialCoordinator(current: .tapPairCard)
         coord.restart()
+        await Task.yield()
+        await Task.yield()
         #expect(coord.current == .captureGuidePortrait)
     }
 
     @Test
-    func `restart 은 done 상태에서도 첫 step 으로 되돌린다`() {
+    func `restart 은 done 상태에서도 첫 step 으로 되돌린다`() async {
         let coord = TutorialCoordinator()
         coord.complete()
         #expect(coord.current == .done)
         coord.restart()
+        await Task.yield()
+        await Task.yield()
         #expect(coord.current == .captureGuidePortrait)
     }
 

@@ -12,8 +12,8 @@ final class SwiftDataPhotoPairRepository: PhotoPairRepository {
         self.container = container
     }
 
-    func fetchAll(includeTutorial: Bool) async throws -> [PhotoPair] {
-        try fetchAllSync(includeTutorial: includeTutorial).map { $0.toDomain() }
+    func fetchAll(tutorialOnly: Bool) async throws -> [PhotoPair] {
+        try fetchAllSync(tutorialOnly: tutorialOnly).map { $0.toDomain() }
     }
 
     func fetch(id: UUID) async throws -> PhotoPair? {
@@ -129,8 +129,8 @@ final class SwiftDataPhotoPairRepository: PhotoPairRepository {
         try context.save()
     }
 
-    private func fetchAllSync(includeTutorial: Bool) throws -> [PhotoPairEntity] {
-        let descriptor: FetchDescriptor<PhotoPairEntity> = if includeTutorial {
+    private func fetchAllSync(tutorialOnly: Bool) throws -> [PhotoPairEntity] {
+        let descriptor: FetchDescriptor<PhotoPairEntity> = if tutorialOnly {
             FetchDescriptor(
                 predicate: #Predicate { $0.isTutorial },
                 sortBy: [SortDescriptor(\.createdAt, order: .reverse)],

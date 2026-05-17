@@ -14,30 +14,44 @@ final class PromotionStore {
     private let fetcher: any PromotionFetching
     private let deviceHashProvider: DeviceHashProvider
     private let defaults: UserDefaults
+    private let clock: @MainActor @Sendable () -> Date
 
     init(
         fetcher: any PromotionFetching,
         deviceHashProvider: DeviceHashProvider,
         defaults: UserDefaults = .standard,
+        clock: @escaping @MainActor @Sendable () -> Date = { Date() },
     ) {
         self.fetcher = fetcher
         self.deviceHashProvider = deviceHashProvider
         self.defaults = defaults
+        self.clock = clock
         let snapshot = Self.loadSnapshot(from: defaults) ?? .empty
-        proIsActive = snapshot.pro.active
+        let now = clock()
+        proIsActive = Self.resolveActive(state: snapshot.pro, now: now)
         proExpiresAt = snapshot.pro.expiresAt
-        adFreeIsActive = snapshot.adFree.active
+        adFreeIsActive = Self.resolveActive(state: snapshot.adFree, now: now)
         adFreeExpiresAt = snapshot.adFree.expiresAt
     }
 
     func refresh() async {
         let hash = deviceHashProvider.deviceHash()
         guard let snapshot = await fetcher.fetch(deviceHash: hash) else { return }
-        proIsActive = snapshot.pro.active
+        let now = clock()
+        proIsActive = Self.resolveActive(state: snapshot.pro, now: now)
         proExpiresAt = snapshot.pro.expiresAt
-        adFreeIsActive = snapshot.adFree.active
+        adFreeIsActive = Self.resolveActive(state: snapshot.adFree, now: now)
         adFreeExpiresAt = snapshot.adFree.expiresAt
         Self.saveSnapshot(snapshot, to: defaults)
+    }
+
+    private static func resolveActive(
+        state: MembershipSnapshot.EntitlementState,
+        now: Date,
+    ) -> Bool {
+        guard state.active else { return false }
+        guard let expiresAt = state.expiresAt else { return true }
+        return expiresAt > now
     }
 
     private static func loadSnapshot(from defaults: UserDefaults) -> MembershipSnapshot? {

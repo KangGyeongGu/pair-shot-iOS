@@ -115,7 +115,7 @@ struct ExportSettingsViewModelGateTests {
 }
 
 private final class StubPhotoPairRepository: PhotoPairRepository, @unchecked Sendable {
-    func fetchAll(includeTutorial _: Bool) async throws -> [PhotoPair] {
+    func fetchAll(tutorialOnly _: Bool) async throws -> [PhotoPair] {
         []
     }
 

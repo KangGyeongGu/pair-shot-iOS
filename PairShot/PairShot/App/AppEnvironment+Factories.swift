@@ -117,6 +117,7 @@ extension AppEnvironment {
         let foundation = makeFoundation(
             overrides: input.foundationOverrides,
             tutorialPhotoStore: tutorialPhotoStore,
+            tutorialCoordinator: input.tutorialCoordinator,
         )
         let adServices = makeAdServices(
             trackingService: foundation.trackingService,
@@ -159,6 +160,7 @@ extension AppEnvironment {
     static func makeFoundation(
         overrides: AppEnvironmentFoundationOverrides,
         tutorialPhotoStore: TutorialPhotoStore,
+        tutorialCoordinator: TutorialCoordinator,
     ) -> AppEnvironmentFoundation {
         let apiConfig = CouponApiConfig.resolve()
         let hashProvider = DeviceHashProvider()
@@ -166,7 +168,10 @@ extension AppEnvironment {
         let hapticService = overrides.hapticService ?? HapticService()
         return AppEnvironmentFoundation(
             appSettings: overrides.appSettings ?? AppSettings(),
-            snackbarQueue: overrides.snackbarQueue ?? SnackbarQueue(hapticService: hapticService),
+            snackbarQueue: overrides.snackbarQueue ?? SnackbarQueue(
+                hapticService: hapticService,
+                tutorialCoordinator: tutorialCoordinator,
+            ),
             appSettingsRepo: overrides.appSettingsRepo ?? UserDefaultsAppSettingsRepository(),
             promotionStore: overrides.promotionStore
                 ?? PromotionStore(fetcher: promotionFetcher, deviceHashProvider: hashProvider),

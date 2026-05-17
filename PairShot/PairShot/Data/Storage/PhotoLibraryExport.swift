@@ -37,7 +37,7 @@ final class PhotoLibraryExport: Sendable {
         type: ImageMediaType,
         utType: UTType,
     ) async throws -> String {
-        let status = PHPhotoLibrary.authorizationStatus(for: .addOnly)
+        let status = await authorize()
         guard status == .authorized || status == .limited else {
             throw PhotoLibraryExportError.notAuthorized
         }

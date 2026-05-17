@@ -6,9 +6,6 @@ import UniformTypeIdentifiers
 extension AfterCameraViewModel {
     func shutter() async {
         guard !isCapturing, session.captureReadiness == .ready, let pair = currentPair else { return }
-        if tutorialCoordinator?.isAtStep(.afterCameraGuide) == true {
-            tutorialCoordinator?.advance()
-        }
         isCapturing = true
         let captured: CapturedPhoto
         do {
@@ -19,12 +16,7 @@ extension AfterCameraViewModel {
             isCapturing = false
             return
         }
-        eventsContinuation.yield(.snackbarSuccess)
         let capturedPairId = pair.id
-
-        contractPairsAndAdvance(removing: capturedPairId)
-        isCapturing = false
-
         do {
             _ = try await persistAfter(
                 pairId: capturedPairId,
@@ -34,9 +26,16 @@ extension AfterCameraViewModel {
                 isDeferredProxy: captured.isDeferredProxy,
             )
         } catch {
-            rollbackOnPersistFailure(pair)
             captureErrorMessage = Self.captureErrorText(for: error)
+            isCapturing = false
+            return
         }
+        if tutorialCoordinator?.isAtStep(.afterCameraGuide) == true {
+            tutorialCoordinator?.advance()
+        }
+        eventsContinuation.yield(.snackbarSuccess)
+        contractPairsAndAdvance(removing: capturedPairId)
+        isCapturing = false
     }
 
     func contractPairsAndAdvance(removing capturedPairId: UUID) {
@@ -80,13 +79,6 @@ extension AfterCameraViewModel {
                 tutorialCoordinator.advance()
             }
         }
-    }
-
-    func rollbackOnPersistFailure(_ pair: PhotoPair) {
-        guard !pairs.contains(where: { $0.id == pair.id }) else { return }
-        pairs.append(pair)
-        pendingPairCount += 1
-        completedPairCount = max(0, completedPairCount - 1)
     }
 
     func persistAfter(
