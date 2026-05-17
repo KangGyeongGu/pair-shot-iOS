@@ -30,6 +30,7 @@ final class TutorialCoordinator {
 
     func restart() {
         current = nil
+        runCleanupAsync()
         start()
     }
 
@@ -40,6 +41,7 @@ final class TutorialCoordinator {
 
     func cancel() {
         current = nil
+        runCleanupAsync()
     }
 
     func complete() {
@@ -48,12 +50,18 @@ final class TutorialCoordinator {
 
     func finishAndCleanup() {
         complete()
+        runCleanupAsync { [weak self] in
+            self?.current = nil
+        }
+    }
+
+    private func runCleanupAsync(_ continuation: (@MainActor () -> Void)? = nil) {
         let service = cleanupService
-        Task { [weak self] in
+        Task {
             if let service {
                 try? await service.deleteAllTutorialPairs()
             }
-            self?.current = nil
+            continuation?()
         }
     }
 

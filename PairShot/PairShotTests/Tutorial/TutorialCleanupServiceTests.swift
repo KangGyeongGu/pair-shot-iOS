@@ -2,6 +2,7 @@ import Foundation
 @testable import PairShot
 import SwiftData
 import Testing
+import UniformTypeIdentifiers
 
 @MainActor
 struct TutorialCleanupServiceTests {
@@ -20,7 +21,7 @@ struct TutorialCleanupServiceTests {
 
         let service = TutorialCleanupService(
             container: container,
-            photoLibrary: PhotoLibraryService(),
+            tutorialPhotoStore: makeStore(),
         )
         try await service.deleteAllTutorialPairs()
 
@@ -42,7 +43,7 @@ struct TutorialCleanupServiceTests {
 
         let service = TutorialCleanupService(
             container: container,
-            photoLibrary: PhotoLibraryService(),
+            tutorialPhotoStore: makeStore(),
         )
         try await service.deleteAllTutorialPairs()
 
@@ -59,7 +60,7 @@ struct TutorialCleanupServiceTests {
 
         let service = TutorialCleanupService(
             container: container,
-            photoLibrary: PhotoLibraryService(),
+            tutorialPhotoStore: makeStore(),
         )
         try await service.deleteAllTutorialPairs()
 
@@ -67,6 +68,40 @@ struct TutorialCleanupServiceTests {
         #expect(remaining.isEmpty)
         let allEntities = try fetchAllRaw(container: container)
         #expect(allEntities.isEmpty)
+    }
+
+    @Test
+    func `deleteAllTutorialPairs 는 튜토리얼 사진 파일을 모두 삭제한다`() async throws {
+        let container = try makeContainer()
+        let pairRepo = SwiftDataPhotoPairRepository(container: container)
+        let store = makeStore()
+        let beforeId = try await store.save(data: Data([0x01, 0x02]), utType: .jpeg)
+        let afterId = try await store.save(data: Data([0x03, 0x04]), utType: .jpeg)
+        let tutorial = PhotoPair(
+            id: UUID(),
+            beforePhotoLocalIdentifier: beforeId,
+            afterPhotoLocalIdentifier: afterId,
+            isTutorial: true,
+        )
+        try await pairRepo.add(tutorial)
+
+        let service = TutorialCleanupService(
+            container: container,
+            tutorialPhotoStore: store,
+        )
+        try await service.deleteAllTutorialPairs()
+
+        let loadedBefore = await store.loadData(localIdentifier: beforeId)
+        let loadedAfter = await store.loadData(localIdentifier: afterId)
+        #expect(loadedBefore == nil)
+        #expect(loadedAfter == nil)
+    }
+
+    private func makeStore() -> TutorialPhotoStore {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("TutorialCleanupServiceTests", isDirectory: true)
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        return TutorialPhotoStore(directoryURL: directory)
     }
 
     private func makeContainer() throws -> ModelContainer {

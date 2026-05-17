@@ -13,7 +13,22 @@ enum AdSuppression {
         return promotion || subscription || tutorial
     }
 
-    static func isSuppressed(isAdFree: Bool, isPro: Bool) -> Bool {
-        isAdFree || isPro
+    static func isSuppressed(
+        membership: Membership,
+        tutorialCoordinator: TutorialCoordinator? = nil,
+    ) -> Bool {
+        isSuppressed(
+            isAdFree: membership.adFreeIsActive,
+            isPro: membership.proIsActive,
+            tutorialActive: tutorialCoordinator?.isActive ?? false,
+        )
+    }
+
+    static func isSuppressed(
+        isAdFree: Bool,
+        isPro: Bool,
+        tutorialActive: Bool = false,
+    ) -> Bool {
+        isAdFree || isPro || tutorialActive
     }
 }

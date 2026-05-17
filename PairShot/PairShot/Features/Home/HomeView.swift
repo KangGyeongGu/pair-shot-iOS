@@ -82,21 +82,6 @@ struct HomeView: View {
         }
     }
 
-    private func ensureViewModel() {
-        if viewModel == nil {
-            viewModel = env.makeHomeViewModel()
-        }
-    }
-
-    private func consumePendingSettingsRedirectIfNeeded() {
-        guard env.settingsRedirectCoordinator.pendingPulse != nil else { return }
-        guard viewModel != nil else {
-            DispatchQueue.main.async { consumePendingSettingsRedirectIfNeeded() }
-            return
-        }
-        onPushSettings?()
-    }
-
     @ViewBuilder
     private func content(
         for viewModel: HomeViewModel,
@@ -164,7 +149,10 @@ struct HomeView: View {
                 .map { group in
                     let result = PairListWithAdsBuilder.buildChunks(
                         pairs: group.pairs,
-                        adFree: membership.adFreeIsActive,
+                        adFree: AdSuppression.isSuppressed(
+                            membership: membership,
+                            tutorialCoordinator: env.tutorialCoordinator,
+                        ),
                         startingAdSlotIndex: slotIndex,
                     )
                     slotIndex = result.nextSlotIndex
@@ -321,9 +309,26 @@ struct HomeView: View {
             }
         }
     }
+}
 
+extension HomeView {
     static func formatDateHeader(_ date: Date, now _: Date = .now, calendar: Calendar = .current) -> String {
         HomeDateFormatter.base(for: date, calendar: calendar)
+    }
+
+    func ensureViewModel() {
+        if viewModel == nil {
+            viewModel = env.makeHomeViewModel()
+        }
+    }
+
+    func consumePendingSettingsRedirectIfNeeded() {
+        guard env.settingsRedirectCoordinator.pendingPulse != nil else { return }
+        guard viewModel != nil else {
+            DispatchQueue.main.async { consumePendingSettingsRedirectIfNeeded() }
+            return
+        }
+        onPushSettings?()
     }
 }
 

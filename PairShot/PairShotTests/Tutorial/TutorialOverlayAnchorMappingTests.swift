@@ -9,7 +9,6 @@ struct TutorialOverlayAnchorMappingTests {
             TutorialAnchorID.cameraShutter,
             TutorialAnchorID.cameraHomeButton,
             TutorialAnchorID.homeFirstPairCard,
-            TutorialAnchorID.afterGhostOverlay,
             TutorialAnchorID.afterShutter,
             TutorialAnchorID.afterHomeButton,
         ]
@@ -24,7 +23,6 @@ struct TutorialOverlayAnchorMappingTests {
         #expect(TutorialAnchorID.cameraShutter == "camera.shutter")
         #expect(TutorialAnchorID.cameraHomeButton == "camera.homeButton")
         #expect(TutorialAnchorID.homeFirstPairCard == "home.firstPairCard")
-        #expect(TutorialAnchorID.afterGhostOverlay == "after.ghostOverlay")
         #expect(TutorialAnchorID.afterShutter == "after.shutter")
         #expect(TutorialAnchorID.afterHomeButton == "after.homeButton")
     }

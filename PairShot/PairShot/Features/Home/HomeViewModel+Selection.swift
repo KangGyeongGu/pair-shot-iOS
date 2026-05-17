@@ -4,14 +4,15 @@ extension HomeViewModel {
     func enterSelectionMode() {
         guard !isSelectionMode else { return }
         isSelectionMode = true
+        selectedPairIds.removeAll()
+        selectedAlbumIds.removeAll()
     }
 
     func enterSelectionMode(autoSelectingPairIds ids: [UUID]) {
         guard !isSelectionMode else { return }
         isSelectionMode = true
-        if !ids.isEmpty {
-            selectedPairIds = Set(ids)
-        }
+        selectedPairIds = Set(ids)
+        selectedAlbumIds.removeAll()
     }
 
     func cancelSelection() {

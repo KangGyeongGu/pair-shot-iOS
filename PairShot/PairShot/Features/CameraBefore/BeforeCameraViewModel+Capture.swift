@@ -74,7 +74,11 @@ extension BeforeCameraViewModel {
                 isDeferredProxy: captured.isDeferredProxy,
                 isTutorial: true,
             )
-            selectedPairId = pair.id
+            let nextPairs = await fetchSortedPendingPairs()
+            withAnimation(.smooth) {
+                pendingPairs = nextPairs
+                selectedPairId = pair.id
+            }
         } catch {
             captureErrorMessage = Self.captureErrorText(for: error)
         }
@@ -130,7 +134,8 @@ extension BeforeCameraViewModel {
     }
 
     private func fetchSortedPendingPairs() async -> [PhotoPair] {
-        let all = await (try? pairRepo.fetchAll()) ?? []
+        let includeTutorial = tutorialCoordinator?.isActive == true
+        let all = await (try? pairRepo.fetchAll(includeTutorial: includeTutorial)) ?? []
         let scoped: [PhotoPair] = if let albumId {
             all.filter { $0.albumIds.contains(albumId) }
         } else { all }

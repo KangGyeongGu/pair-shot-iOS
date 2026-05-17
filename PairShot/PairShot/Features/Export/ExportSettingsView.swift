@@ -4,35 +4,35 @@ struct ExportSettingsView: View {
     @Bindable var viewModel: ExportSettingsViewModel
     let onPushWatermarkSettings: (() -> Void)?
     let onPushCombineSettings: (() -> Void)?
-    @Environment(\.dismiss) private var dismiss
-    @Environment(RewardedAdManager.self) private var rewardedManager
-    @Environment(PromotionStore.self) private var promotionStore
-    @Environment(SubscriptionStore.self) private var subscriptionStore
-    @Environment(ExportCompletionCoordinator.self) private var exportCompletionCoordinator
-    @Environment(\.fullscreenAdCoordinator) private var coordinator
+    @Environment(\.dismiss) var dismiss
+    @Environment(RewardedAdManager.self) var rewardedManager
+    @Environment(PromotionStore.self) var promotionStore
+    @Environment(SubscriptionStore.self) var subscriptionStore
+    @Environment(ExportCompletionCoordinator.self) var exportCompletionCoordinator
+    @Environment(ExportTutorialCoordinator.self) private var exportTutorialCoordinator
+    @Environment(\.fullscreenAdCoordinator) var coordinator
+    @AppStorage("exportTutorial.completed") private var exportTutorialCompleted = false
 
     var body: some View {
         VStack(spacing: 0) {
             BannerAdSlot()
-
-            Form {
-                includesSection
-                formatSection
-                watermarkSection
-                combineSection
+            ScrollView {
+                LazyVStack(spacing: 16) {
+                    includesCard
+                    formatCard
+                    watermarkCard
+                    combineCard
+                }
+                .padding(16)
             }
-            .listStyle(.insetGrouped)
+            .background(Color(.systemGroupedBackground))
         }
         .navigationTitle(String(localized: "export_settings_title"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    dismiss()
-                } label: {
-                    Image(systemName: "xmark")
-                }
-                .accessibilityLabel(String(localized: "common_button_close"))
+                Button { dismiss() } label: { Image(systemName: "xmark") }
+                    .accessibilityLabel(String(localized: "common_button_close"))
             }
             ToolbarItemGroup(placement: .bottomBar) {
                 shareButton
@@ -98,63 +98,78 @@ struct ExportSettingsView: View {
             Text(String(localized: "rewarded_gate_body_combine_detail"))
         }
         .paywallSheet(isPresented: $viewModel.showPaywall)
+        .exportTutorialOverlay()
+        .task {
+            if !exportTutorialCompleted, !exportTutorialCoordinator.isActive {
+                exportTutorialCoordinator.start()
+            }
+        }
+        .onChange(of: exportTutorialCoordinator.current) { oldValue, newValue in
+            if oldValue != nil, newValue == nil {
+                exportTutorialCompleted = true
+            }
+        }
     }
 
-    private var includesSection: some View {
-        Section {
+    private var includesCard: some View {
+        ExportSettingsCard(header: "export_settings_section_include") {
             Toggle(String(localized: "export_settings_include_combined"), isOn: $viewModel.includeCombined)
+            Divider()
             Toggle(String(localized: "Before"), isOn: $viewModel.includeBefore)
+            Divider()
             Toggle(String(localized: "After"), isOn: $viewModel.includeAfter)
             PhotosLimitedAccessButton()
-        } header: {
-            Text(String(localized: "export_settings_section_include"))
         }
+        .tutorialAnchor(ExportTutorialAnchorID.includes)
     }
 
-    private var formatSection: some View {
-        Section {
-            Picker(String(localized: "export_settings_field_format"), selection: formatBinding) {
-                Label(
-                    String(localized: "export_settings_format_image"),
-                    systemImage: "photo",
-                )
-                .tag(ExportFormat.individualImages)
-                zipFormatLabel
-                    .tag(ExportFormat.zip)
+    private var formatCard: some View {
+        ExportSettingsCard(header: "export_settings_section_format") {
+            formatRow(format: .individualImages, systemImage: "photo", labelKey: "export_settings_format_image")
+            Divider()
+            formatRow(format: .zip, systemImage: "doc.zipper", labelKey: "ZIP", showsProBadge: !viewModel.isProUser)
+        }
+        .tutorialAnchor(ExportTutorialAnchorID.format)
+    }
+
+    private func formatRow(
+        format: ExportFormat,
+        systemImage: String,
+        labelKey: String.LocalizationValue,
+        showsProBadge: Bool = false,
+    ) -> some View {
+        Button {
+            viewModel.selectFormat(format)
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: systemImage)
+                    .foregroundStyle(.primary)
+                    .frame(width: 24)
+                Text(String(localized: labelKey))
+                    .foregroundStyle(.primary)
+                if showsProBadge {
+                    ProLockBadge()
+                }
+                Spacer()
+                if viewModel.format == format {
+                    Image(systemName: "checkmark")
+                        .font(.body.bold())
+                        .foregroundStyle(.tint)
+                }
             }
-            .pickerStyle(.inline)
-            .labelsHidden()
-        } header: {
-            Text(String(localized: "export_settings_section_format"))
+            .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
     }
 
-    private var zipFormatLabel: some View {
-        HStack(spacing: 6) {
-            Label(
-                String(localized: "ZIP"),
-                systemImage: "doc.zipper",
-            )
-            if !viewModel.isProUser {
-                ProLockBadge()
-            }
-        }
-    }
-
-    private var formatBinding: Binding<ExportFormat> {
-        Binding(
-            get: { viewModel.format },
-            set: { viewModel.selectFormat($0) },
-        )
-    }
-
-    private var watermarkSection: some View {
-        Section {
+    private var watermarkCard: some View {
+        ExportSettingsCard(header: "export_settings_section_watermark") {
             Toggle(
                 String(localized: "export_settings_apply_watermark"),
                 isOn: applyWatermarkBinding,
             )
             if viewModel.applyWatermark {
+                Divider()
                 Button {
                     if viewModel.requestWatermarkGate(rewardedManager: rewardedManager) {
                         onPushWatermarkSettings?()
@@ -164,22 +179,15 @@ struct ExportSettingsView: View {
                 }
                 .buttonStyle(.plain)
             }
-        } header: {
-            Text(String(localized: "export_settings_section_watermark"))
         }
+        .tutorialAnchor(ExportTutorialAnchorID.watermark)
     }
 
-    private var applyWatermarkBinding: Binding<Bool> {
-        Binding(
-            get: { viewModel.applyWatermark },
-            set: { viewModel.applyWatermark = $0 },
-        )
-    }
-
-    private var combineSection: some View {
-        Section {
+    private var combineCard: some View {
+        ExportSettingsCard(header: "export_settings_section_combine") {
             Toggle(String(localized: "export_settings_apply_combine"), isOn: $viewModel.applyCombineSettings)
             if viewModel.applyCombineSettings {
+                Divider()
                 Button {
                     if viewModel.requestCombineGate(rewardedManager: rewardedManager) {
                         onPushCombineSettings?()
@@ -189,9 +197,8 @@ struct ExportSettingsView: View {
                 }
                 .buttonStyle(.plain)
             }
-        } header: {
-            Text(String(localized: "export_settings_section_combine"))
         }
+        .tutorialAnchor(ExportTutorialAnchorID.combine)
     }
 
     private var shareButton: some View {
@@ -216,31 +223,6 @@ struct ExportSettingsView: View {
             )
         }
         .disabled(!viewModel.canExecute)
-    }
-
-    private var errorBinding: Binding<Bool> {
-        Binding(
-            get: { viewModel.errorMessage != nil },
-            set: { if !$0 { viewModel.errorMessage = nil } },
-        )
-    }
-
-    private var shareItemsBinding: Binding<ExportShareItems?> {
-        Binding(
-            get: { viewModel.shareItems },
-            set: { viewModel.shareItems = $0 },
-        )
-    }
-
-    private var zipExportBinding: Binding<DocumentExporterItem?> {
-        Binding(
-            get: { viewModel.zipExportItem },
-            set: { newValue in
-                if newValue == nil, viewModel.zipExportItem != nil {
-                    viewModel.handleZipExportCompleted(false)
-                }
-            },
-        )
     }
 
     init(
@@ -269,40 +251,25 @@ struct ExportSettingsView: View {
         }
         .contentShape(Rectangle())
     }
+}
 
-    @MainActor
-    private func confirmWatermarkGate() async {
-        let result = await viewModel.confirmWatermarkGateAd(
-            rewardedManager: rewardedManager,
-            coordinator: coordinator,
-            rootViewController: BannerAdView.resolveTopPresentedViewController(),
-        )
-        if case .proceed = result {
-            onPushWatermarkSettings?()
-        }
-    }
+private struct ExportSettingsCard<Content: View>: View {
+    let header: String.LocalizationValue
+    @ViewBuilder let content: () -> Content
 
-    @MainActor
-    private func confirmCombineGate() async {
-        let result = await viewModel.confirmCombineGateAd(
-            rewardedManager: rewardedManager,
-            coordinator: coordinator,
-            rootViewController: BannerAdView.resolveTopPresentedViewController(),
-        )
-        if case .proceed = result {
-            onPushCombineSettings?()
-        }
-    }
-
-    private func observeEvents() async {
-        for await event in viewModel.events {
-            switch event {
-                case .completed:
-                    exportCompletionCoordinator.notifyCompleted()
-
-                case .dismiss:
-                    dismiss()
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(String(localized: header))
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .textCase(.uppercase)
+                .padding(.horizontal, 4)
+            VStack(spacing: 12) {
+                content()
             }
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 12))
         }
     }
 }

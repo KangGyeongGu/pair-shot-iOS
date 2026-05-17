@@ -62,6 +62,7 @@ final class SnackbarQueue {
     static let actionableDuration: TimeInterval = 5.0
 
     var current: SnackbarItem?
+    weak var tutorialCoordinator: TutorialCoordinator?
 
     private var pending: [SnackbarItem] = []
     private var lastEnqueueTimes: [String: Date] = [:]
@@ -83,6 +84,7 @@ final class SnackbarQueue {
         isActionable: Bool = false,
         debounceKey: String? = nil,
     ) {
+        if tutorialCoordinator?.isActive == true { return }
         let now = clock()
         if let key = debounceKey,
            let last = lastEnqueueTimes[key],
@@ -123,6 +125,9 @@ final class SnackbarQueue {
         token: String,
         initialValue: Double? = nil,
     ) -> SnackbarProgressHandle {
+        if tutorialCoordinator?.isActive == true {
+            return SnackbarProgressHandle(token: token)
+        }
         let now = clock()
         let variant: SnackbarVariant =
             initialValue

@@ -1,8 +1,8 @@
 import SwiftUI
 
 struct PhoneOrientationGuide: View {
-    private static let iconSize: CGFloat = 56
-    private static let frameHeight: CGFloat = 96
+    private static let iconSize: CGFloat = 40
+    private static let frameHeight: CGFloat = 64
     private static let animationDuration: Double = 1.2
 
     let targetRotation: Angle

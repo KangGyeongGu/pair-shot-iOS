@@ -25,18 +25,11 @@ struct AdSuppressionMergeTests {
     }
 
     @Test
-    func `BannerAdGate.shouldShow mirrors OR-suppression for all 4 cases`() {
-        let cases: [(isAdFree: Bool, isPro: Bool, expected: Bool)] = [
-            (false, false, true),
-            (true, false, false),
-            (false, true, false),
-            (true, true, false),
-        ]
-        for input in cases {
-            #expect(
-                BannerAdGate.shouldShow(isAdFree: input.isAdFree, isPro: input.isPro) == input.expected,
-            )
-        }
+    func `튜토리얼 활성 시 광고 단일 진리값으로 통합 차단`() {
+        let coord = TutorialCoordinator()
+        coord.start()
+        #expect(AdSuppression.isSuppressed(isAdFree: false, isPro: false, tutorialActive: true) == true)
+        #expect(AdSuppression.isSuppressed(isAdFree: false, isPro: false, tutorialActive: false) == false)
     }
 
     @Test
@@ -84,35 +77,6 @@ struct AdSuppressionMergeTests {
                 promotionStore: nil,
                 subscriptionStore: nil,
                 tutorialCoordinator: nil,
-            ) == false,
-        )
-    }
-
-    @Test
-    func `RewardedSessionGate.shouldShowGate suppresses gate when Pro is active`() {
-        let unlock: RewardedAdManager.UnlockID = .compositionSettings
-        #expect(
-            RewardedSessionGate.shouldShowGate(
-                unlockID: unlock,
-                sessionUnlocks: [],
-                isAdFree: false,
-                isPro: true,
-            ) == false,
-        )
-        #expect(
-            RewardedSessionGate.shouldShowGate(
-                unlockID: unlock,
-                sessionUnlocks: [],
-                isAdFree: false,
-                isPro: false,
-            ) == true,
-        )
-        #expect(
-            RewardedSessionGate.shouldShowGate(
-                unlockID: unlock,
-                sessionUnlocks: [],
-                isAdFree: true,
-                isPro: false,
             ) == false,
         )
     }

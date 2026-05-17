@@ -15,10 +15,7 @@ final class SettingsViewModel {
     var lastGateFailureReason: String?
 
     var appVersionText: String {
-        let version = SettingsBundleMetadata.appVersionLabel
-        let build = SettingsBundleMetadata.buildNumberLabel
-        if version == "—", build == "—" { return "—" }
-        return "\(version) (\(build))"
+        SettingsBundleMetadata.appVersionLabel
     }
 
     var languageDisplayText: String {
@@ -119,10 +116,5 @@ enum SettingsBundleMetadata {
     static var appVersionLabel: String {
         let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
         return version ?? "—"
-    }
-
-    static var buildNumberLabel: String {
-        let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String
-        return build ?? "—"
     }
 }

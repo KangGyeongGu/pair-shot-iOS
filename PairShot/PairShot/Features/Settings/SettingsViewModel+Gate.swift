@@ -5,7 +5,7 @@ extension SettingsViewModel {
     typealias GateResult = RewardedGateResult
 
     var gateCoordinator: RewardedGateCoordinator {
-        RewardedGateCoordinator(membership: membership)
+        RewardedGateCoordinator(membership: membership, tutorialCoordinator: nil)
     }
 
     func requestWatermarkGate(rewardedManager: RewardedAdManager) -> Bool {

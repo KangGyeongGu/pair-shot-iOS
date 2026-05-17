@@ -13,7 +13,6 @@ struct BeforeCameraView: View {
     @Environment(SubscriptionStore.self) private var subscriptionStore
 
     @State private var viewModel: BeforeCameraViewModel?
-    @State private var didStartViewModel = false
     @State private var hasPresentedColdStartAppOpen = false
     @State private var didSubscribeMotion = false
     @State private var focusIndicator: FocusIndicatorState?
@@ -37,23 +36,20 @@ struct BeforeCameraView: View {
         .task {
             ensureViewModelSync()
             guard let vm = viewModel else { return }
-            if !didStartViewModel {
-                didStartViewModel = true
-                Task {
-                    await vm.onAppear()
-                    Task { @MainActor in
-                        guard !hasPresentedColdStartAppOpen, vm.cameraPermissionState == .granted else {
-                            return
-                        }
-                        hasPresentedColdStartAppOpen = true
-                        await env.promotionStore.refresh()
-                        await env.appOpenAdManager.presentIfReady(
-                            from: BannerAdView.resolveRootViewController(),
-                            coordinator: env.fullscreenAdCoordinator,
-                            promotionStore: promotionStore,
-                            subscriptionStore: subscriptionStore,
-                        )
+            Task {
+                await vm.onAppear()
+                Task { @MainActor in
+                    guard !hasPresentedColdStartAppOpen, vm.cameraPermissionState == .granted else {
+                        return
                     }
+                    hasPresentedColdStartAppOpen = true
+                    await env.promotionStore.refresh()
+                    await env.appOpenAdManager.presentIfReady(
+                        from: BannerAdView.resolveRootViewController(),
+                        coordinator: env.fullscreenAdCoordinator,
+                        promotionStore: promotionStore,
+                        subscriptionStore: subscriptionStore,
+                    )
                 }
             }
             await observeEvents(viewModel: vm)
@@ -77,6 +73,9 @@ struct BeforeCameraView: View {
                     sortOrder: .newest,
                 )
             }
+            .environment(env)
+            .environment(env.tutorialCoordinator)
+            .environment(\.tutorialMode, env.tutorialCoordinator.mode)
         }
         .captureErrorAlert(
             message: Binding(

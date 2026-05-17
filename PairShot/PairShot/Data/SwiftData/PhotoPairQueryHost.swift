@@ -14,7 +14,7 @@ struct PhotoPairQueryHost<Content: View>: View {
 
     var body: some View {
         let filtered = tutorialCoordinator.isActive
-            ? entities
+            ? entities.filter(\.isTutorial)
             : entities.filter { !$0.isTutorial }
         content(filtered.map { $0.toDomain() })
     }

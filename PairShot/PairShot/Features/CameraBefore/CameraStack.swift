@@ -3,6 +3,7 @@ import SwiftUI
 
 struct BeforeCameraStack: View {
     @Environment(Membership.self) private var membership
+    @Environment(TutorialCoordinator.self) private var tutorialCoordinator
 
     let captureSession: AVCaptureSession
     let onMakePreviewView: (CameraPreviewView) -> Void
@@ -44,7 +45,10 @@ struct BeforeCameraStack: View {
         GeometryReader { geo in
             let layout = CameraLayoutMath.compute(
                 totalSize: geo.size,
-                isAdFree: membership.adFreeIsActive,
+                isAdFree: AdSuppression.isSuppressed(
+                    membership: membership,
+                    tutorialCoordinator: tutorialCoordinator,
+                ),
                 aspect: aspect,
             )
 

@@ -4829,6 +4829,91 @@
         }
       }
     },
+    "tutorial_button_finish" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Finish"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "완료"
+          }
+        }
+      }
+    },
+    "tutorial_msg_export_include" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose which photos to export"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "어떤 사진들을 내보낼지 선택해요"
+          }
+        }
+      }
+    },
+    "tutorial_msg_export_format" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export as individual images or bundle them into a ZIP file"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "개별 이미지 또는 ZIP 파일로 묶어서 내보낼 수 있어요"
+          }
+        }
+      }
+    },
+    "tutorial_msg_export_watermark" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You can apply a watermark to the exported photos"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "내보낼 사진들에 워터마크를 적용할 수 있어요"
+          }
+        }
+      }
+    },
+    "tutorial_msg_export_combine" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You can add borders and other composition to the exported photos"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "내보낼 사진들에 테두리 등 합성을 적용할 수 있어요"
+          }
+        }
+      }
+    },
     "tutorial_button_next" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5335,6 +5420,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "일반"
+          }
+        }
+      }
+    },
+    "settings_section_help" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Help"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "도움말"
           }
         }
       }

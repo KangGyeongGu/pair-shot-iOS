@@ -120,6 +120,7 @@ struct HomeViewSheetModifiers: ViewModifier {
 
 struct HomeCameraCovers: ViewModifier {
     @Bindable var viewModel: HomeViewModel
+    @Environment(AppEnvironment.self) private var env
 
     func body(content: Content) -> some View {
         content
@@ -127,6 +128,9 @@ struct HomeCameraCovers: ViewModifier {
                 NavigationStack {
                     BeforeCameraView(refillPairId: viewModel.beforeCameraTargetPairId)
                 }
+                .environment(env)
+                .environment(env.tutorialCoordinator)
+                .environment(\.tutorialMode, env.tutorialCoordinator.mode)
             }
             .fullScreenCover(isPresented: $viewModel.showAfterCamera) {
                 NavigationStack {
@@ -135,11 +139,17 @@ struct HomeCameraCovers: ViewModifier {
                         sortOrder: viewModel.sortOrder,
                     )
                 }
+                .environment(env)
+                .environment(env.tutorialCoordinator)
+                .environment(\.tutorialMode, env.tutorialCoordinator.mode)
             }
             .fullScreenCover(item: $viewModel.pendingRecaptureAfter) { request in
                 NavigationStack {
                     AfterCameraView(recaptureTargetPair: request.pair)
                 }
+                .environment(env)
+                .environment(env.tutorialCoordinator)
+                .environment(\.tutorialMode, env.tutorialCoordinator.mode)
             }
             .sheet(item: $viewModel.pendingPreviewPair) { request in
                 PairPreviewView(pair: request.pair)

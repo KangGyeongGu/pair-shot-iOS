@@ -22,7 +22,7 @@ struct SwiftDataPhotoPairRepositoryTutorialFilterTests {
     }
 
     @Test
-    func `fetchAll includeTutorial true 면 튜토리얼 페어도 포함한다`() async throws {
+    func `fetchAll includeTutorial true 면 튜토리얼 페어만 반환한다`() async throws {
         let repository = try makeRepository()
         let normal = PhotoPair(id: UUID(), createdAt: Date(timeIntervalSinceReferenceDate: 100))
         let tutorial = PhotoPair(
@@ -34,7 +34,7 @@ struct SwiftDataPhotoPairRepositoryTutorialFilterTests {
         try await repository.add(tutorial)
 
         let result = try await repository.fetchAll(includeTutorial: true)
-        #expect(Set(result.map(\.id)) == Set([normal.id, tutorial.id]))
+        #expect(result.map(\.id) == [tutorial.id])
     }
 
     @Test

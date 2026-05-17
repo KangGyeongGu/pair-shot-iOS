@@ -4,6 +4,7 @@ import UIKit
 
 struct AfterCameraStack: View {
     @Environment(Membership.self) private var membership
+    @Environment(TutorialCoordinator.self) private var tutorialCoordinator
 
     let captureSession: AVCaptureSession
     let onMakePreviewView: (CameraPreviewView) -> Void
@@ -44,7 +45,10 @@ struct AfterCameraStack: View {
         GeometryReader { geo in
             let layout = CameraLayoutMath.compute(
                 totalSize: geo.size,
-                isAdFree: membership.adFreeIsActive,
+                isAdFree: AdSuppression.isSuppressed(
+                    membership: membership,
+                    tutorialCoordinator: tutorialCoordinator,
+                ),
                 aspect: aspect,
             )
 
@@ -158,7 +162,6 @@ struct AfterCameraStack: View {
                 width: width,
                 height: previewHeight,
             )
-            .tutorialAnchor(TutorialAnchorID.afterGhostOverlay)
 
             if isGridOn {
                 GridOverlay()

@@ -9,6 +9,7 @@ final class CreatePairUseCase {
 
     let pairRepo: PhotoPairRepository
     let photoLibrary: PhotoLibraryService
+    let tutorialPhotoStore: TutorialPhotoStore?
     let location: CoreLocationService
     let now: @Sendable () -> Date
 
@@ -16,10 +17,12 @@ final class CreatePairUseCase {
         pairRepo: PhotoPairRepository,
         photoLibrary: PhotoLibraryService,
         location: CoreLocationService,
+        tutorialPhotoStore: TutorialPhotoStore? = nil,
         now: @escaping @Sendable () -> Date = { .now },
     ) {
         self.pairRepo = pairRepo
         self.photoLibrary = photoLibrary
+        self.tutorialPhotoStore = tutorialPhotoStore
         self.location = location
         self.now = now
     }
@@ -34,10 +37,11 @@ final class CreatePairUseCase {
     ) async throws -> PhotoPair {
         let timestamp = now()
         let pairId = UUID()
-        let localIdentifier = try await photoLibrary.saveImage(
-            beforeData,
+        let localIdentifier = try await saveBeforeImage(
+            data: beforeData,
             utType: beforeUTType,
             isDeferredProxy: isDeferredProxy,
+            isTutorial: isTutorial,
         )
         let resolvedLocation = location.currentLocation
         var settings = cameraSettings
@@ -70,10 +74,11 @@ final class CreatePairUseCase {
             throw RefillError.pairNotFound
         }
         let timestamp = now()
-        let localIdentifier = try await photoLibrary.saveImage(
-            beforeData,
+        let localIdentifier = try await saveBeforeImage(
+            data: beforeData,
             utType: beforeUTType,
             isDeferredProxy: isDeferredProxy,
+            isTutorial: pair.isTutorial,
         )
         var settings = cameraSettings
         settings.aspectRatio = aspectRatio
@@ -84,5 +89,21 @@ final class CreatePairUseCase {
         pair.updatedAt = timestamp
         try await pairRepo.update(pair)
         return pair
+    }
+
+    private func saveBeforeImage(
+        data: Data,
+        utType: UTType,
+        isDeferredProxy: Bool,
+        isTutorial: Bool,
+    ) async throws -> String {
+        if isTutorial, let tutorialPhotoStore {
+            return try await tutorialPhotoStore.save(data: data, utType: utType)
+        }
+        return try await photoLibrary.saveImage(
+            data,
+            utType: utType,
+            isDeferredProxy: isDeferredProxy,
+        )
     }
 }

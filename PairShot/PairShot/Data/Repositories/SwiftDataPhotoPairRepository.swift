@@ -131,7 +131,10 @@ final class SwiftDataPhotoPairRepository: PhotoPairRepository {
 
     private func fetchAllSync(includeTutorial: Bool) throws -> [PhotoPairEntity] {
         let descriptor: FetchDescriptor<PhotoPairEntity> = if includeTutorial {
-            FetchDescriptor(sortBy: [SortDescriptor(\.createdAt, order: .reverse)])
+            FetchDescriptor(
+                predicate: #Predicate { $0.isTutorial },
+                sortBy: [SortDescriptor(\.createdAt, order: .reverse)],
+            )
         } else {
             FetchDescriptor(
                 predicate: #Predicate { !$0.isTutorial },

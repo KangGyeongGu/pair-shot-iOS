@@ -4,7 +4,7 @@ import Testing
 @MainActor
 struct TutorialOverlayDimOpacityTests {
     @Test
-    func `카메라 및 pair 카드 탭 step 은 dim opacity 0 을 반환한다`() {
+    func `카메라 실습 step 은 dim opacity 0 을 반환한다`() {
         let dimlessSteps: [TutorialStep] = [
             .captureGuidePortrait,
             .captureGuideLeft,
@@ -12,7 +12,6 @@ struct TutorialOverlayDimOpacityTests {
             .afterCameraGuide,
             .backToHome,
             .backToHome2,
-            .tapPairCard,
         ]
         for step in dimlessSteps {
             #expect(TutorialOverlay.dimOpacity(for: step) == 0, "step \(step) must have dim 0")
@@ -22,6 +21,7 @@ struct TutorialOverlayDimOpacityTests {
     @Test
     func `홈 list step 은 표준 dim opacity 를 유지한다`() {
         let listSteps: [TutorialStep] = [
+            .tapPairCard,
             .enterSelectionMode,
             .selectionShare,
             .selectionSave,

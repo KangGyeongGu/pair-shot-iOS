@@ -51,6 +51,7 @@ final class AppEnvironment {
 
     let tutorialCoordinator: TutorialCoordinator
     let tutorialCleanupService: TutorialCleanupService
+    let exportTutorialCoordinator: ExportTutorialCoordinator
 
     private var sharedSettingsViewModel: SettingsViewModel?
 
@@ -143,9 +144,11 @@ final class AppEnvironment {
         albumRepo = dataServices.albumRepo
         tutorialCleanupService = TutorialCleanupService(
             container: modelContainer,
-            photoLibrary: dataServices.photoLibrary,
+            tutorialPhotoStore: dataServices.tutorialPhotoStore,
         )
         resolvedTutorialCoordinator.cleanupService = tutorialCleanupService
+        self.snackbarQueue.tutorialCoordinator = resolvedTutorialCoordinator
+        exportTutorialCoordinator = ExportTutorialCoordinator()
 
         let useCases = bundles.useCases
         createPair = useCases.createPair

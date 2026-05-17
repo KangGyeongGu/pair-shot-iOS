@@ -145,7 +145,10 @@ struct AlbumDetailView: View {
         } else {
             let chunks = PairListWithAdsBuilder.buildChunks(
                 pairs: pairs,
-                adFree: membership.adFreeIsActive,
+                adFree: AdSuppression.isSuppressed(
+                    membership: membership,
+                    tutorialCoordinator: env.tutorialCoordinator,
+                ),
             ).chunks
             ScrollView {
                 LazyVStack(spacing: 12) {

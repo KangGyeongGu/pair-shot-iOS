@@ -11,16 +11,18 @@ enum RewardedGateResult: Equatable {
 @MainActor
 struct RewardedGateCoordinator {
     let membership: Membership?
+    let tutorialCoordinator: TutorialCoordinator?
 
     func shouldProceedWithoutGate(
         unlockID: RewardedAdManager.UnlockID,
         rewardedManager: RewardedAdManager,
     ) -> Bool {
-        !RewardedSessionGate.shouldShowGate(
+        guard let membership else { return true }
+        return !RewardedSessionGate.shouldShowGate(
             unlockID: unlockID,
             sessionUnlocks: rewardedManager.sessionUnlocks,
-            isAdFree: membership?.adFreeBySolePromotion ?? false,
-            isPro: membership?.proIsActive ?? false,
+            membership: membership,
+            tutorialCoordinator: tutorialCoordinator,
         )
     }
 

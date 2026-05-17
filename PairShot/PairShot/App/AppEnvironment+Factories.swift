@@ -53,6 +53,7 @@ struct DataServicesBundle {
     let location: CoreLocationService
     let photoLibraryExporter: PhotoLibraryExport
     let photoLibrary: PhotoLibraryService
+    let tutorialPhotoStore: TutorialPhotoStore
     let pairRepo: PhotoPairRepository
     let albumRepo: AlbumRepository
     let zipExporter: ZipExporterAdapter
@@ -61,6 +62,7 @@ struct DataServicesBundle {
 struct UseCasesDependencies {
     let pairRepo: PhotoPairRepository
     let photoLibrary: PhotoLibraryService
+    let tutorialPhotoStore: TutorialPhotoStore
     let photoLibraryExporter: PhotoLibraryExport
     let location: CoreLocationService
     let zipExporter: ZipExporterAdapter
@@ -111,7 +113,11 @@ struct AppEnvironmentBundles {
 
 extension AppEnvironment {
     static func makeAllBundles(input: AppEnvironmentInitInput) -> AppEnvironmentBundles {
-        let foundation = makeFoundation(overrides: input.foundationOverrides)
+        let tutorialPhotoStore = TutorialPhotoStore()
+        let foundation = makeFoundation(
+            overrides: input.foundationOverrides,
+            tutorialPhotoStore: tutorialPhotoStore,
+        )
         let adServices = makeAdServices(
             trackingService: foundation.trackingService,
             tutorialCoordinator: input.tutorialCoordinator,
@@ -120,6 +126,7 @@ extension AppEnvironment {
         let dataServices = makeDataServices(
             modelContainer: input.modelContainer,
             appSettings: foundation.appSettings,
+            tutorialPhotoStore: tutorialPhotoStore,
         )
         let subscription = makeSubscriptionServices(overrides: input.subscriptionOverrides)
         let membership = Membership(
@@ -130,6 +137,7 @@ extension AppEnvironment {
             dependencies: UseCasesDependencies(
                 pairRepo: dataServices.pairRepo,
                 photoLibrary: dataServices.photoLibrary,
+                tutorialPhotoStore: dataServices.tutorialPhotoStore,
                 photoLibraryExporter: dataServices.photoLibraryExporter,
                 location: dataServices.location,
                 zipExporter: dataServices.zipExporter,
@@ -150,6 +158,7 @@ extension AppEnvironment {
 
     static func makeFoundation(
         overrides: AppEnvironmentFoundationOverrides,
+        tutorialPhotoStore: TutorialPhotoStore,
     ) -> AppEnvironmentFoundation {
         let apiConfig = CouponApiConfig.resolve()
         let hashProvider = DeviceHashProvider()
@@ -165,7 +174,8 @@ extension AppEnvironment {
             settingsRedirectCoordinator: overrides.settingsRedirectCoordinator ?? SettingsRedirectCoordinator(),
             exportCompletionCoordinator: overrides.exportCompletionCoordinator ?? ExportCompletionCoordinator(),
             permissionStatusService: overrides.permissionStatusService ?? PermissionStatusService(),
-            thumbnailCache: overrides.thumbnailCache ?? PhotoLibraryThumbnailCache(),
+            thumbnailCache: overrides.thumbnailCache
+                ?? PhotoLibraryThumbnailCache(tutorialPhotoStore: tutorialPhotoStore),
             hapticService: hapticService,
             motionService: overrides.motionService ?? MotionService(),
             apiConfig: apiConfig,
@@ -176,16 +186,18 @@ extension AppEnvironment {
     static func makeDataServices(
         modelContainer: ModelContainer,
         appSettings: AppSettings,
+        tutorialPhotoStore: TutorialPhotoStore,
     ) -> DataServicesBundle {
         let location = CoreLocationService()
         let photoLibraryExporter = PhotoLibraryExport()
-        let photoLibrary = PhotoLibraryService()
+        let photoLibrary = PhotoLibraryService(tutorialPhotoStore: tutorialPhotoStore)
         let pairRepo = SwiftDataPhotoPairRepository(container: modelContainer)
         let albumRepo = SwiftDataAlbumRepository(container: modelContainer)
         return DataServicesBundle(
             location: location,
             photoLibraryExporter: photoLibraryExporter,
             photoLibrary: photoLibrary,
+            tutorialPhotoStore: tutorialPhotoStore,
             pairRepo: pairRepo,
             albumRepo: albumRepo,
             zipExporter: ZipExporterAdapter(
@@ -244,7 +256,12 @@ extension AppEnvironment {
     ) -> UseCasesBundle {
         let pairRepo = dependencies.pairRepo
         let photoLibrary = dependencies.photoLibrary
-        let captureAfter = CaptureAfterUseCase(pairRepo: pairRepo, photoLibrary: photoLibrary)
+        let tutorialPhotoStore = dependencies.tutorialPhotoStore
+        let captureAfter = CaptureAfterUseCase(
+            pairRepo: pairRepo,
+            photoLibrary: photoLibrary,
+            tutorialPhotoStore: tutorialPhotoStore,
+        )
         let exportPairs = ExportPairsUseCase(zipExporter: dependencies.zipExporter)
         let recaptureAfter = RecaptureAfterUseCase(
             pairRepo: pairRepo,
@@ -260,6 +277,7 @@ extension AppEnvironment {
                 pairRepo: pairRepo,
                 photoLibrary: photoLibrary,
                 location: dependencies.location,
+                tutorialPhotoStore: tutorialPhotoStore,
             ),
             captureAfter: captureAfter,
             recaptureAfter: recaptureAfter,

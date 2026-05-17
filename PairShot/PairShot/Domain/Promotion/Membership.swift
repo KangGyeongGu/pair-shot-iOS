@@ -35,10 +35,6 @@ final class Membership {
         )
     }
 
-    var adFreeBySolePromotion: Bool {
-        adFreeIsActive && !proIsActive
-    }
-
     init(subscriptionStore: SubscriptionStore, promotionStore: PromotionStore) {
         self.subscriptionStore = subscriptionStore
         self.promotionStore = promotionStore

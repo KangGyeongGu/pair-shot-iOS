@@ -12,10 +12,12 @@ struct TutorialMessageModalSkipNextTests {
     func `skip 콜백은 호출 시 카운트 증가`() {
         var skipCount = 0
         let modal = TutorialMessageModal(
-            step: .captureGuidePortrait,
             text: "x",
             progress: (current: 1, total: 13),
+            showsSkip: true,
             showsNext: true,
+            nextButtonLabelKey: "tutorial_button_next",
+            phoneOrientationAngle: nil,
             placement: .top,
             targetRect: Self.defaultRect,
             containerSize: Self.defaultContainer,
@@ -33,10 +35,12 @@ struct TutorialMessageModalSkipNextTests {
     func `next 콜백은 호출 시 카운트 증가`() {
         var nextCount = 0
         let modal = TutorialMessageModal(
-            step: .captureGuidePortrait,
             text: "x",
             progress: (current: 1, total: 13),
+            showsSkip: true,
             showsNext: true,
+            nextButtonLabelKey: "tutorial_button_next",
+            phoneOrientationAngle: nil,
             placement: .top,
             targetRect: Self.defaultRect,
             containerSize: Self.defaultContainer,
@@ -49,21 +53,21 @@ struct TutorialMessageModalSkipNextTests {
     }
 
     @Test
-    func `showsNext 는 자세 가이드 + 선택 모드 4 옵션 step 에서 true`() {
-        #expect(TutorialMessageModal.showsNext(for: .captureGuidePortrait) == true)
-        #expect(TutorialMessageModal.showsNext(for: .captureGuideLeft) == true)
-        #expect(TutorialMessageModal.showsNext(for: .captureGuideRight) == true)
+    func `showsNext 는 선택 모드 4 옵션 step 및 done 에서 true`() {
         #expect(TutorialMessageModal.showsNext(for: .selectionShare) == true)
         #expect(TutorialMessageModal.showsNext(for: .selectionSave) == true)
         #expect(TutorialMessageModal.showsNext(for: .selectionDelete) == true)
         #expect(TutorialMessageModal.showsNext(for: .selectionExport) == true)
+        #expect(TutorialMessageModal.showsNext(for: .done) == true)
+        #expect(TutorialMessageModal.showsNext(for: .captureGuidePortrait) == false)
+        #expect(TutorialMessageModal.showsNext(for: .captureGuideLeft) == false)
+        #expect(TutorialMessageModal.showsNext(for: .captureGuideRight) == false)
         #expect(TutorialMessageModal.showsNext(for: .backToHome) == false)
         #expect(TutorialMessageModal.showsNext(for: .tapPairCard) == false)
         #expect(TutorialMessageModal.showsNext(for: .afterCameraGuide) == false)
         #expect(TutorialMessageModal.showsNext(for: .backToHome2) == false)
         #expect(TutorialMessageModal.showsNext(for: .enterSelectionMode) == false)
         #expect(TutorialMessageModal.showsNext(for: .goSettings) == false)
-        #expect(TutorialMessageModal.showsNext(for: .done) == false)
     }
 
     @Test

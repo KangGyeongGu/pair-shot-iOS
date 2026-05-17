@@ -6,8 +6,11 @@ import UIKit
 #endif
 
 enum BannerAdGate {
-    static func shouldShow(isAdFree: Bool, isPro: Bool = false) -> Bool {
-        !AdSuppression.isSuppressed(isAdFree: isAdFree, isPro: isPro)
+    static func shouldShow(
+        membership: Membership,
+        tutorialCoordinator: TutorialCoordinator? = nil,
+    ) -> Bool {
+        !AdSuppression.isSuppressed(membership: membership, tutorialCoordinator: tutorialCoordinator)
     }
 }
 
@@ -19,10 +22,7 @@ struct BannerAdSlot: View {
     let adUnitID: String
 
     var body: some View {
-        if !tutorialCoordinator.isActive, BannerAdGate.shouldShow(
-            isAdFree: membership.adFreeBySolePromotion,
-            isPro: membership.proIsActive,
-        ) {
+        if BannerAdGate.shouldShow(membership: membership, tutorialCoordinator: tutorialCoordinator) {
             let width = BannerAdView.currentBannerWidth()
             let height = BannerAdSize.adaptiveHeight(width: width)
             BannerAdView(

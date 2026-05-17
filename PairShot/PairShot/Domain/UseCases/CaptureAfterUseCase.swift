@@ -9,15 +9,18 @@ final class CaptureAfterUseCase {
 
     let pairRepo: PhotoPairRepository
     let photoLibrary: PhotoLibraryService
+    let tutorialPhotoStore: TutorialPhotoStore?
     let now: @Sendable () -> Date
 
     init(
         pairRepo: PhotoPairRepository,
         photoLibrary: PhotoLibraryService,
+        tutorialPhotoStore: TutorialPhotoStore? = nil,
         now: @escaping @Sendable () -> Date = { .now },
     ) {
         self.pairRepo = pairRepo
         self.photoLibrary = photoLibrary
+        self.tutorialPhotoStore = tutorialPhotoStore
         self.now = now
     }
 
@@ -32,10 +35,11 @@ final class CaptureAfterUseCase {
             throw CaptureAfterError.pairNotFound
         }
         let timestamp = now()
-        let localIdentifier = try await photoLibrary.saveImage(
-            afterData,
+        let localIdentifier = try await saveAfterImage(
+            data: afterData,
             utType: afterUTType,
             isDeferredProxy: isDeferredProxy,
+            isTutorial: pair.isTutorial,
         )
         pair.afterPhotoLocalIdentifier = localIdentifier
         pair.afterCapturedAt = timestamp
@@ -48,5 +52,21 @@ final class CaptureAfterUseCase {
         }
         try await pairRepo.update(pair)
         return pair
+    }
+
+    private func saveAfterImage(
+        data: Data,
+        utType: UTType,
+        isDeferredProxy: Bool,
+        isTutorial: Bool,
+    ) async throws -> String {
+        if isTutorial, let tutorialPhotoStore {
+            return try await tutorialPhotoStore.save(data: data, utType: utType)
+        }
+        return try await photoLibrary.saveImage(
+            data,
+            utType: utType,
+            isDeferredProxy: isDeferredProxy,
+        )
     }
 }

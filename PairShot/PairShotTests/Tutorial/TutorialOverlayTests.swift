@@ -17,8 +17,9 @@ struct TutorialOverlayTests {
     }
 
     @Test
-    func `TutorialStepCopy 는 모든 step 에 비어있지 않은 텍스트 제공`() {
-        for step in TutorialStep.allCases {
+    func `TutorialStepCopy 는 모달 표시 step 에 비어있지 않은 텍스트 제공`() {
+        let hiddenModalSteps: Set<TutorialStep> = [.afterCameraInProgress]
+        for step in TutorialStep.allCases where !hiddenModalSteps.contains(step) {
             let text = TutorialStepCopy.text(for: step)
             #expect(!text.isEmpty, "step \(step) text must not be empty")
         }
@@ -72,10 +73,12 @@ struct TutorialOverlayTests {
     @Test
     func `TutorialMessageModal 구성 가능하다`() {
         let view = TutorialMessageModal(
-            step: .captureGuidePortrait,
             text: "테스트",
             progress: (current: 1, total: 13),
+            showsSkip: true,
             showsNext: true,
+            nextButtonLabelKey: "tutorial_button_next",
+            phoneOrientationAngle: nil,
             placement: .bottom,
             targetRect: CGRect(x: 100, y: 100, width: 80, height: 80),
             containerSize: CGSize(width: 400, height: 800),

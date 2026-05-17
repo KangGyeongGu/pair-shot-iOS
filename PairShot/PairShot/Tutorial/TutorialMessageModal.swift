@@ -4,22 +4,23 @@ struct TutorialMessageModal: View {
     enum Placement {
         case top
         case bottom
+        case centered
     }
 
     private static let horizontalPadding: CGFloat = 16
     private static let verticalEdgePadding: CGFloat = 20
-    private static let anchorGap: CGFloat = 16
+    private static let anchorGap: CGFloat = 36
     private static let cornerRadius: CGFloat = 16
     private static let cardPadding: CGFloat = 16
-    private static let minHeight: CGFloat = 180
-    private static let estimatedHeight: CGFloat = 220
-    private static let maxCardWidth: CGFloat = 320
-    private static let edgeRowHeight: CGFloat = 40
+    private static let estimatedHeight: CGFloat = 130
+    private static let maxCardWidth: CGFloat = 280
 
-    let step: TutorialStep
     let text: String
     let progress: (current: Int, total: Int)
+    let showsSkip: Bool
     let showsNext: Bool
+    let nextButtonLabelKey: String.LocalizationValue
+    let phoneOrientationAngle: Angle?
     let placement: Placement
     let targetRect: CGRect
     let containerSize: CGSize
@@ -53,15 +54,15 @@ struct TutorialMessageModal: View {
     }
 
     private var card: some View {
-        VStack(spacing: 0) {
+        VStack(spacing: 12) {
             topRow
-            Spacer(minLength: 0)
             messageContent
-            Spacer(minLength: 0)
-            bottomRow
+            if showsNext {
+                bottomRow
+            }
         }
         .padding(Self.cardPadding)
-        .frame(maxWidth: .infinity, minHeight: Self.minHeight)
+        .frame(maxWidth: .infinity)
         .background(
             RoundedRectangle(cornerRadius: Self.cornerRadius, style: .continuous)
                 .fill(Color(.secondarySystemBackground))
@@ -75,7 +76,7 @@ struct TutorialMessageModal: View {
 
     private var messageContent: some View {
         VStack(spacing: 12) {
-            if let rotation = PhoneOrientationGuide.targetRotation(for: step) {
+            if let rotation = phoneOrientationAngle {
                 PhoneOrientationGuide(targetRotation: rotation)
                     .frame(maxWidth: .infinity)
             }
@@ -94,30 +95,28 @@ struct TutorialMessageModal: View {
                 .font(.footnote.weight(.semibold).monospacedDigit())
                 .foregroundStyle(.secondary)
             Spacer(minLength: 0)
-            Button(action: onSkip) {
-                Text(String(localized: "tutorial_button_skip"))
-                    .font(.footnote.weight(.semibold))
-                    .foregroundStyle(Color.accentColor)
-            }
-            .buttonStyle(.plain)
-        }
-        .frame(height: Self.edgeRowHeight)
-        .frame(maxWidth: .infinity)
-    }
-
-    private var bottomRow: some View {
-        HStack(spacing: 12) {
-            Spacer(minLength: 0)
-            if showsNext {
-                Button(action: onNext) {
-                    Text(String(localized: "tutorial_button_next"))
+            if showsSkip {
+                Button(action: onSkip) {
+                    Text(String(localized: "tutorial_button_skip"))
                         .font(.footnote.weight(.semibold))
                         .foregroundStyle(Color.accentColor)
                 }
                 .buttonStyle(.plain)
             }
         }
-        .frame(height: Self.edgeRowHeight)
+        .frame(maxWidth: .infinity)
+    }
+
+    private var bottomRow: some View {
+        HStack(spacing: 12) {
+            Spacer(minLength: 0)
+            Button(action: onNext) {
+                Text(String(localized: nextButtonLabelKey))
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(Color.accentColor)
+            }
+            .buttonStyle(.plain)
+        }
         .frame(maxWidth: .infinity)
     }
 
@@ -133,13 +132,11 @@ struct TutorialMessageModal: View {
 
     static func showsNext(for step: TutorialStep) -> Bool {
         switch step {
-            case .captureGuidePortrait,
-                 .captureGuideLeft,
-                 .captureGuideRight,
-                 .selectionShare,
+            case .selectionShare,
                  .selectionSave,
                  .selectionDelete,
-                 .selectionExport:
+                 .selectionExport,
+                 .done:
                 true
 
             default:
@@ -164,9 +161,14 @@ struct TutorialMessageModal: View {
             return max(topLimit, containerSize.height / 2)
         }
 
+        if placement == .centered {
+            return containerSize.height / 2
+        }
+
         let preferredY: CGFloat = switch placement {
             case .top: targetRect.minY - gap - halfHeight
             case .bottom: targetRect.maxY + gap + halfHeight
+            case .centered: containerSize.height / 2
         }
 
         let fitsPreferred = preferredY >= topLimit && preferredY <= bottomLimit
@@ -186,7 +188,7 @@ struct TutorialMessageModal: View {
 }
 
 private struct ModalHeightKey: PreferenceKey {
-    static let defaultValue: CGFloat = 220
+    static let defaultValue: CGFloat = 130
 
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
         value = nextValue()

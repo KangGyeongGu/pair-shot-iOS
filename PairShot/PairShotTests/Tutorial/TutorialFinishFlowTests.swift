@@ -15,7 +15,7 @@ struct TutorialFinishFlowTests {
         try await pairRepo.add(tutorialB)
         let cleanup = TutorialCleanupService(
             container: container,
-            photoLibrary: PhotoLibraryService(),
+            tutorialPhotoStore: makeStore(),
         )
         let coord = TutorialCoordinator(current: .goSettings, cleanupService: cleanup)
 
@@ -46,7 +46,7 @@ struct TutorialFinishFlowTests {
         let container = try makeContainer()
         let cleanup = TutorialCleanupService(
             container: container,
-            photoLibrary: PhotoLibraryService(),
+            tutorialPhotoStore: makeStore(),
         )
         let coord = TutorialCoordinator()
         #expect(coord.cleanupService == nil)
@@ -58,5 +58,12 @@ struct TutorialFinishFlowTests {
         let schema = Schema(versionedSchema: SchemaV1.self)
         let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
         return try ModelContainer(for: schema, configurations: [configuration])
+    }
+
+    private func makeStore() -> TutorialPhotoStore {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("TutorialFinishFlowTests", isDirectory: true)
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        return TutorialPhotoStore(directoryURL: directory)
     }
 }

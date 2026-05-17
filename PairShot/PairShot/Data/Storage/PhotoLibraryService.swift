@@ -10,7 +10,11 @@ final nonisolated class PhotoLibraryService: Sendable {
         case deleteFailed(String)
     }
 
-    init() {}
+    private let tutorialPhotoStore: TutorialPhotoStore?
+
+    init(tutorialPhotoStore: TutorialPhotoStore? = nil) {
+        self.tutorialPhotoStore = tutorialPhotoStore
+    }
 
     nonisolated func authorize(level: PHAccessLevel = .addOnly) async -> PHAuthorizationStatus {
         let current = PHPhotoLibrary.authorizationStatus(for: level)
@@ -71,7 +75,13 @@ final nonisolated class PhotoLibraryService: Sendable {
     }
 
     nonisolated func deleteAssets(localIdentifiers: [String]) async throws {
-        let ids = localIdentifiers.filter { !$0.isEmpty }
+        let nonEmpty = localIdentifiers.filter { !$0.isEmpty }
+        guard !nonEmpty.isEmpty else { return }
+        let tutorialIds = nonEmpty.filter(TutorialPhotoStore.isTutorialIdentifier)
+        let ids = nonEmpty.filter { !TutorialPhotoStore.isTutorialIdentifier($0) }
+        if !tutorialIds.isEmpty, let tutorialPhotoStore {
+            try tutorialPhotoStore.delete(localIdentifiers: tutorialIds)
+        }
         guard !ids.isEmpty else { return }
         let assets = PHAsset.fetchAssets(withLocalIdentifiers: ids, options: nil)
         var collected: [PHAsset] = []
@@ -122,6 +132,9 @@ final nonisolated class PhotoLibraryService: Sendable {
         localIdentifier: String,
         progressHandler: (@Sendable (Double) -> Void)? = nil,
     ) async -> Data? {
+        if TutorialPhotoStore.isTutorialIdentifier(localIdentifier) {
+            return await tutorialPhotoStore?.loadData(localIdentifier: localIdentifier)
+        }
         guard let asset = fetchAsset(localIdentifier: localIdentifier) else { return nil }
         return await requestImageData(for: asset, progressHandler: progressHandler)
     }
@@ -145,8 +158,13 @@ final class PhotoLibraryThumbnailCache {
     private let cache: NSCache<NSString, UIImage>
     private let manager = PHCachingImageManager()
     private let failedKeys: NSCache<NSString, NSNumber>
+    private let tutorialPhotoStore: TutorialPhotoStore?
 
-    init(countLimit: Int = 256, totalCostLimit: Int = 64 * 1024 * 1024) {
+    init(
+        countLimit: Int = 256,
+        totalCostLimit: Int = 64 * 1024 * 1024,
+        tutorialPhotoStore: TutorialPhotoStore? = nil,
+    ) {
         let cache = NSCache<NSString, UIImage>()
         cache.countLimit = countLimit
         cache.totalCostLimit = totalCostLimit
@@ -154,6 +172,7 @@ final class PhotoLibraryThumbnailCache {
         let failed = NSCache<NSString, NSNumber>()
         failed.countLimit = 256
         failedKeys = failed
+        self.tutorialPhotoStore = tutorialPhotoStore
     }
 
     func cached(localIdentifier: String, targetSize: CGSize) -> UIImage? {
@@ -189,6 +208,9 @@ final class PhotoLibraryThumbnailCache {
         let key = cacheKey(localIdentifier, targetSize)
         if let hit = cache.object(forKey: key) { return hit }
         if failedKeys.object(forKey: key) != nil { return nil }
+        if TutorialPhotoStore.isTutorialIdentifier(localIdentifier) {
+            return await tutorialImage(for: localIdentifier, key: key)
+        }
         let assets = PHAsset.fetchAssets(withLocalIdentifiers: [localIdentifier], options: nil)
         guard let asset = assets.firstObject else {
             failedKeys.setObject(NSNumber(value: 1), forKey: key)
@@ -231,6 +253,21 @@ final class PhotoLibraryThumbnailCache {
         guard !localIdentifier.isEmpty else { return }
         cache.removeAllObjects()
         failedKeys.removeAllObjects()
+    }
+
+    private func tutorialImage(for localIdentifier: String, key: NSString) async -> UIImage? {
+        guard let tutorialPhotoStore else {
+            failedKeys.setObject(NSNumber(value: 1), forKey: key)
+            return nil
+        }
+        guard let data = await tutorialPhotoStore.loadData(localIdentifier: localIdentifier),
+              let image = UIImage(data: data)
+        else {
+            failedKeys.setObject(NSNumber(value: 1), forKey: key)
+            return nil
+        }
+        cache.setObject(image, forKey: key, cost: Self.estimatedByteCost(image))
+        return image
     }
 
     private func cacheKey(_ localIdentifier: String, _ targetSize: CGSize) -> NSString {

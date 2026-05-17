@@ -8,11 +8,12 @@ struct NativeAdCard: View {
 
     @Environment(NativeAdLoader.self) private var loader
     @Environment(Membership.self) private var membership
+    @Environment(TutorialCoordinator.self) private var tutorialCoordinator
     @State private var ad: Any?
 
     var body: some View {
         Group {
-            if membership.adFreeIsActive {
+            if AdSuppression.isSuppressed(membership: membership, tutorialCoordinator: tutorialCoordinator) {
                 EmptyView()
             } else {
                 cardBody

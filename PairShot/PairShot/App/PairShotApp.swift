@@ -38,6 +38,7 @@ struct PairShotApp: App {
                 .environment(env.membership)
                 .environment(env.exportCompletionCoordinator)
                 .environment(env.tutorialCoordinator)
+                .environment(env.exportTutorialCoordinator)
                 .tutorialModeBinding(env.tutorialCoordinator)
                 .environment(\.locale, env.appSettings.resolvedLocale)
                 .preferredColorScheme(env.appSettings.resolvedColorScheme)

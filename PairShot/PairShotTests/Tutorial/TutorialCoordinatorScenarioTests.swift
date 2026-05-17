@@ -14,6 +14,7 @@ struct TutorialCoordinatorScenarioTests {
             .backToHome,
             .tapPairCard,
             .afterCameraGuide,
+            .afterCameraInProgress,
             .backToHome2,
         ]
         var actual: [TutorialStep] = []

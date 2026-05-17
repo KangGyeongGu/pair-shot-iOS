@@ -10,10 +10,10 @@ enum RewardedSessionGate {
     static func shouldShowGate(
         unlockID: RewardedAdManager.UnlockID,
         sessionUnlocks: Set<RewardedAdManager.UnlockID>,
-        isAdFree: Bool,
-        isPro: Bool = false,
+        membership: Membership,
+        tutorialCoordinator: TutorialCoordinator? = nil,
     ) -> Bool {
-        if AdSuppression.isSuppressed(isAdFree: isAdFree, isPro: isPro) { return false }
+        if AdSuppression.isSuppressed(membership: membership, tutorialCoordinator: tutorialCoordinator) { return false }
         if sessionUnlocks.contains(unlockID) { return false }
         return true
     }
