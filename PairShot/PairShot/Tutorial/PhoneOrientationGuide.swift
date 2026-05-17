@@ -1,32 +1,37 @@
 import SwiftUI
 
 struct PhoneOrientationGuide: View {
+    enum RotationPhase: CaseIterable {
+        case start
+        case rotated
+        case faded
+    }
+
     private static let iconSize: CGFloat = 40
     private static let frameHeight: CGFloat = 64
-    private static let animationDuration: Double = 1.2
 
     let targetRotation: Angle
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var animatedRotation: Angle = .zero
 
     var body: some View {
-        Image(systemName: "iphone.gen3")
+        let base = Image(systemName: "iphone.gen3")
             .font(.system(size: Self.iconSize, weight: .regular))
             .foregroundStyle(.primary)
-            .rotationEffect(reduceMotion ? targetRotation : animatedRotation)
             .frame(height: Self.frameHeight)
-            .onAppear { startAnimationIfNeeded() }
-            .onChange(of: targetRotation) { _, _ in
-                animatedRotation = .zero
-                startAnimationIfNeeded()
+        if reduceMotion {
+            base.rotationEffect(targetRotation)
+        } else {
+            base.phaseAnimator(RotationPhase.allCases) { content, phase in
+                content
+                    .rotationEffect(phase == .start ? .zero : targetRotation)
+                    .opacity(phase == .faded ? 0 : 1)
+            } animation: { phase in
+                switch phase {
+                    case .start: .linear(duration: 0)
+                    case .rotated: .easeInOut(duration: 1.2)
+                    case .faded: .easeIn(duration: 0.4)
+                }
             }
-    }
-
-    private func startAnimationIfNeeded() {
-        guard !reduceMotion else { return }
-        animatedRotation = .zero
-        withAnimation(.easeInOut(duration: Self.animationDuration).repeatForever(autoreverses: true)) {
-            animatedRotation = targetRotation
         }
     }
 

@@ -4,14 +4,14 @@ import Observation
 @MainActor
 @Observable
 final class ExportTutorialCoordinator {
+    static var totalSteps: Int {
+        ExportTutorialStep.allCases.count
+    }
+
     private(set) var current: ExportTutorialStep?
 
     var isActive: Bool {
         current != nil
-    }
-
-    static var totalSteps: Int {
-        ExportTutorialStep.allCases.count
     }
 
     init(current: ExportTutorialStep? = nil) {
@@ -19,6 +19,7 @@ final class ExportTutorialCoordinator {
     }
 
     func start() {
+        guard current == nil else { return }
         current = .includes
     }
 

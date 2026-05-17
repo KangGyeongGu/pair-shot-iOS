@@ -47,19 +47,12 @@ struct PairShotApp: App {
                     if !env.permissionStatusService.hasRequestedInitialPermissions {
                         await env.permissionStatusService.requestAllInOrder()
                     }
-                    _ = await env.trackingService.requestIfUndetermined()
                     await bootstrapSubscription()
-                    if shouldBootstrapAdsNow() {
-                        await bootstrapAds()
-                    }
+                    await bootstrapAds()
                 }
                 .onChange(of: env.consentManager.canRequestAds) { _, canRequest in
                     guard canRequest, !hasBootstrappedAds else { return }
                     Task { @MainActor in await startAdsAfterConsent() }
-                }
-                .onChange(of: env.appSettings.hasCompletedFirstRunPaywall) { _, completed in
-                    guard completed, !hasBootstrappedAds, !env.membership.proIsActive else { return }
-                    Task { @MainActor in await bootstrapAds() }
                 }
         }
         .modelContainer(sharedModelContainer)
@@ -85,14 +78,10 @@ struct PairShotApp: App {
     }
 
     func bootstrapAds() async {
+        guard !env.membership.proIsActive else { return }
         await env.consentManager.bootstrap()
         guard env.consentManager.canRequestAds else { return }
         await startAdsAfterConsent()
-    }
-
-    private func shouldBootstrapAdsNow() -> Bool {
-        if env.membership.proIsActive { return false }
-        return env.appSettings.hasCompletedFirstRunPaywall
     }
 
     private func startAdsAfterConsent() async {

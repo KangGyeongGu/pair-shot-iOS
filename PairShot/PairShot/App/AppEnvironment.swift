@@ -127,7 +127,6 @@ final class AppEnvironment {
         self.motionService = foundation.motionService
         couponApiConfig = foundation.apiConfig
         deviceHashProvider = foundation.deviceHashProvider
-
         let adServices = bundles.adServices
         self.interstitialAdManager = adServices.interstitial
         self.rewardedAdManager = adServices.rewarded
@@ -135,7 +134,6 @@ final class AppEnvironment {
         self.appOpenAdManager = adServices.appOpen
         self.fullscreenAdCoordinator = adServices.fullscreen
         self.consentManager = adServices.consent
-
         let dataServices = bundles.dataServices
         location = dataServices.location
         photoLibraryExporter = dataServices.photoLibraryExporter
@@ -151,7 +149,6 @@ final class AppEnvironment {
             self.snackbarQueue.tutorialCoordinator = resolvedTutorialCoordinator
         }
         exportTutorialCoordinator = ExportTutorialCoordinator()
-
         let useCases = bundles.useCases
         createPair = useCases.createPair
         captureAfter = useCases.captureAfter
@@ -161,12 +158,10 @@ final class AppEnvironment {
         deletePairsKeepingCombined = useCases.deletePairsKeepingCombined
         exportPairs = useCases.exportPairs
         immediateExport = useCases.immediateExport
-
         let subscription = bundles.subscription
         self.productsService = subscription.productsService
         self.subscriptionStore = subscription.subscriptionStore
         self.transactionListener = subscription.transactionListener
-
         membership = bundles.membership
     }
 

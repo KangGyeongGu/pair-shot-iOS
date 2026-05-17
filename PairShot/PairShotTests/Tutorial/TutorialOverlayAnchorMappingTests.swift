@@ -11,6 +11,7 @@ struct TutorialOverlayAnchorMappingTests {
             TutorialAnchorID.homeFirstPairCard,
             TutorialAnchorID.afterShutter,
             TutorialAnchorID.afterHomeButton,
+            TutorialAnchorID.afterStrip,
         ]
         #expect(Set(ids).count == ids.count)
         for id in ids {
@@ -25,16 +26,18 @@ struct TutorialOverlayAnchorMappingTests {
         #expect(TutorialAnchorID.homeFirstPairCard == "home.firstPairCard")
         #expect(TutorialAnchorID.afterShutter == "after.shutter")
         #expect(TutorialAnchorID.afterHomeButton == "after.homeButton")
+        #expect(TutorialAnchorID.afterStrip == "after.strip")
     }
 
     @Test
-    func `step copy 는 P3 7 step 모두 비어있지 않음`() {
+    func `step copy 는 P3 step 모두 비어있지 않음`() {
         let p3Steps: [TutorialStep] = [
             .captureGuidePortrait,
             .captureGuideLeft,
             .captureGuideRight,
             .backToHome,
             .tapPairCard,
+            .afterCameraStrip,
             .afterCameraGuide,
             .backToHome2,
         ]

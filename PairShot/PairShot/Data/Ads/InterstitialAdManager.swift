@@ -51,10 +51,9 @@ final class InterstitialAdManager {
         promotionStore: PromotionStore? = nil,
         subscriptionStore: SubscriptionStore? = nil,
     ) {
-        if AdSuppression.isSuppressed(
+        if AdSuppression.isLoadSuppressed(
             promotionStore: promotionStore,
             subscriptionStore: subscriptionStore,
-            tutorialCoordinator: tutorialCoordinator,
         ) { return }
         guard !isLoaded, !isLoading else { return }
         let resolvedUnitID = adUnitID ?? AdsConfig.interstitial

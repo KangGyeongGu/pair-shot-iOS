@@ -2,6 +2,7 @@ import SwiftUI
 
 struct TutorialOverlay: View {
     private static let cutoutInset: CGFloat = -8
+    private static let stripHorizontalInset: CGFloat = 40
     private static let cutoutCornerRadius: CGFloat = 12
     private static let standardDimOpacity: Double = 0.55
 
@@ -16,11 +17,6 @@ struct TutorialOverlay: View {
         .ignoresSafeArea()
         .allowsHitTesting(Self.shouldBlockHitTesting(step: coord.current))
         .animation(reduceMotion ? nil : .easeInOut(duration: 0.25), value: coord.current)
-    }
-
-    static func shouldBlockHitTesting(step: TutorialStep?) -> Bool {
-        guard let step else { return false }
-        return step != .afterCameraInProgress
     }
 
     @ViewBuilder
@@ -79,7 +75,10 @@ struct TutorialOverlay: View {
         containerSize: CGSize,
         safeAreaInsets: EdgeInsets,
     ) -> some View {
-        let rect = rawRect.insetBy(dx: Self.cutoutInset, dy: Self.cutoutInset)
+        let baseRect = rawRect.insetBy(dx: Self.cutoutInset, dy: Self.cutoutInset)
+        let rect: CGRect = step == .afterCameraStrip
+            ? baseRect.insetBy(dx: Self.stripHorizontalInset, dy: 0)
+            : baseRect
         let opacity = Self.dimOpacity(for: step)
         let placement = TutorialMessageModal.placement(for: rect, containerSize: containerSize)
         let progress = coord.progress(for: step) ?? (current: 1, total: TutorialCoordinator.totalProgressSteps)
@@ -90,7 +89,7 @@ struct TutorialOverlay: View {
                 cornerRadius: Self.cutoutCornerRadius,
                 opacity: opacity,
             )
-            if opacity == 0 {
+            if opacity == 0 || step == .afterCameraStrip {
                 SpotlightRing(
                     cutout: rect,
                     cornerRadius: Self.cutoutCornerRadius,
@@ -113,22 +112,6 @@ struct TutorialOverlay: View {
         }
     }
 
-    static func dimOpacity(for step: TutorialStep) -> Double {
-        switch step {
-            case .captureGuidePortrait,
-                 .captureGuideLeft,
-                 .captureGuideRight,
-                 .afterCameraGuide,
-                 .afterCameraInProgress,
-                 .backToHome,
-                 .backToHome2:
-                0
-
-            default:
-                standardDimOpacity
-        }
-    }
-
     private func anchorID(for step: TutorialStep) -> String? {
         switch step {
             case .captureGuidePortrait,
@@ -141,6 +124,9 @@ struct TutorialOverlay: View {
 
             case .tapPairCard:
                 TutorialAnchorID.homeFirstPairCard
+
+            case .afterCameraStrip:
+                TutorialAnchorID.afterStrip
 
             case .afterCameraGuide:
                 TutorialAnchorID.afterShutter
@@ -171,6 +157,27 @@ struct TutorialOverlay: View {
 
             case .done:
                 nil
+        }
+    }
+
+    static func shouldBlockHitTesting(step: TutorialStep?) -> Bool {
+        guard let step else { return false }
+        return step != .afterCameraInProgress
+    }
+
+    static func dimOpacity(for step: TutorialStep) -> Double {
+        switch step {
+            case .captureGuidePortrait,
+                 .captureGuideLeft,
+                 .captureGuideRight,
+                 .afterCameraGuide,
+                 .afterCameraInProgress,
+                 .backToHome,
+                 .backToHome2:
+                0
+
+            default:
+                standardDimOpacity
         }
     }
 }

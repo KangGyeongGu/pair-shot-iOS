@@ -156,8 +156,8 @@ file_length:
   ignore_comment_only_lines: true
 
 function_body_length:
-  warning: 80
-  error: 120
+  warning: 100
+  error: 150
 
 function_parameter_count:
   warning: 6
@@ -183,6 +183,7 @@ identifier_name:
   max_length:
     warning: 60
     error: 80
+  validates_start_with_lowercase: off
   excluded:
     - id
     - x

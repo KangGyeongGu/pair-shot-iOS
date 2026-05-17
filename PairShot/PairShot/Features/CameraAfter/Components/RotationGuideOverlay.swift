@@ -7,49 +7,56 @@ enum RotationGuideDirection {
 }
 
 struct RotationGuideOverlay: View {
+    enum RotationPhase: CaseIterable {
+        case start
+        case rotated
+        case faded
+    }
+
     let direction: RotationGuideDirection
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    @State private var animateRotation: Bool = false
-
     var body: some View {
         if direction != .upright {
-            HStack(spacing: AppSpacing.sm) {
-                Image(systemName: symbolName)
-                    .font(.title.weight(.semibold))
-                    .foregroundStyle(.white)
-                    .rotationEffect(.degrees(animateRotation ? targetAngle : 0))
-                    .animation(
-                        reduceMotion
-                            ? nil
-                            : .easeInOut(duration: 1.0).repeatForever(autoreverses: true),
-                        value: animateRotation,
-                    )
+            VStack(spacing: AppSpacing.md) {
+                iconView
                 Text(label)
                     .font(.appBody)
                     .foregroundStyle(.white)
+                    .multilineTextAlignment(.center)
             }
-            .padding(.horizontal, AppSpacing.lg)
-            .padding(.vertical, AppSpacing.md)
+            .frame(width: 160, height: 160)
             .adaptiveGlass(
-                in: RoundedRectangle(cornerRadius: 12, style: .continuous),
+                in: RoundedRectangle(cornerRadius: 16, style: .continuous),
                 legacyFill: .black.opacity(0.6),
                 kind: .regular,
             )
+            .environment(\.colorScheme, .dark)
             .accessibilityElement(children: .combine)
             .accessibilityLabel(label)
-            .onAppear {
-                if !reduceMotion { animateRotation = true }
-            }
         }
     }
 
-    private var symbolName: String {
-        switch direction {
-            case .left: "arrow.counterclockwise"
-            case .right: "arrow.clockwise"
-            case .upright: ""
+    @ViewBuilder
+    private var iconView: some View {
+        let base = Image(systemName: "iphone")
+            .font(.system(size: 40, weight: .semibold))
+            .foregroundStyle(.white)
+        if reduceMotion {
+            base
+        } else {
+            base.phaseAnimator(RotationPhase.allCases) { content, phase in
+                content
+                    .rotationEffect(.degrees(phase == .start ? 0 : targetAngle))
+                    .opacity(phase == .faded ? 0 : 1)
+            } animation: { phase in
+                switch phase {
+                    case .start: .linear(duration: 0)
+                    case .rotated: .easeInOut(duration: 1.2)
+                    case .faded: .easeIn(duration: 0.4)
+                }
+            }
         }
     }
 
@@ -82,7 +89,12 @@ extension RotationGuideDirection {
             return
         }
         let diff = (device.rawValue - capture.rawValue + 4) % 4
-        self = diff == 3 ? .right : .left
+        switch diff {
+            case 1: self = .left
+            case 2: self = capture == .landscapeLeft ? .left : .right
+            case 3: self = .right
+            default: self = .upright
+        }
     }
 }
 

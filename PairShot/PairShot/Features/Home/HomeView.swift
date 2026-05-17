@@ -247,7 +247,7 @@ struct HomeView: View {
                     Task { await viewModel.exportPair(pair) }
                 } label: {
                     Label(
-                        String(localized: "common_button_export"),
+                        String(localized: "common_button_save_to_device"),
                         systemImage: "square.and.arrow.down",
                     )
                 }
@@ -319,10 +319,6 @@ struct HomeView: View {
 }
 
 extension HomeView {
-    static func formatDateHeader(_ date: Date, now _: Date = .now, calendar: Calendar = .current) -> String {
-        HomeDateFormatter.base(for: date, calendar: calendar)
-    }
-
     func ensureViewModel() {
         if viewModel == nil {
             viewModel = env.makeHomeViewModel()
@@ -336,6 +332,10 @@ extension HomeView {
             return
         }
         onPushSettings?()
+    }
+
+    static func formatDateHeader(_ date: Date, now _: Date = .now, calendar: Calendar = .current) -> String {
+        HomeDateFormatter.base(for: date, calendar: calendar)
     }
 }
 

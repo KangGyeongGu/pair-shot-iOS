@@ -3,7 +3,7 @@ import SwiftUI
 struct ExportTutorialOverlay: View {
     private static let cutoutInset: CGFloat = -8
     private static let cutoutCornerRadius: CGFloat = 12
-    private static let dimOpacity: Double = 0.55
+    private static let dimOpacity: Double = 0.78
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(ExportTutorialCoordinator.self) private var coord

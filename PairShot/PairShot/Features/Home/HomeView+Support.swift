@@ -65,6 +65,7 @@ struct HomeDefaultToolbar: ToolbarContent {
             HStack(spacing: 4) {
                 Text(String(localized: "PairShot"))
                     .font(.title3.weight(.semibold))
+                    .foregroundStyle(.primary)
                 if isPro {
                     Text(verbatim: "Pro")
                         .font(.caption.weight(.bold))

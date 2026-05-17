@@ -76,6 +76,7 @@ struct AfterCameraStack: View {
                     .frame(maxWidth: .infinity)
                     .frame(height: layout.stripHeight)
                     .clipped()
+                    .tutorialAnchor(TutorialAnchorID.afterStrip)
 
                     CameraBottomBar(
                         isCapturing: isCapturing,

@@ -7,12 +7,23 @@ struct TutorialMessageModal: View {
         case centered
     }
 
+    struct CardCenterYInput {
+        let placement: Placement
+        let targetRect: CGRect
+        let containerSize: CGSize
+        let safeAreaInsets: EdgeInsets
+        let cardHeight: CGFloat
+        let gap: CGFloat
+        let edgePadding: CGFloat
+    }
+
     private static let horizontalPadding: CGFloat = 16
     private static let verticalEdgePadding: CGFloat = 20
     private static let anchorGap: CGFloat = 36
     private static let cornerRadius: CGFloat = 16
     private static let cardPadding: CGFloat = 16
-    private static let estimatedHeight: CGFloat = 130
+    private static let messageVerticalPadding: CGFloat = 12
+    private static let estimatedHeight: CGFloat = 150
     private static let maxCardWidth: CGFloat = 280
 
     let text: String
@@ -29,11 +40,12 @@ struct TutorialMessageModal: View {
     let onNext: () -> Void
 
     @State private var measuredHeight: CGFloat = Self.estimatedHeight
+    @State private var showSkipConfirm = false
 
     var body: some View {
         let availableWidth = max(0, containerSize.width - Self.horizontalPadding * 2)
         let width = min(availableWidth, Self.maxCardWidth)
-        let centerY = Self.cardCenterY(
+        let centerY = Self.cardCenterY(input: CardCenterYInput(
             placement: placement,
             targetRect: targetRect,
             containerSize: containerSize,
@@ -41,7 +53,7 @@ struct TutorialMessageModal: View {
             cardHeight: measuredHeight,
             gap: Self.anchorGap,
             edgePadding: Self.verticalEdgePadding,
-        )
+        ))
         card
             .frame(width: width)
             .background(heightReader)
@@ -51,12 +63,22 @@ struct TutorialMessageModal: View {
                     measuredHeight = newValue
                 }
             }
+            .alert(
+                String(localized: "tutorial_skip_confirm_title"),
+                isPresented: $showSkipConfirm,
+            ) {
+                Button(String(localized: "common_button_cancel"), role: .cancel) {}
+                Button(String(localized: "tutorial_skip_confirm_end"), role: .destructive) {
+                    onSkip()
+                }
+            }
     }
 
     private var card: some View {
         VStack(spacing: 12) {
             topRow
             messageContent
+                .padding(.vertical, Self.messageVerticalPadding)
             if showsNext {
                 bottomRow
             }
@@ -96,7 +118,9 @@ struct TutorialMessageModal: View {
                 .foregroundStyle(.secondary)
             Spacer(minLength: 0)
             if showsSkip {
-                Button(action: onSkip) {
+                Button {
+                    showSkipConfirm = true
+                } label: {
                     Text(String(localized: "tutorial_button_skip"))
                         .font(.footnote.weight(.semibold))
                         .foregroundStyle(Color.accentColor)
@@ -132,7 +156,8 @@ struct TutorialMessageModal: View {
 
     static func showsNext(for step: TutorialStep) -> Bool {
         switch step {
-            case .selectionShare,
+            case .afterCameraStrip,
+                 .selectionShare,
                  .selectionSave,
                  .selectionDelete,
                  .selectionExport,
@@ -144,31 +169,23 @@ struct TutorialMessageModal: View {
         }
     }
 
-    static func cardCenterY(
-        placement: Placement,
-        targetRect: CGRect,
-        containerSize: CGSize,
-        safeAreaInsets: EdgeInsets,
-        cardHeight: CGFloat,
-        gap: CGFloat,
-        edgePadding: CGFloat,
-    ) -> CGFloat {
-        let halfHeight = cardHeight / 2
-        let topLimit = safeAreaInsets.top + edgePadding + halfHeight
-        let bottomLimit = containerSize.height - safeAreaInsets.bottom - edgePadding - halfHeight
+    static func cardCenterY(input: CardCenterYInput) -> CGFloat {
+        let halfHeight = input.cardHeight / 2
+        let topLimit = input.safeAreaInsets.top + input.edgePadding + halfHeight
+        let bottomLimit = input.containerSize.height - input.safeAreaInsets.bottom - input.edgePadding - halfHeight
 
         guard bottomLimit >= topLimit else {
-            return max(topLimit, containerSize.height / 2)
+            return max(topLimit, input.containerSize.height / 2)
         }
 
-        if placement == .centered {
-            return containerSize.height / 2
+        if input.placement == .centered {
+            return input.containerSize.height / 2
         }
 
-        let preferredY: CGFloat = switch placement {
-            case .top: targetRect.minY - gap - halfHeight
-            case .bottom: targetRect.maxY + gap + halfHeight
-            case .centered: containerSize.height / 2
+        let preferredY: CGFloat = switch input.placement {
+            case .top: input.targetRect.minY - input.gap - halfHeight
+            case .bottom: input.targetRect.maxY + input.gap + halfHeight
+            case .centered: input.containerSize.height / 2
         }
 
         let fitsPreferred = preferredY >= topLimit && preferredY <= bottomLimit
@@ -176,12 +193,13 @@ struct TutorialMessageModal: View {
             return preferredY
         }
 
-        let spaceAbove = targetRect.minY - safeAreaInsets.top - edgePadding - gap
-        let spaceBelow = containerSize.height - safeAreaInsets.bottom - edgePadding - gap - targetRect.maxY
+        let spaceAbove = input.targetRect.minY - input.safeAreaInsets.top - input.edgePadding - input.gap
+        let spaceBelow = input.containerSize.height - input.safeAreaInsets.bottom - input.edgePadding
+            - input.gap - input.targetRect.maxY
         let fallbackY: CGFloat = if spaceAbove >= spaceBelow {
-            targetRect.minY - gap - halfHeight
+            input.targetRect.minY - input.gap - halfHeight
         } else {
-            targetRect.maxY + gap + halfHeight
+            input.targetRect.maxY + input.gap + halfHeight
         }
         return min(max(fallbackY, topLimit), bottomLimit)
     }

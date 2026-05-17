@@ -37,10 +37,9 @@ final class NativeAdLoader: NSObject {
         promotionStore: PromotionStore? = nil,
         subscriptionStore: SubscriptionStore? = nil,
     ) {
-        if AdSuppression.isSuppressed(
+        if AdSuppression.isLoadSuppressed(
             promotionStore: promotionStore,
             subscriptionStore: subscriptionStore,
-            tutorialCoordinator: tutorialCoordinator,
         ) { return }
         guard count > 0 else { return }
         guard !isLoading else { return }

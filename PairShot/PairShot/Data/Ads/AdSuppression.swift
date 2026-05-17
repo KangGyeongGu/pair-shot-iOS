@@ -32,4 +32,14 @@ enum AdSuppression {
     ) -> Bool {
         isAdFree || isPro || tutorialActive
     }
+
+    static func isLoadSuppressed(
+        promotionStore: PromotionStore?,
+        subscriptionStore: SubscriptionStore?,
+    ) -> Bool {
+        let promotionAdFree = promotionStore?.adFreeIsActive ?? false
+        let promotionPro = promotionStore?.proIsActive ?? false
+        let subscriptionPro = subscriptionStore?.isPro ?? false
+        return promotionAdFree || promotionPro || subscriptionPro
+    }
 }

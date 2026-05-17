@@ -215,7 +215,7 @@ struct AlbumDetailView: View {
                     Task { await viewModel.exportPair(pair) }
                 } label: {
                     Label(
-                        String(localized: "common_button_export"),
+                        String(localized: "common_button_save_to_device"),
                         systemImage: "square.and.arrow.down",
                     )
                 }

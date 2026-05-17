@@ -28,6 +28,8 @@ final class AppOpenAdManager {
 
     private(set) var lastShownAt: Date?
 
+    private(set) var firstForegroundFired: Bool = false
+
     private let minimumInterval: TimeInterval
     private let trackingService: TrackingAuthorizationService?
     private let tutorialCoordinator: TutorialCoordinator?
@@ -57,10 +59,9 @@ final class AppOpenAdManager {
         promotionStore: PromotionStore? = nil,
         subscriptionStore: SubscriptionStore? = nil,
     ) {
-        if AdSuppression.isSuppressed(
+        if AdSuppression.isLoadSuppressed(
             promotionStore: promotionStore,
             subscriptionStore: subscriptionStore,
-            tutorialCoordinator: tutorialCoordinator,
         ) { return }
         guard !isLoaded, !isLoading else { return }
         let resolvedUnitID = adUnitID ?? AdsConfig.appOpen
@@ -117,6 +118,63 @@ final class AppOpenAdManager {
     private func resumeLoadWaiter(token: UUID) {
         guard let continuation = loadWaiters.removeValue(forKey: token) else { return }
         continuation.resume()
+    }
+
+    @discardableResult
+    func presentColdStartIfReady(
+        from rootViewController: UIViewController?,
+        coordinator: FullscreenAdCoordinator,
+        promotionStore: PromotionStore? = nil,
+        subscriptionStore: SubscriptionStore? = nil,
+        adUnitID: String? = nil,
+        loadTimeout: TimeInterval = 6,
+        now: Date = .now,
+    ) async -> Bool {
+        if firstForegroundFired { return false }
+        firstForegroundFired = true
+        if AdSuppression.isSuppressed(
+            promotionStore: promotionStore,
+            subscriptionStore: subscriptionStore,
+            tutorialCoordinator: tutorialCoordinator,
+        ) { return false }
+        if !isLoaded, !isLoading {
+            loadIfNeeded(
+                adUnitID: adUnitID,
+                promotionStore: promotionStore,
+                subscriptionStore: subscriptionStore,
+            )
+        }
+        if !isLoaded {
+            guard await waitForLoad(timeout: loadTimeout) else { return false }
+        }
+        guard await coordinator.tryAcquire() else { return false }
+
+        #if canImport(GoogleMobileAds)
+            guard let ad else {
+                await coordinator.release()
+                return false
+            }
+            presentationDelegate.onDismiss = { [weak coordinator] in
+                Task { await coordinator?.release() }
+            }
+            presentationDelegate.onFailToPresent = { [weak coordinator] in
+                Task { await coordinator?.release() }
+            }
+            ad.present(from: rootViewController)
+            lastShownAt = now
+            self.ad = nil
+            isLoaded = false
+            loadIfNeeded(
+                adUnitID: adUnitID ?? AdsConfig.appOpen,
+                promotionStore: promotionStore,
+                subscriptionStore: subscriptionStore,
+            )
+            return true
+        #else
+            lastShownAt = now
+            await coordinator.release()
+            return true
+        #endif
     }
 
     @discardableResult

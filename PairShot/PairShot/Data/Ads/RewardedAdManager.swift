@@ -42,6 +42,8 @@ final class RewardedAdManager {
     private let trackingService: TrackingAuthorizationService?
     private let tutorialCoordinator: TutorialCoordinator?
 
+    private var loadWaiters: [UUID: CheckedContinuation<Void, Never>] = [:]
+
     #if canImport(GoogleMobileAds)
         private var ad: RewardedAd?
         private let presentationDelegate: RewardedPresentationDelegate
@@ -63,10 +65,9 @@ final class RewardedAdManager {
         promotionStore: PromotionStore? = nil,
         subscriptionStore: SubscriptionStore? = nil,
     ) {
-        if AdSuppression.isSuppressed(
+        if AdSuppression.isLoadSuppressed(
             promotionStore: promotionStore,
             subscriptionStore: subscriptionStore,
-            tutorialCoordinator: tutorialCoordinator,
         ) { return }
         guard !isLoaded, !isLoading else { return }
         let resolvedUnitID = adUnitID ?? AdsConfig.rewarded
@@ -90,9 +91,39 @@ final class RewardedAdManager {
                         self.ad = nil
                         isLoaded = false
                     }
+                    resumeLoadWaiters()
                 }
             }
+        #else
+            resumeLoadWaiters()
         #endif
+    }
+
+    private func resumeLoadWaiters() {
+        let waiters = loadWaiters
+        loadWaiters.removeAll()
+        for (_, waiter) in waiters {
+            waiter.resume()
+        }
+    }
+
+    func waitForLoad(timeout: TimeInterval) async -> Bool {
+        if isLoaded { return true }
+        let token = UUID()
+        let timeoutTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .seconds(timeout))
+            self?.resumeLoadWaiter(token: token)
+        }
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            loadWaiters[token] = continuation
+        }
+        timeoutTask.cancel()
+        return isLoaded
+    }
+
+    private func resumeLoadWaiter(token: UUID) {
+        guard let continuation = loadWaiters.removeValue(forKey: token) else { return }
+        continuation.resume()
     }
 
     @discardableResult
@@ -117,6 +148,16 @@ final class RewardedAdManager {
             return .granted
         }
 
+        if !isLoaded {
+            if !isLoading {
+                loadIfNeeded(
+                    adUnitID: adUnitID,
+                    promotionStore: promotionStore,
+                    subscriptionStore: subscriptionStore,
+                )
+            }
+            _ = await waitForLoad(timeout: 3)
+        }
         guard isLoaded else { return .failed(reason: "not-loaded") }
         if let rootViewController, rootViewController.presentedViewController != nil {
             return .failed(reason: "already-presenting")

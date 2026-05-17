@@ -623,7 +623,7 @@
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "왼쪽으로 눕혀 주세요"
+            "value" : "기기를 왼쪽으로\n회전해주세요."
           }
         }
       }
@@ -640,7 +640,7 @@
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "오른쪽으로 눕혀 주세요"
+            "value" : "기기를 오른쪽으로\n회전해주세요."
           }
         }
       }
@@ -4846,6 +4846,57 @@
         }
       }
     },
+    "tutorial_skip_confirm_title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "End tutorial?"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "튜토리얼을 종료하시겠어요?"
+          }
+        }
+      }
+    },
+    "tutorial_skip_confirm_end" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "End"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "종료"
+          }
+        }
+      }
+    },
+    "common_button_help" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Help"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "도움말"
+          }
+        }
+      }
+    },
     "tutorial_msg_export_include" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4858,7 +4909,7 @@
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "어떤 사진들을 내보낼지 선택해요"
+            "value" : "어떤 사진들을 내보낼지 선택해요."
           }
         }
       }
@@ -4875,7 +4926,7 @@
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "개별 이미지 또는 ZIP 파일로 묶어서 내보낼 수 있어요"
+            "value" : "개별 이미지 또는 ZIP 파일로 묶어서 내보낼 수 있어요."
           }
         }
       }
@@ -4892,7 +4943,7 @@
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "내보낼 사진들에 워터마크를 적용할 수 있어요"
+            "value" : "내보낼 사진들에 워터마크를 적용할 수 있어요."
           }
         }
       }
@@ -4909,7 +4960,7 @@
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "내보낼 사진들에 테두리 등 합성을 적용할 수 있어요"
+            "value" : "내보낼 사진들에 테두리 등 합성을 적용할 수 있어요."
           }
         }
       }

@@ -6,6 +6,7 @@ nonisolated enum TutorialStep: Int, CaseIterable {
     case captureGuideRight
     case backToHome
     case tapPairCard
+    case afterCameraStrip
     case afterCameraGuide
     case afterCameraInProgress
     case backToHome2

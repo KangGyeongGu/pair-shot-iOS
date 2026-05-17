@@ -42,13 +42,6 @@ struct RewardedGateCoordinator {
         if shouldProceedWithoutGate(unlockID: unlockID, rewardedManager: rewardedManager) {
             return RewardedGateOutcome(result: .proceed, failureReason: nil)
         }
-        if !rewardedManager.isLoaded {
-            loadAd(rewardedManager: rewardedManager)
-            return RewardedGateOutcome(
-                result: .adNotReady,
-                failureReason: String(localized: "rewarded_gate_load_failed"),
-            )
-        }
         let outcome = await rewardedManager.presentForReward(
             unlockID,
             from: rootViewController,
@@ -71,6 +64,12 @@ struct RewardedGateCoordinator {
                 )
 
             case let .failed(reason):
+                if reason == "not-loaded" {
+                    return RewardedGateOutcome(
+                        result: .adNotReady,
+                        failureReason: String(localized: "rewarded_gate_load_failed"),
+                    )
+                }
                 let formatted = String(
                     format: String(localized: "rewarded_gate_failure_show_failed_template"),
                     reason,

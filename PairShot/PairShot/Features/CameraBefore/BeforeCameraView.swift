@@ -13,12 +13,12 @@ struct BeforeCameraView: View {
     @Environment(SubscriptionStore.self) private var subscriptionStore
 
     @State private var viewModel: BeforeCameraViewModel?
-    @State private var hasPresentedColdStartAppOpen = false
     @State private var didSubscribeMotion = false
     @State private var focusIndicator: FocusIndicatorState?
     @State private var previewView: CameraPreviewView?
     @State private var afterCameraTarget: AfterCameraTarget?
     @State private var showSettingsSheet = false
+    @AppStorage("ads.attRequested") private var attRequested = false
 
     var body: some View {
         ZStack {
@@ -39,12 +39,13 @@ struct BeforeCameraView: View {
             Task {
                 await vm.onAppear()
                 Task { @MainActor in
-                    guard !hasPresentedColdStartAppOpen, vm.cameraPermissionState == .granted else {
-                        return
+                    guard vm.cameraPermissionState == .granted else { return }
+                    if !attRequested {
+                        attRequested = true
+                        _ = await env.trackingService.requestIfUndetermined()
                     }
-                    hasPresentedColdStartAppOpen = true
                     await env.promotionStore.refresh()
-                    await env.appOpenAdManager.presentIfReady(
+                    await env.appOpenAdManager.presentColdStartIfReady(
                         from: BannerAdView.resolveRootViewController(),
                         coordinator: env.fullscreenAdCoordinator,
                         promotionStore: promotionStore,

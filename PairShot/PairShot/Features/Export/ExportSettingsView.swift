@@ -30,7 +30,13 @@ struct ExportSettingsView: View {
         .navigationTitle(String(localized: "export_settings_title"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                Button {
+                    exportTutorialCoordinator.start()
+                } label: {
+                    Image(systemName: "questionmark.circle")
+                }
+                .accessibilityLabel(String(localized: "common_button_help"))
                 Button { dismiss() } label: { Image(systemName: "xmark") }
                     .accessibilityLabel(String(localized: "common_button_close"))
             }
@@ -133,36 +139,6 @@ struct ExportSettingsView: View {
         .tutorialAnchor(ExportTutorialAnchorID.format)
     }
 
-    private func formatRow(
-        format: ExportFormat,
-        systemImage: String,
-        labelKey: String.LocalizationValue,
-        showsProBadge: Bool = false,
-    ) -> some View {
-        Button {
-            viewModel.selectFormat(format)
-        } label: {
-            HStack(spacing: 12) {
-                Image(systemName: systemImage)
-                    .foregroundStyle(.primary)
-                    .frame(width: 24)
-                Text(String(localized: labelKey))
-                    .foregroundStyle(.primary)
-                if showsProBadge {
-                    ProLockBadge()
-                }
-                Spacer()
-                if viewModel.format == format {
-                    Image(systemName: "checkmark")
-                        .font(.body.bold())
-                        .foregroundStyle(.tint)
-                }
-            }
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-    }
-
     private var watermarkCard: some View {
         ExportSettingsCard(header: "export_settings_section_watermark") {
             Toggle(
@@ -234,6 +210,36 @@ struct ExportSettingsView: View {
         self.viewModel = viewModel
         self.onPushWatermarkSettings = onPushWatermarkSettings
         self.onPushCombineSettings = onPushCombineSettings
+    }
+
+    private func formatRow(
+        format: ExportFormat,
+        systemImage: String,
+        labelKey: String.LocalizationValue,
+        showsProBadge: Bool = false,
+    ) -> some View {
+        Button {
+            viewModel.selectFormat(format)
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: systemImage)
+                    .foregroundStyle(.primary)
+                    .frame(width: 24)
+                Text(String(localized: labelKey))
+                    .foregroundStyle(.primary)
+                if showsProBadge {
+                    ProLockBadge()
+                }
+                Spacer()
+                if viewModel.format == format {
+                    Image(systemName: "checkmark")
+                        .font(.body.bold())
+                        .foregroundStyle(.tint)
+                }
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 
     private func userSettingsRowLabel(showsSetupNeeded: Bool = false) -> some View {

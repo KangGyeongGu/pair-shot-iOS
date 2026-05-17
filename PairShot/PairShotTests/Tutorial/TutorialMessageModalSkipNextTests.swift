@@ -113,7 +113,7 @@ struct TutorialMessageModalSkipNextTests {
         let insets = EdgeInsets(top: 47, leading: 0, bottom: 34, trailing: 0)
         let cardHeight: CGFloat = 240
 
-        let y = TutorialMessageModal.cardCenterY(
+        let y = TutorialMessageModal.cardCenterY(input: TutorialMessageModal.CardCenterYInput(
             placement: .top,
             targetRect: shutterRect,
             containerSize: container,
@@ -121,7 +121,7 @@ struct TutorialMessageModalSkipNextTests {
             cardHeight: cardHeight,
             gap: 16,
             edgePadding: 20,
-        )
+        ))
 
         #expect(y + cardHeight / 2 <= shutterRect.minY)
         #expect(y - cardHeight / 2 >= insets.top + 20 - 0.01)
@@ -134,7 +134,7 @@ struct TutorialMessageModalSkipNextTests {
         let insets = EdgeInsets(top: 47, leading: 0, bottom: 34, trailing: 0)
         let cardHeight: CGFloat = 240
 
-        let y = TutorialMessageModal.cardCenterY(
+        let y = TutorialMessageModal.cardCenterY(input: TutorialMessageModal.CardCenterYInput(
             placement: .bottom,
             targetRect: topRect,
             containerSize: container,
@@ -142,7 +142,7 @@ struct TutorialMessageModalSkipNextTests {
             cardHeight: cardHeight,
             gap: 16,
             edgePadding: 20,
-        )
+        ))
 
         #expect(y - cardHeight / 2 >= topRect.maxY)
         #expect(y + cardHeight / 2 <= container.height - insets.bottom - 20 + 0.01)
@@ -155,7 +155,7 @@ struct TutorialMessageModalSkipNextTests {
         let insets = EdgeInsets(top: 20, leading: 0, bottom: 0, trailing: 0)
         let cardHeight: CGFloat = 260
 
-        let y = TutorialMessageModal.cardCenterY(
+        let y = TutorialMessageModal.cardCenterY(input: TutorialMessageModal.CardCenterYInput(
             placement: .top,
             targetRect: shutterRect,
             containerSize: container,
@@ -163,7 +163,7 @@ struct TutorialMessageModalSkipNextTests {
             cardHeight: cardHeight,
             gap: 16,
             edgePadding: 20,
-        )
+        ))
 
         #expect(y - cardHeight / 2 >= insets.top + 20 - 0.01)
         #expect(y + cardHeight / 2 <= container.height - insets.bottom - 20 + 0.01)
@@ -176,7 +176,7 @@ struct TutorialMessageModalSkipNextTests {
         let insets = EdgeInsets(top: 47, leading: 0, bottom: 34, trailing: 0)
         let cardHeight: CGFloat = 240
 
-        let y = TutorialMessageModal.cardCenterY(
+        let y = TutorialMessageModal.cardCenterY(input: TutorialMessageModal.CardCenterYInput(
             placement: .top,
             targetRect: midRectHighSpaceBelow,
             containerSize: container,
@@ -184,7 +184,7 @@ struct TutorialMessageModalSkipNextTests {
             cardHeight: cardHeight,
             gap: 16,
             edgePadding: 20,
-        )
+        ))
 
         #expect(y >= midRectHighSpaceBelow.maxY)
     }
