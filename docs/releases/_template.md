@@ -58,7 +58,7 @@
 
 ## Commits
 
-<git log <prev>..HEAD --format='- %h %s' 결과를 그대로 붙임. release-gate 스킬이 자동 채움.>
+<git log <prev>..HEAD --format='- %h %s' 결과를 그대로 붙임. cut-release 스킬이 자동 채움.>
 
 - <short-sha> <subject>
 - ...

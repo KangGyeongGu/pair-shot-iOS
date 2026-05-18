@@ -81,7 +81,7 @@ bump 기준:
 
 ### 언제 만드나
 
-`/release-gate` 스킬 (§4) 의 마지막 단계에서 release notes commit 에 annotated tag 자동 생성. 사람·AI 가 수동으로 태깅하지 않음.
+`/cut-release` 스킬 (§4) 의 마지막 단계에서 release notes commit 에 annotated tag 자동 생성. 사람·AI 가 수동으로 태깅하지 않음.
 
 ### 불변성
 
@@ -105,7 +105,7 @@ git push origin v<version>
 
 `docs/releases/v<version>.md` — git 추적.
 
-새 릴리즈 작성 시 `docs/releases/_template.md` 복사 후 채움. `/release-gate` 스킬이 자동으로 초안 생성.
+새 릴리즈 작성 시 `docs/releases/_template.md` 복사 후 채움. `/cut-release` 스킬이 자동으로 초안 생성.
 
 ### 양식
 
@@ -174,9 +174,9 @@ gh release create v<version> \
    git push origin --delete feature/<scope>/<name>
    ```
 
-### 4.2 새 버전 릴리즈 — `/release-gate` 스킬 단일 진입
+### 4.2 새 버전 릴리즈 — `/cut-release` 스킬 단일 진입
 
-복수 feature 가 `release/v1.x` 에 누적되어 새 버전을 출시할 시점, `/release-gate` 스킬을 호출하면 아래 표의 단계를 순차 자동 실행. 첫 실패에서 중단.
+복수 feature 가 `release/v1.x` 에 누적되어 새 버전을 출시할 시점, `/cut-release` 스킬을 호출하면 아래 표의 단계를 순차 자동 실행. 첫 실패에서 중단.
 
 | 단계 | 카테고리 | 도구·스킬 |
 |---|---|---|
@@ -190,11 +190,11 @@ gh release create v<version> \
 | 8 | Commit (`docs(release): v<version>`) + annotated tag `v<version>` | `Bash(git *)` |
 | 9 | push / PR / GitHub Release 명령 안내 | (스킬은 실행 안 함) |
 
-자세한 단계 정의는 `.claude/skills/release-gate/SKILL.md` 참조.
+자세한 단계 정의는 `.claude/skills/cut-release/SKILL.md` 참조.
 
 ### 4.3 출시 단계 (사용자 명시 지시 후)
 
-`/release-gate` 가 step 9 에서 안내하는 명령을 사용자가 직접 실행:
+`/cut-release` 가 step 9 에서 안내하는 명령을 사용자가 직접 실행:
 
 ```bash
 # 1. push (작업 브랜치 + tag)
@@ -227,7 +227,7 @@ GitHub Actions 등 CI 는 운용하지 않음. 모든 검증은 로컬에서 스
 | feature 작업 중 (저장 후 자동) | post-edit hook | `swiftformat` + `swiftlint --fix` |
 | feature 완료 직전 | `/verify-static` | SwiftFormat lint + SwiftLint strict + Periphery + xcodebuild analyze |
 | 큰 리팩토링·동작 변경 후 | `/verify-dynamic` | SwiftData 마이그레이션 + ASan/TSan + Coverage + Instruments + 수동 시나리오 |
-| 새 버전 출시 직전 1회 | `/release-gate v<x.y.z>` | git preflight + verify-static + verify-dynamic + verify-release + 릴리즈 노트 + tag |
+| 새 버전 출시 직전 1회 | `/cut-release v<x.y.z>` | git preflight + verify-static + verify-dynamic + verify-release + 릴리즈 노트 + tag |
 
 ### Branch Protection (GitHub UI 권장)
 
@@ -254,7 +254,7 @@ Settings → Branches → `main`, `release/v1.x`:
 
 3. CI 통과 → 머지.
 
-4. `/release-gate v1.x.(y+1)` 호출 → release notes + tag → push → GitHub Release.
+4. `/cut-release v1.x.(y+1)` 호출 → release notes + tag → push → GitHub Release.
 
 5. App Store 심사 시 critical hotfix 의 경우 expedited review 신청 (App Store Connect → Resolution Center).
 
@@ -278,7 +278,7 @@ Settings → Branches → `main`, `release/v1.x`:
 - ❌ Co-authored-by 트레일러를 commit 메시지에 포함
 - ❌ `--no-verify` 로 hook 우회
 - ❌ 사용자 명시 지시 전 push / merge / GitHub Release 생성
-- ❌ `/release-gate` step 7 의 검토 단계 건너뛰고 commit + tag
+- ❌ `/cut-release` step 7 의 검토 단계 건너뛰고 commit + tag
 
 ---
 
@@ -287,7 +287,7 @@ Settings → Branches → `main`, `release/v1.x`:
 - `CLAUDE.md` — iOS 빌드/테스트 명령, commit policy, 검증 cadence
 - `docs/releases/_template.md` — 릴리즈 노트 양식
 - `docs/project-docs/` — 기능 명세 6종 (overview / screens / data-model / capture-and-export / ads-and-coupon / architecture)
-- `.claude/skills/release-gate/SKILL.md` — 릴리즈 게이트 스킬 상세
+- `.claude/skills/cut-release/SKILL.md` — 릴리즈 게이트 스킬 상세
 - `.claude/skills/verify-static/SKILL.md` — 정적 검증
 - `.claude/skills/verify-dynamic/SKILL.md` — 동적 검증
 - `.claude/skills/verify-release/SKILL.md` — 배포 정합 검증
