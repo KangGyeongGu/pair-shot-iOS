@@ -6,8 +6,8 @@ struct TutorialStepProgressTests {
     @Test
     func `totalProgressSteps 는 done 제외 allCases 개수`() {
         #expect(TutorialCoordinator.totalProgressSteps == TutorialStep.allCases.count - 1)
-        #expect(TutorialCoordinator.totalProgressSteps == 14)
-        #expect(TutorialStep.allCases.count == 15)
+        #expect(TutorialCoordinator.totalProgressSteps == 15)
+        #expect(TutorialStep.allCases.count == 16)
     }
 
     @Test

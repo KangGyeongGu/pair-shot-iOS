@@ -41,12 +41,12 @@ struct ExportQualityTests {
 
     @MainActor
     @Test
-    func `AppSettings defaults to high preset`() {
+    func `AppSettings defaults to lossless preset`() {
         let suiteName = "ExportQualityTests-\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName) ?? .standard
         defer { defaults.removePersistentDomain(forName: suiteName) }
         let settings = AppSettings(defaults: defaults)
-        #expect(settings.exportQuality == .high)
+        #expect(settings.exportQuality == .lossless)
     }
 
     @MainActor

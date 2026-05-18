@@ -36,9 +36,9 @@ struct AppSettingsDefaultsRegistrationTests {
     }
 
     @Test
-    func `registry 는 export quality high 를 기본으로 한다`() {
+    func `registry 는 export quality lossless 를 기본으로 한다`() {
         let registry = AppSettingsDefaultsRegistration.registry
 
-        #expect(registry[AppSettingsKeys.exportQuality] as? String == ExportQuality.high.rawValue)
+        #expect(registry[AppSettingsKeys.exportQuality] as? String == ExportQuality.lossless.rawValue)
     }
 }

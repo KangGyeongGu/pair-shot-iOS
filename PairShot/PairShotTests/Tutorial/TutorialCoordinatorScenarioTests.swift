@@ -13,6 +13,7 @@ struct TutorialCoordinatorScenarioTests {
             .captureGuideRight,
             .backToHome,
             .tapPairCard,
+            .afterCameraStrip,
             .afterCameraGuide,
             .afterCameraInProgress,
             .backToHome2,

@@ -92,11 +92,37 @@ check_api_category() {
 
 check_top_keys
 
+SCAN_ROOT="${SCAN_ROOT:-PairShot/PairShot}"
+SCAN_INCLUDE=(--include="*.swift" --include="*.m" --include="*.mm")
+
+uses_pattern() {
+    grep -qrE "$1" "$SCAN_ROOT" "${SCAN_INCLUDE[@]}" 2>/dev/null
+}
+
+USES_USERDEFAULTS=0
+USES_FILETIMESTAMP=0
+USES_DISKSPACE=0
+uses_pattern "UserDefaults|NSUserDefaults|NSUbiquitousKeyValueStore" && USES_USERDEFAULTS=1
+uses_pattern "contentModificationDateKey|creationDateKey|attributeModificationDateKey|contentAccessDateKey" && USES_FILETIMESTAMP=1
+uses_pattern "volumeAvailableCapacityKey|volumeAvailableCapacityForImportantUsageKey|volumeTotalCapacityKey" && USES_DISKSPACE=1
+
 echo
-echo "=== Required Reason API categories ==="
-check_api_category "NSPrivacyAccessedAPICategoryUserDefaults" "CA92.1"
-check_api_category "NSPrivacyAccessedAPICategoryFileTimestamp" "C617.1"
-check_api_category "NSPrivacyAccessedAPICategoryDiskSpace" "E174.1"
+echo "=== Required Reason API categories (사용 여부 기반) ==="
+if (( USES_USERDEFAULTS == 1 )); then
+    check_api_category "NSPrivacyAccessedAPICategoryUserDefaults" "CA92.1"
+else
+    echo "SKIP UserDefaults (코드 미사용)"
+fi
+if (( USES_FILETIMESTAMP == 1 )); then
+    check_api_category "NSPrivacyAccessedAPICategoryFileTimestamp" "C617.1"
+else
+    echo "SKIP FileTimestamp (코드 미사용)"
+fi
+if (( USES_DISKSPACE == 1 )); then
+    check_api_category "NSPrivacyAccessedAPICategoryDiskSpace" "E174.1"
+else
+    echo "SKIP DiskSpace (코드 미사용)"
+fi
 
 echo
 if (( EXIT == 0 )); then

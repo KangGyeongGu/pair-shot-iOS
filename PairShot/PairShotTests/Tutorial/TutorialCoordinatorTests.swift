@@ -67,7 +67,7 @@ struct TutorialCoordinatorTests {
     @Test
     func `step rawValue 순서가 끊김 없이 연속`() {
         let all = TutorialStep.allCases
-        #expect(all.count == 15)
+        #expect(all.count == 16)
         #expect(all.first == .captureGuidePortrait)
         #expect(all.last == .done)
         for (idx, step) in all.enumerated() {

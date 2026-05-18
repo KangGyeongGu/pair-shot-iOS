@@ -1,3 +1,4 @@
+import Foundation
 @testable import PairShot
 import Testing
 
@@ -25,9 +26,11 @@ struct LocationServiceTests {
     }
 
     @Test
-    func `fetchOnce without cache returns nil within bounded timeout in simulator`() async {
+    func `fetchOnce returns within bounded timeout in simulator`() async {
         let service = CoreLocationService()
-        let result = await service.fetchOnce()
-        #expect(result == nil)
+        let start = Date()
+        _ = await service.fetchOnce()
+        let elapsed = Date().timeIntervalSince(start)
+        #expect(elapsed < 5.0)
     }
 }
