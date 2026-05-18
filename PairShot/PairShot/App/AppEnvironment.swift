@@ -13,6 +13,7 @@ final class AppEnvironment {
     let deviceHashProvider: DeviceHashProvider
     let photoLibraryExporter: PhotoLibraryExport
     let photoLibrary: PhotoLibraryService
+    let photoLibrarySync: PhotoLibrarySyncService
 
     let createPair: CreatePairUseCase
     let captureAfter: CaptureAfterUseCase
@@ -138,6 +139,7 @@ final class AppEnvironment {
         location = dataServices.location
         photoLibraryExporter = dataServices.photoLibraryExporter
         photoLibrary = dataServices.photoLibrary
+        photoLibrarySync = PhotoLibrarySyncService(modelContainer: modelContainer)
         pairRepo = dataServices.pairRepo
         albumRepo = dataServices.albumRepo
         tutorialCleanupService = TutorialCleanupService(

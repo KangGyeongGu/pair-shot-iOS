@@ -119,6 +119,7 @@ struct PairShotApp: App {
 
         Task { @MainActor in
             await env.permissionStatusService.refreshAll()
+            env.photoLibrarySync.reconcile()
             guard hasBootstrappedAds else { return }
             await env.promotionStore.refresh()
             env.interstitialAdManager.loadIfNeeded(

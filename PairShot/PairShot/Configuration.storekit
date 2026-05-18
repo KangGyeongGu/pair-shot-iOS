@@ -37,7 +37,7 @@
   },
   "subscriptionGroups" : [
     {
-      "id" : "21461234",
+      "id" : "22097725",
       "localizations" : [
 
       ],
@@ -50,8 +50,8 @@
           "billingPlans" : [
             {
               "billingPlanType" : "BILLED_UPFRONT",
-              "commitmentDisplayPrice" : "4500",
-              "displayPrice" : "4500",
+              "commitmentDisplayPrice" : "5500",
+              "displayPrice" : "5500",
               "internalID" : "15239A81",
               "isEnabled" : true
             }
@@ -59,7 +59,7 @@
           "codeOffers" : [
 
           ],
-          "displayPrice" : "4500",
+          "displayPrice" : "5500",
           "familyShareable" : false,
           "groupNumber" : 1,
           "internalID" : "C7E5A2B1",
@@ -94,7 +94,7 @@
           "productID" : "app.pairshot.pro.monthly",
           "recurringSubscriptionPeriod" : "P1M",
           "referenceName" : "Pro Monthly",
-          "subscriptionGroupID" : "21461234",
+          "subscriptionGroupID" : "22097725",
           "type" : "RecurringSubscription",
           "winbackOffers" : [
 
@@ -107,8 +107,8 @@
           "billingPlans" : [
             {
               "billingPlanType" : "BILLED_UPFRONT",
-              "commitmentDisplayPrice" : "43200",
-              "displayPrice" : "43200",
+              "commitmentDisplayPrice" : "55000",
+              "displayPrice" : "55000",
               "internalID" : "CB83C41D",
               "isEnabled" : true
             }
@@ -116,7 +116,7 @@
           "codeOffers" : [
 
           ],
-          "displayPrice" : "43200",
+          "displayPrice" : "55000",
           "familyShareable" : false,
           "groupNumber" : 2,
           "internalID" : "E9F7C4D3",
@@ -151,7 +151,7 @@
           "productID" : "app.pairshot.pro.annual",
           "recurringSubscriptionPeriod" : "P1Y",
           "referenceName" : "Pro Annual",
-          "subscriptionGroupID" : "21461234",
+          "subscriptionGroupID" : "22097725",
           "type" : "RecurringSubscription",
           "winbackOffers" : [
 

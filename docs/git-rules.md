@@ -164,7 +164,7 @@ gh release create v<version> \
    gh pr create --base release/v1.x --head feature/<scope>/<name>
    ```
 
-4. CI 통과 확인 후 머지 (GitHub UI).
+4. 로컬 검증 (`/verify-static` + 필요 시 `/verify-dynamic`) 통과 확인 후 머지 (GitHub UI).
 
 5. 로컬 정리:
    ```bash
@@ -201,7 +201,7 @@ gh release create v<version> \
 git push origin feature/<scope>/<name>
 git push origin v<version>
 
-# 2. PR (feature → release/v1.x) 생성, CI 통과 후 머지 (GitHub UI)
+# 2. PR (feature → release/v1.x) 생성, 로컬 검증 통과 후 머지 (GitHub UI)
 
 # 3. main ff
 git checkout main
@@ -218,35 +218,24 @@ gh release create v<version> --title "v<version>" \
 
 ---
 
-## 5. CI 게이트 (`.github/workflows/ci.yml`)
+## 5. 검증 — 로컬 전용 (CI 미운용)
 
-### 트리거
+GitHub Actions 등 CI 는 운용하지 않음. 모든 검증은 로컬에서 스킬을 호출해 수행하고, 통과한 결과를 신뢰해 PR 머지.
 
-`push` + `pull_request` (`main`, `develop` → `main`, `release/v1.x` 로 갱신 필요).
-
-### Runner
-
-`macos-15` — xcodebuild 사용을 위한 macOS runner 필수.
-
-### Job 구성
-
-| Job | 명령 | 시간 |
+| 시점 | 스킬 | 내용 |
 |---|---|---|
-| `lint` | `swiftformat --lint` + `swiftlint --strict` | 30초~1분 |
-| `build` | Debug + Release 빌드 (Simulator) | 5~10분 |
-
-`xcconfig` 시크릿은 CI 에서 `Sample.xcconfig` 를 fallback 으로 복사해 빌드 통과.
-
-### 비용 고려
-
-GitHub Actions macOS runner 는 Linux 의 10× 분 차감. 1인 작업이라 무거운 archive-check 는 CI 에서 빼고 `/release-gate` 의 step 4 (`/verify-release`) 가 로컬에서 1회 처리.
+| feature 작업 중 (저장 후 자동) | post-edit hook | `swiftformat` + `swiftlint --fix` |
+| feature 완료 직전 | `/verify-static` | SwiftFormat lint + SwiftLint strict + Periphery + xcodebuild analyze |
+| 큰 리팩토링·동작 변경 후 | `/verify-dynamic` | SwiftData 마이그레이션 + ASan/TSan + Coverage + Instruments + 수동 시나리오 |
+| 새 버전 출시 직전 1회 | `/release-gate v<x.y.z>` | git preflight + verify-static + verify-dynamic + verify-release + 릴리즈 노트 + tag |
 
 ### Branch Protection (GitHub UI 권장)
 
 Settings → Branches → `main`, `release/v1.x`:
 - Require pull request before merging
-- Require status checks to pass (`lint`, `build`)
 - Restrict direct push
+
+(상태 검사 require 는 CI 가 없으므로 적용 안 함.)
 
 ---
 

@@ -1,7 +1,7 @@
 import Foundation
 
 nonisolated struct AppSettingsSnapshot: Equatable {
-    static let defaultExportQualityRawValue: String = "high"
+    static let defaultExportQualityRawValue: String = "lossless"
     static let defaultCompositeLayoutFallback: String = "horizontal"
     static let defaultLanguage: AppLanguage = .system
     static let defaultTheme: AppTheme = .system
