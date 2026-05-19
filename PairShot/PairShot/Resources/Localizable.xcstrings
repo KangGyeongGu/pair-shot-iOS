@@ -1481,23 +1481,6 @@
         }
       }
     },
-    "combine_field_opacity" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Opacity"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "불투명도"
-          }
-        }
-      }
-    },
     "combine_field_position" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1596,6 +1579,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "두께"
+          }
+        }
+      }
+    },
+    "combine_field_transparency" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transparency"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "투명도"
           }
         }
       }

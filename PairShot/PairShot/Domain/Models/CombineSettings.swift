@@ -109,7 +109,7 @@ nonisolated struct CombineSettings: Codable, Equatable {
         init(
             isEnabled: Bool = true,
             color: ColorRGBA = .black,
-            opacity: Double = 0.5,
+            opacity: Double = 1.0,
             cornerRadius: Double = 25.0,
             matchBorderColor: Bool = true,
         ) {

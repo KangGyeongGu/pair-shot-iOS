@@ -185,11 +185,11 @@ struct CombineSettingsView: View {
                     )
                 }
                 CombineSliderRow(
-                    title: String(localized: "combine_field_opacity"),
-                    value: $viewModel.settings.labelBackground.opacity,
+                    title: String(localized: "combine_field_transparency"),
+                    value: labelBackgroundTransparencyBinding,
                     range: CombineSettings.labelBackgroundOpacityRange,
                     step: nil,
-                    valueLabel: "\(Int((viewModel.settings.labelBackground.opacity * 100).rounded()))%",
+                    valueLabel: "\(Int(((1.0 - viewModel.settings.labelBackground.opacity) * 100).rounded()))%",
                 )
                 if viewModel.settings.labelMode == .free {
                     CombineSliderRow(
@@ -226,6 +226,13 @@ struct CombineSettingsView: View {
         Binding(
             get: { Color(rgba: viewModel.settings.labelBackground.color) },
             set: { viewModel.settings.labelBackground.color = ColorRGBA(color: $0) },
+        )
+    }
+
+    private var labelBackgroundTransparencyBinding: Binding<Double> {
+        Binding(
+            get: { 1.0 - viewModel.settings.labelBackground.opacity },
+            set: { viewModel.settings.labelBackground.opacity = 1.0 - $0 },
         )
     }
 }
