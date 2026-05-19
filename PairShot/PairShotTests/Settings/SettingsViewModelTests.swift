@@ -142,16 +142,24 @@ struct SettingsViewModelTests {
     }
 
     @Test
-    func `triggerPulse — flag true 설정 후 자동으로 false 로 복귀`() async {
+    func `triggerPulse — flag 즉시 true 로 설정 (동기적)`() {
         let env = Self.makeAppSettings()
         let viewModel = SettingsViewModel(appSettings: env)
         #expect(!viewModel.shouldPulseWatermark)
 
         viewModel.triggerPulse(\.shouldPulseWatermark)
         #expect(viewModel.shouldPulseWatermark)
+    }
 
-        try? await Task.sleep(nanoseconds: 200_000_000)
-        #expect(!viewModel.shouldPulseWatermark)
+    @Test
+    func `triggerPulse — delay 경과 후 flag 자동 false 복귀 (task value await)`() async {
+        let env = Self.makeAppSettings()
+        let viewModel = SettingsViewModel(appSettings: env)
+
+        let task = viewModel.triggerPulse(\.shouldPulseCombine, delay: .zero)
+        await task.value
+
+        #expect(!viewModel.shouldPulseCombine)
     }
 
     private static func makeAppSettings() -> AppSettings {

@@ -103,10 +103,14 @@ final class SettingsViewModel {
 }
 
 extension SettingsViewModel {
-    func triggerPulse(_ flag: ReferenceWritableKeyPath<SettingsViewModel, Bool>) {
+    @discardableResult
+    func triggerPulse(
+        _ flag: ReferenceWritableKeyPath<SettingsViewModel, Bool>,
+        delay: Duration = .milliseconds(50),
+    ) -> Task<Void, Never> {
         self[keyPath: flag] = true
-        Task { @MainActor in
-            try? await Task.sleep(nanoseconds: 50_000_000)
+        return Task { @MainActor in
+            try? await Task.sleep(for: delay)
             self[keyPath: flag] = false
         }
     }
