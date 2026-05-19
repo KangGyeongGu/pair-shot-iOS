@@ -19,16 +19,17 @@ enum ExportSaveEngine {
         deps: ExportSaveDependencies,
         onRenderOrSaveFailure: (@MainActor (SnackbarProgressHandle) -> Void)? = nil,
     ) async -> Int {
-        let total = max(1, jobs.count)
+        let totalJobs = max(1, jobs.count)
         let snackbar = deps.snackbarQueue
         let progressToken = progress.token
-        let counter = ExportProgressCounter(total: jobs.count) { fraction, done, total in
+        let counter = ExportProgressCounter(total: totalJobs * 2) { fraction, done, _ in
             Task { @MainActor in
+                let processed = min(done / 2, totalJobs)
                 snackbar.updateProgress(
                     SnackbarProgressHandle(token: progressToken),
                     value: fraction,
-                    processed: done,
-                    total: total,
+                    processed: processed,
+                    total: totalJobs,
                 )
             }
         }
@@ -62,17 +63,12 @@ enum ExportSaveEngine {
                     appSettings: deps.appSettings,
                 )
                 saved += 1
+                await counter.tick()
             } catch {
                 onRenderOrSaveFailure?(progress)
                 return saved
             }
         }
-        deps.snackbarQueue.updateProgress(
-            progress,
-            value: Double(saved) / Double(total),
-            processed: saved,
-            total: total,
-        )
         return saved
     }
 
