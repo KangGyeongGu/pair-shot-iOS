@@ -96,6 +96,7 @@ struct RootView: View {
             case .watermarkSettings: WatermarkSettingsView(viewModel: env.makeWatermarkSettingsViewModel())
             case .combineSettings: CombineSettingsView(viewModel: env.makeCombineSettingsViewModel())
             case .license: LicenseView()
+            case .businessInfo: BusinessInfoView()
             case .languagePicker: LanguagePickerView(viewModel: env.makeSettingsViewModel())
             case .themePicker: ThemePickerView(viewModel: env.makeSettingsViewModel())
             case .imageQualityPicker: ImageQualityPickerView(viewModel: env.makeSettingsViewModel())

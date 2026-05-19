@@ -286,6 +286,14 @@ struct SettingsStorageInfoSection: View {
                     Text(String(localized: "settings_item_license"))
                 }
             }
+            NavigationLink(value: Route.businessInfo) {
+                HStack(spacing: 12) {
+                    SettingsIconBadge(
+                        icon: SettingsRowIcon(systemImage: "building.2", color: .blue),
+                    )
+                    Text(String(localized: "settings_item_business_info"))
+                }
+            }
             HStack(spacing: 12) {
                 SettingsIconBadge(
                     icon: SettingsRowIcon(systemImage: "lock.shield", color: .blue),
