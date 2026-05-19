@@ -4,7 +4,7 @@ import UIKit
 
 @MainActor
 enum PromotionRedemptionLink {
-    private static var activeCoordinator: SafariDismissCoordinator?
+    private static var activeCoordinators: [SafariDismissCoordinator] = []
 
     static func open(
         config: CouponApiConfig,
@@ -14,12 +14,13 @@ enum PromotionRedemptionLink {
         guard let url = buildURL(config: config, deviceHash: deviceHashProvider.deviceHash()) else { return }
         guard let viewController = topViewController() else { return }
         let safari = SFSafariViewController(url: url)
-        let coordinator = SafariDismissCoordinator {
-            onDismiss()
-            Self.activeCoordinator = nil
+        let coordinator = SafariDismissCoordinator(onFinish: onDismiss)
+        coordinator.cleanup = { [weak coordinator] in
+            guard let coordinator else { return }
+            Self.activeCoordinators.removeAll { $0 === coordinator }
         }
         safari.delegate = coordinator
-        Self.activeCoordinator = coordinator
+        Self.activeCoordinators.append(coordinator)
         viewController.present(safari, animated: true)
     }
 
@@ -47,6 +48,7 @@ enum PromotionRedemptionLink {
 @MainActor
 final class SafariDismissCoordinator: NSObject, SFSafariViewControllerDelegate {
     private let onFinish: () -> Void
+    var cleanup: (() -> Void)?
 
     init(onFinish: @escaping () -> Void) {
         self.onFinish = onFinish
@@ -56,6 +58,7 @@ final class SafariDismissCoordinator: NSObject, SFSafariViewControllerDelegate {
     nonisolated func safariViewControllerDidFinish(_: SFSafariViewController) {
         MainActor.assumeIsolated {
             onFinish()
+            cleanup?()
         }
     }
 }
