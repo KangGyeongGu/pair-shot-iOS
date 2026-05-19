@@ -12,8 +12,11 @@ struct HomeBottomBarHost: View {
     var body: some View {
         contents
             .padding(.horizontal, 20)
+            .opacity(viewModel.showCreateAlbum ? 0 : 1)
+            .allowsHitTesting(!viewModel.showCreateAlbum)
             .animation(.easeInOut(duration: 0.2), value: viewModel.isSelectionMode)
             .animation(.easeInOut(duration: 0.2), value: viewModel.contentMode)
+            .animation(.easeInOut(duration: 0.15), value: viewModel.showCreateAlbum)
             .onChange(of: tutorialCoordinator.current) { _, newStep in
                 if newStep == .goSettings, viewModel.isSelectionMode {
                     viewModel.cancelSelection()
