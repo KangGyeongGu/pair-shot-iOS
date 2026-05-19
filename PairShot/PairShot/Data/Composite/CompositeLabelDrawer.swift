@@ -3,7 +3,7 @@ import Foundation
 import UIKit
 
 nonisolated enum CompositeLabelDrawer {
-    private enum LabelMetrics {
+    enum LabelMetrics {
         static let minFontSize: CGFloat = 10
         static let rectHeightFactor: CGFloat = 1.6
         static let horizontalPaddingFactor: CGFloat = 0.75
@@ -91,9 +91,9 @@ nonisolated enum CompositeLabelDrawer {
     }
 
     private static func drawLabel(_ ctx: LabelDrawContext) {
-        let fontSize = max(
-            CGFloat(ctx.settings.label.textSizePercent) * 0.01 * ctx.imageRect.height,
-            LabelMetrics.minFontSize,
+        let fontSize = resolveFontSize(
+            textSizePercent: ctx.settings.label.textSizePercent,
+            imageHeight: ctx.imageRect.height,
         )
         let attributed = makeAttributedText(text: ctx.text, settings: ctx.settings, fontSize: fontSize)
         let isFree = ctx.settings.labelMode == .free
@@ -103,7 +103,7 @@ nonisolated enum CompositeLabelDrawer {
             isFree: isFree,
             isBefore: ctx.isBefore,
             fontSize: fontSize,
-            attributed: attributed,
+            textWidth: attributed.size().width,
         )
         if ctx.settings.labelBackground.isEnabled {
             drawLabelBackground(
@@ -131,20 +131,24 @@ nonisolated enum CompositeLabelDrawer {
         return NSAttributedString(string: text, attributes: attributes)
     }
 
-    private static func computeLabelRect(
+    static func resolveFontSize(textSizePercent: Double, imageHeight: CGFloat) -> CGFloat {
+        max(CGFloat(textSizePercent) * 0.01 * imageHeight, LabelMetrics.minFontSize)
+    }
+
+    static func computeLabelRect(
         imageRect: CGRect,
         settings: CombineSettings,
         isFree: Bool,
         isBefore: Bool,
         fontSize: CGFloat,
-        attributed: NSAttributedString,
+        textWidth: CGFloat,
     ) -> CGRect {
         if isFree {
             let anchor = isBefore ? settings.beforePosition : settings.afterPosition
             return anchoredLabelRect(
                 imageRect: imageRect,
                 fontSize: fontSize,
-                attributed: attributed,
+                textWidth: textWidth,
                 anchor: anchor,
             )
         }
@@ -184,7 +188,7 @@ nonisolated enum CompositeLabelDrawer {
         return UIColor(rgba: settings.labelBackground.color)
     }
 
-    private static func fullWidthLabelRect(
+    static func fullWidthLabelRect(
         imageRect: CGRect,
         fontSize: CGFloat,
         vertical: CombineSettings.LabelPosition.Vertical,
@@ -204,16 +208,15 @@ nonisolated enum CompositeLabelDrawer {
         return CGRect(x: imageRect.minX, y: top, width: imageRect.width, height: rectHeight)
     }
 
-    private static func anchoredLabelRect(
+    static func anchoredLabelRect(
         imageRect: CGRect,
         fontSize: CGFloat,
-        attributed: NSAttributedString,
+        textWidth: CGFloat,
         anchor: CombineSettings.LabelPosition,
     ) -> CGRect {
         let rectHeight = fontSize * LabelMetrics.rectHeightFactor
-        let textSize = attributed.size()
         let hPad = fontSize * LabelMetrics.horizontalPaddingFactor
-        let rectWidth = max(textSize.width + hPad * 2, rectHeight)
+        let rectWidth = max(textWidth + hPad * 2, rectHeight)
         let margin = fontSize * LabelMetrics.marginFactor
         let leftX = anchoredLeftX(
             anchor: anchor,
