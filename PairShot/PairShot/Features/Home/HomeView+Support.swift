@@ -64,16 +64,16 @@ struct HomeDefaultToolbar: ToolbarContent {
         ToolbarItem(placement: .principal) {
             VStack(spacing: 1) {
                 Text(String(localized: "PairShot"))
-                    .font(.title3.weight(.semibold))
+                    .font(isPro ? .subheadline.weight(.semibold) : .title3.weight(.semibold))
                     .foregroundStyle(.primary)
                 if isPro {
                     Text(verbatim: "Pro")
-                        .font(.system(size: 9, weight: .bold))
+                        .font(.caption2.weight(.bold))
                         .foregroundStyle(.tint)
-                        .padding(.horizontal, 5)
-                        .padding(.vertical, 1)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 1.5)
                         .background(
-                            Capsule().stroke(Color.accentColor, lineWidth: 1),
+                            Capsule().stroke(Color.accentColor, lineWidth: 1.2),
                         )
                 }
             }
