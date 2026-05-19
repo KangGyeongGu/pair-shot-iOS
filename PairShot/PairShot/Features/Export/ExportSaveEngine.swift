@@ -22,9 +22,11 @@ enum ExportSaveEngine {
         let totalJobs = max(1, jobs.count)
         let snackbar = deps.snackbarQueue
         let progressToken = progress.token
-        let counter = ExportProgressCounter(total: totalJobs * 2) { fraction, done, _ in
+        let counter = ExportProgressCounter(
+            total: ExportSaveProgressMapping.ticksTotal(jobs: totalJobs),
+        ) { fraction, done, _ in
             Task { @MainActor in
-                let processed = min(done / 2, totalJobs)
+                let processed = ExportSaveProgressMapping.processed(done: done, jobsTotal: totalJobs)
                 snackbar.updateProgress(
                     SnackbarProgressHandle(token: progressToken),
                     value: fraction,
