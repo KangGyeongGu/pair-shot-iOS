@@ -62,18 +62,18 @@ struct HomeDefaultToolbar: ToolbarContent {
 
     var body: some ToolbarContent {
         ToolbarItem(placement: .principal) {
-            HStack(spacing: 4) {
+            VStack(spacing: 1) {
                 Text(String(localized: "PairShot"))
                     .font(.title3.weight(.semibold))
                     .foregroundStyle(.primary)
                 if isPro {
                     Text(verbatim: "Pro")
-                        .font(.caption.weight(.bold))
+                        .font(.system(size: 9, weight: .bold))
                         .foregroundStyle(.tint)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 1)
                         .background(
-                            Capsule().stroke(Color.accentColor, lineWidth: 1.5),
+                            Capsule().stroke(Color.accentColor, lineWidth: 1),
                         )
                 }
             }
