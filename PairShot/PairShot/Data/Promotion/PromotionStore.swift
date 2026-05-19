@@ -45,6 +45,13 @@ final class PromotionStore {
         Self.saveSnapshot(snapshot, to: defaults)
     }
 
+    func refreshAfterRedeem(retryDelay: Duration = .seconds(2)) async {
+        await refresh()
+        if proIsActive || adFreeIsActive { return }
+        try? await Task.sleep(for: retryDelay)
+        await refresh()
+    }
+
     private static func resolveActive(
         state: MembershipSnapshot.EntitlementState,
         now: Date,

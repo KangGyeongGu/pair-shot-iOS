@@ -158,10 +158,7 @@ struct SubscriptionSettingsSection: View {
     }
 
     private func refreshAfterRedeem() async {
-        await env.promotionStore.refresh()
-        if env.promotionStore.proIsActive || env.promotionStore.adFreeIsActive { return }
-        try? await Task.sleep(for: .seconds(2))
-        await env.promotionStore.refresh()
+        await env.promotionStore.refreshAfterRedeem()
     }
 
     private static func expirationSublineText(date: Date?) -> String {
