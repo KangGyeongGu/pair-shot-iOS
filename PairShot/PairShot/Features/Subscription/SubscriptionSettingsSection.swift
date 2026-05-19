@@ -73,6 +73,11 @@ struct SubscriptionSettingsSection: View {
                 PromotionRedemptionLink.open(
                     config: env.couponApiConfig,
                     deviceHashProvider: env.deviceHashProvider,
+                    onDismiss: {
+                        Task { @MainActor in
+                            await refreshAfterRedeem()
+                        }
+                    },
                 )
             } label: {
                 HStack(spacing: 4) {
@@ -150,6 +155,13 @@ struct SubscriptionSettingsSection: View {
     private func restorePurchases() async {
         try? await AppStore.sync()
         await membership.subscriptionStore.refresh()
+    }
+
+    private func refreshAfterRedeem() async {
+        await env.promotionStore.refresh()
+        if env.promotionStore.proIsActive || env.promotionStore.adFreeIsActive { return }
+        try? await Task.sleep(for: .seconds(2))
+        await env.promotionStore.refresh()
     }
 
     private static func expirationSublineText(date: Date?) -> String {

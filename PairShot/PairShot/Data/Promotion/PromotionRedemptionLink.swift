@@ -4,10 +4,22 @@ import UIKit
 
 @MainActor
 enum PromotionRedemptionLink {
-    static func open(config: CouponApiConfig, deviceHashProvider: DeviceHashProvider) {
+    private static var activeCoordinator: SafariDismissCoordinator?
+
+    static func open(
+        config: CouponApiConfig,
+        deviceHashProvider: DeviceHashProvider,
+        onDismiss: @MainActor @escaping () -> Void = {},
+    ) {
         guard let url = buildURL(config: config, deviceHash: deviceHashProvider.deviceHash()) else { return }
         guard let viewController = topViewController() else { return }
         let safari = SFSafariViewController(url: url)
+        let coordinator = SafariDismissCoordinator {
+            onDismiss()
+            Self.activeCoordinator = nil
+        }
+        safari.delegate = coordinator
+        Self.activeCoordinator = coordinator
         viewController.present(safari, animated: true)
     }
 
@@ -29,5 +41,21 @@ enum PromotionRedemptionLink {
             current = presented
         }
         return current
+    }
+}
+
+@MainActor
+final class SafariDismissCoordinator: NSObject, SFSafariViewControllerDelegate {
+    private let onFinish: () -> Void
+
+    init(onFinish: @escaping () -> Void) {
+        self.onFinish = onFinish
+        super.init()
+    }
+
+    nonisolated func safariViewControllerDidFinish(_: SFSafariViewController) {
+        MainActor.assumeIsolated {
+            onFinish()
+        }
     }
 }
