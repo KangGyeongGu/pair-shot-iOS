@@ -24,7 +24,7 @@ struct SnackbarQueueAPITests {
 
     @Test
     func `같은 reason 1초 안에 두 번 enqueue 시 두 번째는 debounce 차단`() {
-        var now = Date(timeIntervalSince1970: 1_000)
+        var now = Date(timeIntervalSince1970: 1000)
         let queue = SnackbarQueue(clock: { now })
 
         queue.enqueue(.shareFailed)
@@ -44,7 +44,7 @@ struct SnackbarQueueAPITests {
 
     @Test
     func `다른 debounceKey 명시 시 같은 reason 도 즉시 다시 enqueue 가능`() {
-        var now = Date(timeIntervalSince1970: 1_000)
+        var now = Date(timeIntervalSince1970: 1000)
         let queue = SnackbarQueue(clock: { now })
 
         queue.enqueue(.shareFailed, debounceKey: "k1")
