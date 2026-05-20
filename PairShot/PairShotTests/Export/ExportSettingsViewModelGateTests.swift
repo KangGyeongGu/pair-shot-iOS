@@ -82,10 +82,41 @@ struct ExportSettingsViewModelGateTests {
         #expect(viewModel.appSettings.watermarkEnabled == false)
     }
 
+    @Test
+    func `performShare 실패 시 errorMessage 가 snackbar_shareFailed_body 로 설정된다`() async {
+        let viewModel = Self.makeViewModel(
+            format: .zip,
+            watermarkEnabled: false,
+            pairIds: [],
+        )
+        await viewModel.performShare()
+        guard let errorMessage = viewModel.errorMessage else {
+            Issue.record("errorMessage 가 nil")
+            return
+        }
+        #expect(String(describing: errorMessage.key) == "snackbar_shareFailed_body")
+    }
+
+    @Test
+    func `performSaveToDevice zip 실패 시 errorMessage 가 snackbar_saveFailed_body 로 설정된다`() async {
+        let viewModel = Self.makeViewModel(
+            format: .zip,
+            watermarkEnabled: false,
+            pairIds: [],
+        )
+        await viewModel.performSaveToDevice()
+        guard let errorMessage = viewModel.errorMessage else {
+            Issue.record("errorMessage 가 nil")
+            return
+        }
+        #expect(String(describing: errorMessage.key) == "snackbar_saveFailed_body")
+    }
+
     private static func makeViewModel(
         format: ExportFormat,
         watermarkEnabled: Bool,
         watermarkText: String = "",
+        pairIds: [UUID] = [UUID()],
     ) -> ExportSettingsViewModel {
         let suiteName = "test-export-gate-\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName) ?? .standard
@@ -95,7 +126,7 @@ struct ExportSettingsViewModelGateTests {
         let preferences = ExportPreferences(defaults: defaults)
         preferences.format = format
         return ExportSettingsViewModel(
-            pairIds: [UUID()],
+            pairIds: pairIds,
             pairRepo: StubPhotoPairRepository(),
             photoLibrary: PhotoLibraryService(),
             exportPairs: ExportPairsUseCase(
