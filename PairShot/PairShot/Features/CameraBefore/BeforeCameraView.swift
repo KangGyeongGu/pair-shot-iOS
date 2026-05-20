@@ -18,7 +18,6 @@ struct BeforeCameraView: View {
     @State private var previewView: CameraPreviewView?
     @State private var afterCameraTarget: AfterCameraTarget?
     @State private var showSettingsSheet = false
-    @AppStorage("ads.attRequested") private var attRequested = false
 
     var body: some View {
         ZStack {
@@ -40,10 +39,6 @@ struct BeforeCameraView: View {
                 await vm.onAppear()
                 Task { @MainActor in
                     guard vm.cameraPermissionState == .granted else { return }
-                    if !attRequested {
-                        attRequested = true
-                        _ = await env.trackingService.requestIfUndetermined()
-                    }
                     await env.promotionStore.refresh()
                     await env.appOpenAdManager.presentColdStartIfReady(
                         from: BannerAdView.resolveRootViewController(),

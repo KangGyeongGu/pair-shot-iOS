@@ -47,6 +47,7 @@ struct PairShotApp: App {
                     if !env.permissionStatusService.hasRequestedInitialPermissions {
                         await env.permissionStatusService.requestAllInOrder()
                     }
+                    _ = await env.trackingService.requestIfUndetermined()
                     await bootstrapSubscription()
                     await bootstrapAds()
                 }
