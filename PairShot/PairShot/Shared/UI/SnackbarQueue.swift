@@ -14,7 +14,9 @@ enum SnackbarVariant: Equatable {
 struct SnackbarItem: Identifiable, Equatable {
     let id: UUID
     let token: String?
-    let message: LocalizedStringResource
+    let title: LocalizedStringResource
+    let body: LocalizedStringResource
+    let iconSymbol: String
     let variant: SnackbarVariant
     let isActionable: Bool
     let createdAt: Date
@@ -30,7 +32,9 @@ struct SnackbarItem: Identifiable, Equatable {
     }
 
     init(
-        message: LocalizedStringResource,
+        title: LocalizedStringResource,
+        body: LocalizedStringResource,
+        iconSymbol: String,
         variant: SnackbarVariant,
         isActionable: Bool,
         createdAt: Date,
@@ -39,14 +43,20 @@ struct SnackbarItem: Identifiable, Equatable {
     ) {
         self.id = id
         self.token = token
-        self.message = message
+        self.title = title
+        self.body = body
+        self.iconSymbol = iconSymbol
         self.variant = variant
         self.isActionable = isActionable
         self.createdAt = createdAt
     }
 
     static func == (lhs: Self, rhs: Self) -> Bool {
-        lhs.id == rhs.id && lhs.variant == rhs.variant && lhs.message == rhs.message
+        lhs.id == rhs.id
+            && lhs.variant == rhs.variant
+            && lhs.title == rhs.title
+            && lhs.body == rhs.body
+            && lhs.iconSymbol == rhs.iconSymbol
     }
 }
 
@@ -59,7 +69,7 @@ struct SnackbarProgressHandle: Equatable {
 final class SnackbarQueue {
     static let debounceWindow: TimeInterval = 1.0
     static let nonActionableDuration: TimeInterval = 3.0
-    static let actionableDuration: TimeInterval = 5.0
+    static let actionableDuration: TimeInterval = 6.0
 
     var current: SnackbarItem?
     weak var tutorialCoordinator: TutorialCoordinator?
@@ -81,24 +91,25 @@ final class SnackbarQueue {
     }
 
     func enqueue(
-        _ message: LocalizedStringResource,
-        variant: SnackbarVariant = .info,
+        _ reason: SnackbarReason,
         isActionable: Bool = false,
         debounceKey: String? = nil,
     ) {
         if tutorialCoordinator?.isActive == true { return }
         let now = clock()
-        if let key = debounceKey,
-           let last = lastEnqueueTimes[key],
+        let key = debounceKey ?? reason.rawValue
+        if let last = lastEnqueueTimes[key],
            now.timeIntervalSince(last) < Self.debounceWindow
         {
             return
         }
-        if let key = debounceKey {
-            lastEnqueueTimes[key] = now
-        }
+        lastEnqueueTimes[key] = now
+        let resolution = SnackbarReasonResolver.resolve(reason)
+        let variant = mapVariant(resolution.variant)
         let item = SnackbarItem(
-            message: message,
+            title: resolution.title,
+            body: resolution.body,
+            iconSymbol: resolution.iconSymbol,
             variant: variant,
             isActionable: isActionable,
             createdAt: now,
@@ -109,6 +120,15 @@ final class SnackbarQueue {
         }
         if current == nil {
             advance()
+        }
+    }
+
+    private func mapVariant(_ kind: SnackbarVariantKind) -> SnackbarVariant {
+        switch kind {
+            case .success: .success
+            case .error: .error
+            case .warning: .warning
+            case .info: .info
         }
     }
 
@@ -123,7 +143,7 @@ final class SnackbarQueue {
 
     @discardableResult
     func enqueueProgress(
-        _ message: LocalizedStringResource,
+        _ reason: SnackbarProgressReason,
         token: String,
         initialValue: Double? = nil,
     ) -> SnackbarProgressHandle {
@@ -131,12 +151,15 @@ final class SnackbarQueue {
             return SnackbarProgressHandle(token: token)
         }
         let now = clock()
+        let resolution = SnackbarReasonResolver.resolve(reason)
         let variant: SnackbarVariant =
             initialValue
                 .map { .progress(value: max(0, min(1, $0)), processed: nil, total: nil) }
                 ?? .indeterminateProgress
         let item = SnackbarItem(
-            message: message,
+            title: resolution.title,
+            body: resolution.body,
+            iconSymbol: resolution.iconSymbol,
             variant: variant,
             isActionable: false,
             createdAt: now,
@@ -161,14 +184,15 @@ final class SnackbarQueue {
         value: Double,
         processed: Int? = nil,
         total: Int? = nil,
-        message: LocalizedStringResource? = nil,
     ) {
         let clamped = max(0, min(1, value))
         let now = clock()
         let variant: SnackbarVariant = .progress(value: clamped, processed: processed, total: total)
         if let active = current, active.token == handle.token {
             current = SnackbarItem(
-                message: message ?? active.message,
+                title: active.title,
+                body: active.body,
+                iconSymbol: active.iconSymbol,
                 variant: variant,
                 isActionable: false,
                 createdAt: active.createdAt,
@@ -178,7 +202,9 @@ final class SnackbarQueue {
         } else if let index = pending.firstIndex(where: { $0.token == handle.token }) {
             let existing = pending[index]
             pending[index] = SnackbarItem(
-                message: message ?? existing.message,
+                title: existing.title,
+                body: existing.body,
+                iconSymbol: existing.iconSymbol,
                 variant: variant,
                 isActionable: false,
                 createdAt: now,
@@ -190,17 +216,19 @@ final class SnackbarQueue {
 
     func completeProgress(
         _ handle: SnackbarProgressHandle,
-        finalMessage: LocalizedStringResource? = nil,
-        finalVariant: SnackbarVariant = .success,
+        finalReason: SnackbarReason? = nil,
     ) {
         if let active = current, active.token == handle.token {
             dismissTask?.cancel()
             dismissTask = nil
-            if let message = finalMessage {
+            if let finalReason {
                 let now = clock()
+                let resolution = SnackbarReasonResolver.resolve(finalReason)
                 let replacement = SnackbarItem(
-                    message: message,
-                    variant: finalVariant,
+                    title: resolution.title,
+                    body: resolution.body,
+                    iconSymbol: resolution.iconSymbol,
+                    variant: mapVariant(resolution.variant),
                     isActionable: false,
                     createdAt: now,
                     token: nil,
@@ -217,7 +245,7 @@ final class SnackbarQueue {
     }
 
     func cancelProgress(_ handle: SnackbarProgressHandle) {
-        completeProgress(handle, finalMessage: nil, finalVariant: .info)
+        completeProgress(handle, finalReason: nil)
     }
 
     func dismiss() {

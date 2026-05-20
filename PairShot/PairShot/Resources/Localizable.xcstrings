@@ -1,6 +1,9 @@
 {
   "sourceLanguage" : "ko",
   "strings" : {
+    "·" : {
+
+    },
     "%lld" : {
 
     },
@@ -2004,6 +2007,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "내보내기"
+          }
+        }
+      }
+    },
+    "common_button_help" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Help"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "도움말"
           }
         }
       }
@@ -5087,210 +5107,6 @@
         }
       }
     },
-    "settings_tutorial_restart_confirm_title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Replay tutorial"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "튜토리얼 다시 보기"
-          }
-        }
-      }
-    },
-    "settings_tutorial_restart_confirm_message" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Would you like to see the tutorial again?"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "튜토리얼을 다시 보시겠습니까?"
-          }
-        }
-      }
-    },
-    "tutorial_button_skip" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Skip"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "건너뛰기"
-          }
-        }
-      }
-    },
-    "tutorial_button_finish" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Finish"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "완료"
-          }
-        }
-      }
-    },
-    "tutorial_skip_confirm_title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "End tutorial?"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "튜토리얼을 종료하시겠어요?"
-          }
-        }
-      }
-    },
-    "tutorial_skip_confirm_end" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "End"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "종료"
-          }
-        }
-      }
-    },
-    "common_button_help" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Help"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "도움말"
-          }
-        }
-      }
-    },
-    "tutorial_msg_export_include" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Choose which photos to export"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "어떤 사진들을 내보낼지 선택해요."
-          }
-        }
-      }
-    },
-    "tutorial_msg_export_format" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Export as individual images or bundle them into a ZIP file"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "개별 이미지 또는 ZIP 파일로 묶어서 내보낼 수 있어요."
-          }
-        }
-      }
-    },
-    "tutorial_msg_export_watermark" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "You can apply a watermark to the exported photos"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "내보낼 사진들에 워터마크를 적용할 수 있어요."
-          }
-        }
-      }
-    },
-    "tutorial_msg_export_combine" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "You can add borders and other composition to the exported photos"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "내보낼 사진들에 테두리 등 합성을 적용할 수 있어요."
-          }
-        }
-      }
-    },
-    "tutorial_button_next" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Next"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "다음"
-          }
-        }
-      }
-    },
     "settings_item_user_settings" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5593,40 +5409,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%d일 남음"
-          }
-        }
-      }
-    },
-    "settings_promotion_guide_daily_limit" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "You've used today's free limit."
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "일일 무료 한도를 모두 사용했어요"
-          }
-        }
-      }
-    },
-    "settings_promotion_guide_pro_feature" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Available with Pro subscription."
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pro 구독 시 이용할 수 있는 기능입니다"
           }
         }
       }
@@ -6192,6 +5974,40 @@
         }
       }
     },
+    "settings_tutorial_restart_confirm_message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Would you like to see the tutorial again?"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "튜토리얼을 다시 보시겠습니까?"
+          }
+        }
+      }
+    },
+    "settings_tutorial_restart_confirm_title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Replay tutorial"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "튜토리얼 다시 보기"
+          }
+        }
+      }
+    },
     "settings_warning_opacity_high" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6226,126 +6042,228 @@
         }
       }
     },
-    "snackbar_error_capture_failed" : {
+    "snackbar_allAfterCaptured_body" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Capture failed. Please try again"
+            "value" : "All pairs are now complete"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "촬영에 실패했습니다. 다시 시도해주세요"
+            "value" : "모든 페어 촬영이 끝났습니다"
           }
         }
       }
     },
-    "snackbar_error_composite_failed" : {
+    "snackbar_allAfterCaptured_title" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Failed to combine images. Please try again"
+            "value" : "After captures complete"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "이미지 결합에 실패했습니다. 다시 시도해주세요"
+            "value" : "After 촬영 완료"
           }
         }
       }
     },
-    "snackbar_error_save_failed" : {
+    "snackbar_dailyLimitGate_body" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Save failed. Please try again"
+            "value" : "Subscribe for unlimited use"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "저장에 실패했습니다. 다시 시도해주세요"
+            "value" : "구독하면 무제한으로 사용할 수 있습니다"
           }
         }
       }
     },
-    "snackbar_error_share_failed" : {
+    "snackbar_dailyLimitGate_title" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Share preparation failed. Please try again"
+            "value" : "Daily free limit reached"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "공유 준비에 실패했습니다. 다시 시도해주세요"
+            "value" : "일일 무료 한도 도달"
           }
         }
       }
     },
-    "snackbar_error_unknown" : {
+    "snackbar_nothingToSave_body" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "An error occurred. Please try again"
+            "value" : "No new images to add"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "오류가 발생했습니다. 다시 시도해주세요"
+            "value" : "새로 추가된 이미지가 없습니다"
           }
         }
       }
     },
-    "snackbar_info_save_cancelled" : {
+    "snackbar_nothingToSave_title" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Save cancelled"
+            "value" : "Nothing to save"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "저장이 취소되었습니다"
+            "value" : "저장할 항목 없음"
           }
         }
       }
     },
-    "snackbar_progress_save_to_device" : {
+    "snackbar_proFeatureGate_body" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Saving to device"
+            "value" : "Subscribe to unlock"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "기기 저장 중"
+            "value" : "구독하면 사용할 수 있습니다"
           }
         }
       }
     },
-    "snackbar_progress_share" : {
+    "snackbar_proFeatureGate_title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro feature"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro 전용 기능"
+          }
+        }
+      }
+    },
+    "snackbar_progress_prepareZipExport_body" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You'll choose a save location once ready"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "준비가 끝나면 저장 위치를 선택할 수 있습니다"
+          }
+        }
+      }
+    },
+    "snackbar_progress_prepareZipExport_title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preparing ZIP file"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ZIP 파일 준비 중"
+          }
+        }
+      }
+    },
+    "snackbar_progress_saveToPhotos_body" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep the app open until saving finishes"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "저장이 끝날 때까지 앱을 종료하지 마세요"
+          }
+        }
+      }
+    },
+    "snackbar_progress_saveToPhotos_title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saving to Photos"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "사진 앱에 저장 중"
+          }
+        }
+      }
+    },
+    "snackbar_progress_share_body" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep the app open until preparation finishes"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "준비가 끝날 때까지 앱을 종료하지 마세요"
+          }
+        }
+      }
+    },
+    "snackbar_progress_share_title" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -6362,41 +6280,58 @@
         }
       }
     },
-    "snackbar_success_all_after_captured" : {
+    "snackbar_savedToPhotos_body" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "All After photos captured"
+            "value" : "Available in the Photos app"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "모든 After 촬영이 완료되었습니다"
+            "value" : "사진 앱에서 확인할 수 있습니다"
           }
         }
       }
     },
-    "snackbar_success_saved_to_device" : {
+    "snackbar_savedToPhotos_title" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Saved to device"
+            "value" : "Saved to Photos"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "기기에 저장했습니다"
+            "value" : "사진 앱 저장 완료"
           }
         }
       }
     },
-    "snackbar_success_saved_zip" : {
+    "snackbar_savedZip_body" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saved to the folder you chose"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "선택하신 폴더에서 확인할 수 있습니다"
+          }
+        }
+      }
+    },
+    "snackbar_savedZip_title" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -6413,36 +6348,104 @@
         }
       }
     },
-    "snackbar_warning_nothing_to_save" : {
+    "snackbar_saveFailed_body" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "No new images to save"
+            "value" : "Please try again"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "저장할 새 이미지가 없습니다"
+            "value" : "잠시 후 다시 시도해주세요"
           }
         }
       }
     },
-    "snackbar_warning_watermark_setup_required" : {
+    "snackbar_saveFailed_title" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Please complete the watermark settings first."
+            "value" : "Save failed"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "워터마크 설정을 먼저 완료해주세요"
+            "value" : "저장 실패"
+          }
+        }
+      }
+    },
+    "snackbar_shareFailed_body" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Please try again"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "잠시 후 다시 시도해주세요"
+          }
+        }
+      }
+    },
+    "snackbar_shareFailed_title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Share preparation failed"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "공유 준비 실패"
+          }
+        }
+      }
+    },
+    "snackbar_watermarkSetupRequired_body" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Settings > Watermark to set it up first"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "설정 > 워터마크 항목에서 먼저 등록해주세요"
+          }
+        }
+      }
+    },
+    "snackbar_watermarkSetupRequired_title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Watermark setup required"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "워터마크 설정 필요"
           }
         }
       }
@@ -6715,6 +6718,159 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "시스템 기본값"
+          }
+        }
+      }
+    },
+    "tutorial_button_finish" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Finish"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "완료"
+          }
+        }
+      }
+    },
+    "tutorial_button_next" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "다음"
+          }
+        }
+      }
+    },
+    "tutorial_button_skip" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skip"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "건너뛰기"
+          }
+        }
+      }
+    },
+    "tutorial_msg_export_combine" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You can add borders and other composition to the exported photos"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "내보낼 사진들에 테두리 등 합성을 적용할 수 있어요."
+          }
+        }
+      }
+    },
+    "tutorial_msg_export_format" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export as individual images or bundle them into a ZIP file"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "개별 이미지 또는 ZIP 파일로 묶어서 내보낼 수 있어요."
+          }
+        }
+      }
+    },
+    "tutorial_msg_export_include" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose which photos to export"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "어떤 사진들을 내보낼지 선택해요."
+          }
+        }
+      }
+    },
+    "tutorial_msg_export_watermark" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You can apply a watermark to the exported photos"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "내보낼 사진들에 워터마크를 적용할 수 있어요."
+          }
+        }
+      }
+    },
+    "tutorial_skip_confirm_end" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "End"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "종료"
+          }
+        }
+      }
+    },
+    "tutorial_skip_confirm_title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "End tutorial?"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "튜토리얼을 종료하시겠어요?"
           }
         }
       }

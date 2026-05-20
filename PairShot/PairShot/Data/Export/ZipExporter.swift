@@ -105,6 +105,7 @@ nonisolated struct ZipExporterAdapter {
         renderOptions: ExportRenderOptions,
         in tempDirectory: URL,
         now: Date,
+        onProgress: (@Sendable (_ fraction: Double, _ processed: Int, _ total: Int) -> Void)? = nil,
     ) async throws -> URL {
         let resolved = try await pairRepo.fetch(ids: pairIds)
         let jobs = await MainActor.run {
@@ -116,12 +117,17 @@ nonisolated struct ZipExporterAdapter {
                 now: now,
             )
         }
+        let counter: ExportProgressCounter? = onProgress.map { update in
+            ExportProgressCounter(total: max(jobs.count, 1)) { fraction, done, total in
+                update(fraction, done, total)
+            }
+        }
         let payloads: [RenderedExportPayload]
         do {
             payloads = try await ExportEntryBatchRenderer.renderAll(
                 jobs: jobs,
                 photoLibrary: photoLibrary,
-                counter: nil,
+                counter: counter,
             )
         } catch is CancellationError {
             throw ZipExporter.ExportError.archiveFailed
@@ -157,7 +163,6 @@ nonisolated enum ExportSelection {
         prefix: String,
         fileExtension: String = "jpg",
     ) -> [Entry] {
-        let folder = sanitizeFolderName(pair.firstAlbumName ?? "PairShot")
         var out: [Entry] = []
 
         let beforeId = pair.beforePhotoLocalIdentifier
@@ -174,7 +179,7 @@ nonisolated enum ExportSelection {
             )
             out.append(
                 Entry(
-                    relativeName: "\(folder)/COMBINED/\(fileName)",
+                    relativeName: "COMBINED/\(fileName)",
                     kind: .combined,
                     localIdentifier: nil,
                 ),
@@ -189,7 +194,7 @@ nonisolated enum ExportSelection {
             )
             out.append(
                 Entry(
-                    relativeName: "\(folder)/BEFORE/\(fileName)",
+                    relativeName: "BEFORE/\(fileName)",
                     kind: .before,
                     localIdentifier: beforeId,
                 ),
@@ -204,36 +209,12 @@ nonisolated enum ExportSelection {
             )
             out.append(
                 Entry(
-                    relativeName: "\(folder)/AFTER/\(fileName)",
+                    relativeName: "AFTER/\(fileName)",
                     kind: .after,
                     localIdentifier: afterId,
                 ),
             )
         }
         return out
-    }
-
-    static func sanitizeFolderName(_ raw: String) -> String {
-        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return "PairShot" }
-        var allowed = CharacterSet.alphanumerics
-        allowed.insert(charactersIn: "_-")
-        guard
-            let hangulStart = Unicode.Scalar(0xAC00),
-            let hangulEnd = Unicode.Scalar(0xD7A3)
-        else {
-            return trimmed
-        }
-        allowed.insert(charactersIn: hangulStart ... hangulEnd)
-        var out = ""
-        out.reserveCapacity(trimmed.count)
-        for scalar in trimmed.unicodeScalars {
-            if allowed.contains(scalar) {
-                out.unicodeScalars.append(scalar)
-            } else {
-                out.append("_")
-            }
-        }
-        return out.isEmpty ? "PairShot" : out
     }
 }

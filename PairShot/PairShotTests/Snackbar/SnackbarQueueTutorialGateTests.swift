@@ -10,7 +10,7 @@ struct SnackbarQueueTutorialGateTests {
         coord.start()
         let queue = SnackbarQueue(tutorialCoordinator: coord)
 
-        queue.enqueue("snackbar_warning_watermark_setup_required", variant: .warning)
+        queue.enqueue(.watermarkSetupRequired)
 
         #expect(queue.current == nil)
     }
@@ -20,7 +20,7 @@ struct SnackbarQueueTutorialGateTests {
         let coord = TutorialCoordinator()
         let queue = SnackbarQueue(tutorialCoordinator: coord)
 
-        queue.enqueue("snackbar_warning_watermark_setup_required", variant: .warning)
+        queue.enqueue(.watermarkSetupRequired)
 
         #expect(queue.current != nil)
     }
@@ -29,7 +29,7 @@ struct SnackbarQueueTutorialGateTests {
     func `tutorialCoordinator nil 일 때 enqueue 통과`() {
         let queue = SnackbarQueue()
 
-        queue.enqueue("snackbar_warning_watermark_setup_required", variant: .warning)
+        queue.enqueue(.watermarkSetupRequired)
 
         #expect(queue.current != nil)
     }
@@ -40,7 +40,7 @@ struct SnackbarQueueTutorialGateTests {
         coord.start()
         let queue = SnackbarQueue(tutorialCoordinator: coord)
 
-        let handle = queue.enqueueProgress("snackbar_progress", token: "tok-1")
+        let handle = queue.enqueueProgress(.share, token: "tok-1")
 
         #expect(handle.token == "tok-1")
         #expect(queue.current == nil)

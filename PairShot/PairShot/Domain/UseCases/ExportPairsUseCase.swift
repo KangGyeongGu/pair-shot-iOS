@@ -21,6 +21,7 @@ struct ExportPairsUseCase {
         selection: ExportContents,
         renderOptions: ExportRenderOptions,
         tempDirectory: URL = FileManager.default.temporaryDirectory,
+        onProgress: (@Sendable (_ fraction: Double, _ processed: Int, _ total: Int) -> Void)? = nil,
     ) async throws -> URL {
         guard !ids.isEmpty else { throw ExportError.noPairs }
         return try await zipExporter.exportPairsToZip(
@@ -29,6 +30,7 @@ struct ExportPairsUseCase {
             renderOptions: renderOptions,
             in: tempDirectory,
             now: now(),
+            onProgress: onProgress,
         )
     }
 }

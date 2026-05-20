@@ -51,12 +51,11 @@ final class ImmediateExportService {
         }
         let token = "share-\(UUID().uuidString)"
         let handle = snackbarQueue.enqueueProgress(
-            "snackbar_progress_share",
+            .share,
             token: token,
             initialValue: 0,
         )
         do {
-            snackbarQueue.updateProgress(handle, value: 0.5)
             switch preferences.format {
                 case .zip:
                     let url = try await exportPairs(
@@ -64,8 +63,9 @@ final class ImmediateExportService {
                         selection: selection,
                         renderOptions: currentRenderOptions(),
                         tempDirectory: tempDirectoryProvider(),
+                        onProgress: makeZipProgressCallback(handle: handle),
                     )
-                    snackbarQueue.completeProgress(handle, finalMessage: nil)
+                    snackbarQueue.completeProgress(handle)
                     return ExportShareItems(values: [url])
 
                 case .individualImages:
@@ -77,7 +77,7 @@ final class ImmediateExportService {
                         appSettings: appSettings,
                         photoLibrary: photoLibrary,
                     )
-                    snackbarQueue.completeProgress(handle, finalMessage: nil)
+                    snackbarQueue.completeProgress(handle)
                     return ExportShareItems(values: urls)
             }
         } catch {
@@ -89,24 +89,28 @@ final class ImmediateExportService {
     func saveToDevice(pairs: [PhotoPair]) async -> SaveToDeviceOutcome {
         guard hasAnyInclude else {
             snackbarQueue.enqueue(
-                "snackbar_warning_nothing_to_save",
-                variant: .warning,
+                .nothingToSave,
                 debounceKey: "save-nothing",
             )
             return .completed
         }
         let token = "save-\(UUID().uuidString)"
-        let handle = snackbarQueue.enqueueProgress(
-            "snackbar_progress_save_to_device",
-            token: token,
-            initialValue: 0,
-        )
         switch preferences.format {
             case .individualImages:
+                let handle = snackbarQueue.enqueueProgress(
+                    .saveToPhotos,
+                    token: token,
+                    initialValue: 0,
+                )
                 await saveImagesToPhotoLibrary(pairs: pairs, progress: handle)
                 return .completed
 
             case .zip:
+                let handle = snackbarQueue.enqueueProgress(
+                    .prepareZipExport,
+                    token: token,
+                    initialValue: 0,
+                )
                 return await prepareZipForExport(pairs: pairs, progress: handle)
         }
     }
@@ -115,8 +119,7 @@ final class ImmediateExportService {
         if saved {
             snackbarQueue.completeProgress(
                 progress,
-                finalMessage: "snackbar_success_saved_zip",
-                finalVariant: .success,
+                finalReason: .savedZip,
             )
         } else {
             snackbarQueue.cancelProgress(progress)
@@ -135,8 +138,7 @@ final class ImmediateExportService {
 
     func notifyShareFailure() {
         snackbarQueue.enqueue(
-            "snackbar_error_share_failed",
-            variant: .error,
+            .shareFailed,
             debounceKey: "share-failure",
         )
     }
@@ -166,17 +168,33 @@ final class ImmediateExportService {
                 selection: currentSelection(),
                 renderOptions: currentRenderOptions(),
                 tempDirectory: tempDirectoryProvider(),
+                onProgress: makeZipProgressCallback(handle: progress),
             )
-            snackbarQueue.updateProgress(progress, value: 1.0)
             return .zipPendingExport(url: url, progress: progress)
         } catch {
             snackbarQueue.cancelProgress(progress)
             snackbarQueue.enqueue(
-                "snackbar_error_save_failed",
-                variant: .error,
+                .saveFailed,
                 debounceKey: "save-failure",
             )
             return .completed
+        }
+    }
+
+    private func makeZipProgressCallback(
+        handle: SnackbarProgressHandle,
+    ) -> @Sendable (_ fraction: Double, _ processed: Int, _ total: Int) -> Void {
+        let snackbar = snackbarQueue
+        let token = handle.token
+        return { fraction, processed, total in
+            Task { @MainActor in
+                snackbar.updateProgress(
+                    SnackbarProgressHandle(token: token),
+                    value: fraction,
+                    processed: processed,
+                    total: total,
+                )
+            }
         }
     }
 }

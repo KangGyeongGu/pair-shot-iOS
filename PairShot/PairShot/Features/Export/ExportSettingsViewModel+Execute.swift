@@ -7,38 +7,37 @@ extension ExportSettingsViewModel {
         defer { isExporting = false }
         let token = "export-share-\(UUID().uuidString)"
         let handle = snackbarQueue.enqueueProgress(
-            "snackbar_progress_share",
+            .share,
             token: token,
             initialValue: 0,
         )
         do {
             switch format {
                 case .zip:
-                    snackbarQueue.updateProgress(handle, value: 0.3)
                     let url = try await exportPairs(
                         ids: pairIds,
                         selection: makeSelection(),
                         renderOptions: makeRenderOptions(),
                         tempDirectory: tempDirectoryProvider(),
+                        onProgress: makeZipProgressCallback(handle: handle),
                     )
                     pendingZipURL = url
-                    snackbarQueue.completeProgress(handle, finalMessage: nil)
+                    snackbarQueue.completeProgress(handle)
                     shareItems = ExportShareItems(values: [url])
 
                 case .individualImages:
-                    snackbarQueue.updateProgress(handle, value: 0.3)
                     let urls = try await collectIndividualSourceURLs()
                     guard !urls.isEmpty else {
                         snackbarQueue.cancelProgress(handle)
-                        errorMessage = "snackbar_error_share_failed"
+                        errorMessage = "snackbar_shareFailed_body"
                         return
                     }
-                    snackbarQueue.completeProgress(handle, finalMessage: nil)
+                    snackbarQueue.completeProgress(handle)
                     shareItems = ExportShareItems(values: urls)
             }
         } catch {
             snackbarQueue.cancelProgress(handle)
-            errorMessage = "snackbar_error_share_failed"
+            errorMessage = "snackbar_shareFailed_body"
         }
     }
 
@@ -46,16 +45,21 @@ extension ExportSettingsViewModel {
         isExporting = true
         defer { isExporting = false }
         let token = "export-save-\(UUID().uuidString)"
-        let handle = snackbarQueue.enqueueProgress(
-            "snackbar_progress_save_to_device",
-            token: token,
-            initialValue: 0,
-        )
         switch format {
             case .individualImages:
+                let handle = snackbarQueue.enqueueProgress(
+                    .saveToPhotos,
+                    token: token,
+                    initialValue: 0,
+                )
                 await saveImagesToPhotoLibrary(progress: handle)
 
             case .zip:
+                let handle = snackbarQueue.enqueueProgress(
+                    .prepareZipExport,
+                    token: token,
+                    initialValue: 0,
+                )
                 await saveZipToTemporaryAndNotify(progress: handle)
         }
     }
@@ -64,7 +68,7 @@ extension ExportSettingsViewModel {
         let status = await photoLibraryExporter.authorize()
         guard status == .authorized || status == .limited else {
             snackbarQueue.cancelProgress(progress)
-            errorMessage = "snackbar_error_save_failed"
+            errorMessage = "snackbar_saveFailed_body"
             return
         }
         let now = Date()
@@ -94,7 +98,7 @@ extension ExportSettingsViewModel {
             )
         } catch {
             snackbarQueue.cancelProgress(progress)
-            errorMessage = "snackbar_error_save_failed"
+            errorMessage = "snackbar_saveFailed_body"
             return
         }
         ExportSaveEngine.finalizeProgress(
@@ -108,20 +112,36 @@ extension ExportSettingsViewModel {
 
     func saveZipToTemporaryAndNotify(progress: SnackbarProgressHandle) async {
         do {
-            snackbarQueue.updateProgress(progress, value: 0.3)
             let url = try await exportPairs(
                 ids: pairIds,
                 selection: makeSelection(),
                 renderOptions: makeRenderOptions(),
                 tempDirectory: tempDirectoryProvider(),
+                onProgress: makeZipProgressCallback(handle: progress),
             )
             pendingZipURL = url
-            snackbarQueue.updateProgress(progress, value: 1.0)
             zipSaveProgress = progress
             zipExportItem = DocumentExporterItem(url: url)
         } catch {
             snackbarQueue.cancelProgress(progress)
-            errorMessage = "snackbar_error_save_failed"
+            errorMessage = "snackbar_saveFailed_body"
+        }
+    }
+
+    func makeZipProgressCallback(
+        handle: SnackbarProgressHandle,
+    ) -> @Sendable (_ fraction: Double, _ processed: Int, _ total: Int) -> Void {
+        let snackbar = snackbarQueue
+        let token = handle.token
+        return { fraction, processed, total in
+            Task { @MainActor in
+                snackbar.updateProgress(
+                    SnackbarProgressHandle(token: token),
+                    value: fraction,
+                    processed: processed,
+                    total: total,
+                )
+            }
         }
     }
 

@@ -14,7 +14,6 @@ struct PhotoPair: Identifiable, Equatable {
     var locationLabel: String?
     var cameraSettings: CameraSettings?
     var albumIds: [UUID]
-    var firstAlbumName: String?
     var hasCombinedExport: Bool
     var isTutorial: Bool
 
@@ -32,7 +31,6 @@ struct PhotoPair: Identifiable, Equatable {
         locationLabel: String? = nil,
         cameraSettings: CameraSettings? = nil,
         albumIds: [UUID] = [],
-        firstAlbumName: String? = nil,
         hasCombinedExport: Bool = false,
         isTutorial: Bool = false,
     ) {
@@ -49,7 +47,6 @@ struct PhotoPair: Identifiable, Equatable {
         self.locationLabel = locationLabel
         self.cameraSettings = cameraSettings
         self.albumIds = albumIds
-        self.firstAlbumName = firstAlbumName
         self.hasCombinedExport = hasCombinedExport
         self.isTutorial = isTutorial
     }

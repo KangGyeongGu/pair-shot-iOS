@@ -193,8 +193,7 @@ final class ExportSettingsViewModel {
             if saved {
                 snackbarQueue.completeProgress(
                     progress,
-                    finalMessage: "snackbar_success_saved_zip",
-                    finalVariant: .success,
+                    finalReason: .savedZip,
                 )
             } else {
                 snackbarQueue.cancelProgress(progress)
@@ -225,8 +224,7 @@ final class ExportSettingsViewModel {
     func ensureExportEligibility() -> Bool {
         if format == .zip, !isProUser {
             snackbarQueue.enqueue(
-                "settings_promotion_guide_pro_feature",
-                variant: .info,
+                .proFeatureGate,
                 debounceKey: "pro_gate_pro_feature",
             )
             showPaywall = true
@@ -234,8 +232,7 @@ final class ExportSettingsViewModel {
         }
         if applyWatermark, watermarkSettingsBlank {
             snackbarQueue.enqueue(
-                "snackbar_warning_watermark_setup_required",
-                variant: .warning,
+                .watermarkSetupRequired,
                 debounceKey: "watermark-setup-required",
             )
             return false
@@ -246,8 +243,7 @@ final class ExportSettingsViewModel {
     func selectFormat(_ newFormat: ExportFormat) {
         if newFormat == .zip, !isProUser {
             snackbarQueue.enqueue(
-                "settings_promotion_guide_pro_feature",
-                variant: .info,
+                .proFeatureGate,
                 debounceKey: "pro_gate_pro_feature",
             )
             showPaywall = true

@@ -7,50 +7,50 @@ struct SnackbarBanner: View {
     @State private var dragOffset: CGFloat = 0
 
     var body: some View {
-        HStack(alignment: .center, spacing: 12) {
-            iconBadge
-            VStack(alignment: .leading, spacing: 2) {
-                Text(titleText)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.primary)
-                Text(item.message)
-                    .font(.subheadline)
-                    .foregroundStyle(.primary)
-                    .lineLimit(3)
-                if case let .progress(value, processed, total) = item.variant {
-                    progressRow(value: value, processed: processed, total: total)
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .center, spacing: 14) {
+                Image(systemName: item.iconSymbol)
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundStyle(accentColor)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(item.title)
+                        .font(.headline)
+                        .foregroundStyle(.primary)
+                    Text(item.body)
+                        .font(.callout)
+                        .foregroundStyle(.primary)
+                        .lineLimit(3)
                 }
+                Spacer(minLength: 0)
             }
-            Spacer(minLength: 0)
-            if item.isActionable {
-                Button {
-                    onDismiss()
-                } label: {
-                    Image(systemName: "xmark")
-                        .font(.footnote.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                        .padding(8)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(String(localized: "common_button_close"))
+            if case let .progress(value, processed, total) = item.variant {
+                progressRow(value: value, processed: processed, total: total)
+            } else if case .indeterminateProgress = item.variant {
+                indeterminateProgressRow
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 14)
+        .padding(.horizontal, 18)
+        .padding(.vertical, item.isProgress ? 20 : 18)
         .frame(maxWidth: .infinity, alignment: .leading)
         .adaptiveGlass(
-            in: RoundedRectangle(cornerRadius: 22, style: .continuous),
+            in: RoundedRectangle(cornerRadius: 24, style: .continuous),
             kind: .regular,
         )
+        .overlay(alignment: .leading) {
+            Rectangle()
+                .fill(accentColor)
+                .frame(width: 3)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
         .shadow(color: Color.black.opacity(0.18), radius: 10, y: 3)
         .padding(.horizontal, 12)
-        .contentShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .contentShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
         .onTapGesture {}
         .offset(y: dragOffset)
         .gesture(item.isProgress ? nil : swipeDismissGesture)
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isStaticText)
+        .modifier(CloseAccessibilityActionModifier(isProgress: item.isProgress, onDismiss: onDismiss))
     }
 
     private var swipeDismissGesture: some Gesture {
@@ -71,61 +71,6 @@ struct SnackbarBanner: View {
             }
     }
 
-    private var iconBadge: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(accentColor)
-                .frame(width: 38, height: 38)
-            Group {
-                switch item.variant {
-                    case .progress, .indeterminateProgress:
-                        ProgressView()
-                            .progressViewStyle(.circular)
-                            .controlSize(.small)
-                            .tint(.white)
-
-                    default:
-                        Image(systemName: iconName)
-                            .font(.body.weight(.semibold))
-                            .foregroundStyle(.white)
-                }
-            }
-        }
-    }
-
-    private var titleText: String {
-        if let displayName = Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String,
-           !displayName.isEmpty
-        {
-            return displayName
-        }
-        if let name = Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String,
-           !name.isEmpty
-        {
-            return name
-        }
-        return "PairShot"
-    }
-
-    private var iconName: String {
-        switch item.variant {
-            case .success:
-                "checkmark.circle.fill"
-
-            case .error:
-                "xmark.octagon.fill"
-
-            case .warning:
-                "exclamationmark.triangle.fill"
-
-            case .info:
-                "info.circle.fill"
-
-            case .progress, .indeterminateProgress:
-                "arrow.triangle.2.circlepath"
-        }
-    }
-
     private var accentColor: Color {
         switch item.variant {
             case .success:
@@ -142,21 +87,67 @@ struct SnackbarBanner: View {
         }
     }
 
+    private var indeterminateProgressRow: some View {
+        HStack(alignment: .center, spacing: 10) {
+            ProgressView()
+                .progressViewStyle(.linear)
+                .tint(accentColor)
+                .frame(height: 6)
+        }
+    }
+
     private func progressRow(value: Double, processed: Int?, total: Int?) -> some View {
         let clamped = max(0, min(1, value))
-        return HStack(alignment: .center, spacing: 8) {
+        return HStack(alignment: .center, spacing: 10) {
             ProgressView(value: clamped, total: 1.0)
                 .progressViewStyle(.linear)
                 .tint(accentColor)
+                .frame(height: 6)
                 .animation(.easeOut(duration: 0.25), value: clamped)
-            if let processed, let total {
+            progressLabel(clamped: clamped, processed: processed, total: total)
+        }
+    }
+
+    @ViewBuilder
+    private func progressLabel(clamped: Double, processed: Int?, total: Int?) -> some View {
+        let percentText = String(format: "%d %%", Int(clamped * 100))
+        if let processed, let total {
+            HStack(spacing: 4) {
                 Text("\(processed) / \(total)")
                     .font(.footnote)
                     .monospacedDigit()
                     .foregroundStyle(.secondary)
+                Text("·")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                Text(percentText)
+                    .font(.footnote)
+                    .monospacedDigit()
+                    .foregroundStyle(.primary)
+            }
+            .frame(minWidth: 54, alignment: .trailing)
+        } else {
+            Text(percentText)
+                .font(.footnote)
+                .monospacedDigit()
+                .foregroundStyle(.primary)
+                .frame(minWidth: 54, alignment: .trailing)
+        }
+    }
+}
+
+private struct CloseAccessibilityActionModifier: ViewModifier {
+    let isProgress: Bool
+    let onDismiss: () -> Void
+
+    func body(content: Content) -> some View {
+        if isProgress {
+            content
+        } else {
+            content.accessibilityAction(named: Text(String(localized: "common_button_close"))) {
+                onDismiss()
             }
         }
-        .padding(.top, 6)
     }
 }
 

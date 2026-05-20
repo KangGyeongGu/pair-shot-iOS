@@ -222,8 +222,7 @@ struct AfterCameraView: View {
                 case .snackbarAllCompleted:
                     CaptureHaptics.success(env.hapticService)
                     env.snackbarQueue.enqueue(
-                        "snackbar_success_all_after_captured",
-                        variant: .success,
+                        .allAfterCaptured,
                         debounceKey: "all-after-captured",
                     )
             }

@@ -82,14 +82,12 @@ enum ExportSaveEngine {
         if savedCount == 0 {
             snackbarQueue.completeProgress(
                 progress,
-                finalMessage: "snackbar_warning_nothing_to_save",
-                finalVariant: .warning,
+                finalReason: .nothingToSave,
             )
         } else {
             snackbarQueue.completeProgress(
                 progress,
-                finalMessage: "snackbar_success_saved_to_device",
-                finalVariant: .success,
+                finalReason: .savedToPhotos,
             )
         }
     }

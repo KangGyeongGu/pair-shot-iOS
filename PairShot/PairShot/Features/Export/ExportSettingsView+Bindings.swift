@@ -25,11 +25,7 @@ extension ExportSettingsView {
     var zipExportBinding: Binding<DocumentExporterItem?> {
         Binding(
             get: { viewModel.zipExportItem },
-            set: { newValue in
-                if newValue == nil, viewModel.zipExportItem != nil {
-                    viewModel.handleZipExportCompleted(false)
-                }
-            },
+            set: { _ in },
         )
     }
 }

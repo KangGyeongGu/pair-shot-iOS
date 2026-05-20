@@ -113,8 +113,7 @@ struct CombineSettingsView: View {
             } else {
                 Button {
                     env.snackbarQueue.enqueue(
-                        "settings_promotion_guide_pro_feature",
-                        variant: .info,
+                        .proFeatureGate,
                         debounceKey: "pro_gate_pro_feature",
                     )
                     showPaywall = true

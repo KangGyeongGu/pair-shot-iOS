@@ -288,11 +288,7 @@ struct AlbumDetailShareSheet: ViewModifier {
                     .sheet(
                         item: Binding(
                             get: { viewModel.pendingZipExport },
-                            set: { newValue in
-                                if newValue == nil, viewModel.pendingZipExport != nil {
-                                    viewModel.handleZipExportCompleted(false)
-                                }
-                            },
+                            set: { _ in },
                         ),
                     ) { item in
                         DocumentExporter(url: item.url) { saved in

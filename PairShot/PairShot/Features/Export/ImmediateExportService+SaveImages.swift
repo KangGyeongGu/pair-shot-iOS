@@ -43,8 +43,7 @@ extension ImmediateExportService {
     func enqueueSaveFailure(progress: SnackbarProgressHandle) {
         snackbarQueue.cancelProgress(progress)
         snackbarQueue.enqueue(
-            "snackbar_error_save_failed",
-            variant: .error,
+            .saveFailed,
             debounceKey: "save-failure",
         )
     }

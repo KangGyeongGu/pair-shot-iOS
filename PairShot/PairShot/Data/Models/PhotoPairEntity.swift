@@ -87,7 +87,6 @@ extension PhotoPairEntity {
             locationLabel: locationLabel,
             cameraSettings: cameraSettings,
             albumIds: albums.map(\.id),
-            firstAlbumName: albums.first?.name,
             hasCombinedExport: exportHistory.contains { $0.kind == .combined },
             isTutorial: isTutorial,
         )
