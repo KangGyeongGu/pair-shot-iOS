@@ -47,7 +47,6 @@ struct PairShotApp: App {
                     if !env.permissionStatusService.hasRequestedInitialPermissions {
                         await env.permissionStatusService.requestAllInOrder()
                     }
-                    _ = await env.trackingService.requestIfUndetermined()
                     await bootstrapSubscription()
                     await bootstrapAds()
                 }
@@ -88,6 +87,7 @@ struct PairShotApp: App {
     private func startAdsAfterConsent() async {
         guard !hasBootstrappedAds else { return }
         hasBootstrappedAds = true
+        _ = await env.trackingService.requestIfUndetermined()
         #if canImport(GoogleMobileAds)
             _ = await MobileAds.shared.start()
         #endif
