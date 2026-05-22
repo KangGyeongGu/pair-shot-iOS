@@ -441,8 +441,8 @@ private struct EdgeBorderFractions {
     var right: CGFloat
     var middle: CGFloat
 
-    static func uniform(_ value: CGFloat) -> EdgeBorderFractions {
-        EdgeBorderFractions(top: value, bottom: value, left: value, right: value, middle: value)
+    static func uniform(_ value: CGFloat) -> Self {
+        Self(top: value, bottom: value, left: value, right: value, middle: value)
     }
 }
 

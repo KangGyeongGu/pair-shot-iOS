@@ -50,4 +50,27 @@ struct CombineSettingsBackwardCompatTests {
             vertical: .bottom,
         ))
     }
+
+    @Test
+    func `라운드트립 — 신규 필드 (.border + custom position) 가 encode → decode 로 보존된다`() throws {
+        var settings = CombineSettings()
+        settings.labelPlacement = .border
+        settings.beforeBorderPosition = CombineSettings.BorderLabelPosition(
+            horizontal: .center,
+            vertical: .top,
+        )
+        settings.afterBorderPosition = CombineSettings.BorderLabelPosition(
+            horizontal: .leading,
+            vertical: .bottom,
+        )
+
+        let data = try JSONEncoder().encode(settings)
+        let decoded = try JSONDecoder().decode(CombineSettings.self, from: data)
+
+        #expect(decoded.labelPlacement == .border)
+        #expect(decoded.beforeBorderPosition.horizontal == .center)
+        #expect(decoded.beforeBorderPosition.vertical == .top)
+        #expect(decoded.afterBorderPosition.horizontal == .leading)
+        #expect(decoded.afterBorderPosition.vertical == .bottom)
+    }
 }

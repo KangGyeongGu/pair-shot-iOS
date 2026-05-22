@@ -134,7 +134,7 @@ nonisolated enum CompositeLabelDrawer {
     ) {
         guard combineSettings.label.isEnabled else { return }
         let position = isBefore ? combineSettings.beforeBorderPosition : combineSettings.afterBorderPosition
-        let stripRect: CGRect =
+        let stripRect =
             switch position.vertical {
                 case .top:
                     CGRect(x: imageRect.minX, y: 0, width: imageRect.width, height: edges.top)
@@ -158,7 +158,7 @@ nonisolated enum CompositeLabelDrawer {
         )
     }
 
-    private static func borderStripRect(
+    static func borderStripRect(
         position: CombineSettings.BorderLabelPosition,
         paneRect: CGRect,
         edges: EdgeBorders,

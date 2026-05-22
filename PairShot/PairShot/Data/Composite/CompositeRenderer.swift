@@ -277,10 +277,10 @@ nonisolated enum CompositeRenderer {
     ) -> (canvas: CGSize, beforeRect: CGRect, afterRect: CGRect) {
         switch layout {
             case .horizontal:
-                return CompositeFrameMath.horizontal(paneSizes: paneSizes, borders: borders)
+                CompositeFrameMath.horizontal(paneSizes: paneSizes, borders: borders)
 
             case .vertical:
-                return CompositeFrameMath.vertical(paneSizes: paneSizes, borders: borders)
+                CompositeFrameMath.vertical(paneSizes: paneSizes, borders: borders)
         }
     }
 
@@ -459,8 +459,8 @@ nonisolated struct EdgeBorders: Equatable {
     var right: CGFloat
     var middle: CGFloat
 
-    static func uniform(_ value: CGFloat) -> EdgeBorders {
-        EdgeBorders(top: value, bottom: value, left: value, right: value, middle: value)
+    static func uniform(_ value: CGFloat) -> Self {
+        Self(top: value, bottom: value, left: value, right: value, middle: value)
     }
 }
 

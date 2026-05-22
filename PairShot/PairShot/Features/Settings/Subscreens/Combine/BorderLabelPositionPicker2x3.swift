@@ -3,7 +3,7 @@ import SwiftUI
 struct BorderLabelPositionPicker2x3: View {
     private static let positions: [(
         CombineSettings.LabelPosition.Horizontal,
-        CombineSettings.BorderLabelPosition.Vertical
+        CombineSettings.BorderLabelPosition.Vertical,
     )] = [
         (.leading, .top),
         (.center, .top),
