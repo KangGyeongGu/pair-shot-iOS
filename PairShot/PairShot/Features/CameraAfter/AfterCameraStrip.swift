@@ -62,7 +62,7 @@ struct AfterCameraStrip: View {
                     Button {
                         handlePeek(pair.id)
                     } label: {
-                        Label("BEFORE 확대해서 보기", systemImage: "plus.magnifyingglass")
+                        Label("크게 보기", systemImage: "arrow.up.left.and.arrow.down.right")
                     }
                 }
             },

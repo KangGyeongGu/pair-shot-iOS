@@ -342,9 +342,6 @@
       },
       "shouldTranslate" : false
     },
-    "BEFORE 확대해서 보기" : {
-
-    },
     "business_info_label_address" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7439,6 +7436,9 @@
         }
       },
       "shouldTranslate" : false
+    },
+    "크게 보기" : {
+
     }
   },
   "version" : "1.0"
