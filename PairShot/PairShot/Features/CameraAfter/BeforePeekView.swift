@@ -13,12 +13,17 @@ struct BeforePeekView: View {
 
     var body: some View {
         NavigationStack {
-            ZStack {
-                ZoomableImageView(image: image)
-                    .ignoresSafeArea()
+            GeometryReader { proxy in
+                ZStack {
+                    ZoomableImageView(image: image)
+                        .ignoresSafeArea()
 
-                if isLoading {
-                    ProgressView()
+                    if isLoading {
+                        ProgressView()
+                    }
+                }
+                .task(id: pair.id) {
+                    await load(viewSize: proxy.size)
                 }
             }
             .navigationBarTitleDisplayMode(.inline)
@@ -33,23 +38,19 @@ struct BeforePeekView: View {
                 }
             }
             .toolbarBackground(.visible, for: .navigationBar)
-            .task(id: pair.id) {
-                await load()
-            }
         }
         .presentationBackground(.regularMaterial)
     }
 
-    private func load() async {
+    private func load(viewSize: CGSize) async {
         guard let identifier = pair.beforePhotoLocalIdentifier, !identifier.isEmpty else {
             isLoading = false
             return
         }
-        let screenBounds = UIScreen.main.bounds.size
         let scale = displayScale
         let targetSize = CGSize(
-            width: screenBounds.width * scale,
-            height: screenBounds.height * scale,
+            width: max(viewSize.width, 1) * scale,
+            height: max(viewSize.height, 1) * scale,
         )
         isLoading = true
         let loaded = await env.photoLibrary.requestPreviewImage(
