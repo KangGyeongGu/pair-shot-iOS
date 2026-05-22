@@ -9,9 +9,7 @@ struct SubscriptionSettingsSection: View {
     var body: some View {
         Section {
             membershipRow
-            if !membership.proIsActive {
-                upgradeButton
-            }
+            paywallEntryButton
             manageButton
             restoreButton
         } header: {
@@ -92,15 +90,18 @@ struct SubscriptionSettingsSection: View {
         .padding(.top, 4)
     }
 
-    private var upgradeButton: some View {
+    private var paywallEntryButton: some View {
         Button {
             showPaywall = true
         } label: {
             HStack(spacing: 12) {
                 SettingsIconBadge(
-                    icon: SettingsRowIcon(systemImage: "crown.fill", color: .yellow),
+                    icon: SettingsRowIcon(
+                        systemImage: membership.proIsActive ? "rectangle.stack" : "crown.fill",
+                        color: membership.proIsActive ? .accentColor : .yellow,
+                    ),
                 )
-                Text(String(localized: "settings_subscription_upgrade"))
+                Text(String(localized: paywallEntryTitleKey))
                     .foregroundStyle(.primary)
                 Spacer()
                 Image(systemName: "chevron.right")
@@ -109,6 +110,12 @@ struct SubscriptionSettingsSection: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+    }
+
+    private var paywallEntryTitleKey: LocalizedStringResource {
+        membership.proIsActive
+            ? "settings_subscription_view_options"
+            : "settings_subscription_upgrade"
     }
 
     private var manageButton: some View {

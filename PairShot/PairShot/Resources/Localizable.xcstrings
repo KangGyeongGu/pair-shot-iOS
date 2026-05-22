@@ -5821,6 +5821,23 @@
         }
       }
     },
+    "settings_subscription_view_options" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "View subscription options"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "구독 옵션 보기"
+          }
+        }
+      }
+    },
     "settings_summary_overlay_template" : {
       "extractionState" : "manual",
       "localizations" : {
