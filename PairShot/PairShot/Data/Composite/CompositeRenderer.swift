@@ -132,15 +132,35 @@ nonisolated enum CompositeRenderer {
     ) -> UIImage {
         let imageWidth = max(image.size.width, 1)
         let scaleFactor = imageWidth / referenceImageWidth
-        let baseBorderPx = CompositeLabelDrawer.resolveBorderPx(combineSettings)
-        let borderPx = baseBorderPx * scaleFactor
+        let baseBorderPx = CGFloat(CompositeLabelDrawer.resolveBorderPx(combineSettings)) * scaleFactor
+        var edges = EdgeBorders.uniform(baseBorderPx)
+
+        if
+            let settings = combineSettings,
+            settings.label.isEnabled,
+            settings.labelPlacement == .border
+        {
+            let position = isBefore ? settings.beforeBorderPosition : settings.afterBorderPosition
+            let stripPx = CompositeLabelDrawer.labelStripPx(
+                textSizePercent: settings.label.textSizePercent,
+                paneHeight: image.size.height,
+            )
+            switch position.vertical {
+                case .top:
+                    edges.top = max(edges.top, stripPx)
+
+                case .bottom:
+                    edges.bottom = max(edges.bottom, stripPx)
+            }
+        }
+
         let canvasSize = CGSize(
-            width: image.size.width + borderPx * 2,
-            height: image.size.height + borderPx * 2,
+            width: edges.left + image.size.width + edges.right,
+            height: edges.top + image.size.height + edges.bottom,
         )
         let imageRect = CGRect(
-            x: borderPx,
-            y: borderPx,
+            x: edges.left,
+            y: edges.top,
             width: image.size.width,
             height: image.size.height,
         )
@@ -158,13 +178,28 @@ nonisolated enum CompositeRenderer {
             if let watermark {
                 WatermarkOverlay.draw(in: imageRect, settings: watermark)
             }
-            CompositeLabelDrawer.drawSingleIfEnabled(
-                context: context,
-                combineSettings: combineSettings,
-                imageRect: imageRect,
-                isBefore: isBefore,
-                scaleFactor: scaleFactor,
-            )
+            if
+                let settings = combineSettings,
+                settings.labelPlacement == .border,
+                settings.label.isEnabled
+            {
+                CompositeLabelDrawer.drawSingleBorderEdgeLabel(
+                    context: context,
+                    combineSettings: settings,
+                    canvas: canvasSize,
+                    edges: edges,
+                    imageRect: imageRect,
+                    isBefore: isBefore,
+                )
+            } else {
+                CompositeLabelDrawer.drawSingleIfEnabled(
+                    context: context,
+                    combineSettings: combineSettings,
+                    imageRect: imageRect,
+                    isBefore: isBefore,
+                    scaleFactor: scaleFactor,
+                )
+            }
         }
     }
 
@@ -177,13 +212,21 @@ nonisolated enum CompositeRenderer {
     ) -> UIImage {
         let imageMaxWidth = max(before.size.width, after.size.width, 1)
         let scaleFactor = imageMaxWidth / referenceImageWidth
-        let baseBorderPx = CompositeLabelDrawer.resolveBorderPx(combineSettings)
-        let borderPx = baseBorderPx * scaleFactor
-        let frames = composeFrames(
+        let paneSizes = CompositeFrameMath.paneScaledSizes(
             beforeSize: before.size,
             afterSize: after.size,
             layout: layout,
-            borderPx: borderPx,
+        )
+        let edges = computeEdgeBorders(
+            paneSizes: paneSizes,
+            layout: layout,
+            settings: combineSettings,
+            scaleFactor: scaleFactor,
+        )
+        let frames = composeFrames(
+            paneSizes: paneSizes,
+            layout: layout,
+            borders: edges,
         )
         let format = UIGraphicsImageRendererFormat()
         format.scale = 1
@@ -201,45 +244,123 @@ nonisolated enum CompositeRenderer {
                 WatermarkOverlay.draw(in: frames.beforeRect, settings: watermark)
                 WatermarkOverlay.draw(in: frames.afterRect, settings: watermark)
             }
-            CompositeLabelDrawer.drawIfEnabled(
-                context: context,
-                combineSettings: combineSettings,
-                beforeRect: frames.beforeRect,
-                afterRect: frames.afterRect,
-                scaleFactor: scaleFactor,
-            )
+            if
+                let settings = combineSettings,
+                settings.labelPlacement == .border,
+                settings.label.isEnabled
+            {
+                CompositeLabelDrawer.drawBorderEdgeLabels(
+                    context: context,
+                    combineSettings: settings,
+                    canvas: frames.canvas,
+                    edges: edges,
+                    beforeRect: frames.beforeRect,
+                    afterRect: frames.afterRect,
+                    layout: layout,
+                )
+            } else {
+                CompositeLabelDrawer.drawIfEnabled(
+                    context: context,
+                    combineSettings: combineSettings,
+                    beforeRect: frames.beforeRect,
+                    afterRect: frames.afterRect,
+                    scaleFactor: scaleFactor,
+                )
+            }
         }
     }
 
     nonisolated static func composeFrames(
-        beforeSize: CGSize,
-        afterSize: CGSize,
+        paneSizes: PaneScaledSizes,
         layout: CompositeLayout,
-        borderPx: CGFloat = 0,
+        borders: EdgeBorders,
     ) -> (canvas: CGSize, beforeRect: CGRect, afterRect: CGRect) {
-        let beforeWidth = max(beforeSize.width, 1)
-        let beforeHeight = max(beforeSize.height, 1)
-        let afterWidth = max(afterSize.width, 1)
-        let afterHeight = max(afterSize.height, 1)
-        let border = max(borderPx, 0)
         switch layout {
             case .horizontal:
-                return CompositeFrameMath.horizontal(
-                    beforeWidth: beforeWidth,
-                    beforeHeight: beforeHeight,
-                    afterWidth: afterWidth,
-                    afterHeight: afterHeight,
-                    border: border,
-                )
+                return CompositeFrameMath.horizontal(paneSizes: paneSizes, borders: borders)
 
             case .vertical:
-                return CompositeFrameMath.vertical(
-                    beforeWidth: beforeWidth,
-                    beforeHeight: beforeHeight,
-                    afterWidth: afterWidth,
-                    afterHeight: afterHeight,
-                    border: border,
-                )
+                return CompositeFrameMath.vertical(paneSizes: paneSizes, borders: borders)
+        }
+    }
+
+    nonisolated static func computeEdgeBorders(
+        paneSizes: PaneScaledSizes,
+        layout: CompositeLayout,
+        settings: CombineSettings?,
+        scaleFactor: CGFloat,
+    ) -> EdgeBorders {
+        let basePx = CGFloat(CompositeLabelDrawer.resolveBorderPx(settings)) * scaleFactor
+        var edges = EdgeBorders.uniform(basePx)
+
+        guard
+            let settings,
+            settings.label.isEnabled,
+            settings.labelPlacement == .border
+        else {
+            return edges
+        }
+
+        let beforeStrip = CompositeLabelDrawer.labelStripPx(
+            textSizePercent: settings.label.textSizePercent,
+            paneHeight: paneSizes.before.height,
+        )
+        let afterStrip = CompositeLabelDrawer.labelStripPx(
+            textSizePercent: settings.label.textSizePercent,
+            paneHeight: paneSizes.after.height,
+        )
+
+        switch layout {
+            case .horizontal:
+                applyHorizontalStrip(&edges, vertical: settings.beforeBorderPosition.vertical, strip: beforeStrip)
+                applyHorizontalStrip(&edges, vertical: settings.afterBorderPosition.vertical, strip: afterStrip)
+
+            case .vertical:
+                applyVerticalBeforeStrip(&edges, vertical: settings.beforeBorderPosition.vertical, strip: beforeStrip)
+                applyVerticalAfterStrip(&edges, vertical: settings.afterBorderPosition.vertical, strip: afterStrip)
+        }
+        return edges
+    }
+
+    private static func applyHorizontalStrip(
+        _ edges: inout EdgeBorders,
+        vertical: CombineSettings.BorderLabelPosition.Vertical,
+        strip: CGFloat,
+    ) {
+        switch vertical {
+            case .top:
+                edges.top = max(edges.top, strip)
+
+            case .bottom:
+                edges.bottom = max(edges.bottom, strip)
+        }
+    }
+
+    private static func applyVerticalBeforeStrip(
+        _ edges: inout EdgeBorders,
+        vertical: CombineSettings.BorderLabelPosition.Vertical,
+        strip: CGFloat,
+    ) {
+        switch vertical {
+            case .top:
+                edges.top = max(edges.top, strip)
+
+            case .bottom:
+                edges.middle = max(edges.middle, strip)
+        }
+    }
+
+    private static func applyVerticalAfterStrip(
+        _ edges: inout EdgeBorders,
+        vertical: CombineSettings.BorderLabelPosition.Vertical,
+        strip: CGFloat,
+    ) {
+        switch vertical {
+            case .top:
+                edges.middle = max(edges.middle, strip)
+
+            case .bottom:
+                edges.bottom = max(edges.bottom, strip)
         }
     }
 }
@@ -326,61 +447,96 @@ nonisolated enum CompositeImageEncoder {
     }
 }
 
+nonisolated struct PaneScaledSizes: Equatable {
+    let before: CGSize
+    let after: CGSize
+}
+
+nonisolated struct EdgeBorders: Equatable {
+    var top: CGFloat
+    var bottom: CGFloat
+    var left: CGFloat
+    var right: CGFloat
+    var middle: CGFloat
+
+    static func uniform(_ value: CGFloat) -> EdgeBorders {
+        EdgeBorders(top: value, bottom: value, left: value, right: value, middle: value)
+    }
+}
+
 private nonisolated enum CompositeFrameMath {
+    static func paneScaledSizes(
+        beforeSize: CGSize,
+        afterSize: CGSize,
+        layout: CompositeLayout,
+    ) -> PaneScaledSizes {
+        let bW = max(beforeSize.width, 1)
+        let bH = max(beforeSize.height, 1)
+        let aW = max(afterSize.width, 1)
+        let aH = max(afterSize.height, 1)
+        switch layout {
+            case .horizontal:
+                let common = min(bH, aH)
+                return PaneScaledSizes(
+                    before: CGSize(width: bW * (common / bH), height: common),
+                    after: CGSize(width: aW * (common / aH), height: common),
+                )
+
+            case .vertical:
+                let common = min(bW, aW)
+                return PaneScaledSizes(
+                    before: CGSize(width: common, height: bH * (common / bW)),
+                    after: CGSize(width: common, height: aH * (common / aW)),
+                )
+        }
+    }
+
     static func horizontal(
-        beforeWidth: CGFloat,
-        beforeHeight: CGFloat,
-        afterWidth: CGFloat,
-        afterHeight: CGFloat,
-        border: CGFloat,
+        paneSizes: PaneScaledSizes,
+        borders: EdgeBorders,
     ) -> (canvas: CGSize, beforeRect: CGRect, afterRect: CGRect) {
-        let commonHeight = min(beforeHeight, afterHeight)
-        let scaledBeforeWidth = beforeWidth * (commonHeight / beforeHeight)
-        let scaledAfterWidth = afterWidth * (commonHeight / afterHeight)
+        let b = paneSizes.before
+        let a = paneSizes.after
         let canvas = CGSize(
-            width: scaledBeforeWidth + scaledAfterWidth + border * 3,
-            height: commonHeight + border * 2,
+            width: borders.left + b.width + borders.middle + a.width + borders.right,
+            height: borders.top + max(b.height, a.height) + borders.bottom,
         )
         let beforeRect = CGRect(
-            x: border,
-            y: border,
-            width: scaledBeforeWidth,
-            height: commonHeight,
+            x: borders.left,
+            y: borders.top,
+            width: b.width,
+            height: b.height,
         )
         let afterRect = CGRect(
-            x: border + scaledBeforeWidth + border,
-            y: border,
-            width: scaledAfterWidth,
-            height: commonHeight,
+            x: borders.left + b.width + borders.middle,
+            y: borders.top,
+            width: a.width,
+            height: a.height,
         )
         return (canvas, beforeRect, afterRect)
     }
 
     static func vertical(
-        beforeWidth: CGFloat,
-        beforeHeight: CGFloat,
-        afterWidth: CGFloat,
-        afterHeight: CGFloat,
-        border: CGFloat,
+        paneSizes: PaneScaledSizes,
+        borders: EdgeBorders,
     ) -> (canvas: CGSize, beforeRect: CGRect, afterRect: CGRect) {
-        let commonWidth = min(beforeWidth, afterWidth)
-        let scaledBeforeHeight = beforeHeight * (commonWidth / beforeWidth)
-        let scaledAfterHeight = afterHeight * (commonWidth / afterWidth)
+        let b = paneSizes.before
+        let a = paneSizes.after
         let canvas = CGSize(
-            width: commonWidth + border * 2,
-            height: scaledBeforeHeight + scaledAfterHeight + border * 3,
+            width: borders.left + max(b.width, a.width) + borders.right,
+            height: borders.top + b.height + borders.middle + a.height + borders.bottom,
         )
         let beforeRect = CGRect(
-            x: border,
-            y: border,
-            width: commonWidth,
-            height: scaledBeforeHeight,
+            x: borders.left,
+            y: borders.top,
+            width: b.width,
+            height: b.height,
         )
         let afterRect = CGRect(
-            x: border,
-            y: border + scaledBeforeHeight + border,
-            width: commonWidth,
-            height: scaledAfterHeight,
+            x: borders.left,
+            y: borders.top + b.height + borders.middle,
+            width: a.width,
+            height: a.height,
         )
         return (canvas, beforeRect, afterRect)
     }
