@@ -16,6 +16,7 @@ struct PairShotApp: App {
 
     @State private var env: AppEnvironment
     @State private var hasBootstrappedAds = false
+    @State private var hasInitializedBootstrap = false
     @State private var showFallbackAlert: Bool
     @State private var enteredBackgroundAt: Date?
     @Environment(\.scenePhase) private var scenePhase
@@ -43,14 +44,7 @@ struct PairShotApp: App {
                 .environment(\.locale, env.appSettings.resolvedLocale)
                 .preferredColorScheme(env.appSettings.resolvedColorScheme)
                 .task {
-                    await env.permissionStatusService.refreshAll()
-                    _ = await env.trackingService.requestIfUndetermined()
-                    if !env.permissionStatusService.hasRequestedInitialPermissions {
-                        await env.permissionStatusService.requestAllInOrder()
-                    }
-                    await bootstrapSubscription()
-                    await bootstrapConsent()
-                    await bootstrapAds()
+                    await tryInitializeBootstrap()
                 }
                 .onChange(of: env.consentManager.canRequestAds) { _, canRequest in
                     guard canRequest, !hasBootstrappedAds else { return }
@@ -60,6 +54,9 @@ struct PairShotApp: App {
         .modelContainer(sharedModelContainer)
         .onChange(of: scenePhase) { _, newPhase in
             handleScenePhaseChange(newPhase)
+            if newPhase == .active {
+                Task { @MainActor in await tryInitializeBootstrap() }
+            }
         }
     }
 
@@ -68,6 +65,20 @@ struct PairShotApp: App {
         let environment = AppEnvironment(modelContainer: containerBootstrap.container)
         AppLanguageBundleSync.apply(environment.appSettings.language)
         _env = State(initialValue: environment)
+    }
+
+    private func tryInitializeBootstrap() async {
+        guard !hasInitializedBootstrap else { return }
+        guard scenePhase == .active else { return }
+        hasInitializedBootstrap = true
+        await env.permissionStatusService.refreshAll()
+        if !env.permissionStatusService.hasRequestedInitialPermissions {
+            await env.permissionStatusService.requestAllInOrder()
+        }
+        await bootstrapSubscription()
+        await bootstrapConsent()
+        _ = await env.trackingService.requestIfUndetermined()
+        await bootstrapAds()
     }
 
     func bootstrapSubscription() async {

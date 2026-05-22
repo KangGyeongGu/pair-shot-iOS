@@ -7,8 +7,8 @@ import UniformTypeIdentifiers
 final class AppSettings {
     var exportQuality: ExportQuality {
         get {
-            let raw = defaults.string(forKey: AppSettingsKeys.exportQuality) ?? ExportQuality.lossless.rawValue
-            return ExportQuality(rawValue: raw) ?? .lossless
+            let raw = defaults.string(forKey: AppSettingsKeys.exportQuality) ?? ExportQuality.high.rawValue
+            return ExportQuality(rawValue: raw) ?? .high
         }
         set { defaults.set(newValue.rawValue, forKey: AppSettingsKeys.exportQuality) }
     }
@@ -204,7 +204,7 @@ final class AppSettings {
 nonisolated enum AppSettingsDefaultsRegistration {
     static var registry: [String: Any] {
         [
-            AppSettingsKeys.exportQuality: ExportQuality.lossless.rawValue,
+            AppSettingsKeys.exportQuality: ExportQuality.high.rawValue,
             AppSettingsKeys.fileNamePrefix: AndroidParityDefaults.fileNamePrefix,
             AppSettingsKeys.defaultOverlayAlpha: CompositionDefaults.fallbackAlpha,
             AppSettingsKeys.defaultCompositeLayout: CompositionDefaults.fallbackLayout.rawValue,

@@ -5073,6 +5073,23 @@
         }
       }
     },
+    "settings_item_terms_of_use" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terms of Use"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이용약관"
+          }
+        }
+      }
+    },
     "settings_item_theme" : {
       "extractionState" : "manual",
       "localizations" : {

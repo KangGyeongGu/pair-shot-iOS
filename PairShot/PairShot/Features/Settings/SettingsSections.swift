@@ -306,6 +306,18 @@ struct SettingsStorageInfoSection: View {
             .contentShape(Rectangle())
             .onTapGesture { openURL(SettingsExternalLinks.privacyPolicy) }
 
+            HStack(spacing: 12) {
+                SettingsIconBadge(
+                    icon: SettingsRowIcon(systemImage: "doc.plaintext", color: .blue),
+                )
+                Text(String(localized: "settings_item_terms_of_use"))
+                Spacer()
+                Image(systemName: "arrow.up.right.square")
+                    .foregroundStyle(.secondary)
+            }
+            .contentShape(Rectangle())
+            .onTapGesture { openURL(SettingsExternalLinks.termsOfUse) }
+
             if env.consentManager.canShowPrivacyOptionsButton {
                 Button {
                     Task { await env.consentManager.presentPrivacyOptions() }
@@ -378,5 +390,9 @@ struct SettingsProPromoCard: View {
 enum SettingsExternalLinks {
     static var privacyPolicy: URL {
         PaywallURLs.privacy
+    }
+
+    static var termsOfUse: URL {
+        PaywallURLs.terms
     }
 }
