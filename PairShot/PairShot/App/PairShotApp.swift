@@ -44,10 +44,12 @@ struct PairShotApp: App {
                 .preferredColorScheme(env.appSettings.resolvedColorScheme)
                 .task {
                     await env.permissionStatusService.refreshAll()
+                    _ = await env.trackingService.requestIfUndetermined()
                     if !env.permissionStatusService.hasRequestedInitialPermissions {
                         await env.permissionStatusService.requestAllInOrder()
                     }
                     await bootstrapSubscription()
+                    await bootstrapConsent()
                     await bootstrapAds()
                 }
                 .onChange(of: env.consentManager.canRequestAds) { _, canRequest in
@@ -77,9 +79,12 @@ struct PairShotApp: App {
         try? await env.productsService.loadProducts()
     }
 
+    func bootstrapConsent() async {
+        await env.consentManager.bootstrap()
+    }
+
     func bootstrapAds() async {
         guard !env.membership.proIsActive else { return }
-        await env.consentManager.bootstrap()
         guard env.consentManager.canRequestAds else { return }
         await startAdsAfterConsent()
     }
@@ -87,7 +92,6 @@ struct PairShotApp: App {
     private func startAdsAfterConsent() async {
         guard !hasBootstrappedAds else { return }
         hasBootstrappedAds = true
-        _ = await env.trackingService.requestIfUndetermined()
         #if canImport(GoogleMobileAds)
             _ = await MobileAds.shared.start()
         #endif
