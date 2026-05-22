@@ -89,7 +89,7 @@ struct TutorialOverlay: View {
                 cornerRadius: Self.cutoutCornerRadius,
                 opacity: opacity,
             )
-            if opacity == 0 || step == .afterCameraStrip {
+            if opacity == 0 || step == .afterCameraStrip || step == .afterCameraStripLongPressHint {
                 SpotlightRing(
                     cutout: rect,
                     cornerRadius: Self.cutoutCornerRadius,
@@ -127,6 +127,9 @@ struct TutorialOverlay: View {
 
             case .afterCameraStrip:
                 TutorialAnchorID.afterStrip
+
+            case .afterCameraStripLongPressHint:
+                TutorialAnchorID.afterActiveCard
 
             case .afterCameraGuide:
                 TutorialAnchorID.afterShutter

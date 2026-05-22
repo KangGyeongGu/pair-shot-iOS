@@ -342,6 +342,9 @@
       },
       "shouldTranslate" : false
     },
+    "BEFORE 확대해서 보기" : {
+
+    },
     "business_info_label_address" : {
       "extractionState" : "manual",
       "localizations" : {

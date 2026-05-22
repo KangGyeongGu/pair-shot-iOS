@@ -22,6 +22,7 @@ struct TutorialOverlayDimOpacityTests {
     func `홈 list step 은 표준 dim opacity 를 유지한다`() {
         let listSteps: [TutorialStep] = [
             .tapPairCard,
+            .afterCameraStripLongPressHint,
             .enterSelectionMode,
             .selectionShare,
             .selectionSave,

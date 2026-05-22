@@ -27,6 +27,7 @@ final class AfterCameraViewModel {
     var pairs: [PhotoPair] = []
     var selectedPairId: UUID?
     var currentPair: PhotoPair?
+    var peekPairId: UUID?
     var ghostImageData: Data?
     var alpha: Double = GhostOverlayMath.defaultAlpha {
         didSet { appSettings.defaultOverlayAlpha = alpha }
@@ -95,6 +96,11 @@ final class AfterCameraViewModel {
 
     nonisolated var captureSession: AVCaptureSession {
         session.captureSession
+    }
+
+    var peekPairItem: PhotoPair? {
+        guard let peekPairId else { return nil }
+        return pairs.first(where: { $0.id == peekPairId })
     }
 
     init(
@@ -173,6 +179,16 @@ final class AfterCameraViewModel {
         guard newId != currentPair?.id else { return }
         guard let pair = pairs.first(where: { $0.id == newId }) else { return }
         adopt(pair: pair)
+    }
+
+    func requestPeek(id: UUID) {
+        guard id == selectedPairId else { return }
+        guard pairs.contains(where: { $0.id == id }) else { return }
+        peekPairId = id
+    }
+
+    func dismissPeek() {
+        peekPairId = nil
     }
 
     private func loadPendingScopeAndStart() async {

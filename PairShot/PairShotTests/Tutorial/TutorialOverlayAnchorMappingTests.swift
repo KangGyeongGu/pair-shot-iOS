@@ -12,6 +12,7 @@ struct TutorialOverlayAnchorMappingTests {
             TutorialAnchorID.afterShutter,
             TutorialAnchorID.afterHomeButton,
             TutorialAnchorID.afterStrip,
+            TutorialAnchorID.afterActiveCard,
         ]
         #expect(Set(ids).count == ids.count)
         for id in ids {
@@ -27,6 +28,7 @@ struct TutorialOverlayAnchorMappingTests {
         #expect(TutorialAnchorID.afterShutter == "after.shutter")
         #expect(TutorialAnchorID.afterHomeButton == "after.homeButton")
         #expect(TutorialAnchorID.afterStrip == "after.strip")
+        #expect(TutorialAnchorID.afterActiveCard == "after.activeCard")
     }
 
     @Test
@@ -38,6 +40,7 @@ struct TutorialOverlayAnchorMappingTests {
             .backToHome,
             .tapPairCard,
             .afterCameraStrip,
+            .afterCameraStripLongPressHint,
             .afterCameraGuide,
             .backToHome2,
         ]
