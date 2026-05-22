@@ -74,6 +74,10 @@ final class SnackbarQueue {
     var current: SnackbarItem?
     weak var tutorialCoordinator: TutorialCoordinator?
 
+    var hasPendingAutoDismiss: Bool {
+        dismissTask != nil
+    }
+
     private var pending: [SnackbarItem] = []
     private var lastEnqueueTimes: [String: Date] = [:]
     private var dismissTask: Task<Void, Never>?

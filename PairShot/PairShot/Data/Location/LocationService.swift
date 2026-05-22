@@ -9,8 +9,15 @@ final class CoreLocationService: NSObject {
 
     @ObservationIgnored private let manager = CLLocationManager()
     @ObservationIgnored private var isUpdating = false
+    @ObservationIgnored private let sleeper: AsyncSleeper
+    @ObservationIgnored private let fetchOnceWaitSeconds: TimeInterval
 
-    override init() {
+    init(
+        sleeper: AsyncSleeper = SystemSleeper(),
+        fetchOnceWaitSeconds: TimeInterval = 2,
+    ) {
+        self.sleeper = sleeper
+        self.fetchOnceWaitSeconds = fetchOnceWaitSeconds
         super.init()
         manager.delegate = self
         manager.desiredAccuracy = kCLLocationAccuracyHundredMeters
@@ -43,7 +50,7 @@ final class CoreLocationService: NSObject {
     func fetchOnce() async -> DomainLocation? {
         if let cached = currentLocation { return cached }
         start()
-        try? await Task.sleep(for: .seconds(2))
+        try? await sleeper.sleep(seconds: fetchOnceWaitSeconds)
         return currentLocation
     }
 }

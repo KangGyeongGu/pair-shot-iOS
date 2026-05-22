@@ -26,11 +26,9 @@ struct LocationServiceTests {
     }
 
     @Test
-    func `fetchOnce returns within bounded timeout in simulator`() async {
-        let service = CoreLocationService()
-        let start = Date()
-        _ = await service.fetchOnce()
-        let elapsed = Date().timeIntervalSince(start)
-        #expect(elapsed < 5.0)
+    func `fetchOnce — InstantSleeper 주입 시 wait 없이 nil 반환 (시뮬레이터에서 권한_위치 fix 없으면 currentLocation 미설정)`() async {
+        let service = CoreLocationService(sleeper: InstantSleeper())
+        let result = await service.fetchOnce()
+        #expect(result == nil)
     }
 }
