@@ -80,185 +80,15 @@ nonisolated enum CompositeLabelDrawer {
         return fontSize * (LabelMetrics.rectHeightFactor + LabelMetrics.marginFactor * 2)
     }
 
-    static func drawBorderEdgeLabels(
-        context: UIGraphicsImageRendererContext,
-        combineSettings: CombineSettings,
-        canvas: CGSize,
-        edges: EdgeBorders,
-        beforeRect: CGRect,
-        afterRect: CGRect,
-        layout: CompositeLayout,
-    ) {
-        guard combineSettings.label.isEnabled else { return }
-        let beforeStrip = borderStripRect(
-            position: combineSettings.beforeBorderPosition,
-            paneRect: beforeRect,
-            edges: edges,
-            canvas: canvas,
-            layout: layout,
-            isBefore: true,
-        )
-        let afterStrip = borderStripRect(
-            position: combineSettings.afterBorderPosition,
-            paneRect: afterRect,
-            edges: edges,
-            canvas: canvas,
-            layout: layout,
-            isBefore: false,
-        )
-        drawBorderLabel(
-            text: combineSettings.label.beforeText,
-            stripRect: beforeStrip,
-            horizontal: combineSettings.beforeBorderPosition.horizontal,
-            settings: combineSettings,
-            paneHeight: beforeRect.height,
-            cgContext: context.cgContext,
-        )
-        drawBorderLabel(
-            text: combineSettings.label.afterText,
-            stripRect: afterStrip,
-            horizontal: combineSettings.afterBorderPosition.horizontal,
-            settings: combineSettings,
-            paneHeight: afterRect.height,
-            cgContext: context.cgContext,
-        )
-    }
-
-    static func drawSingleBorderEdgeLabel(
-        context: UIGraphicsImageRendererContext,
-        combineSettings: CombineSettings,
-        canvas: CGSize,
-        edges: EdgeBorders,
-        imageRect: CGRect,
-        isBefore: Bool,
-    ) {
-        guard combineSettings.label.isEnabled else { return }
-        let position = isBefore ? combineSettings.beforeBorderPosition : combineSettings.afterBorderPosition
-        let stripRect =
-            switch position.vertical {
-                case .top:
-                    CGRect(x: imageRect.minX, y: 0, width: imageRect.width, height: edges.top)
-
-                case .bottom:
-                    CGRect(
-                        x: imageRect.minX,
-                        y: canvas.height - edges.bottom,
-                        width: imageRect.width,
-                        height: edges.bottom,
-                    )
-            }
-        let text = isBefore ? combineSettings.label.beforeText : combineSettings.label.afterText
-        drawBorderLabel(
-            text: text,
-            stripRect: stripRect,
-            horizontal: position.horizontal,
-            settings: combineSettings,
-            paneHeight: imageRect.height,
-            cgContext: context.cgContext,
-        )
-    }
-
-    static func borderStripRect(
-        position: CombineSettings.BorderLabelPosition,
-        paneRect: CGRect,
-        edges: EdgeBorders,
-        canvas: CGSize,
-        layout: CompositeLayout,
-        isBefore: Bool,
-    ) -> CGRect {
-        switch layout {
-            case .horizontal:
-                switch position.vertical {
-                    case .top:
-                        return CGRect(
-                            x: paneRect.minX,
-                            y: 0,
-                            width: paneRect.width,
-                            height: edges.top,
-                        )
-
-                    case .bottom:
-                        return CGRect(
-                            x: paneRect.minX,
-                            y: canvas.height - edges.bottom,
-                            width: paneRect.width,
-                            height: edges.bottom,
-                        )
-                }
-
-            case .vertical:
-                switch position.vertical {
-                    case .top:
-                        if isBefore {
-                            return CGRect(
-                                x: paneRect.minX,
-                                y: 0,
-                                width: paneRect.width,
-                                height: edges.top,
-                            )
-                        }
-                        return CGRect(
-                            x: paneRect.minX,
-                            y: paneRect.minY - edges.middle,
-                            width: paneRect.width,
-                            height: edges.middle,
-                        )
-
-                    case .bottom:
-                        if isBefore {
-                            return CGRect(
-                                x: paneRect.minX,
-                                y: paneRect.maxY,
-                                width: paneRect.width,
-                                height: edges.middle,
-                            )
-                        }
-                        return CGRect(
-                            x: paneRect.minX,
-                            y: canvas.height - edges.bottom,
-                            width: paneRect.width,
-                            height: edges.bottom,
-                        )
-                }
-        }
-    }
-
-    private static func drawBorderLabel(
+    static func makeAttributedText(
         text: String,
-        stripRect: CGRect,
-        horizontal: CombineSettings.LabelPosition.Horizontal,
         settings: CombineSettings,
-        paneHeight: CGFloat,
-        cgContext: CGContext,
-    ) {
-        let fontSize = resolveFontSize(
-            textSizePercent: settings.label.textSizePercent,
-            imageHeight: paneHeight,
-        )
-        let attributed = makeAttributedText(text: text, settings: settings, fontSize: fontSize)
-        if !settings.labelBackground.matchBorderColor {
-            let bgColor = UIColor(rgba: settings.labelBackground.color)
-                .withAlphaComponent(CGFloat(max(0, min(1, settings.labelBackground.opacity))))
-            cgContext.saveGState()
-            cgContext.setFillColor(bgColor.cgColor)
-            cgContext.fill(stripRect)
-            cgContext.restoreGState()
-        }
-        let textSize = attributed.size()
-        let hPad = fontSize * LabelMetrics.horizontalPaddingFactor
-        let drawX: CGFloat =
-            switch horizontal {
-                case .leading:
-                    stripRect.minX + hPad
-
-                case .center:
-                    stripRect.midX - textSize.width / 2
-
-                case .trailing:
-                    stripRect.maxX - textSize.width - hPad
-            }
-        let drawY = stripRect.midY - textSize.height / 2
-        attributed.draw(at: CGPoint(x: drawX, y: drawY))
+        fontSize: CGFloat,
+    ) -> NSAttributedString {
+        let font = UIFont.systemFont(ofSize: fontSize, weight: .semibold)
+        let textColor = UIColor(rgba: settings.label.textColor)
+        let attributes: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: textColor]
+        return NSAttributedString(string: text, attributes: attributes)
     }
 
     static func paintCanvasBackground(
@@ -304,17 +134,6 @@ nonisolated enum CompositeLabelDrawer {
         let drawX = labelRect.midX - textSize.width / 2
         let drawY = labelRect.midY - textSize.height / 2
         attributed.draw(at: CGPoint(x: drawX, y: drawY))
-    }
-
-    private static func makeAttributedText(
-        text: String,
-        settings: CombineSettings,
-        fontSize: CGFloat,
-    ) -> NSAttributedString {
-        let font = UIFont.systemFont(ofSize: fontSize, weight: .semibold)
-        let textColor = UIColor(rgba: settings.label.textColor)
-        let attributes: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: textColor]
-        return NSAttributedString(string: text, attributes: attributes)
     }
 
     static func resolveFontSize(textSizePercent: Double, imageHeight: CGFloat) -> CGFloat {

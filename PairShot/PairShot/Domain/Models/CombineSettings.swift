@@ -144,6 +144,20 @@ nonisolated struct CombineSettings: Codable, Equatable {
         }
     }
 
+    enum CodingKeys: String, CodingKey {
+        case direction
+        case border
+        case label
+        case labelMode
+        case beforePosition
+        case afterPosition
+        case fullWidthVertical
+        case labelBackground
+        case labelPlacement
+        case beforeBorderPosition
+        case afterBorderPosition
+    }
+
     static let `default` = Self()
 
     static let borderThicknessRange: ClosedRange<Double> = 0.0 ... 32.0
@@ -187,20 +201,6 @@ nonisolated struct CombineSettings: Codable, Equatable {
         self.labelPlacement = labelPlacement
         self.beforeBorderPosition = beforeBorderPosition
         self.afterBorderPosition = afterBorderPosition
-    }
-
-    enum CodingKeys: String, CodingKey {
-        case direction
-        case border
-        case label
-        case labelMode
-        case beforePosition
-        case afterPosition
-        case fullWidthVertical
-        case labelBackground
-        case labelPlacement
-        case beforeBorderPosition
-        case afterBorderPosition
     }
 
     init(from decoder: Decoder) throws {

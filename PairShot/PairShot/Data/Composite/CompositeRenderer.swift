@@ -217,7 +217,7 @@ nonisolated enum CompositeRenderer {
             afterSize: after.size,
             layout: layout,
         )
-        let edges = computeEdgeBorders(
+        let edges = EdgeBorders.compute(
             paneSizes: paneSizes,
             layout: layout,
             settings: combineSettings,
@@ -256,7 +256,6 @@ nonisolated enum CompositeRenderer {
                     edges: edges,
                     beforeRect: frames.beforeRect,
                     afterRect: frames.afterRect,
-                    layout: layout,
                 )
             } else {
                 CompositeLabelDrawer.drawIfEnabled(
@@ -281,86 +280,6 @@ nonisolated enum CompositeRenderer {
 
             case .vertical:
                 CompositeFrameMath.vertical(paneSizes: paneSizes, borders: borders)
-        }
-    }
-
-    nonisolated static func computeEdgeBorders(
-        paneSizes: PaneScaledSizes,
-        layout: CompositeLayout,
-        settings: CombineSettings?,
-        scaleFactor: CGFloat,
-    ) -> EdgeBorders {
-        let basePx = CGFloat(CompositeLabelDrawer.resolveBorderPx(settings)) * scaleFactor
-        var edges = EdgeBorders.uniform(basePx)
-
-        guard
-            let settings,
-            settings.label.isEnabled,
-            settings.labelPlacement == .border
-        else {
-            return edges
-        }
-
-        let beforeStrip = CompositeLabelDrawer.labelStripPx(
-            textSizePercent: settings.label.textSizePercent,
-            paneHeight: paneSizes.before.height,
-        )
-        let afterStrip = CompositeLabelDrawer.labelStripPx(
-            textSizePercent: settings.label.textSizePercent,
-            paneHeight: paneSizes.after.height,
-        )
-
-        switch layout {
-            case .horizontal:
-                applyHorizontalStrip(&edges, vertical: settings.beforeBorderPosition.vertical, strip: beforeStrip)
-                applyHorizontalStrip(&edges, vertical: settings.afterBorderPosition.vertical, strip: afterStrip)
-
-            case .vertical:
-                applyVerticalBeforeStrip(&edges, vertical: settings.beforeBorderPosition.vertical, strip: beforeStrip)
-                applyVerticalAfterStrip(&edges, vertical: settings.afterBorderPosition.vertical, strip: afterStrip)
-        }
-        return edges
-    }
-
-    private static func applyHorizontalStrip(
-        _ edges: inout EdgeBorders,
-        vertical: CombineSettings.BorderLabelPosition.Vertical,
-        strip: CGFloat,
-    ) {
-        switch vertical {
-            case .top:
-                edges.top = max(edges.top, strip)
-
-            case .bottom:
-                edges.bottom = max(edges.bottom, strip)
-        }
-    }
-
-    private static func applyVerticalBeforeStrip(
-        _ edges: inout EdgeBorders,
-        vertical: CombineSettings.BorderLabelPosition.Vertical,
-        strip: CGFloat,
-    ) {
-        switch vertical {
-            case .top:
-                edges.top = max(edges.top, strip)
-
-            case .bottom:
-                edges.middle = max(edges.middle, strip)
-        }
-    }
-
-    private static func applyVerticalAfterStrip(
-        _ edges: inout EdgeBorders,
-        vertical: CombineSettings.BorderLabelPosition.Vertical,
-        strip: CGFloat,
-    ) {
-        switch vertical {
-            case .top:
-                edges.middle = max(edges.middle, strip)
-
-            case .bottom:
-                edges.bottom = max(edges.bottom, strip)
         }
     }
 }
@@ -444,100 +363,5 @@ nonisolated enum CompositeImageEncoder {
         formatter.timeZone = TimeZone.current
         formatter.dateFormat = CompositeRenderer.exifDateFormat
         return formatter.string(from: date)
-    }
-}
-
-nonisolated struct PaneScaledSizes: Equatable {
-    let before: CGSize
-    let after: CGSize
-}
-
-nonisolated struct EdgeBorders: Equatable {
-    var top: CGFloat
-    var bottom: CGFloat
-    var left: CGFloat
-    var right: CGFloat
-    var middle: CGFloat
-
-    static func uniform(_ value: CGFloat) -> Self {
-        Self(top: value, bottom: value, left: value, right: value, middle: value)
-    }
-}
-
-private nonisolated enum CompositeFrameMath {
-    static func paneScaledSizes(
-        beforeSize: CGSize,
-        afterSize: CGSize,
-        layout: CompositeLayout,
-    ) -> PaneScaledSizes {
-        let bW = max(beforeSize.width, 1)
-        let bH = max(beforeSize.height, 1)
-        let aW = max(afterSize.width, 1)
-        let aH = max(afterSize.height, 1)
-        switch layout {
-            case .horizontal:
-                let common = min(bH, aH)
-                return PaneScaledSizes(
-                    before: CGSize(width: bW * (common / bH), height: common),
-                    after: CGSize(width: aW * (common / aH), height: common),
-                )
-
-            case .vertical:
-                let common = min(bW, aW)
-                return PaneScaledSizes(
-                    before: CGSize(width: common, height: bH * (common / bW)),
-                    after: CGSize(width: common, height: aH * (common / aW)),
-                )
-        }
-    }
-
-    static func horizontal(
-        paneSizes: PaneScaledSizes,
-        borders: EdgeBorders,
-    ) -> (canvas: CGSize, beforeRect: CGRect, afterRect: CGRect) {
-        let b = paneSizes.before
-        let a = paneSizes.after
-        let canvas = CGSize(
-            width: borders.left + b.width + borders.middle + a.width + borders.right,
-            height: borders.top + max(b.height, a.height) + borders.bottom,
-        )
-        let beforeRect = CGRect(
-            x: borders.left,
-            y: borders.top,
-            width: b.width,
-            height: b.height,
-        )
-        let afterRect = CGRect(
-            x: borders.left + b.width + borders.middle,
-            y: borders.top,
-            width: a.width,
-            height: a.height,
-        )
-        return (canvas, beforeRect, afterRect)
-    }
-
-    static func vertical(
-        paneSizes: PaneScaledSizes,
-        borders: EdgeBorders,
-    ) -> (canvas: CGSize, beforeRect: CGRect, afterRect: CGRect) {
-        let b = paneSizes.before
-        let a = paneSizes.after
-        let canvas = CGSize(
-            width: borders.left + max(b.width, a.width) + borders.right,
-            height: borders.top + b.height + borders.middle + a.height + borders.bottom,
-        )
-        let beforeRect = CGRect(
-            x: borders.left,
-            y: borders.top,
-            width: b.width,
-            height: b.height,
-        )
-        let afterRect = CGRect(
-            x: borders.left,
-            y: borders.top + b.height + borders.middle,
-            width: a.width,
-            height: a.height,
-        )
-        return (canvas, beforeRect, afterRect)
     }
 }

@@ -306,29 +306,31 @@ struct CombineSettingsView: View {
             previewFooter
         }
     }
+}
 
-    private var borderColorBinding: Binding<Color> {
+private extension CombineSettingsView {
+    var borderColorBinding: Binding<Color> {
         Binding(
             get: { Color(rgba: viewModel.settings.border.color) },
             set: { viewModel.settings.border.color = ColorRGBA(color: $0) },
         )
     }
 
-    private var labelTextColorBinding: Binding<Color> {
+    var labelTextColorBinding: Binding<Color> {
         Binding(
             get: { Color(rgba: viewModel.settings.label.textColor) },
             set: { viewModel.settings.label.textColor = ColorRGBA(color: $0) },
         )
     }
 
-    private var labelBackgroundColorBinding: Binding<Color> {
+    var labelBackgroundColorBinding: Binding<Color> {
         Binding(
             get: { Color(rgba: viewModel.settings.labelBackground.color) },
             set: { viewModel.settings.labelBackground.color = ColorRGBA(color: $0) },
         )
     }
 
-    private var labelBackgroundTransparencyBinding: Binding<Double> {
+    var labelBackgroundTransparencyBinding: Binding<Double> {
         Binding(
             get: { 1.0 - viewModel.settings.labelBackground.opacity },
             set: { viewModel.settings.labelBackground.opacity = 1.0 - $0 },

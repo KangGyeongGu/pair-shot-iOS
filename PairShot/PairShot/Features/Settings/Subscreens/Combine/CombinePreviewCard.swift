@@ -6,95 +6,28 @@ struct CombinePreviewCard: View {
 
     let settings: CombineSettings
 
-    private var paneCountAcrossWidth: CGFloat {
-        switch settings.direction {
-            case .horizontal: 2
-            case .vertical: 1
-        }
-    }
-
-    private var paneCountAcrossHeight: CGFloat {
-        switch settings.direction {
-            case .horizontal: 1
-            case .vertical: 2
-        }
-    }
-
     private var edgeFractions: EdgeBorderFractions {
-        let base = settings.border.isEnabled
-            ? CGFloat(settings.border.thickness) / Self.referenceImageWidth
-            : 0
-        var f = EdgeBorderFractions.uniform(base)
-
-        guard settings.label.isEnabled, settings.labelPlacement == .border else { return f }
-
-        let paneHeightFraction: CGFloat =
-            switch settings.direction {
-                case .horizontal: 1 / Self.representativeImageAspect
-                case .vertical: 1 / Self.representativeImageAspect
-            }
-        let textPercent = CGFloat(settings.label.textSizePercent) * 0.01
-        let strip = textPercent * paneHeightFraction * (1.6 + 0.4 * 2)
-
-        switch settings.direction {
-            case .horizontal:
-                applyHorizontalStrip(&f, vertical: settings.beforeBorderPosition.vertical, strip: strip)
-                applyHorizontalStrip(&f, vertical: settings.afterBorderPosition.vertical, strip: strip)
-
-            case .vertical:
-                applyVerticalBeforeStrip(&f, vertical: settings.beforeBorderPosition.vertical, strip: strip)
-                applyVerticalAfterStrip(&f, vertical: settings.afterBorderPosition.vertical, strip: strip)
-        }
-        return f
-    }
-
-    private func applyHorizontalStrip(
-        _ f: inout EdgeBorderFractions,
-        vertical: CombineSettings.BorderLabelPosition.Vertical,
-        strip: CGFloat,
-    ) {
-        switch vertical {
-            case .top: f.top = max(f.top, strip)
-            case .bottom: f.bottom = max(f.bottom, strip)
-        }
-    }
-
-    private func applyVerticalBeforeStrip(
-        _ f: inout EdgeBorderFractions,
-        vertical: CombineSettings.BorderLabelPosition.Vertical,
-        strip: CGFloat,
-    ) {
-        switch vertical {
-            case .top: f.top = max(f.top, strip)
-            case .bottom: f.middle = max(f.middle, strip)
-        }
-    }
-
-    private func applyVerticalAfterStrip(
-        _ f: inout EdgeBorderFractions,
-        vertical: CombineSettings.BorderLabelPosition.Vertical,
-        strip: CGFloat,
-    ) {
-        switch vertical {
-            case .top: f.middle = max(f.middle, strip)
-            case .bottom: f.bottom = max(f.bottom, strip)
-        }
+        EdgeBorderFractions.compute(
+            for: settings,
+            referenceImageWidth: Self.referenceImageWidth,
+            representativeImageAspect: Self.representativeImageAspect,
+        )
     }
 
     private var canvasAspectRatio: CGFloat {
-        let f = edgeFractions
+        let fractions = edgeFractions
         let paneW: CGFloat = 1
         let paneH = paneW / Self.representativeImageAspect
         let widthFraction: CGFloat
         let heightFraction: CGFloat
         switch settings.direction {
             case .horizontal:
-                widthFraction = f.left + paneW + f.middle + paneW + f.right
-                heightFraction = f.top + paneH + f.bottom
+                widthFraction = fractions.left + paneW + fractions.middle + paneW + fractions.right
+                heightFraction = fractions.top + paneH + fractions.bottom
 
             case .vertical:
-                widthFraction = f.left + paneW + f.right
-                heightFraction = f.top + paneH + f.middle + paneH + f.bottom
+                widthFraction = fractions.left + paneW + fractions.right
+                heightFraction = fractions.top + paneH + fractions.middle + paneH + fractions.bottom
         }
         return widthFraction / max(heightFraction, 0.001)
     }
@@ -126,12 +59,12 @@ struct CombinePreviewCard: View {
     }
 
     private func computeScaleFactor(canvasSize: CGSize) -> CGFloat {
-        let f = edgeFractions
+        let fractions = edgeFractions
         let paneW: CGFloat = 1
         let widthFraction: CGFloat =
             switch settings.direction {
-                case .horizontal: f.left + paneW + f.middle + paneW + f.right
-                case .vertical: f.left + paneW + f.right
+                case .horizontal: fractions.left + paneW + fractions.middle + paneW + fractions.right
+                case .vertical: fractions.left + paneW + fractions.right
             }
         let paneWidthPx = canvasSize.width / max(widthFraction, 0.001)
         return max(paneWidthPx / Self.referenceImageWidth, 0.1)
@@ -139,13 +72,13 @@ struct CombinePreviewCard: View {
 
     @ViewBuilder
     private func content(scaleFactor: CGFloat, size: CGSize) -> some View {
-        let f = edgeFractions
+        let fractions = edgeFractions
         let edgesPx = EdgeBordersPx(
-            top: f.top * Self.referenceImageWidth * scaleFactor,
-            bottom: f.bottom * Self.referenceImageWidth * scaleFactor,
-            left: f.left * Self.referenceImageWidth * scaleFactor,
-            right: f.right * Self.referenceImageWidth * scaleFactor,
-            middle: f.middle * Self.referenceImageWidth * scaleFactor,
+            top: fractions.top * Self.referenceImageWidth * scaleFactor,
+            bottom: fractions.bottom * Self.referenceImageWidth * scaleFactor,
+            left: fractions.left * Self.referenceImageWidth * scaleFactor,
+            right: fractions.right * Self.referenceImageWidth * scaleFactor,
+            middle: fractions.middle * Self.referenceImageWidth * scaleFactor,
         )
         let paneHeight = paneHeight(in: size, edges: edgesPx)
         let paneWidth = paneWidth(in: size, edges: edgesPx)
@@ -258,121 +191,6 @@ struct CombinePreviewCard: View {
         }
     }
 
-    @ViewBuilder
-    private func borderLabelOverlay(
-        edges: EdgeBordersPx,
-        paneWidth: CGFloat,
-        paneHeight: CGFloat,
-        scaleFactor: CGFloat,
-        canvasSize: CGSize,
-    ) -> some View {
-        let fontSize = computedFontSize(scaleFactor: scaleFactor, paneHeight: paneHeight)
-        let beforeRect = borderStripCanvasRect(
-            position: settings.beforeBorderPosition,
-            edges: edges,
-            paneWidth: paneWidth,
-            paneHeight: paneHeight,
-            canvasSize: canvasSize,
-            isBefore: true,
-        )
-        let afterRect = borderStripCanvasRect(
-            position: settings.afterBorderPosition,
-            edges: edges,
-            paneWidth: paneWidth,
-            paneHeight: paneHeight,
-            canvasSize: canvasSize,
-            isBefore: false,
-        )
-        ZStack(alignment: .topLeading) {
-            borderStripLabel(
-                rect: beforeRect,
-                text: settings.label.beforeText,
-                horizontal: settings.beforeBorderPosition.horizontal,
-                fontSize: fontSize,
-            )
-            borderStripLabel(
-                rect: afterRect,
-                text: settings.label.afterText,
-                horizontal: settings.afterBorderPosition.horizontal,
-                fontSize: fontSize,
-            )
-        }
-    }
-
-    private func borderStripCanvasRect(
-        position: CombineSettings.BorderLabelPosition,
-        edges: EdgeBordersPx,
-        paneWidth: CGFloat,
-        paneHeight: CGFloat,
-        canvasSize: CGSize,
-        isBefore: Bool,
-    ) -> CGRect {
-        switch settings.direction {
-            case .horizontal:
-                let xOffset = isBefore
-                    ? edges.left
-                    : edges.left + paneWidth + edges.middle
-                switch position.vertical {
-                    case .top:
-                        return CGRect(x: xOffset, y: 0, width: paneWidth, height: edges.top)
-
-                    case .bottom:
-                        return CGRect(
-                            x: xOffset,
-                            y: canvasSize.height - edges.bottom,
-                            width: paneWidth,
-                            height: edges.bottom,
-                        )
-                }
-
-            case .vertical:
-                let paneTop = isBefore
-                    ? edges.top
-                    : edges.top + paneHeight + edges.middle
-                let paneBottom = paneTop + paneHeight
-                switch position.vertical {
-                    case .top:
-                        let stripHeight = isBefore ? edges.top : edges.middle
-                        let y = isBefore ? 0 : paneTop - edges.middle
-                        return CGRect(x: edges.left, y: y, width: paneWidth, height: stripHeight)
-
-                    case .bottom:
-                        let stripHeight = isBefore ? edges.middle : edges.bottom
-                        let y = isBefore ? paneBottom : canvasSize.height - edges.bottom
-                        return CGRect(x: edges.left, y: y, width: paneWidth, height: stripHeight)
-                }
-        }
-    }
-
-    @ViewBuilder
-    private func borderStripLabel(
-        rect: CGRect,
-        text: String,
-        horizontal: CombineSettings.LabelPosition.Horizontal,
-        fontSize: CGFloat,
-    ) -> some View {
-        let stripBackground = settings.labelBackground.matchBorderColor
-            ? Color.clear
-            : labelBackgroundColor
-        let alignment: Alignment =
-            switch horizontal {
-                case .leading: .leading
-                case .center: .center
-                case .trailing: .trailing
-            }
-        let hPad = fontSize * 0.75
-        ZStack(alignment: alignment) {
-            stripBackground
-            Text(text)
-                .font(.system(size: fontSize, weight: .semibold))
-                .foregroundStyle(Color(rgba: settings.label.textColor))
-                .lineLimit(1)
-                .padding(.horizontal, hPad)
-        }
-        .frame(width: rect.width, height: rect.height)
-        .offset(x: rect.minX, y: rect.minY)
-    }
-
     private func computedFontSize(scaleFactor: CGFloat, paneHeight: CGFloat) -> CGFloat {
         let scaledMinFontSize: CGFloat = 10 * scaleFactor
         let percentFontSize = CGFloat(settings.label.textSizePercent) * 0.01 * paneHeight
@@ -434,24 +252,151 @@ struct CombinePreviewCard: View {
     }
 }
 
-private struct EdgeBorderFractions {
-    var top: CGFloat
-    var bottom: CGFloat
-    var left: CGFloat
-    var right: CGFloat
-    var middle: CGFloat
-
-    static func uniform(_ value: CGFloat) -> Self {
-        Self(top: value, bottom: value, left: value, right: value, middle: value)
+private extension CombinePreviewCard {
+    @ViewBuilder
+    func borderLabelOverlay(
+        edges: EdgeBordersPx,
+        paneWidth: CGFloat,
+        paneHeight: CGFloat,
+        scaleFactor: CGFloat,
+        canvasSize: CGSize,
+    ) -> some View {
+        let fontSize = computedFontSize(scaleFactor: scaleFactor, paneHeight: paneHeight)
+        let beforeRect = borderStripCanvasRect(
+            position: settings.beforeBorderPosition,
+            edges: edges,
+            paneWidth: paneWidth,
+            paneHeight: paneHeight,
+            canvasSize: canvasSize,
+            isBefore: true,
+        )
+        let afterRect = borderStripCanvasRect(
+            position: settings.afterBorderPosition,
+            edges: edges,
+            paneWidth: paneWidth,
+            paneHeight: paneHeight,
+            canvasSize: canvasSize,
+            isBefore: false,
+        )
+        ZStack(alignment: .topLeading) {
+            borderStripLabel(
+                rect: beforeRect,
+                text: settings.label.beforeText,
+                horizontal: settings.beforeBorderPosition.horizontal,
+                fontSize: fontSize,
+            )
+            borderStripLabel(
+                rect: afterRect,
+                text: settings.label.afterText,
+                horizontal: settings.afterBorderPosition.horizontal,
+                fontSize: fontSize,
+            )
+        }
     }
-}
 
-private struct EdgeBordersPx {
-    let top: CGFloat
-    let bottom: CGFloat
-    let left: CGFloat
-    let right: CGFloat
-    let middle: CGFloat
+    func borderStripCanvasRect(
+        position: CombineSettings.BorderLabelPosition,
+        edges: EdgeBordersPx,
+        paneWidth: CGFloat,
+        paneHeight: CGFloat,
+        canvasSize: CGSize,
+        isBefore: Bool,
+    ) -> CGRect {
+        switch settings.direction {
+            case .horizontal:
+                horizontalBorderStrip(
+                    position: position,
+                    edges: edges,
+                    paneWidth: paneWidth,
+                    canvasSize: canvasSize,
+                    isBefore: isBefore,
+                )
+
+            case .vertical:
+                verticalBorderStrip(
+                    position: position,
+                    edges: edges,
+                    paneWidth: paneWidth,
+                    paneHeight: paneHeight,
+                    canvasSize: canvasSize,
+                    isBefore: isBefore,
+                )
+        }
+    }
+
+    func horizontalBorderStrip(
+        position: CombineSettings.BorderLabelPosition,
+        edges: EdgeBordersPx,
+        paneWidth: CGFloat,
+        canvasSize: CGSize,
+        isBefore: Bool,
+    ) -> CGRect {
+        let xOffset = isBefore ? edges.left : edges.left + paneWidth + edges.middle
+        switch position.vertical {
+            case .top:
+                return CGRect(x: xOffset, y: 0, width: paneWidth, height: edges.top)
+
+            case .bottom:
+                return CGRect(
+                    x: xOffset,
+                    y: canvasSize.height - edges.bottom,
+                    width: paneWidth,
+                    height: edges.bottom,
+                )
+        }
+    }
+
+    func verticalBorderStrip(
+        position: CombineSettings.BorderLabelPosition,
+        edges: EdgeBordersPx,
+        paneWidth: CGFloat,
+        paneHeight: CGFloat,
+        canvasSize: CGSize,
+        isBefore: Bool,
+    ) -> CGRect {
+        let paneTop = isBefore ? edges.top : edges.top + paneHeight + edges.middle
+        let paneBottom = paneTop + paneHeight
+        switch position.vertical {
+            case .top:
+                let stripHeight = isBefore ? edges.top : edges.middle
+                let stripY = isBefore ? 0 : paneTop - edges.middle
+                return CGRect(x: edges.left, y: stripY, width: paneWidth, height: stripHeight)
+
+            case .bottom:
+                let stripHeight = isBefore ? edges.middle : edges.bottom
+                let stripY = isBefore ? paneBottom : canvasSize.height - edges.bottom
+                return CGRect(x: edges.left, y: stripY, width: paneWidth, height: stripHeight)
+        }
+    }
+
+    @ViewBuilder
+    func borderStripLabel(
+        rect: CGRect,
+        text: String,
+        horizontal: CombineSettings.LabelPosition.Horizontal,
+        fontSize: CGFloat,
+    ) -> some View {
+        let stripBackground = settings.labelBackground.matchBorderColor
+            ? Color.clear
+            : labelBackgroundColor
+        let alignment: Alignment =
+            switch horizontal {
+                case .leading: .leading
+                case .center: .center
+                case .trailing: .trailing
+            }
+        let hPad = fontSize * 0.75
+        ZStack(alignment: alignment) {
+            stripBackground
+            Text(text)
+                .font(.system(size: fontSize, weight: .semibold))
+                .foregroundStyle(Color(rgba: settings.label.textColor))
+                .lineLimit(1)
+                .padding(.horizontal, hPad)
+        }
+        .frame(width: rect.width, height: rect.height)
+        .offset(x: rect.minX, y: rect.minY)
+    }
 }
 
 #Preview {
