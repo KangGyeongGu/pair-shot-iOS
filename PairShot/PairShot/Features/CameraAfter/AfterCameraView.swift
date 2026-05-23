@@ -29,6 +29,11 @@ struct AfterCameraView: View {
 
             settingsOverlay
         }
+        .sheet(
+            item: peekItemBinding,
+            onDismiss: { viewModel?.dismissPeek() },
+            content: { pair in BeforePeekView(pair: pair).environment(env) },
+        )
         .toolbar(.hidden, for: .navigationBar)
         .statusBarHidden(true)
         .onAppear {
@@ -68,6 +73,17 @@ struct AfterCameraView: View {
             ),
         )
         .tutorialOverlay()
+    }
+
+    private var peekItemBinding: Binding<PhotoPair?> {
+        Binding(
+            get: { viewModel?.peekPairItem },
+            set: { newValue in
+                if newValue == nil {
+                    viewModel?.dismissPeek()
+                }
+            },
+        )
     }
 
     @ViewBuilder
@@ -144,6 +160,7 @@ struct AfterCameraView: View {
                 onLeadingTap: { handleLeadingTap() },
                 onToggleLens: viewModel.toggleLens,
                 onSettingsTap: { showSettingsSheet = true },
+                onStripPeek: { pairId in handleStripPeek(viewModel: viewModel, pairId: pairId) },
             )
         }
     }
@@ -184,6 +201,19 @@ struct AfterCameraView: View {
     private func handleShutter(viewModel: AfterCameraViewModel) {
         env.hapticService.impact(.heavy)
         Task { await viewModel.shutter() }
+    }
+
+    private func handleStripPeek(viewModel: AfterCameraViewModel, pairId: UUID) {
+        let coord = env.tutorialCoordinator
+        if let current = coord.current,
+           current.rawValue < TutorialStep.afterCameraStripLongPressHint.rawValue
+        {
+            return
+        }
+        if coord.isAtStep(.afterCameraStripLongPressHint) {
+            coord.advance()
+        }
+        viewModel.requestPeek(id: pairId)
     }
 
     private func handleLeadingTap() {

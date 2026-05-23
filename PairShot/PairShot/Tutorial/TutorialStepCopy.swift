@@ -9,6 +9,7 @@ enum TutorialStepCopy {
             case .backToHome: "홈 화면으로 이동합니다."
             case .tapPairCard: "방금 촬영한 페어 카드를 눌러 보세요."
             case .afterCameraStrip: "BEFORE 사진들을 이곳에서 확인할 수 있어요."
+            case .afterCameraStripLongPressHint: "활성 카드를 길게 누르면 BEFORE 사진을 크게 볼 수 있어요."
             case .afterCameraGuide: "방금 찍은 사진의 오버레이와 회전 가이드를 따라 AFTER 촬영을 완료해주세요."
             case .afterCameraInProgress: ""
             case .backToHome2: "홈 화면으로 이동합니다."

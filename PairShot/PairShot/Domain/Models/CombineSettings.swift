@@ -97,6 +97,29 @@ nonisolated struct CombineSettings: Codable, Equatable {
         }
     }
 
+    nonisolated enum LabelPlacement: String, Codable, CaseIterable {
+        case image = "IMAGE"
+        case border = "BORDER"
+    }
+
+    nonisolated struct BorderLabelPosition: Codable, Equatable {
+        nonisolated enum Vertical: String, Codable, CaseIterable {
+            case top
+            case bottom
+        }
+
+        var horizontal: LabelPosition.Horizontal
+        var vertical: Vertical
+
+        init(
+            horizontal: LabelPosition.Horizontal = .leading,
+            vertical: Vertical = .bottom,
+        ) {
+            self.horizontal = horizontal
+            self.vertical = vertical
+        }
+    }
+
     nonisolated struct LabelBackground: Codable, Equatable {
         static let `default` = Self()
 
@@ -121,6 +144,20 @@ nonisolated struct CombineSettings: Codable, Equatable {
         }
     }
 
+    enum CodingKeys: String, CodingKey {
+        case direction
+        case border
+        case label
+        case labelMode
+        case beforePosition
+        case afterPosition
+        case fullWidthVertical
+        case labelBackground
+        case labelPlacement
+        case beforeBorderPosition
+        case afterBorderPosition
+    }
+
     static let `default` = Self()
 
     static let borderThicknessRange: ClosedRange<Double> = 0.0 ... 32.0
@@ -136,6 +173,9 @@ nonisolated struct CombineSettings: Codable, Equatable {
     var afterPosition: LabelPosition
     var fullWidthVertical: LabelPosition.Vertical
     var labelBackground: LabelBackground
+    var labelPlacement: LabelPlacement
+    var beforeBorderPosition: BorderLabelPosition
+    var afterBorderPosition: BorderLabelPosition
 
     init(
         direction: Direction = .horizontal,
@@ -146,6 +186,9 @@ nonisolated struct CombineSettings: Codable, Equatable {
         afterPosition: LabelPosition = LabelPosition(horizontal: .leading, vertical: .top),
         fullWidthVertical: LabelPosition.Vertical = .bottom,
         labelBackground: LabelBackground = .default,
+        labelPlacement: LabelPlacement = .image,
+        beforeBorderPosition: BorderLabelPosition = BorderLabelPosition(horizontal: .leading, vertical: .bottom),
+        afterBorderPosition: BorderLabelPosition = BorderLabelPosition(horizontal: .trailing, vertical: .bottom),
     ) {
         self.direction = direction
         self.border = border
@@ -155,6 +198,30 @@ nonisolated struct CombineSettings: Codable, Equatable {
         self.afterPosition = afterPosition
         self.fullWidthVertical = fullWidthVertical
         self.labelBackground = labelBackground
+        self.labelPlacement = labelPlacement
+        self.beforeBorderPosition = beforeBorderPosition
+        self.afterBorderPosition = afterBorderPosition
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        direction = try container.decode(Direction.self, forKey: .direction)
+        border = try container.decode(Border.self, forKey: .border)
+        label = try container.decode(Label.self, forKey: .label)
+        labelMode = try container.decode(LabelMode.self, forKey: .labelMode)
+        beforePosition = try container.decode(LabelPosition.self, forKey: .beforePosition)
+        afterPosition = try container.decode(LabelPosition.self, forKey: .afterPosition)
+        fullWidthVertical = try container.decode(LabelPosition.Vertical.self, forKey: .fullWidthVertical)
+        labelBackground = try container.decode(LabelBackground.self, forKey: .labelBackground)
+        labelPlacement = try container.decodeIfPresent(LabelPlacement.self, forKey: .labelPlacement) ?? .image
+        beforeBorderPosition = try container.decodeIfPresent(
+            BorderLabelPosition.self,
+            forKey: .beforeBorderPosition,
+        ) ?? BorderLabelPosition(horizontal: .leading, vertical: .bottom)
+        afterBorderPosition = try container.decodeIfPresent(
+            BorderLabelPosition.self,
+            forKey: .afterBorderPosition,
+        ) ?? BorderLabelPosition(horizontal: .trailing, vertical: .bottom)
     }
 
     func effective(isPro: Bool) -> Self {

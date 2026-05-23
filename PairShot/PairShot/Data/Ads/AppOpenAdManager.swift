@@ -33,6 +33,7 @@ final class AppOpenAdManager {
     private let minimumInterval: TimeInterval
     private let trackingService: TrackingAuthorizationService?
     private let tutorialCoordinator: TutorialCoordinator?
+    private let sleeper: AsyncSleeper
 
     private var loadWaiters: [UUID: CheckedContinuation<Void, Never>] = [:]
 
@@ -45,10 +46,12 @@ final class AppOpenAdManager {
         minimumInterval: TimeInterval = AppOpenAdGate.defaultMinimumInterval,
         trackingService: TrackingAuthorizationService? = nil,
         tutorialCoordinator: TutorialCoordinator? = nil,
+        sleeper: AsyncSleeper = SystemSleeper(),
     ) {
         self.minimumInterval = minimumInterval
         self.trackingService = trackingService
         self.tutorialCoordinator = tutorialCoordinator
+        self.sleeper = sleeper
         #if canImport(GoogleMobileAds)
             presentationDelegate = AppOpenPresentationDelegate()
         #endif
@@ -104,14 +107,13 @@ final class AppOpenAdManager {
     private func waitForLoad(timeout: TimeInterval) async -> Bool {
         if isLoaded { return true }
         let token = UUID()
-        let timeoutTask = Task { @MainActor [weak self] in
-            try? await Task.sleep(for: .seconds(timeout))
-            self?.resumeLoadWaiter(token: token)
-        }
         await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
             loadWaiters[token] = continuation
+            Task { @MainActor [weak self, sleeper] in
+                try? await sleeper.sleep(seconds: timeout)
+                self?.resumeLoadWaiter(token: token)
+            }
         }
-        timeoutTask.cancel()
         return isLoaded
     }
 

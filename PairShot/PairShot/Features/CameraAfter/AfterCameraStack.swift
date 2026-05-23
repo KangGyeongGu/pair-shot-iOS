@@ -40,6 +40,7 @@ struct AfterCameraStack: View {
     let onLeadingTap: () -> Void
     let onToggleLens: () -> Void
     let onSettingsTap: () -> Void
+    var onStripPeek: ((UUID) -> Void)?
 
     var body: some View {
         GeometryReader { geo in
@@ -72,6 +73,7 @@ struct AfterCameraStack: View {
                         pairs: pairs,
                         selectedPairId: selectedPairId,
                         stripZoneHeight: layout.stripHeight,
+                        onPeek: onStripPeek,
                     )
                     .frame(maxWidth: .infinity)
                     .frame(height: layout.stripHeight)

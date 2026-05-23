@@ -138,6 +138,43 @@ final nonisolated class PhotoLibraryService: Sendable {
         guard let asset = fetchAsset(localIdentifier: localIdentifier) else { return nil }
         return await requestImageData(for: asset, progressHandler: progressHandler)
     }
+
+    nonisolated func requestPreviewImage(
+        localIdentifier: String,
+        targetSize: CGSize,
+    ) async -> UIImage? {
+        guard !localIdentifier.isEmpty else { return nil }
+        if TutorialPhotoStore.isTutorialIdentifier(localIdentifier) {
+            guard let data = await tutorialPhotoStore?.loadData(localIdentifier: localIdentifier)
+            else { return nil }
+            return UIImage(data: data)
+        }
+        guard let asset = fetchAsset(localIdentifier: localIdentifier) else { return nil }
+        return await withCheckedContinuation { (continuation: CheckedContinuation<UIImage?, Never>) in
+            let options = PHImageRequestOptions()
+            options.deliveryMode = .highQualityFormat
+            options.isNetworkAccessAllowed = true
+            options.resizeMode = .exact
+            options.isSynchronous = false
+            let resumeBox = PhotoLibraryPreviewResumeBox()
+            PHImageManager.default().requestImage(
+                for: asset,
+                targetSize: targetSize,
+                contentMode: .aspectFit,
+                options: options,
+            ) { result, info in
+                let isDegraded = (info?[PHImageResultIsDegradedKey] as? Bool) ?? false
+                if isDegraded { return }
+                guard !resumeBox.didResume else { return }
+                resumeBox.didResume = true
+                continuation.resume(returning: result)
+            }
+        }
+    }
+}
+
+private final nonisolated class PhotoLibraryPreviewResumeBox: @unchecked Sendable {
+    var didResume: Bool = false
 }
 
 private final nonisolated class PhotoLibraryPlaceholderBox: @unchecked Sendable {

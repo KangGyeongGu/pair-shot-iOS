@@ -59,6 +59,7 @@ struct TutorialMessageModalSkipNextTests {
         #expect(TutorialMessageModal.showsNext(for: .selectionDelete) == true)
         #expect(TutorialMessageModal.showsNext(for: .selectionExport) == true)
         #expect(TutorialMessageModal.showsNext(for: .done) == true)
+        #expect(TutorialMessageModal.showsNext(for: .afterCameraStripLongPressHint) == true)
         #expect(TutorialMessageModal.showsNext(for: .captureGuidePortrait) == false)
         #expect(TutorialMessageModal.showsNext(for: .captureGuideLeft) == false)
         #expect(TutorialMessageModal.showsNext(for: .captureGuideRight) == false)

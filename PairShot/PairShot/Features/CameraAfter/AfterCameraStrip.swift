@@ -6,6 +6,7 @@ struct AfterCameraStrip: View {
     let pairs: [PhotoPair]
     @Binding var selectedPairId: UUID?
     let stripZoneHeight: CGFloat
+    var onPeek: ((UUID) -> Void)?
 
     var body: some View {
         GeometryReader { proxy in
@@ -20,20 +21,7 @@ struct AfterCameraStrip: View {
                     spacing: StripDesign.cardSpacing(stripHeight: stripZoneHeight),
                 ) {
                     ForEach(pairs) { pair in
-                        StripCard(
-                            pair: pair,
-                            isActive: pair.id == selectedPairId,
-                            stripZoneHeight: stripZoneHeight,
-                        )
-                        .id(pair.id)
-                        .contentShape(Rectangle())
-                        .onTapGesture {
-                            selectedPairId = pair.id
-                        }
-                        .scrollTransition(.interactive, axis: .horizontal) { effect, phase in
-                            effect.scaleEffect(phase.isIdentity ? 1.0 : 0.95)
-                        }
-                        .transition(.scale(scale: 0.7).combined(with: .opacity))
+                        card(for: pair)
                     }
                 }
                 .scrollTargetLayout()
@@ -52,5 +40,94 @@ struct AfterCameraStrip: View {
         .onChange(of: selectedPairId) {
             env.hapticService.impact(.light)
         }
+    }
+
+    @ViewBuilder
+    private func card(for pair: PhotoPair) -> some View {
+        let isActive = pair.id == selectedPairId
+        StripCard(
+            pair: pair,
+            isActive: isActive,
+            stripZoneHeight: stripZoneHeight,
+        )
+        .id(pair.id)
+        .contentShape(Rectangle())
+        .modifier(ActiveCardTutorialAnchor(isActive: isActive))
+        .onTapGesture {
+            selectedPairId = pair.id
+        }
+        .contextMenu(
+            menuItems: {
+                if isActive {
+                    Button {
+                        handlePeek(pair.id)
+                    } label: {
+                        Label("크게 보기", systemImage: "arrow.up.left.and.arrow.down.right")
+                    }
+                }
+            },
+            preview: {
+                if isActive {
+                    ContextPreviewImage(pair: pair, photoLibrary: env.photoLibrary)
+                } else {
+                    EmptyView()
+                }
+            },
+        )
+        .scrollTransition(.interactive, axis: .horizontal) { effect, phase in
+            effect.scaleEffect(phase.isIdentity ? 1.0 : 0.95)
+        }
+        .transition(.scale(scale: 0.7).combined(with: .opacity))
+    }
+
+    private func handlePeek(_ pairId: UUID) {
+        onPeek?(pairId)
+    }
+}
+
+private struct ActiveCardTutorialAnchor: ViewModifier {
+    let isActive: Bool
+
+    func body(content: Content) -> some View {
+        if isActive {
+            content.tutorialAnchor(TutorialAnchorID.afterActiveCard)
+        } else {
+            content
+        }
+    }
+}
+
+private struct ContextPreviewImage: View {
+    let pair: PhotoPair
+    let photoLibrary: PhotoLibraryService
+
+    @State private var image: UIImage?
+
+    var body: some View {
+        Group {
+            if let image {
+                Image(uiImage: image)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+            } else {
+                ProgressView()
+                    .frame(width: 220, height: 220)
+            }
+        }
+        .task(id: pair.id) {
+            await load()
+        }
+    }
+
+    private func load() async {
+        guard let identifier = pair.beforePhotoLocalIdentifier, !identifier.isEmpty else {
+            return
+        }
+        let loaded = await photoLibrary.requestPreviewImage(
+            localIdentifier: identifier,
+            targetSize: CGSize(width: 1024, height: 1024),
+        )
+        guard pair.beforePhotoLocalIdentifier == identifier else { return }
+        image = loaded
     }
 }

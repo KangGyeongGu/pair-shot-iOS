@@ -157,6 +157,7 @@ struct TutorialMessageModal: View {
     static func showsNext(for step: TutorialStep) -> Bool {
         switch step {
             case .afterCameraStrip,
+                 .afterCameraStripLongPressHint,
                  .selectionShare,
                  .selectionSave,
                  .selectionDelete,

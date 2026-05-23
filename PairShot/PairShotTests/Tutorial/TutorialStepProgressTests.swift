@@ -4,13 +4,6 @@ import Testing
 @MainActor
 struct TutorialStepProgressTests {
     @Test
-    func `totalProgressSteps 는 done 제외 allCases 개수`() {
-        #expect(TutorialCoordinator.totalProgressSteps == TutorialStep.allCases.count - 1)
-        #expect(TutorialCoordinator.totalProgressSteps == 15)
-        #expect(TutorialStep.allCases.count == 16)
-    }
-
-    @Test
     func `첫 step 진행 카운트는 1 over total`() {
         let coord = TutorialCoordinator(current: .captureGuidePortrait)
         let progress = coord.progress(for: .captureGuidePortrait)

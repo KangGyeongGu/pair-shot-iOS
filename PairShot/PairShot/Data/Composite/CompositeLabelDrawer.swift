@@ -75,6 +75,22 @@ nonisolated enum CompositeLabelDrawer {
         return CGFloat(max(settings.border.thickness, 0))
     }
 
+    static func labelStripPx(textSizePercent: Double, paneHeight: CGFloat) -> CGFloat {
+        let fontSize = resolveFontSize(textSizePercent: textSizePercent, imageHeight: paneHeight)
+        return fontSize * (LabelMetrics.rectHeightFactor + LabelMetrics.marginFactor * 2)
+    }
+
+    static func makeAttributedText(
+        text: String,
+        settings: CombineSettings,
+        fontSize: CGFloat,
+    ) -> NSAttributedString {
+        let font = UIFont.systemFont(ofSize: fontSize, weight: .semibold)
+        let textColor = UIColor(rgba: settings.label.textColor)
+        let attributes: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: textColor]
+        return NSAttributedString(string: text, attributes: attributes)
+    }
+
     static func paintCanvasBackground(
         context: UIGraphicsImageRendererContext,
         canvas: CGSize,
@@ -118,17 +134,6 @@ nonisolated enum CompositeLabelDrawer {
         let drawX = labelRect.midX - textSize.width / 2
         let drawY = labelRect.midY - textSize.height / 2
         attributed.draw(at: CGPoint(x: drawX, y: drawY))
-    }
-
-    private static func makeAttributedText(
-        text: String,
-        settings: CombineSettings,
-        fontSize: CGFloat,
-    ) -> NSAttributedString {
-        let font = UIFont.systemFont(ofSize: fontSize, weight: .semibold)
-        let textColor = UIColor(rgba: settings.label.textColor)
-        let attributes: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: textColor]
-        return NSAttributedString(string: text, attributes: attributes)
     }
 
     static func resolveFontSize(textSizePercent: Double, imageHeight: CGFloat) -> CGFloat {

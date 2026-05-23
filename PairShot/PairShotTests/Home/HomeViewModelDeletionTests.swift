@@ -371,8 +371,4 @@ final class AlbumDeletionRecordingRepo: AlbumRepository, @unchecked Sendable {
     func removePair(pairId: UUID, fromAlbum albumId: UUID) async throws {
         removePairCalls.append((pairId, albumId))
     }
-
-    func fetch(id: UUID) -> Album? {
-        albums[id]
-    }
 }

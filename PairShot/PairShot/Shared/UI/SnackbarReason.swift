@@ -17,6 +17,7 @@ enum SnackbarReason: String, CaseIterable {
     case watermarkSetupRequired
     case proFeatureGate
     case dailyLimitGate
+    case labelPlacementRequiresBorder
 }
 
 enum SnackbarProgressReason: String, CaseIterable {
@@ -110,6 +111,14 @@ enum SnackbarReasonResolver {
                     title: "snackbar_dailyLimitGate_title",
                     body: "snackbar_dailyLimitGate_body",
                     iconSymbol: "hourglass",
+                    variant: .info,
+                )
+
+            case .labelPlacementRequiresBorder:
+                .init(
+                    title: "snackbar_labelPlacementRequiresBorder_title",
+                    body: "snackbar_labelPlacementRequiresBorder_body",
+                    iconSymbol: "square.dashed",
                     variant: .info,
                 )
         }

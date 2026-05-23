@@ -50,6 +50,7 @@ struct SnackbarReasonResolverTests {
             .watermarkSetupRequired: .warning,
             .proFeatureGate: .info,
             .dailyLimitGate: .info,
+            .labelPlacementRequiresBorder: .info,
         ]
         #expect(
             expected.count == SnackbarReason.allCases.count,

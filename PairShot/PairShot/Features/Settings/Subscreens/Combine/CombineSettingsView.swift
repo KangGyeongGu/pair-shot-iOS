@@ -15,8 +15,14 @@ struct CombineSettingsView: View {
                 borderSection
                 labelSection
                 if viewModel.settings.label.isEnabled, membership.proIsActive {
-                    labelModeSection
-                    labelBackgroundSection
+                    labelPlacementSection
+                    if effectiveLabelPlacement == .image {
+                        labelModeSection
+                        labelBackgroundSection
+                    } else {
+                        borderLabelPositionSection
+                        borderLabelBackgroundSection
+                    }
                 }
             }
             .listStyle(.insetGrouped)
@@ -24,6 +30,16 @@ struct CombineSettingsView: View {
         }
         .navigationTitle(String(localized: "export_settings_section_combine"))
         .navigationBarTitleDisplayMode(.inline)
+        .onChange(of: viewModel.settings.border.isEnabled) { _, isEnabled in
+            if !isEnabled, viewModel.settings.labelPlacement == .border {
+                viewModel.settings.labelPlacement = .image
+            }
+        }
+        .onChange(of: viewModel.settings.labelPlacement) { _, placement in
+            if placement == .border, !viewModel.settings.border.isEnabled {
+                viewModel.settings.border.isEnabled = true
+            }
+        }
         .onChange(of: viewModel.settings) { _, _ in
             Task { await viewModel.saveSettings() }
         }
@@ -137,6 +153,90 @@ struct CombineSettingsView: View {
         }
     }
 
+    private var labelPlacementSection: some View {
+        Section {
+            Picker(
+                String(localized: "combine_field_label_placement"),
+                selection: labelPlacementBinding,
+            ) {
+                Text(String(localized: "combine_label_placement_image"))
+                    .tag(CombineSettings.LabelPlacement.image)
+                Text(String(localized: "combine_label_placement_border"))
+                    .tag(CombineSettings.LabelPlacement.border)
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .opacity(viewModel.settings.border.isEnabled ? 1.0 : 0.5)
+            .listRowBackground(Color.clear)
+            .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
+        } header: {
+            Text(String(localized: "combine_section_label_placement"))
+        }
+    }
+
+    private var effectiveLabelPlacement: CombineSettings.LabelPlacement {
+        viewModel.settings.border.isEnabled
+            ? viewModel.settings.labelPlacement
+            : .image
+    }
+
+    private var labelPlacementBinding: Binding<CombineSettings.LabelPlacement> {
+        Binding(
+            get: { viewModel.settings.labelPlacement },
+            set: { newValue in
+                if newValue == .border, !viewModel.settings.border.isEnabled {
+                    env.snackbarQueue.enqueue(
+                        .labelPlacementRequiresBorder,
+                        debounceKey: "combine_label_placement_requires_border",
+                    )
+                    return
+                }
+                viewModel.settings.labelPlacement = newValue
+            },
+        )
+    }
+
+    private var borderLabelPositionSection: some View {
+        Section {
+            BorderLabelPositionPicker2x3(
+                label: String(localized: "combine_field_position_before"),
+                selection: $viewModel.settings.beforeBorderPosition,
+            )
+            BorderLabelPositionPicker2x3(
+                label: String(localized: "combine_field_position_after"),
+                selection: $viewModel.settings.afterBorderPosition,
+            )
+        } header: {
+            Text(String(localized: "combine_section_label_position"))
+        }
+    }
+
+    private var borderLabelBackgroundSection: some View {
+        Section {
+            Toggle(isOn: $viewModel.settings.labelBackground.matchBorderColor) {
+                Text(String(localized: "combine_dialog_match_border_color"))
+            }
+            if !viewModel.settings.labelBackground.matchBorderColor {
+                ColorPicker(
+                    String(localized: "combine_field_color"),
+                    selection: labelBackgroundColorBinding,
+                    supportsOpacity: false,
+                )
+                CombineSliderRow(
+                    title: String(localized: "combine_field_transparency"),
+                    value: labelBackgroundTransparencyBinding,
+                    range: CombineSettings.labelBackgroundOpacityRange,
+                    step: nil,
+                    valueLabel: "\(Int(((1.0 - viewModel.settings.labelBackground.opacity) * 100).rounded()))%",
+                )
+            }
+        } header: {
+            Text(String(localized: "combine_section_label_background"))
+        } footer: {
+            previewFooter
+        }
+    }
+
     private var labelModeSection: some View {
         Section {
             Picker(String(localized: "combine_field_mode"), selection: $viewModel.settings.labelMode) {
@@ -206,29 +306,31 @@ struct CombineSettingsView: View {
             previewFooter
         }
     }
+}
 
-    private var borderColorBinding: Binding<Color> {
+private extension CombineSettingsView {
+    var borderColorBinding: Binding<Color> {
         Binding(
             get: { Color(rgba: viewModel.settings.border.color) },
             set: { viewModel.settings.border.color = ColorRGBA(color: $0) },
         )
     }
 
-    private var labelTextColorBinding: Binding<Color> {
+    var labelTextColorBinding: Binding<Color> {
         Binding(
             get: { Color(rgba: viewModel.settings.label.textColor) },
             set: { viewModel.settings.label.textColor = ColorRGBA(color: $0) },
         )
     }
 
-    private var labelBackgroundColorBinding: Binding<Color> {
+    var labelBackgroundColorBinding: Binding<Color> {
         Binding(
             get: { Color(rgba: viewModel.settings.labelBackground.color) },
             set: { viewModel.settings.labelBackground.color = ColorRGBA(color: $0) },
         )
     }
 
-    private var labelBackgroundTransparencyBinding: Binding<Double> {
+    var labelBackgroundTransparencyBinding: Binding<Double> {
         Binding(
             get: { 1.0 - viewModel.settings.labelBackground.opacity },
             set: { viewModel.settings.labelBackground.opacity = 1.0 - $0 },

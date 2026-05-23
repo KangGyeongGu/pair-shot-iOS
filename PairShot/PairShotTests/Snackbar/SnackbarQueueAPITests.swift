@@ -99,13 +99,13 @@ struct SnackbarQueueAPITests {
     }
 
     @Test
-    func `progress 변형은 자동 dismiss 없이 명시 호출까지 current 유지`() async {
+    func `progress 변형은 enqueue 직후 dismiss 가 예약되지 않는다 (자동 dismiss 없음)`() {
         let queue = SnackbarQueue()
 
         _ = queue.enqueueProgress(.saveToPhotos, token: "t", initialValue: 0)
-        try? await Task.sleep(nanoseconds: 100_000_000)
 
         #expect(queue.current != nil, "progress 는 자동 dismiss 되지 않음")
         #expect(queue.current?.token == "t")
+        #expect(queue.hasPendingAutoDismiss == false)
     }
 }
