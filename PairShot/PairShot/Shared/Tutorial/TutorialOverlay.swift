@@ -6,7 +6,6 @@ struct TutorialOverlay: View {
     private static let cutoutCornerRadius: CGFloat = 12
     private static let standardDimOpacity: Double = 0.55
 
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(TutorialCoordinator.self) private var coord
     let anchors: [String: Anchor<CGRect>]
 
