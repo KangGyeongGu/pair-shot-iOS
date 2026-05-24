@@ -6,7 +6,7 @@
 
 **Before·After 촬영 및 관리 애플리케이션**
 
-**[🌐 웹사이트 바로가기](https://pairshot.kangkyeonggu.com)**
+**[🌐 웹사이트 바로가기](https://pairshot.kangkyeonggu.com)** &nbsp;&nbsp; **[<img src="./docs/readme/app-store-badge.png" alt="App Store" height="18" style="vertical-align:middle;" /> 다운로드](https://apps.apple.com/kr/app/pairshot-%ED%8E%98%EC%96%B4%EC%83%B7-before-after/id6770494128)**
 
 <br/>
 
