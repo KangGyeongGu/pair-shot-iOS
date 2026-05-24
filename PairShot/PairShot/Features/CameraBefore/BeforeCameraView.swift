@@ -37,7 +37,10 @@ struct BeforeCameraView: View {
         }
         .toolbar(.hidden, for: .navigationBar)
         .statusBarHidden(true)
-        .onAppear { ensureViewModelSync() }
+        .onAppear {
+            ensureViewModelSync()
+            Task { await reEnterSessionIfNeeded() }
+        }
         .task {
             ensureViewModelSync()
             guard let vm = viewModel else { return }
@@ -183,6 +186,12 @@ struct BeforeCameraView: View {
         let coord = env.tutorialCoordinator
         guard coord.isAtStep(.backToHome) else { return }
         coord.advance()
+    }
+
+    private func reEnterSessionIfNeeded() async {
+        guard didStartCameraSession else { return }
+        guard shouldStartCameraSession, let vm = viewModel else { return }
+        await vm.onAppear()
     }
 
     private func startCameraSessionIfNeeded(viewModel: BeforeCameraViewModel) async {
