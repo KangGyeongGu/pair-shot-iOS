@@ -9,11 +9,6 @@ struct HomeView: View {
     @Environment(Membership.self) private var membership
     @State private var viewModel: HomeViewModel?
 
-    private let columns: [GridItem] = [
-        GridItem(.flexible(), spacing: 8),
-        GridItem(.flexible(), spacing: 8),
-    ]
-
     var body: some View {
         PhotoPairQueryHost { domainPairs in
             AlbumQueryHost { domainAlbums in
@@ -137,184 +132,15 @@ struct HomeView: View {
                 if sortedPairs.isEmpty {
                     HomeEmptyState(variant: .pairs)
                 } else {
-                    pairsGrid(viewModel: viewModel, pairs: sortedPairs)
+                    HomePairsGrid(viewModel: viewModel, pairs: sortedPairs)
                 }
 
             case .albums:
                 if sortedAlbums.isEmpty {
                     HomeEmptyState(variant: .albums)
                 } else {
-                    albumsGrid(viewModel: viewModel, albums: sortedAlbums)
+                    HomeAlbumsGrid(viewModel: viewModel, albums: sortedAlbums, onOpenAlbum: onOpenAlbum)
                 }
-        }
-    }
-
-    private func pairsGrid(viewModel: HomeViewModel, pairs: [PhotoPair]) -> some View {
-        let groups = viewModel.groupedPairs(from: pairs)
-        var slotIndex = 0
-        let groupChunks: [(date: Date, pairs: [PhotoPair], chunks: [PairListWithAdsBuilder.PairChunk])] =
-            groups
-                .map { group in
-                    let result = PairListWithAdsBuilder.buildChunks(
-                        pairs: group.pairs,
-                        adFree: AdSuppression.isSuppressed(
-                            membership: membership,
-                            tutorialCoordinator: env.tutorialCoordinator,
-                        ),
-                        startingAdSlotIndex: slotIndex,
-                    )
-                    slotIndex = result.nextSlotIndex
-                    return (group.date, group.pairs, result.chunks)
-                }
-        return ScrollView {
-            LazyVStack(alignment: .leading, spacing: 16) {
-                ForEach(groupChunks, id: \.date) { group in
-                    pairDateSection(
-                        viewModel: viewModel,
-                        date: group.date,
-                        pairs: group.pairs,
-                        chunks: group.chunks,
-                    )
-                }
-            }
-            .padding(.vertical, 8)
-        }
-        .contentMargins(.bottom, 40, for: .scrollContent)
-        .refreshable { await viewModel.reload() }
-    }
-
-    private func pairDateSection(
-        viewModel: HomeViewModel,
-        date: Date,
-        pairs: [PhotoPair],
-        chunks: [PairListWithAdsBuilder.PairChunk],
-    ) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(Self.formatDateHeader(date))
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(Color.appOnSurfaceVariant)
-                .padding(.horizontal, 12)
-
-            ForEach(chunks) { chunk in
-                LazyVGrid(columns: columns, spacing: 8) {
-                    ForEach(chunk.pairs) { pair in
-                        pairCell(viewModel: viewModel, pair: pair, allPairs: pairs)
-                    }
-                }
-                .padding(.horizontal, 12)
-
-                if let adSlotIndex = chunk.adSlotIndex {
-                    NativeAdCard(slotIndex: adSlotIndex)
-                        .padding(.horizontal, 12)
-                }
-            }
-        }
-    }
-
-    private func pairCell(
-        viewModel: HomeViewModel,
-        pair: PhotoPair,
-        allPairs: [PhotoPair],
-    ) -> some View {
-        HomePairCardView(
-            pair: pair,
-            isSelectionMode: viewModel.isSelectionMode,
-            isSelected: viewModel.selectedPairIds.contains(pair.id),
-        )
-        .modifier(FirstPairCardAnchor(isFirst: allPairs.first?.id == pair.id))
-        .contentShape(.rect)
-        .onTapGesture { handlePairTap(viewModel: viewModel, pair: pair, allPairs: allPairs) }
-        .contextMenu {
-            if !viewModel.isSelectionMode {
-                if pair.afterPhotoLocalIdentifier != nil {
-                    Button {
-                        viewModel.requestRecaptureAfter(pair)
-                    } label: {
-                        Label(
-                            String(localized: "pair_preview_menu_recapture"),
-                            systemImage: "camera.rotate",
-                        )
-                    }
-                }
-                Button {
-                    Task { await viewModel.sharePair(pair) }
-                } label: {
-                    Label(
-                        String(localized: "common_button_share"),
-                        systemImage: "square.and.arrow.up",
-                    )
-                }
-                Button {
-                    Task { await viewModel.exportPair(pair) }
-                } label: {
-                    Label(
-                        String(localized: "common_button_save_to_device"),
-                        systemImage: "square.and.arrow.down",
-                    )
-                }
-                Button(role: .destructive) {
-                    viewModel.requestSinglePairDeletion(pair)
-                } label: {
-                    Label(String(localized: "common_button_delete"), systemImage: "trash")
-                }
-            }
-        }
-        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-            if !viewModel.isSelectionMode {
-                Button(role: .destructive) {
-                    viewModel.requestSinglePairDeletion(pair)
-                } label: {
-                    Label(String(localized: "common_button_delete"), systemImage: "trash")
-                }
-            }
-        }
-    }
-
-    private func handlePairTap(viewModel: HomeViewModel, pair: PhotoPair, allPairs: [PhotoPair]) {
-        viewModel.tapPair(pair, allPairs: allPairs)
-    }
-
-    private func albumsGrid(viewModel: HomeViewModel, albums: [Album]) -> some View {
-        List {
-            ForEach(viewModel.groupedAlbums(from: albums), id: \.date) { group in
-                Section {
-                    ForEach(group.albums) { album in
-                        albumCell(viewModel: viewModel, album: album)
-                    }
-                } header: {
-                    Text(Self.formatDateHeader(group.date))
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(Color.appOnSurfaceVariant)
-                }
-            }
-        }
-        .listStyle(.insetGrouped)
-        .contentMargins(.bottom, 40, for: .scrollContent)
-        .refreshable { await viewModel.reload() }
-    }
-
-    private func albumCell(viewModel: HomeViewModel, album: Album) -> some View {
-        HomeAlbumCardView(
-            album: album,
-            isSelectionMode: viewModel.isSelectionMode,
-            isSelected: viewModel.selectedAlbumIds.contains(album.id),
-        )
-        .contentShape(.rect)
-        .onTapGesture {
-            if viewModel.isSelectionMode {
-                viewModel.tapAlbum(album)
-            } else {
-                onOpenAlbum?(album.id)
-            }
-        }
-        .contextMenu {
-            if !viewModel.isSelectionMode {
-                Button(role: .destructive) {
-                    viewModel.requestSingleAlbumDeletion(album)
-                } label: {
-                    Label(String(localized: "common_button_delete"), systemImage: "trash")
-                }
-            }
         }
     }
 }
@@ -333,77 +159,6 @@ extension HomeView {
             return
         }
         onPushSettings?()
-    }
-
-    static func formatDateHeader(_ date: Date, now _: Date = .now, calendar: Calendar = .current) -> String {
-        HomeDateFormatter.base(for: date, calendar: calendar)
-    }
-}
-
-private struct HomeTutorialResumeAfterCamera: ViewModifier {
-    let viewModel: HomeViewModel?
-    let domainPairs: [PhotoPair]
-    @Environment(AppEnvironment.self) private var env
-
-    func body(content: Content) -> some View {
-        content
-            .task(id: viewModel == nil) { autoEnterAfterCameraIfNeeded() }
-            .onChange(of: env.tutorialCoordinator.current) { _, _ in
-                autoEnterAfterCameraIfNeeded()
-            }
-            .onChange(of: domainPairs.map(\.id)) { _, _ in
-                autoEnterAfterCameraIfNeeded()
-            }
-    }
-
-    private func autoEnterAfterCameraIfNeeded() {
-        guard let viewModel else { return }
-        guard !viewModel.didAutoResumeAfterCamera else { return }
-        guard !viewModel.showAfterCamera else { return }
-        guard let step = env.tutorialCoordinator.current else { return }
-        guard TutorialStepRequirements.screen(for: step) == .afterCamera else { return }
-        guard let tutorialPair = domainPairs.first(where: \.isTutorial) else { return }
-        viewModel.didAutoResumeAfterCamera = true
-        viewModel.afterCameraTargetPairId = tutorialPair.id
-        viewModel.showAfterCamera = true
-    }
-}
-
-private struct FirstPairCardAnchor: ViewModifier {
-    let isFirst: Bool
-
-    func body(content: Content) -> some View {
-        if isFirst {
-            content.tutorialAnchor(TutorialAnchorID.homeFirstPairCard)
-        } else {
-            content
-        }
-    }
-}
-
-private struct HomeSelectionPruner: ViewModifier {
-    let viewModel: HomeViewModel
-    let pairIds: [UUID]
-    let albumIds: [UUID]
-
-    func body(content: Content) -> some View {
-        content
-            .onChange(of: pairIds) { _, newIds in
-                viewModel.pruneStalePairSelections(currentIds: Set(newIds))
-            }
-            .onChange(of: albumIds) { _, newIds in
-                viewModel.pruneStaleAlbumSelections(currentIds: Set(newIds))
-            }
-    }
-}
-
-enum HomeDateFormatter {
-    static func base(for date: Date, calendar: Calendar = .current) -> String {
-        let formatter = DateFormatter()
-        formatter.locale = Locale.current
-        formatter.calendar = calendar
-        formatter.setLocalizedDateFormatFromTemplate("yMd")
-        return formatter.string(from: date)
     }
 }
 
