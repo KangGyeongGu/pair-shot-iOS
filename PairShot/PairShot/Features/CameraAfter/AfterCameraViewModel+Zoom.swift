@@ -1,5 +1,3 @@
-import Foundation
-
 @MainActor
 extension AfterCameraViewModel {
     func onPinchChanged(_ scale: Double) {

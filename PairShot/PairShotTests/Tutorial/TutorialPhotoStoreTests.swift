@@ -48,24 +48,6 @@ struct TutorialPhotoStoreTests {
     }
 
     @Test
-    func `deleteAll 은 디렉터리 전체를 비운다`() async throws {
-        let store = makeStore()
-        let firstId = try await store.save(data: Data([0x01]), utType: .jpeg)
-        let secondId = try await store.save(data: Data([0x02]), utType: .heic)
-        try store.deleteAll()
-        let loadedFirst = await store.loadData(localIdentifier: firstId)
-        let loadedSecond = await store.loadData(localIdentifier: secondId)
-        #expect(loadedFirst == nil)
-        #expect(loadedSecond == nil)
-    }
-
-    @Test
-    func `deleteAll 은 디렉터리가 없어도 throw 하지 않는다`() throws {
-        let store = makeStore()
-        try store.deleteAll()
-    }
-
-    @Test
     func `delete 는 존재하지 않는 식별자도 무시한다`() throws {
         let store = makeStore()
         try store.delete(localIdentifiers: ["tutorial://nothing.jpg", "non-tutorial-id"])

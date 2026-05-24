@@ -51,11 +51,6 @@ final nonisolated class TutorialPhotoStore: Sendable {
         }
     }
 
-    func deleteAll() throws {
-        guard fileManager.fileExists(atPath: directoryURL.path) else { return }
-        try fileManager.removeItem(at: directoryURL)
-    }
-
     private func ensureDirectory() throws {
         if fileManager.fileExists(atPath: directoryURL.path) { return }
         do {

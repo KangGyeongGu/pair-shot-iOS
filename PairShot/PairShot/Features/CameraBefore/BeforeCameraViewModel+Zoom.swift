@@ -1,5 +1,3 @@
-import Foundation
-
 extension BeforeCameraViewModel {
     func onPinchChanged(_ scale: Double) {
         let target = pinchBaseFactor * scale
