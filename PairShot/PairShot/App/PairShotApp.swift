@@ -43,6 +43,7 @@ struct PairShotApp: App {
                 .tutorialModeBinding(env.tutorialCoordinator)
                 .environment(\.locale, env.appSettings.resolvedLocale)
                 .preferredColorScheme(env.appSettings.resolvedColorScheme)
+                .dynamicTypeSize(env.appSettings.appTextSize.dynamicTypeSize)
                 .task {
                     await tryInitializeBootstrap()
                 }

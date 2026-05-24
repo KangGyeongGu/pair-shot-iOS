@@ -86,6 +86,7 @@ final class HomeViewModel {
     var resolvedAlbumLongitude: Double?
     var resolvedAlbumLabel: String?
     var showPaywall: Bool = false
+    var didAutoResumeAfterCamera: Bool = false
 
     let pairRepo: PhotoPairRepository
     let albumRepo: AlbumRepository

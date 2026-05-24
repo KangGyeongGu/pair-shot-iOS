@@ -28,14 +28,16 @@ struct SettingsValueRow: View {
     var valueColor: Color = .secondary
 
     var body: some View {
-        HStack(spacing: 12) {
-            if let icon {
-                SettingsIconBadge(icon: icon)
-            }
-            Text(title)
-            Spacer()
+        LabeledContent {
             Text(value)
                 .foregroundStyle(valueColor)
+        } label: {
+            HStack(spacing: 12) {
+                if let icon {
+                    SettingsIconBadge(icon: icon)
+                }
+                Text(title)
+            }
         }
         .contentShape(Rectangle())
     }
@@ -48,18 +50,22 @@ struct SettingsNavigationRow: View {
     var valueColor: Color = .secondary
 
     var body: some View {
-        HStack(spacing: 12) {
-            if let icon {
-                SettingsIconBadge(icon: icon)
+        LabeledContent {
+            HStack(spacing: 6) {
+                Text(value)
+                    .foregroundStyle(valueColor)
+                Image(systemName: "chevron.right")
+                    .font(.caption.bold())
+                    .foregroundStyle(.tertiary)
             }
-            Text(title)
-                .foregroundStyle(.primary)
-            Spacer()
-            Text(value)
-                .foregroundStyle(valueColor)
-            Image(systemName: "chevron.right")
-                .font(.caption.bold())
-                .foregroundStyle(.tertiary)
+        } label: {
+            HStack(spacing: 12) {
+                if let icon {
+                    SettingsIconBadge(icon: icon)
+                }
+                Text(title)
+                    .foregroundStyle(.primary)
+            }
         }
         .contentShape(Rectangle())
     }

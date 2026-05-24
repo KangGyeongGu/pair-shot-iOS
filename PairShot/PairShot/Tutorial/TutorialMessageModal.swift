@@ -19,14 +19,15 @@ struct TutorialMessageModal: View {
 
     private static let horizontalPadding: CGFloat = 16
     private static let verticalEdgePadding: CGFloat = 20
-    private static let anchorGap: CGFloat = 36
+    static let defaultAnchorGap: CGFloat = 36
     private static let cornerRadius: CGFloat = 16
     private static let cardPadding: CGFloat = 16
     private static let messageVerticalPadding: CGFloat = 12
     private static let estimatedHeight: CGFloat = 150
     private static let maxCardWidth: CGFloat = 280
+    private static let maxHeightRatio: CGFloat = 0.7
 
-    let text: String
+    let text: AttributedString
     let progress: (current: Int, total: Int)
     let showsSkip: Bool
     let showsNext: Bool
@@ -36,31 +37,54 @@ struct TutorialMessageModal: View {
     let targetRect: CGRect
     let containerSize: CGSize
     let safeAreaInsets: EdgeInsets
+    let anchorGap: CGFloat
     let onSkip: () -> Void
     let onNext: () -> Void
 
     @State private var measuredHeight: CGFloat = Self.estimatedHeight
     @State private var showSkipConfirm = false
+    @State private var contentVisible = true
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         let availableWidth = max(0, containerSize.width - Self.horizontalPadding * 2)
         let width = min(availableWidth, Self.maxCardWidth)
+        let maxHeight = Self.cardMaxHeight(
+            containerSize: containerSize,
+            safeAreaInsets: safeAreaInsets,
+            edgePadding: Self.verticalEdgePadding,
+        )
         let centerY = Self.cardCenterY(input: CardCenterYInput(
             placement: placement,
             targetRect: targetRect,
             containerSize: containerSize,
             safeAreaInsets: safeAreaInsets,
-            cardHeight: measuredHeight,
-            gap: Self.anchorGap,
+            cardHeight: min(measuredHeight, maxHeight),
+            gap: anchorGap,
             edgePadding: Self.verticalEdgePadding,
         ))
         card
             .frame(width: width)
+            .frame(maxHeight: maxHeight)
             .background(heightReader)
+            .opacity(contentVisible ? 1 : 0)
+            .animation(reduceMotion ? nil : .easeInOut(duration: 0.25), value: centerY)
             .position(x: containerSize.width / 2, y: centerY)
+            .onChange(of: centerY) { _, _ in
+                guard !reduceMotion else { return }
+                contentVisible = false
+                Task {
+                    try? await Task.sleep(for: .milliseconds(250))
+                    withAnimation(.easeIn(duration: 0.15)) {
+                        contentVisible = true
+                    }
+                }
+            }
             .onPreferenceChange(ModalHeightKey.self) { newValue in
                 if abs(newValue - measuredHeight) > 0.5 {
-                    measuredHeight = newValue
+                    withTransaction(Transaction(animation: nil)) {
+                        measuredHeight = newValue
+                    }
                 }
             }
             .alert(
@@ -77,8 +101,14 @@ struct TutorialMessageModal: View {
     private var card: some View {
         VStack(spacing: 12) {
             topRow
-            messageContent
-                .padding(.vertical, Self.messageVerticalPadding)
+            ViewThatFits(in: .vertical) {
+                messageContent
+                    .padding(.vertical, Self.messageVerticalPadding)
+                ScrollView(.vertical, showsIndicators: false) {
+                    messageContent
+                        .padding(.vertical, Self.messageVerticalPadding)
+                }
+            }
             if showsNext {
                 bottomRow
             }
@@ -107,6 +137,7 @@ struct TutorialMessageModal: View {
                 .foregroundStyle(.primary)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: .infinity, alignment: .center)
+                .transaction { $0.animation = nil }
         }
         .frame(maxWidth: .infinity)
     }
@@ -116,6 +147,7 @@ struct TutorialMessageModal: View {
             Text("\(progress.current) / \(progress.total)")
                 .font(.footnote.weight(.semibold).monospacedDigit())
                 .foregroundStyle(.secondary)
+                .transaction { $0.animation = nil }
             Spacer(minLength: 0)
             if showsSkip {
                 Button {
@@ -138,6 +170,7 @@ struct TutorialMessageModal: View {
                 Text(String(localized: nextButtonLabelKey))
                     .font(.footnote.weight(.semibold))
                     .foregroundStyle(Color.accentColor)
+                    .transaction { $0.animation = nil }
             }
             .buttonStyle(.plain)
         }
@@ -157,7 +190,6 @@ struct TutorialMessageModal: View {
     static func showsNext(for step: TutorialStep) -> Bool {
         switch step {
             case .afterCameraStrip,
-                 .afterCameraStripLongPressHint,
                  .selectionShare,
                  .selectionSave,
                  .selectionDelete,
@@ -168,6 +200,15 @@ struct TutorialMessageModal: View {
             default:
                 false
         }
+    }
+
+    static func cardMaxHeight(
+        containerSize: CGSize,
+        safeAreaInsets: EdgeInsets,
+        edgePadding: CGFloat,
+    ) -> CGFloat {
+        let usableHeight = containerSize.height - safeAreaInsets.top - safeAreaInsets.bottom - edgePadding * 2
+        return max(120, usableHeight * maxHeightRatio)
     }
 
     static func cardCenterY(input: CardCenterYInput) -> CGFloat {
@@ -197,6 +238,9 @@ struct TutorialMessageModal: View {
         let spaceAbove = input.targetRect.minY - input.safeAreaInsets.top - input.edgePadding - input.gap
         let spaceBelow = input.containerSize.height - input.safeAreaInsets.bottom - input.edgePadding
             - input.gap - input.targetRect.maxY
+        if spaceAbove < input.cardHeight, spaceBelow < input.cardHeight {
+            return input.containerSize.height / 2
+        }
         let fallbackY: CGFloat = if spaceAbove >= spaceBelow {
             input.targetRect.minY - input.gap - halfHeight
         } else {

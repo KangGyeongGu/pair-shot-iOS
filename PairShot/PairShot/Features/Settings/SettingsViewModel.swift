@@ -26,6 +26,10 @@ final class SettingsViewModel {
         appSettings.theme.displayName
     }
 
+    var textSizeDisplayText: String {
+        appSettings.appTextSize.displayName
+    }
+
     var watermarkEnabled: Bool {
         get { appSettings.watermarkEnabled }
         set { appSettings.watermarkEnabled = newValue }
@@ -95,6 +99,10 @@ final class SettingsViewModel {
 
     func setTheme(_ theme: AppTheme) {
         appSettings.theme = theme
+    }
+
+    func setAppTextSize(_ size: AppTextSize) {
+        appSettings.appTextSize = size
     }
 
     func setExportQuality(_ preset: ExportQuality) {

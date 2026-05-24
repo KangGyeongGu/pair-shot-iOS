@@ -8,9 +8,9 @@ nonisolated enum TutorialPosture: Equatable {
 }
 
 nonisolated enum TutorialMotionGuide {
-    static let portraitTolerance: Double = 20
+    static let portraitTolerance: Double = 25
     static let landscapeCenterMagnitude: Double = 90
-    static let landscapeTolerance: Double = 20
+    static let landscapeTolerance: Double = 35
 
     static func posture(forRollDegrees rollDegrees: Double) -> TutorialPosture {
         guard rollDegrees.isFinite else { return .unknown }

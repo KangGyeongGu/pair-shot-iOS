@@ -16,16 +16,7 @@ struct ExportSettingsView: View {
     var body: some View {
         VStack(spacing: 0) {
             BannerAdSlot()
-            ScrollView {
-                LazyVStack(spacing: 16) {
-                    includesCard
-                    formatCard
-                    watermarkCard
-                    combineCard
-                }
-                .padding(16)
-            }
-            .background(Color(.systemGroupedBackground))
+            scrollableContent
         }
         .navigationTitle(String(localized: "export_settings_title"))
         .navigationBarTitleDisplayMode(.inline)
@@ -114,6 +105,27 @@ struct ExportSettingsView: View {
         .onChange(of: exportTutorialCoordinator.current) { oldValue, newValue in
             if oldValue != nil, newValue == nil {
                 exportTutorialCompleted = true
+            }
+        }
+    }
+
+    private var scrollableContent: some View {
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(spacing: 16) {
+                    includesCard.id(ExportTutorialAnchorID.includes)
+                    formatCard.id(ExportTutorialAnchorID.format)
+                    watermarkCard.id(ExportTutorialAnchorID.watermark)
+                    combineCard.id(ExportTutorialAnchorID.combine)
+                }
+                .padding(16)
+            }
+            .background(Color(.systemGroupedBackground))
+            .onChange(of: exportTutorialCoordinator.current) { _, newStep in
+                guard let newStep else { return }
+                withAnimation(.easeInOut(duration: 0.25)) {
+                    proxy.scrollTo(anchorID(for: newStep), anchor: .center)
+                }
             }
         }
     }
@@ -240,6 +252,15 @@ struct ExportSettingsView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+    }
+
+    private func anchorID(for step: ExportTutorialStep) -> String {
+        switch step {
+            case .includes: ExportTutorialAnchorID.includes
+            case .format: ExportTutorialAnchorID.format
+            case .watermark: ExportTutorialAnchorID.watermark
+            case .combine: ExportTutorialAnchorID.combine
+        }
     }
 
     private func userSettingsRowLabel(showsSetupNeeded: Bool = false) -> some View {

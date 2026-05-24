@@ -211,6 +211,17 @@ struct SettingsGeneralSection: View {
                 )
             }
             .buttonStyle(.plain)
+
+            Button {
+                path.append(.textSizePicker)
+            } label: {
+                SettingsNavigationRow(
+                    icon: SettingsRowIcon(systemImage: "textformat.size", color: .blue),
+                    title: String(localized: "settings_item_text_size"),
+                    value: viewModel.textSizeDisplayText,
+                )
+            }
+            .buttonStyle(.plain)
         } header: {
             Text(String(localized: "settings_section_general"))
         }

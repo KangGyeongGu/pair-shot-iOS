@@ -43,6 +43,7 @@ struct RootView: View {
                     evaluateFirstRunPaywall()
                 }
                 .onChange(of: env.tutorialCoordinator.current) { oldValue, newValue in
+                    syncTutorialPersistedState(newValue)
                     if newValue == .done {
                         tutorialCompleted = true
                     }
@@ -75,7 +76,37 @@ struct RootView: View {
         guard !tutorialCompleted else { return }
         guard !env.tutorialCoordinator.isActive else { return }
         guard env.tutorialCoordinator.current == nil else { return }
-        env.tutorialCoordinator.start()
+        if let raw = env.appSettings.tutorialCurrentStepRawValue,
+           let step = TutorialStep(rawValue: raw),
+           step != .done
+        {
+            let resumeStep = TutorialStepRequirements.normalizeForResume(step)
+            env.tutorialCoordinator.resume(at: resumeStep)
+            restorePathForResumedStep(resumeStep)
+        } else {
+            env.tutorialCoordinator.start()
+        }
+    }
+
+    private func restorePathForResumedStep(_ step: TutorialStep) {
+        let screen = TutorialStepRequirements.screen(for: step)
+        switch screen {
+            case .home, .afterCamera, .settings, .exportSettings:
+                if path != [.home] {
+                    path = [.home]
+                }
+
+            case .beforeCamera, .any:
+                break
+        }
+    }
+
+    private func syncTutorialPersistedState(_ step: TutorialStep?) {
+        guard let step, step != .done else {
+            env.appSettings.tutorialCurrentStepRawValue = nil
+            return
+        }
+        env.appSettings.tutorialCurrentStepRawValue = step.rawValue
     }
 
     private func evaluateFirstRunPaywall() {
@@ -101,6 +132,7 @@ struct RootView: View {
             case .themePicker: ThemePickerView(viewModel: env.makeSettingsViewModel())
             case .imageQualityPicker: ImageQualityPickerView(viewModel: env.makeSettingsViewModel())
             case .filenamePrefixEditor: FilenamePrefixView(viewModel: env.makeSettingsViewModel())
+            case .textSizePicker: TextSizePickerView(viewModel: env.makeSettingsViewModel())
             case let .exportSettings(pairIds): exportSettingsDestination(pairIds: pairIds)
             case .pairPreview: EmptyView()
         }

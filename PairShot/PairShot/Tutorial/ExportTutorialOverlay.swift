@@ -15,7 +15,6 @@ struct ExportTutorialOverlay: View {
         }
         .ignoresSafeArea()
         .allowsHitTesting(coord.isActive)
-        .animation(reduceMotion ? nil : .easeInOut(duration: 0.25), value: coord.current)
     }
 
     @ViewBuilder
@@ -29,8 +28,46 @@ struct ExportTutorialOverlay: View {
                 containerSize: proxy.size,
                 safeAreaInsets: proxy.safeAreaInsets,
             )
-        } else if coord.isActive {
+        } else if let step = coord.current {
+            fallbackContent(
+                step: step,
+                containerSize: proxy.size,
+                safeAreaInsets: proxy.safeAreaInsets,
+            )
+        }
+    }
+
+    @ViewBuilder
+    private func fallbackContent(
+        step: ExportTutorialStep,
+        containerSize: CGSize,
+        safeAreaInsets: EdgeInsets,
+    ) -> some View {
+        let centerRect = CGRect(
+            x: containerSize.width / 2 - 1,
+            y: containerSize.height / 2 - 1,
+            width: 2,
+            height: 2,
+        )
+        let progress = coord.progress(for: step)
+        let isLast = step == ExportTutorialStep.allCases.last
+        ZStack {
             Color.black.opacity(Self.dimOpacity)
+            TutorialMessageModal(
+                text: AttributedString(ExportTutorialStepCopy.text(for: step)),
+                progress: progress,
+                showsSkip: false,
+                showsNext: true,
+                nextButtonLabelKey: isLast ? "tutorial_button_finish" : "tutorial_button_next",
+                phoneOrientationAngle: nil,
+                placement: .centered,
+                targetRect: centerRect,
+                containerSize: containerSize,
+                safeAreaInsets: safeAreaInsets,
+                anchorGap: TutorialMessageModal.defaultAnchorGap,
+                onSkip: { coord.cancel() },
+                onNext: { coord.advance() },
+            )
         }
     }
 
@@ -53,7 +90,7 @@ struct ExportTutorialOverlay: View {
                 opacity: Self.dimOpacity,
             )
             TutorialMessageModal(
-                text: ExportTutorialStepCopy.text(for: step),
+                text: AttributedString(ExportTutorialStepCopy.text(for: step)),
                 progress: progress,
                 showsSkip: false,
                 showsNext: true,
@@ -63,6 +100,7 @@ struct ExportTutorialOverlay: View {
                 targetRect: rect,
                 containerSize: containerSize,
                 safeAreaInsets: safeAreaInsets,
+                anchorGap: TutorialMessageModal.defaultAnchorGap,
                 onSkip: { coord.cancel() },
                 onNext: { coord.advance() },
             )

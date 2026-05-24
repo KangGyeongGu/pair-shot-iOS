@@ -16,7 +16,6 @@ struct TutorialOverlay: View {
         }
         .ignoresSafeArea()
         .allowsHitTesting(Self.shouldBlockHitTesting(step: coord.current))
-        .animation(reduceMotion ? nil : .easeInOut(duration: 0.25), value: coord.current)
     }
 
     @ViewBuilder
@@ -33,8 +32,50 @@ struct TutorialOverlay: View {
                 containerSize: proxy.size,
                 safeAreaInsets: proxy.safeAreaInsets,
             )
-        } else if let step = coord.current, Self.dimOpacity(for: step) > 0 {
-            Color.black.opacity(Self.dimOpacity(for: step))
+        } else if coord.current == .afterCameraStripPeekClose {
+            EmptyView()
+        } else if let step = coord.current, step != .afterCameraInProgress {
+            fallbackContent(
+                step: step,
+                containerSize: proxy.size,
+                safeAreaInsets: proxy.safeAreaInsets,
+            )
+        }
+    }
+
+    @ViewBuilder
+    private func fallbackContent(
+        step: TutorialStep,
+        containerSize: CGSize,
+        safeAreaInsets: EdgeInsets,
+    ) -> some View {
+        let centerRect = CGRect(
+            x: containerSize.width / 2 - 1,
+            y: containerSize.height / 2 - 1,
+            width: 2,
+            height: 2,
+        )
+        let progress = coord.progress(for: step) ?? (current: 1, total: TutorialCoordinator.totalProgressSteps)
+        let fallbackOpacity = Self.dimOpacity(for: step)
+        ZStack {
+            if fallbackOpacity > 0 {
+                Color.black.opacity(fallbackOpacity)
+            }
+            TutorialMessageModal(
+                text: TutorialStepCopy.attributedText(for: step),
+                progress: progress,
+                showsSkip: true,
+                showsNext: TutorialMessageModal.showsNext(for: step),
+                nextButtonLabelKey: "tutorial_button_next",
+                phoneOrientationAngle: PhoneOrientationGuide.targetRotation(for: step),
+                placement: .centered,
+                targetRect: centerRect,
+                containerSize: containerSize,
+                safeAreaInsets: safeAreaInsets,
+                anchorGap: TutorialMessageModal.defaultAnchorGap,
+                onSkip: { coord.cancel() },
+                onNext: { coord.advance() },
+            )
         }
     }
 
@@ -49,7 +90,7 @@ struct TutorialOverlay: View {
         ZStack {
             Color.black.opacity(Self.standardDimOpacity)
             TutorialMessageModal(
-                text: TutorialStepCopy.text(for: .done),
+                text: TutorialStepCopy.attributedText(for: .done),
                 progress: (
                     current: TutorialCoordinator.totalProgressSteps,
                     total: TutorialCoordinator.totalProgressSteps,
@@ -62,6 +103,7 @@ struct TutorialOverlay: View {
                 targetRect: centerRect,
                 containerSize: containerSize,
                 safeAreaInsets: safeAreaInsets,
+                anchorGap: TutorialMessageModal.defaultAnchorGap,
                 onSkip: { coord.finishAndCleanup() },
                 onNext: { coord.finishAndCleanup() },
             )
@@ -83,12 +125,14 @@ struct TutorialOverlay: View {
         let placement = TutorialMessageModal.placement(for: rect, containerSize: containerSize)
         let progress = coord.progress(for: step) ?? (current: 1, total: TutorialCoordinator.totalProgressSteps)
         ZStack {
-            SpotlightDimmedMask(
-                containerSize: containerSize,
-                cutout: rect,
-                cornerRadius: Self.cutoutCornerRadius,
-                opacity: opacity,
-            )
+            if step != .afterCameraStripLongPressHint {
+                SpotlightDimmedMask(
+                    containerSize: containerSize,
+                    cutout: rect,
+                    cornerRadius: Self.cutoutCornerRadius,
+                    opacity: opacity,
+                )
+            }
             if opacity == 0 || step == .afterCameraStrip || step == .afterCameraStripLongPressHint {
                 SpotlightRing(
                     cutout: rect,
@@ -96,7 +140,7 @@ struct TutorialOverlay: View {
                 )
             }
             TutorialMessageModal(
-                text: TutorialStepCopy.text(for: step),
+                text: TutorialStepCopy.attributedText(for: step),
                 progress: progress,
                 showsSkip: true,
                 showsNext: TutorialMessageModal.showsNext(for: step),
@@ -106,6 +150,7 @@ struct TutorialOverlay: View {
                 targetRect: rect,
                 containerSize: containerSize,
                 safeAreaInsets: safeAreaInsets,
+                anchorGap: Self.anchorGap(for: step),
                 onSkip: { coord.cancel() },
                 onNext: { coord.advance() },
             )
@@ -130,6 +175,9 @@ struct TutorialOverlay: View {
 
             case .afterCameraStripLongPressHint:
                 TutorialAnchorID.afterActiveCard
+
+            case .afterCameraStripPeekClose:
+                nil
 
             case .afterCameraGuide:
                 TutorialAnchorID.afterShutter
@@ -168,6 +216,13 @@ struct TutorialOverlay: View {
         return step != .afterCameraInProgress
     }
 
+    static func anchorGap(for step: TutorialStep) -> CGFloat {
+        switch step {
+            case .afterCameraGuide: 220
+            default: TutorialMessageModal.defaultAnchorGap
+        }
+    }
+
     static func dimOpacity(for step: TutorialStep) -> Double {
         switch step {
             case .captureGuidePortrait,
@@ -175,6 +230,8 @@ struct TutorialOverlay: View {
                  .captureGuideRight,
                  .afterCameraGuide,
                  .afterCameraInProgress,
+                 .afterCameraStripLongPressHint,
+                 .afterCameraStripPeekClose,
                  .backToHome,
                  .backToHome2:
                 0

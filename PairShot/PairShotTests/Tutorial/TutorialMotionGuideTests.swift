@@ -8,18 +8,18 @@ struct TutorialMotionGuideTests {
     }
 
     @Test
-    func `roll 19도는 portrait (경계 안쪽)`() {
-        #expect(TutorialMotionGuide.posture(forRollDegrees: 19) == .portrait)
+    func `roll 24도는 portrait (경계 안쪽)`() {
+        #expect(TutorialMotionGuide.posture(forRollDegrees: 24) == .portrait)
     }
 
     @Test
-    func `roll 음수 19도는 portrait (경계 안쪽)`() {
-        #expect(TutorialMotionGuide.posture(forRollDegrees: -19) == .portrait)
+    func `roll 음수 24도는 portrait (경계 안쪽)`() {
+        #expect(TutorialMotionGuide.posture(forRollDegrees: -24) == .portrait)
     }
 
     @Test
-    func `roll 20도는 portrait 가 아니다 (경계 바깥)`() {
-        #expect(TutorialMotionGuide.posture(forRollDegrees: 20) != .portrait)
+    func `roll 25도는 portrait 가 아니다 (경계 바깥)`() {
+        #expect(TutorialMotionGuide.posture(forRollDegrees: 25) != .portrait)
     }
 
     @Test
@@ -28,18 +28,18 @@ struct TutorialMotionGuideTests {
     }
 
     @Test
-    func `roll 음수 75도는 leftLandscape (경계 안쪽)`() {
-        #expect(TutorialMotionGuide.posture(forRollDegrees: -75) == .leftLandscape)
+    func `roll 음수 60도는 leftLandscape (경계 안쪽)`() {
+        #expect(TutorialMotionGuide.posture(forRollDegrees: -60) == .leftLandscape)
     }
 
     @Test
-    func `roll 음수 105도는 leftLandscape (경계 안쪽)`() {
-        #expect(TutorialMotionGuide.posture(forRollDegrees: -105) == .leftLandscape)
+    func `roll 음수 120도는 leftLandscape (경계 안쪽)`() {
+        #expect(TutorialMotionGuide.posture(forRollDegrees: -120) == .leftLandscape)
     }
 
     @Test
-    func `roll 음수 70도는 leftLandscape 가 아니다 (경계 바깥)`() {
-        #expect(TutorialMotionGuide.posture(forRollDegrees: -70) != .leftLandscape)
+    func `roll 음수 54도는 leftLandscape 가 아니다 (경계 바깥)`() {
+        #expect(TutorialMotionGuide.posture(forRollDegrees: -54) != .leftLandscape)
     }
 
     @Test
@@ -48,13 +48,13 @@ struct TutorialMotionGuideTests {
     }
 
     @Test
-    func `roll 양수 75도는 rightLandscape`() {
-        #expect(TutorialMotionGuide.posture(forRollDegrees: 75) == .rightLandscape)
+    func `roll 양수 60도는 rightLandscape`() {
+        #expect(TutorialMotionGuide.posture(forRollDegrees: 60) == .rightLandscape)
     }
 
     @Test
-    func `roll 양수 105도는 rightLandscape`() {
-        #expect(TutorialMotionGuide.posture(forRollDegrees: 105) == .rightLandscape)
+    func `roll 양수 120도는 rightLandscape`() {
+        #expect(TutorialMotionGuide.posture(forRollDegrees: 120) == .rightLandscape)
     }
 
     @Test

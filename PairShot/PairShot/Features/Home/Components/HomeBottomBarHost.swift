@@ -18,9 +18,10 @@ struct HomeBottomBarHost: View {
             .animation(.easeInOut(duration: 0.2), value: viewModel.contentMode)
             .animation(.easeInOut(duration: 0.15), value: viewModel.showCreateAlbum)
             .onChange(of: tutorialCoordinator.current) { _, newStep in
-                if newStep == .goSettings, viewModel.isSelectionMode {
-                    viewModel.cancelSelection()
-                }
+                handleTutorialStepChange(newStep)
+            }
+            .onChange(of: sortedPairs.map(\.id)) { _, _ in
+                handleTutorialStepChange(tutorialCoordinator.current)
             }
     }
 
@@ -101,6 +102,18 @@ struct HomeBottomBarHost: View {
                         systemImage: "plus.rectangle.on.rectangle",
                     ) { viewModel.openCreateAlbum() }
             }
+        }
+    }
+
+    private func handleTutorialStepChange(_ step: TutorialStep?) {
+        guard let step else { return }
+        if step == .goSettings, viewModel.isSelectionMode {
+            viewModel.cancelSelection()
+            return
+        }
+        if TutorialStepRequirements.requiresSelectionMode(step), !viewModel.isSelectionMode {
+            let tutorialIds = sortedPairs.filter(\.isTutorial).map(\.id)
+            viewModel.enterSelectionMode(autoSelectingPairIds: tutorialIds)
         }
     }
 
