@@ -12,7 +12,7 @@ struct TutorialMessageModalSkipNextTests {
     func `skip 콜백은 호출 시 카운트 증가`() {
         var skipCount = 0
         let modal = TutorialMessageModal(
-            text: "x",
+            text: AttributedString("x"),
             progress: (current: 1, total: 13),
             showsSkip: true,
             showsNext: true,
@@ -22,6 +22,7 @@ struct TutorialMessageModalSkipNextTests {
             targetRect: Self.defaultRect,
             containerSize: Self.defaultContainer,
             safeAreaInsets: Self.defaultInsets,
+            anchorGap: TutorialMessageModal.defaultAnchorGap,
             onSkip: { skipCount += 1 },
             onNext: {},
         )
@@ -35,7 +36,7 @@ struct TutorialMessageModalSkipNextTests {
     func `next 콜백은 호출 시 카운트 증가`() {
         var nextCount = 0
         let modal = TutorialMessageModal(
-            text: "x",
+            text: AttributedString("x"),
             progress: (current: 1, total: 13),
             showsSkip: true,
             showsNext: true,
@@ -45,6 +46,7 @@ struct TutorialMessageModalSkipNextTests {
             targetRect: Self.defaultRect,
             containerSize: Self.defaultContainer,
             safeAreaInsets: Self.defaultInsets,
+            anchorGap: TutorialMessageModal.defaultAnchorGap,
             onSkip: {},
             onNext: { nextCount += 1 },
         )
@@ -59,7 +61,8 @@ struct TutorialMessageModalSkipNextTests {
         #expect(TutorialMessageModal.showsNext(for: .selectionDelete) == true)
         #expect(TutorialMessageModal.showsNext(for: .selectionExport) == true)
         #expect(TutorialMessageModal.showsNext(for: .done) == true)
-        #expect(TutorialMessageModal.showsNext(for: .afterCameraStripLongPressHint) == true)
+        #expect(TutorialMessageModal.showsNext(for: .afterCameraStripLongPressHint) == false)
+        #expect(TutorialMessageModal.showsNext(for: .afterCameraStripPeekClose) == false)
         #expect(TutorialMessageModal.showsNext(for: .captureGuidePortrait) == false)
         #expect(TutorialMessageModal.showsNext(for: .captureGuideLeft) == false)
         #expect(TutorialMessageModal.showsNext(for: .captureGuideRight) == false)

@@ -14,4 +14,5 @@ enum Route: Hashable, Codable {
     case themePicker
     case imageQualityPicker
     case filenamePrefixEditor
+    case textSizePicker
 }

@@ -28,6 +28,11 @@ final class TutorialCoordinator {
         current = .captureGuidePortrait
     }
 
+    func resume(at step: TutorialStep) {
+        guard step != .done else { return }
+        current = step
+    }
+
     func restart() {
         current = nil
         let service = cleanupService

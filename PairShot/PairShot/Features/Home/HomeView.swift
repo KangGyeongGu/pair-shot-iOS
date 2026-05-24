@@ -49,6 +49,7 @@ struct HomeView: View {
         .onChange(of: env.settingsRedirectCoordinator.pendingPulse) { _, _ in
             consumePendingSettingsRedirectIfNeeded()
         }
+        .modifier(HomeTutorialResumeAfterCamera(viewModel: viewModel, domainPairs: domainPairs))
     }
 
     @ToolbarContentBuilder
@@ -336,6 +337,35 @@ extension HomeView {
 
     static func formatDateHeader(_ date: Date, now _: Date = .now, calendar: Calendar = .current) -> String {
         HomeDateFormatter.base(for: date, calendar: calendar)
+    }
+}
+
+private struct HomeTutorialResumeAfterCamera: ViewModifier {
+    let viewModel: HomeViewModel?
+    let domainPairs: [PhotoPair]
+    @Environment(AppEnvironment.self) private var env
+
+    func body(content: Content) -> some View {
+        content
+            .task(id: viewModel == nil) { autoEnterAfterCameraIfNeeded() }
+            .onChange(of: env.tutorialCoordinator.current) { _, _ in
+                autoEnterAfterCameraIfNeeded()
+            }
+            .onChange(of: domainPairs.map(\.id)) { _, _ in
+                autoEnterAfterCameraIfNeeded()
+            }
+    }
+
+    private func autoEnterAfterCameraIfNeeded() {
+        guard let viewModel else { return }
+        guard !viewModel.didAutoResumeAfterCamera else { return }
+        guard !viewModel.showAfterCamera else { return }
+        guard let step = env.tutorialCoordinator.current else { return }
+        guard TutorialStepRequirements.screen(for: step) == .afterCamera else { return }
+        guard let tutorialPair = domainPairs.first(where: \.isTutorial) else { return }
+        viewModel.didAutoResumeAfterCamera = true
+        viewModel.afterCameraTargetPairId = tutorialPair.id
+        viewModel.showAfterCamera = true
     }
 }
 

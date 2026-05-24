@@ -73,7 +73,7 @@ struct TutorialOverlayTests {
     @Test
     func `TutorialMessageModal 구성 가능하다`() {
         let view = TutorialMessageModal(
-            text: "테스트",
+            text: AttributedString("테스트"),
             progress: (current: 1, total: 13),
             showsSkip: true,
             showsNext: true,
@@ -83,6 +83,7 @@ struct TutorialOverlayTests {
             targetRect: CGRect(x: 100, y: 100, width: 80, height: 80),
             containerSize: CGSize(width: 400, height: 800),
             safeAreaInsets: EdgeInsets(top: 47, leading: 0, bottom: 34, trailing: 0),
+            anchorGap: TutorialMessageModal.defaultAnchorGap,
             onSkip: {},
             onNext: {},
         )

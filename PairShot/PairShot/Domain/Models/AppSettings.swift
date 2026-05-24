@@ -88,6 +88,30 @@ final class AppSettings {
         set { defaults.set(newValue.rawValue, forKey: AppSettingsKeys.theme) }
     }
 
+    var appTextSize: AppTextSize {
+        get {
+            let raw = defaults.string(forKey: AppSettingsKeys.appTextSize) ?? AppTextSize.default.rawValue
+            return AppTextSize(rawValue: raw) ?? .default
+        }
+        set { defaults.set(newValue.rawValue, forKey: AppSettingsKeys.appTextSize) }
+    }
+
+    var tutorialCurrentStepRawValue: Int? {
+        get {
+            guard defaults.object(forKey: AppSettingsKeys.tutorialCurrentStep) != nil else {
+                return nil
+            }
+            return defaults.integer(forKey: AppSettingsKeys.tutorialCurrentStep)
+        }
+        set {
+            if let newValue {
+                defaults.set(newValue, forKey: AppSettingsKeys.tutorialCurrentStep)
+            } else {
+                defaults.removeObject(forKey: AppSettingsKeys.tutorialCurrentStep)
+            }
+        }
+    }
+
     var cameraGridEnabled: Bool {
         get { defaults.bool(forKey: AppSettingsKeys.cameraGridEnabled) }
         set { defaults.set(newValue, forKey: AppSettingsKeys.cameraGridEnabled) }
@@ -211,6 +235,7 @@ nonisolated enum AppSettingsDefaultsRegistration {
             AppSettingsKeys.watermarkEnabled: false,
             AppSettingsKeys.language: AppLanguage.system.rawValue,
             AppSettingsKeys.theme: AppTheme.system.rawValue,
+            AppSettingsKeys.appTextSize: AppTextSize.default.rawValue,
             AppSettingsKeys.cameraGridEnabled: false,
             AppSettingsKeys.cameraLevelEnabled: false,
             AppSettingsKeys.cameraFlashMode: CameraFlashModePersistence.defaultRawValue,

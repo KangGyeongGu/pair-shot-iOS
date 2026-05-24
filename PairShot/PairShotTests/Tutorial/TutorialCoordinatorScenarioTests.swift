@@ -15,6 +15,7 @@ struct TutorialCoordinatorScenarioTests {
             .tapPairCard,
             .afterCameraStrip,
             .afterCameraStripLongPressHint,
+            .afterCameraStripPeekClose,
             .afterCameraGuide,
             .afterCameraInProgress,
             .backToHome2,

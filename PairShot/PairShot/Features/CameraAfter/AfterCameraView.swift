@@ -73,6 +73,12 @@ struct AfterCameraView: View {
             ),
         )
         .tutorialOverlay()
+        .onChange(of: env.tutorialCoordinator.current) { _, newStep in
+            ensureTutorialPairSelected(for: newStep)
+        }
+        .onChange(of: viewModel?.pairs.map(\.id) ?? []) { _, _ in
+            ensureTutorialPairSelected(for: env.tutorialCoordinator.current)
+        }
     }
 
     private var peekItemBinding: Binding<PhotoPair?> {
@@ -203,16 +209,20 @@ struct AfterCameraView: View {
         Task { await viewModel.shutter() }
     }
 
+    private func ensureTutorialPairSelected(for step: TutorialStep?) {
+        guard let step,
+              TutorialStepRequirements.requiresFirstPairSelected(step),
+              let viewModel,
+              !viewModel.pairs.isEmpty
+        else { return }
+        let firstId = viewModel.pairs[0].id
+        if viewModel.selectedPairId != firstId {
+            viewModel.selectedPairId = firstId
+            viewModel.onSelectionChanged(firstId)
+        }
+    }
+
     private func handleStripPeek(viewModel: AfterCameraViewModel, pairId: UUID) {
-        let coord = env.tutorialCoordinator
-        if let current = coord.current,
-           current.rawValue < TutorialStep.afterCameraStripLongPressHint.rawValue
-        {
-            return
-        }
-        if coord.isAtStep(.afterCameraStripLongPressHint) {
-            coord.advance()
-        }
         viewModel.requestPeek(id: pairId)
     }
 

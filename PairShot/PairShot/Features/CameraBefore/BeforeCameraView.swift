@@ -14,10 +14,17 @@ struct BeforeCameraView: View {
 
     @State private var viewModel: BeforeCameraViewModel?
     @State private var didSubscribeMotion = false
+    @State private var didStartCameraSession = false
     @State private var focusIndicator: FocusIndicatorState?
     @State private var previewView: CameraPreviewView?
     @State private var afterCameraTarget: AfterCameraTarget?
     @State private var showSettingsSheet = false
+
+    private var shouldStartCameraSession: Bool {
+        guard let step = env.tutorialCoordinator.current else { return true }
+        let screen = TutorialStepRequirements.screen(for: step)
+        return screen == .beforeCamera || screen == .any
+    }
 
     var body: some View {
         ZStack {
@@ -35,20 +42,12 @@ struct BeforeCameraView: View {
         .task {
             ensureViewModelSync()
             guard let vm = viewModel else { return }
-            Task {
-                await vm.onAppear()
-                Task { @MainActor in
-                    guard vm.cameraPermissionState == .granted else { return }
-                    await env.promotionStore.refresh()
-                    await env.appOpenAdManager.presentColdStartIfReady(
-                        from: BannerAdView.resolveRootViewController(),
-                        coordinator: env.fullscreenAdCoordinator,
-                        promotionStore: promotionStore,
-                        subscriptionStore: subscriptionStore,
-                    )
-                }
-            }
+            Task { await startCameraSessionIfNeeded(viewModel: vm) }
             await observeEvents(viewModel: vm)
+        }
+        .onChange(of: shouldStartCameraSession) { _, newValue in
+            guard newValue, let vm = viewModel else { return }
+            Task { await startCameraSessionIfNeeded(viewModel: vm) }
         }
         .onDisappear {
             viewModel?.onDisappear()
@@ -185,6 +184,20 @@ struct BeforeCameraView: View {
         let coord = env.tutorialCoordinator
         guard coord.isAtStep(.backToHome) else { return }
         coord.advance()
+    }
+
+    private func startCameraSessionIfNeeded(viewModel: BeforeCameraViewModel) async {
+        guard shouldStartCameraSession, !didStartCameraSession else { return }
+        didStartCameraSession = true
+        await viewModel.onAppear()
+        guard viewModel.cameraPermissionState == .granted else { return }
+        await env.promotionStore.refresh()
+        await env.appOpenAdManager.presentColdStartIfReady(
+            from: BannerAdView.resolveRootViewController(),
+            coordinator: env.fullscreenAdCoordinator,
+            promotionStore: promotionStore,
+            subscriptionStore: subscriptionStore,
+        )
     }
 
     private func ensureViewModelSync() {

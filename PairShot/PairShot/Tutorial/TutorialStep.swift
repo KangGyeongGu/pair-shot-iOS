@@ -8,6 +8,7 @@ nonisolated enum TutorialStep: Int, CaseIterable {
     case tapPairCard
     case afterCameraStrip
     case afterCameraStripLongPressHint
+    case afterCameraStripPeekClose
     case afterCameraGuide
     case afterCameraInProgress
     case backToHome2

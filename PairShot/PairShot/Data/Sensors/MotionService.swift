@@ -34,7 +34,7 @@ final class MotionService {
         manager.deviceMotionUpdateInterval = updateInterval
         manager.startDeviceMotionUpdates(to: motionQueue) { @Sendable [weak self] motion, _ in
             guard let motion else { return }
-            let rollDegrees = motion.attitude.roll * 180 / .pi
+            let rollDegrees = atan2(motion.gravity.x, -motion.gravity.y) * 180 / .pi
             let detected = CameraOrientation(gravityX: motion.gravity.x, gravityY: motion.gravity.y)
             Task { @MainActor [weak self] in
                 self?.rollDegrees = rollDegrees
