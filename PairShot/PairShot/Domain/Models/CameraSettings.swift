@@ -1,5 +1,4 @@
 @preconcurrency import AVFoundation
-import CoreGraphics
 import Foundation
 
 nonisolated enum LensPosition: String, Codable, CaseIterable {

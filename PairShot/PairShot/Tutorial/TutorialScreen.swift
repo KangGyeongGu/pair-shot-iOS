@@ -1,5 +1,3 @@
-import Foundation
-
 nonisolated enum TutorialScreen: Equatable {
     case beforeCamera
     case home

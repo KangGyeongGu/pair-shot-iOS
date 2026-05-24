@@ -1,5 +1,3 @@
-import Foundation
-
 enum PairStatus: Equatable, CaseIterable {
     case scheduled
     case afterOnly

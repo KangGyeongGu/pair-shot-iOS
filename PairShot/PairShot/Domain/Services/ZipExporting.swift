@@ -1,5 +1,3 @@
-import Foundation
-
 nonisolated struct ExportContents: Equatable {
     let includeCombined: Bool
     let includeBefore: Bool

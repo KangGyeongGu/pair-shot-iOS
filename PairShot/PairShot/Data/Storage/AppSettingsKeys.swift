@@ -1,5 +1,3 @@
-import Foundation
-
 nonisolated enum AppSettingsKeys {
     static let exportQuality = "pairshot.exportQuality"
     static let fileNamePrefix = "pairshot.fileNamePrefix"

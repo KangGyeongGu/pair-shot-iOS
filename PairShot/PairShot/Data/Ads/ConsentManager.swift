@@ -1,4 +1,3 @@
-import Foundation
 import Observation
 import UIKit
 #if canImport(UserMessagingPlatform)

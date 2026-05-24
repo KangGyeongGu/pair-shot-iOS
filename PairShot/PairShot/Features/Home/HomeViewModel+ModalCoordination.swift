@@ -1,5 +1,3 @@
-import Foundation
-
 extension HomeViewModel {
     func tapPair(_ pair: PhotoPair, allPairs _: [PhotoPair]) {
         if isSelectionMode {

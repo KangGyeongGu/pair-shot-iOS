@@ -1,5 +1,3 @@
-import Foundation
-
 enum CameraPermissionProbe {
     @Sendable
     static func resolve() async -> Bool {

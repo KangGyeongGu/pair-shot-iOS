@@ -1,5 +1,3 @@
-import Foundation
-
 extension AlbumDetailViewModel: PairSharingHost {}
 
 extension AlbumDetailViewModel {

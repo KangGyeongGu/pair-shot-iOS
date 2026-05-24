@@ -1,4 +1,3 @@
-import CoreGraphics
 import Foundation
 
 struct EdgeBorderFractions {

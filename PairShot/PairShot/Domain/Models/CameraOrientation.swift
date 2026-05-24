@@ -1,5 +1,3 @@
-import Foundation
-
 nonisolated enum CameraOrientation: Int {
     case landscapeLeft = 0
     case portrait = 1

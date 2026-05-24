@@ -1,5 +1,3 @@
-import Foundation
-
 enum ExportHistoryKind: String, Codable, Equatable {
     case combined = "COMBINED"
     case watermarkedBefore = "WATERMARKED_BEFORE"

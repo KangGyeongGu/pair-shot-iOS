@@ -1,5 +1,4 @@
 @preconcurrency import AVFoundation
-import Foundation
 
 nonisolated extension CameraSession {
     func setAspectRatio(_ ratio: AspectRatio) async {

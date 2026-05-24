@@ -1,5 +1,4 @@
 import AppTrackingTransparency
-import Foundation
 import Observation
 
 struct SystemTrackingAuthorizationProvider {

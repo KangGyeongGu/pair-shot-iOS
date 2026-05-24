@@ -1,5 +1,3 @@
-import Foundation
-
 actor ExportProgressCounter {
     private var done = 0
     private let total: Int

@@ -1,5 +1,3 @@
-import Foundation
-
 nonisolated enum ExportSaveProgressMapping {
     static func ticksTotal(jobs: Int) -> Int {
         max(1, jobs * 2)

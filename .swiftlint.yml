@@ -1,9 +1,4 @@
-# SwiftLint Configuration for PairShot
-# Swift 6 / iOS 17+ / SwiftUI
 
-# ────────────────────────────────────────────────
-# Excluded Paths
-# ────────────────────────────────────────────────
 excluded:
   - DerivedData
   - .build
@@ -13,11 +8,7 @@ excluded:
   - .claude/_legacy
   - .claude/refs/sources
 
-# ────────────────────────────────────────────────
-# Enabled Opt-In Rules
-# ────────────────────────────────────────────────
 opt_in_rules:
-  # Code quality
   - array_init
   - closure_end_indentation
   - closure_spacing
@@ -115,29 +106,20 @@ opt_in_rules:
   - xct_specific_matcher
   - yoda_condition
 
-# ────────────────────────────────────────────────
-# Disabled Rules (conflict with SwiftFormat or too strict)
-# ────────────────────────────────────────────────
 disabled_rules:
-  # SwiftFormat handles these — avoid double-enforcement
   - trailing_whitespace
   - trailing_newline
-  - opening_brace            # SwiftFormat: braces
-  - closing_brace            # SwiftFormat: braces
-  - colon                    # SwiftFormat: spaceAroundOperators
-  - comma                    # SwiftFormat: spaceAroundCommas
-  - return_arrow_whitespace  # SwiftFormat: spaceAroundOperators
-  - statement_position       # SwiftFormat: elseOnSameLine
-  - multiline_parameters_brackets  # Can conflict with SwiftFormat's wrapArguments
-  - trailing_comma           # SwiftFormat: trailingCommas
+  - opening_brace
+  - closing_brace
+  - colon
+  - comma
+  - return_arrow_whitespace
+  - statement_position
+  - multiline_parameters_brackets
+  - trailing_comma
 
-  # Overly strict for SwiftUI / iOS patterns
-  - todo                     # TODOs are tracked elsewhere
-  - no_extension_access_modifier  # Conflicts with extension_access_modifier
-
-# ────────────────────────────────────────────────
-# Rule Configuration
-# ────────────────────────────────────────────────
+  - todo
+  - no_extension_access_modifier
 
 line_length:
   warning: 120
@@ -245,7 +227,6 @@ type_contents_order:
     - type_method
     - subscript
 
-# Allow @IBAction and @IBOutlet in extensions (UIKit compatibility)
 ibinspectable_in_extension:
   severity: warning
 
@@ -258,18 +239,22 @@ implicit_return:
     - getter
     - initializer
 
-
-# ────────────────────────────────────────────────
-# Analyzer Rules (requires --fix or full build)
-# ────────────────────────────────────────────────
 analyzer_rules:
-  - explicit_self
   - unused_declaration
   - unused_import
 
-# ────────────────────────────────────────────────
-# Custom Rules — Architecture Invariants
-# ────────────────────────────────────────────────
+unused_import:
+  severity: error
+  allowed_transitive_imports:
+    - module: SwiftUI
+      allowed_transitive_imports:
+        - CoreGraphics
+        - Foundation
+        - Combine
+    - module: Foundation
+      allowed_transitive_imports:
+        - CoreFoundation
+
 custom_rules:
   no_arkit_import:
     name: "No ARKit import"

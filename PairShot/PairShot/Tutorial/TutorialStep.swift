@@ -1,5 +1,3 @@
-import Foundation
-
 nonisolated enum TutorialStep: Int, CaseIterable {
     case captureGuidePortrait = 0
     case captureGuideLeft

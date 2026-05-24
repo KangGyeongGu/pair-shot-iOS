@@ -1,5 +1,4 @@
 import Foundation
-import UIKit
 
 nonisolated enum ExportTempFileWriter {
     static func write(

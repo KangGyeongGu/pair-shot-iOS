@@ -1,5 +1,3 @@
-import Foundation
-
 nonisolated enum ExportTutorialAnchorID {
     static let includes = "export.includes"
     static let format = "export.format"

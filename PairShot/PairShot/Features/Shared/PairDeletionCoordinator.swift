@@ -1,5 +1,3 @@
-import Foundation
-
 @MainActor
 struct PairDeletionCoordinator {
     let deletePairs: DeletePairsUseCase
