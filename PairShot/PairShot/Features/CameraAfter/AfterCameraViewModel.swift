@@ -2,7 +2,6 @@
 import Foundation
 import Observation
 import SwiftUI
-import UniformTypeIdentifiers
 
 @MainActor
 @Observable

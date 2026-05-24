@@ -1,5 +1,3 @@
-import Foundation
-
 nonisolated enum TutorialAnchorID {
     static let cameraShutter = "camera.shutter"
     static let cameraHomeButton = "camera.homeButton"

@@ -1,5 +1,4 @@
 import Foundation
-import Photos
 
 @MainActor
 struct ExportSaveDependencies {

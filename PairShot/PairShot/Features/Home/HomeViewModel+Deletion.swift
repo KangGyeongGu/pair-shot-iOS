@@ -1,5 +1,3 @@
-import Foundation
-
 extension HomeViewModel {
     var deletionCoordinator: PairDeletionCoordinator {
         PairDeletionCoordinator(

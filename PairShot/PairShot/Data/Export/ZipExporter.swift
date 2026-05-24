@@ -1,5 +1,4 @@
 import Foundation
-import SwiftData
 import ZIPFoundation
 
 actor ZipExporter {

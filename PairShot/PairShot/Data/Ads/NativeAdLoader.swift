@@ -1,7 +1,6 @@
 import AppTrackingTransparency
 import Foundation
 import Observation
-import UIKit
 #if canImport(GoogleMobileAds)
     @preconcurrency import GoogleMobileAds
 #endif

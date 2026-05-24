@@ -1,5 +1,4 @@
 import AppTrackingTransparency
-import Foundation
 #if canImport(GoogleMobileAds)
     import GoogleMobileAds
 #endif

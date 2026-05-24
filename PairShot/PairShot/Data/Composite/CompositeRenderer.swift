@@ -1,8 +1,5 @@
-import CoreLocation
 import Foundation
 import ImageIO
-import MobileCoreServices
-import SwiftData
 import UIKit
 import UniformTypeIdentifiers
 

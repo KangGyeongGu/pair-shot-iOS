@@ -1,4 +1,3 @@
-import Foundation
 import Observation
 
 enum SettingsPulseTarget: Equatable {

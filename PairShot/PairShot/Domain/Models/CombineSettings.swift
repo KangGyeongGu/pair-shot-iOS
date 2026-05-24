@@ -1,5 +1,3 @@
-import Foundation
-
 nonisolated struct ColorRGBA: Codable, Equatable {
     static let white = Self(red: 1, green: 1, blue: 1)
     static let black = Self(red: 0, green: 0, blue: 0)

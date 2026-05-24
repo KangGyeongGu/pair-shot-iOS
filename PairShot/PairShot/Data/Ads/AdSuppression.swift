@@ -1,5 +1,3 @@
-import Foundation
-
 @MainActor
 enum AdSuppression {
     static func isSuppressed(

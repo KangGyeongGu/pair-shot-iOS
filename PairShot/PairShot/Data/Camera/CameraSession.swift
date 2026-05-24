@@ -1,6 +1,5 @@
 @preconcurrency import AVFoundation
 import Foundation
-import UIKit
 import UniformTypeIdentifiers
 
 nonisolated enum CameraAuthorizationState {

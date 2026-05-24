@@ -1,5 +1,3 @@
-import Foundation
-
 nonisolated enum ProductIDs {
     static let proMonthly = "app.pairshot.pro.monthly"
     static let proAnnual = "app.pairshot.pro.annual"

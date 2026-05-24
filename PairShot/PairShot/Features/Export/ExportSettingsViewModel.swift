@@ -1,7 +1,5 @@
 import Foundation
 import Observation
-import Photos
-import UIKit
 
 struct ExportShareItems: Identifiable {
     let id = UUID()

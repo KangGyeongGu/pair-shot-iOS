@@ -1,6 +1,4 @@
 import Foundation
-import Photos
-import UIKit
 
 enum SaveToDeviceOutcome {
     case completed

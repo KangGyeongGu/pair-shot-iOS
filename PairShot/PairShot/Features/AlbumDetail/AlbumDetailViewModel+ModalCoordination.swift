@@ -1,5 +1,3 @@
-import Foundation
-
 extension AlbumDetailViewModel {
     func requestPairDeletion(from all: [PhotoPair]) {
         let chosen = all.filter { selectedPairIds.contains($0.id) }
