@@ -95,17 +95,42 @@ private struct PairPreviewImage: View {
                 .aspectRatio(contentMode: .fit)
                 .frame(width: geometry.size.width, height: geometry.size.height)
                 .scaleEffect(viewModel.zoomScale)
-                .gesture(pinchGesture)
-                .onTapGesture(count: 2) { viewModel.resetZoom() }
+                .offset(viewModel.panOffset)
+                .gesture(SimultaneousGesture(pinchGesture, dragGesture))
+                .onTapGesture(count: 2) {
+                    withAnimation(.easeOut(duration: 0.18)) {
+                        viewModel.resetZoom()
+                    }
+                }
                 .animation(.easeOut(duration: 0.18), value: viewModel.zoomScale)
+                .onAppear { viewModel.updateContainerSize(geometry.size) }
+                .onChange(of: geometry.size) { _, newSize in
+                    viewModel.updateContainerSize(newSize)
+                }
         }
         .clipped()
     }
 
     private var pinchGesture: some Gesture {
-        MagnificationGesture()
-            .onChanged { value in viewModel.onPinchChanged(value) }
-            .onEnded { value in viewModel.onPinchEnded(value) }
+        MagnifyGesture()
+            .onChanged { value in
+                viewModel.onPinchChanged(
+                    value.magnification,
+                    anchor: CGPoint(x: value.startAnchor.x, y: value.startAnchor.y),
+                )
+            }
+            .onEnded { value in
+                viewModel.onPinchEnded(
+                    value.magnification,
+                    anchor: CGPoint(x: value.startAnchor.x, y: value.startAnchor.y),
+                )
+            }
+    }
+
+    private var dragGesture: some Gesture {
+        DragGesture()
+            .onChanged { value in viewModel.onDragChanged(translation: value.translation) }
+            .onEnded { value in viewModel.onDragEnded(translation: value.translation) }
     }
 }
 
