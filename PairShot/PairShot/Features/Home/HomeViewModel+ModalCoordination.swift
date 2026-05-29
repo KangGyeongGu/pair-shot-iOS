@@ -1,23 +1,4 @@
 extension HomeViewModel {
-    func tapPair(_ pair: PhotoPair, allPairs _: [PhotoPair]) {
-        if isSelectionMode {
-            togglePairSelection(pair.id)
-            return
-        }
-        switch pair.status {
-            case .afterOnly:
-                beforeCameraTargetPairId = pair.id
-                showBeforeCamera = true
-
-            case .scheduled:
-                afterCameraTargetPairId = pair.id
-                showAfterCamera = true
-
-            case .captured:
-                pendingPreviewPair = PairPreviewRequest(pair: pair)
-        }
-    }
-
     func tapAlbum(_ album: Album) {
         if isSelectionMode {
             toggleAlbumSelection(album.id)
@@ -39,12 +20,6 @@ extension HomeViewModel {
     func requestSinglePairDeletion(_ pair: PhotoPair) {
         guard !isSelectionMode else { return }
         pendingSinglePairDelete = HomeSinglePairDeleteRequest(pair: pair)
-    }
-
-    func requestAfterDeletion(_ pair: PhotoPair) {
-        guard !isSelectionMode else { return }
-        guard pair.afterPhotoLocalIdentifier != nil else { return }
-        pendingAfterDelete = PairAfterDeleteRequest(pair: pair)
     }
 
     func requestSingleAlbumDeletion(_ album: Album) {

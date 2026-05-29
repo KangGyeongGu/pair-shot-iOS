@@ -21,14 +21,6 @@ extension HomeViewModel {
         selectedAlbumIds.removeAll()
     }
 
-    func togglePairSelection(_ id: UUID) {
-        if selectedPairIds.contains(id) {
-            selectedPairIds.remove(id)
-        } else {
-            selectedPairIds.insert(id)
-        }
-    }
-
     func toggleAlbumSelection(_ id: UUID) {
         if selectedAlbumIds.contains(id) {
             selectedAlbumIds.remove(id)
