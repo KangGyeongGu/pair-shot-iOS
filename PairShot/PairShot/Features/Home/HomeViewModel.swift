@@ -40,16 +40,6 @@ struct HomeSingleAlbumDeleteRequest: Identifiable {
     let album: Album
 }
 
-struct HomePairPreviewRequest: Identifiable {
-    let id = UUID()
-    let pair: PhotoPair
-}
-
-struct HomeAfterDeleteRequest: Identifiable {
-    let id = UUID()
-    let pair: PhotoPair
-}
-
 @MainActor
 @Observable
 final class HomeViewModel {
@@ -67,8 +57,8 @@ final class HomeViewModel {
     var showAfterCamera: Bool = false
     var afterCameraTargetPairId: UUID?
     var beforeCameraTargetPairId: UUID?
-    var pendingPreviewPair: HomePairPreviewRequest?
-    var pendingAfterDelete: HomeAfterDeleteRequest?
+    var pendingPreviewPair: PairPreviewRequest?
+    var pendingAfterDelete: PairAfterDeleteRequest?
     var pendingPairDelete: HomePairDeleteRequest?
     var pendingAlbumDelete: HomeAlbumDeleteRequest?
     var pendingAlbumDestructive: HomeAlbumDeleteRequest?

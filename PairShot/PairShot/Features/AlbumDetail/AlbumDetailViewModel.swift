@@ -11,16 +11,6 @@ struct AlbumDetailSinglePairDeleteRequest: Identifiable {
     let pair: PhotoPair
 }
 
-struct AlbumDetailPairPreviewRequest: Identifiable {
-    let id = UUID()
-    let pair: PhotoPair
-}
-
-struct AlbumDetailAfterDeleteRequest: Identifiable {
-    let id = UUID()
-    let pair: PhotoPair
-}
-
 @MainActor
 @Observable
 final class AlbumDetailViewModel {
@@ -44,8 +34,8 @@ final class AlbumDetailViewModel {
     var pendingSinglePairDelete: AlbumDetailSinglePairDeleteRequest?
     var pendingPairDestructive: AlbumDetailPairDeleteRequest?
     var pendingSinglePairDestructive: AlbumDetailSinglePairDeleteRequest?
-    var pendingPreviewPair: AlbumDetailPairPreviewRequest?
-    var pendingAfterDelete: AlbumDetailAfterDeleteRequest?
+    var pendingPreviewPair: PairPreviewRequest?
+    var pendingAfterDelete: PairAfterDeleteRequest?
     var pendingShareItems: ExportShareItems?
     var pendingZipExport: DocumentExporterItem?
     var isExporting: Bool = false
