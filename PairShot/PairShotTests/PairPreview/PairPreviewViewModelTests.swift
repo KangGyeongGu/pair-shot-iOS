@@ -238,17 +238,6 @@ struct PairPreviewViewModelTests {
     }
 
     @Test
-    func `dismiss — events stream 으로 dismiss event yield`() async {
-        let viewModel = makeViewModel()
-
-        viewModel.dismiss()
-
-        var iterator = viewModel.events.makeAsyncIterator()
-        let event = await iterator.next()
-        #expect(event == .dismiss)
-    }
-
-    @Test
     func `zoom 범위 상수 — minZoom 1_0, maxZoom 4_0 (UI 핀치 한계)`() {
         #expect(PairPreviewViewModel.minZoom == 1.0)
         #expect(PairPreviewViewModel.maxZoom == 4.0)

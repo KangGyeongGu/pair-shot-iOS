@@ -1,5 +1,4 @@
 import Foundation
-import SwiftUI
 import UniformTypeIdentifiers
 
 nonisolated enum CompositeLayout: String, CaseIterable, Identifiable {

@@ -35,7 +35,6 @@ final class AlbumDetailViewModel {
     var pendingPairDestructive: AlbumDetailPairDeleteRequest?
     var pendingSinglePairDestructive: AlbumDetailSinglePairDeleteRequest?
     var pendingPreviewPair: PairPreviewRequest?
-    var pendingAfterDelete: PairAfterDeleteRequest?
     var pendingShareItems: ExportShareItems?
     var pendingZipExport: DocumentExporterItem?
     var isExporting: Bool = false

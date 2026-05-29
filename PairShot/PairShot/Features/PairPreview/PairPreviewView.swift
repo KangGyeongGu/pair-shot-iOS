@@ -3,6 +3,7 @@ import UIKit
 
 struct PairPreviewView: View {
     let pair: PhotoPair
+    let actions: PairCardActions
 
     @Environment(AppEnvironment.self) private var env
     @Environment(\.dismiss) private var dismiss
@@ -10,36 +11,20 @@ struct PairPreviewView: View {
     @State private var viewModel: PairPreviewViewModel?
 
     var body: some View {
-        NavigationStack {
-            ZStack {
-                if let viewModel {
-                    content(for: viewModel)
-                } else {
-                    ProgressView()
-                }
+        ZStack {
+            if let viewModel {
+                content(for: viewModel)
+            } else {
+                ProgressView()
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar { toolbar }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .task { ensureViewModel() }
-        .task { await observeEvents() }
     }
 
-    @ToolbarContentBuilder
-    private var toolbar: some ToolbarContent {
-        ToolbarItem(placement: .topBarLeading) {
-            Button {
-                viewModel?.dismiss()
-            } label: {
-                Image(systemName: "xmark")
-            }
-            .accessibilityLabel(String(localized: "common_button_close"))
-        }
-    }
-
-    init(pair: PhotoPair) {
+    init(pair: PhotoPair, actions: PairCardActions) {
         self.pair = pair
+        self.actions = actions
     }
 
     private func ensureViewModel() {
@@ -49,25 +34,17 @@ struct PairPreviewView: View {
         }
     }
 
-    private func observeEvents() async {
-        while viewModel == nil {
-            try? await Task.sleep(nanoseconds: 50_000_000)
-        }
-        guard let viewModel else { return }
-        for await event in viewModel.events {
-            switch event {
-                case .dismiss:
-                    dismiss()
-            }
-        }
-    }
-
     private func content(for viewModel: PairPreviewViewModel) -> some View {
         VStack(spacing: 0) {
+            BannerAdSlot()
+                .padding(.top, 28)
             previewArea(for: viewModel)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-            BannerAdSlot()
+        }
+        .overlay(alignment: .bottom) {
+            PairPreviewBottomBar(items: actionItems())
+                .padding(.horizontal, 16)
+                .padding(.bottom, 4)
         }
         .modifier(PairPreviewSheetModifiers(viewModel: viewModel))
     }
@@ -81,6 +58,39 @@ struct PairPreviewView: View {
         } else {
             PairPreviewEmptyState()
         }
+    }
+
+    private func actionItems() -> [PairShotActionItem] {
+        [
+            PairShotActionItem(
+                title: String(localized: "common_button_share"),
+                systemImage: "square.and.arrow.up",
+                action: { actions.onShare(pair) },
+            ),
+            PairShotActionItem(
+                title: String(localized: "common_button_save_to_device"),
+                systemImage: "arrow.down.to.line",
+                action: { actions.onExport(pair) },
+            ),
+            PairShotActionItem(
+                title: String(localized: "pair_card_menu_delete_after"),
+                systemImage: "trash.slash",
+                role: .destructive,
+                action: {
+                    dismiss()
+                    actions.onRequestAfterDeletion(pair)
+                },
+            ),
+            PairShotActionItem(
+                title: String(localized: "common_button_delete"),
+                systemImage: "trash",
+                role: .destructive,
+                action: {
+                    dismiss()
+                    actions.onRequestPairDeletion(pair)
+                },
+            ),
+        ]
     }
 }
 
@@ -131,6 +141,49 @@ private struct PairPreviewImage: View {
         DragGesture()
             .onChanged { value in viewModel.onDragChanged(translation: value.translation) }
             .onEnded { value in viewModel.onDragEnded(translation: value.translation) }
+    }
+}
+
+private struct PairPreviewBottomBar: View {
+    let items: [PairShotActionItem]
+
+    var body: some View {
+        HStack(spacing: 8) {
+            ForEach(items) { item in
+                actionColumn(item)
+            }
+        }
+        .padding(.horizontal, 8)
+        .frame(maxWidth: .infinity, minHeight: 60)
+        .adaptiveGlass(in: Capsule(style: .continuous), kind: .regular)
+        .clipShape(Capsule(style: .continuous))
+        .overlay(
+            Capsule(style: .continuous)
+                .strokeBorder(Color.white.opacity(0.18), lineWidth: 0.5),
+        )
+        .shadow(color: Color.black.opacity(0.12), radius: 10, y: 3)
+    }
+
+    private func actionColumn(_ item: PairShotActionItem) -> some View {
+        Button(role: item.role, action: item.action) {
+            VStack(spacing: 4) {
+                Image(systemName: item.systemImage)
+                    .font(.title3)
+                    .frame(height: 24)
+                Text(item.title)
+                    .font(.appLabel)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            }
+            .frame(maxWidth: .infinity)
+            .frame(minHeight: 44)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(item.role == .destructive ? Color.appSnackbarError : Color.primary)
+        .opacity(item.isEnabled ? 1 : 0.38)
+        .disabled(!item.isEnabled)
+        .accessibilityLabel(item.title)
     }
 }
 

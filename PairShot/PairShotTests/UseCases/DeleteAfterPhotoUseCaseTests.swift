@@ -5,7 +5,7 @@ import Testing
 @MainActor
 struct DeleteAfterPhotoUseCaseTests {
     @Test
-    func `Before·After·Combined 가 모두 있는 페어 → After·합성 자산만 정리, Before 보존, status 가 scheduled 로 전이`() async throws {
+    func `After·Combined 모두 있는 페어 → After 원본만 정리, Before·합성본·hasCombinedExport 보존, status scheduled`() async throws {
         let repo = InMemoryPhotoPairRepo()
         let pair = FixturePhotoPair.make(
             beforePhotoLocalIdentifier: "before-asset",
@@ -32,15 +32,15 @@ struct DeleteAfterPhotoUseCaseTests {
         #expect(refetched?.beforePhotoLocalIdentifier == "before-asset")
         #expect(refetched?.afterPhotoLocalIdentifier == nil)
         #expect(refetched?.afterCapturedAt == nil)
-        #expect(refetched?.hasCombinedExport == false)
+        #expect(refetched?.hasCombinedExport == true)
         #expect(refetched?.status == .scheduled)
         #expect(updated?.afterPhotoLocalIdentifier == nil)
         let combinedRemaining = try await repo.combinedExportPhotoIdentifiers(forPairIds: [pair.id])
-        #expect(combinedRemaining.isEmpty)
+        #expect(Set(combinedRemaining) == Set(["combined-asset-1", "combined-asset-2"]))
     }
 
     @Test
-    func `Combined 자산이 없는 페어 → After 만 정리되고 pair 업데이트 정상 (combined 정리 단계 안전 no-op)`() async throws {
+    func `Combined 자산이 없는 페어 → After 만 정리되고 pair 업데이트 정상`() async throws {
         let repo = InMemoryPhotoPairRepo()
         let pair = FixturePhotoPair.make(
             beforePhotoLocalIdentifier: "before-asset",

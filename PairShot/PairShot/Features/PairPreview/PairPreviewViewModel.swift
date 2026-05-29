@@ -5,10 +5,6 @@ import UIKit
 @MainActor
 @Observable
 final class PairPreviewViewModel {
-    enum Event {
-        case dismiss
-    }
-
     static let minZoom: CGFloat = 1.0
     static let maxZoom: CGFloat = 4.0
 
@@ -23,12 +19,9 @@ final class PairPreviewViewModel {
     var containerSize: CGSize = .zero
     var errorMessage: String?
 
-    let events: AsyncStream<Event>
-
     private let photoLibrary: PhotoLibraryService
     private let appSettings: AppSettings
     private let membership: Membership?
-    private let eventsContinuation: AsyncStream<Event>.Continuation
 
     init(
         pair: PhotoPair,
@@ -40,9 +33,6 @@ final class PairPreviewViewModel {
         self.photoLibrary = photoLibrary
         self.appSettings = appSettings
         self.membership = membership
-        let stream = AsyncStream<Event>.makeStream()
-        events = stream.stream
-        eventsContinuation = stream.continuation
     }
 
     func loadPreview() async {
@@ -79,10 +69,6 @@ final class PairPreviewViewModel {
         } catch {
             errorMessage = String(localized: "pair_preview_share_no_photo")
         }
-    }
-
-    func dismiss() {
-        eventsContinuation.yield(.dismiss)
     }
 
     func updateContainerSize(_ size: CGSize) {
