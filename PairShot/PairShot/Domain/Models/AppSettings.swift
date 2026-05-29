@@ -165,6 +165,16 @@ final class AppSettings {
         }
     }
 
+    var launchCount: Int {
+        get { defaults.integer(forKey: AppSettingsKeys.launchCount) }
+        set { defaults.set(newValue, forKey: AppSettingsKeys.launchCount) }
+    }
+
+    var didRequestReview: Bool {
+        get { defaults.bool(forKey: AppSettingsKeys.didRequestReview) }
+        set { defaults.set(newValue, forKey: AppSettingsKeys.didRequestReview) }
+    }
+
     var homeSortOrder: String {
         didSet {
             let normalized = SortOrderPersistence.normalize(homeSortOrder)
@@ -245,6 +255,8 @@ nonisolated enum AppSettingsDefaultsRegistration {
             AppSettingsKeys.embedGPSInPhoto: true,
             AppSettingsKeys.homeSortOrder: SortOrderPersistence.defaultRawValue,
             AppSettingsKeys.albumSortOrder: SortOrderPersistence.defaultRawValue,
+            AppSettingsKeys.launchCount: 0,
+            AppSettingsKeys.didRequestReview: false,
         ]
     }
 }
