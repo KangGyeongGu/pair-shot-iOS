@@ -13,7 +13,7 @@ extension AlbumDetailViewModel {
     func requestAfterDeletion(_ pair: PhotoPair) {
         guard !isSelectionMode else { return }
         guard pair.afterPhotoLocalIdentifier != nil else { return }
-        pendingAfterDelete = AlbumDetailAfterDeleteRequest(pair: pair)
+        pendingAfterDelete = PairAfterDeleteRequest(pair: pair)
     }
 
     func confirmAfterDeletion(_ pair: PhotoPair) async {

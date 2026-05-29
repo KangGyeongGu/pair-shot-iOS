@@ -43,7 +43,7 @@ extension AlbumDetailViewModel {
                 showAfterCamera = true
 
             case .captured:
-                pendingPreviewPair = AlbumDetailPairPreviewRequest(pair: pair)
+                pendingPreviewPair = PairPreviewRequest(pair: pair)
         }
     }
 
