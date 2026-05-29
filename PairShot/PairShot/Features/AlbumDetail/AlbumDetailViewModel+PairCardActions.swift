@@ -7,8 +7,8 @@ extension AlbumDetailViewModel {
             onExport: { pair in
                 Task { await self.exportPair(pair) }
             },
-            onRequestRecapture: { pair in
-                self.requestRecaptureAfter(pair)
+            onRequestAfterDeletion: { pair in
+                self.requestAfterDeletion(pair)
             },
             onRequestPairDeletion: { pair in
                 self.requestSinglePairDeletion(pair)

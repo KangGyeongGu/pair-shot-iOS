@@ -45,7 +45,7 @@ struct HomePairPreviewRequest: Identifiable {
     let pair: PhotoPair
 }
 
-struct HomeRecaptureAfterRequest: Identifiable {
+struct HomeAfterDeleteRequest: Identifiable {
     let id = UUID()
     let pair: PhotoPair
 }
@@ -68,7 +68,7 @@ final class HomeViewModel {
     var afterCameraTargetPairId: UUID?
     var beforeCameraTargetPairId: UUID?
     var pendingPreviewPair: HomePairPreviewRequest?
-    var pendingRecaptureAfter: HomeRecaptureAfterRequest?
+    var pendingAfterDelete: HomeAfterDeleteRequest?
     var pendingPairDelete: HomePairDeleteRequest?
     var pendingAlbumDelete: HomeAlbumDeleteRequest?
     var pendingAlbumDestructive: HomeAlbumDeleteRequest?
@@ -91,6 +91,7 @@ final class HomeViewModel {
     let pairRepo: PhotoPairRepository
     let albumRepo: AlbumRepository
     let deletePairs: DeletePairsUseCase
+    let deleteAfterPhoto: DeleteAfterPhotoUseCase
     let deleteCombinedExports: DeleteCombinedExportsUseCase
     let deletePairsKeepingCombined: DeletePairsKeepingCombinedUseCase
     let location: CoreLocationService
@@ -106,6 +107,7 @@ final class HomeViewModel {
         pairRepo: PhotoPairRepository,
         albumRepo: AlbumRepository,
         deletePairs: DeletePairsUseCase,
+        deleteAfterPhoto: DeleteAfterPhotoUseCase,
         location: CoreLocationService,
         immediateExport: ImmediateExportService,
         appSettings: AppSettings,
@@ -120,6 +122,7 @@ final class HomeViewModel {
         self.pairRepo = pairRepo
         self.albumRepo = albumRepo
         self.deletePairs = deletePairs
+        self.deleteAfterPhoto = deleteAfterPhoto
         self.deleteCombinedExports = deleteCombinedExports
         self.deletePairsKeepingCombined = deletePairsKeepingCombined
         self.location = location

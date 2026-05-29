@@ -41,9 +41,10 @@ extension HomeViewModel {
         pendingSinglePairDelete = HomeSinglePairDeleteRequest(pair: pair)
     }
 
-    func requestRecaptureAfter(_ pair: PhotoPair) {
+    func requestAfterDeletion(_ pair: PhotoPair) {
         guard !isSelectionMode else { return }
-        pendingRecaptureAfter = HomeRecaptureAfterRequest(pair: pair)
+        guard pair.afterPhotoLocalIdentifier != nil else { return }
+        pendingAfterDelete = HomeAfterDeleteRequest(pair: pair)
     }
 
     func requestSingleAlbumDeletion(_ album: Album) {

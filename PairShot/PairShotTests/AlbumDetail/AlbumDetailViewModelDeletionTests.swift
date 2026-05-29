@@ -265,6 +265,7 @@ private final class AlbumDetailDeletionEnvironment {
             pairRepo: repo,
             albumRepo: albumRepo,
             deletePairs: DeletePairsUseCase(pairRepo: repo, photoLibrary: photoLibrary),
+            deleteAfterPhoto: DeleteAfterPhotoUseCase(pairRepo: repo, photoLibrary: photoLibrary),
             immediateExport: immediateExport,
             appSettings: appSettings,
             thumbnailCache: thumbnailCache,

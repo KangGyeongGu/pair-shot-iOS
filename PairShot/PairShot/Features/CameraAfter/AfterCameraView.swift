@@ -5,7 +5,6 @@ struct AfterCameraView: View {
     let albumId: UUID?
     let initialPairId: UUID?
     let sortOrder: HomeSortOrder
-    let recaptureTargetPair: PhotoPair?
 
     @Environment(\.dismiss) private var dismiss
     @Environment(AppEnvironment.self) private var env
@@ -117,12 +116,10 @@ struct AfterCameraView: View {
         albumId: UUID? = nil,
         initialPairId: UUID? = nil,
         sortOrder: HomeSortOrder = .newest,
-        recaptureTargetPair: PhotoPair? = nil,
     ) {
         self.albumId = albumId
         self.initialPairId = initialPairId
         self.sortOrder = sortOrder
-        self.recaptureTargetPair = recaptureTargetPair
     }
 
     @ViewBuilder
@@ -245,7 +242,6 @@ struct AfterCameraView: View {
             albumId: albumId,
             initialPairId: initialPairId,
             sortOrder: sortOrder,
-            recaptureTargetPair: recaptureTargetPair,
         )
     }
 

@@ -39,15 +39,6 @@ extension AfterCameraViewModel {
     }
 
     func contractPairsAndAdvance(removing capturedPairId: UUID) {
-        if isRecaptureMode {
-            withAnimation(.smooth) {
-                currentPair = nil
-                ghostImageData = nil
-                allCompleted = true
-            }
-            eventsContinuation.yield(.dismiss)
-            return
-        }
         let capturedIndex = pairs.firstIndex(where: { $0.id == capturedPairId }) ?? 0
         withAnimation(.smooth) {
             pairs.removeAll { $0.id == capturedPairId }
@@ -88,16 +79,7 @@ extension AfterCameraViewModel {
         aspectRatio: AspectRatio,
         isDeferredProxy: Bool,
     ) async throws -> PhotoPair {
-        if isRecaptureMode {
-            return try await recaptureAfter(
-                pairId: pairId,
-                afterData: afterData,
-                afterUTType: afterUTType,
-                aspectRatio: aspectRatio,
-                isDeferredProxy: isDeferredProxy,
-            )
-        }
-        return try await captureAfter(
+        try await captureAfter(
             pairId: pairId,
             afterData: afterData,
             afterUTType: afterUTType,

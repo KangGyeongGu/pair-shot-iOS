@@ -3831,6 +3831,40 @@
         }
       }
     },
+    "pair_card_alert_delete_after_message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Before stays. You can capture After again."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Before 는 그대로 유지되고, After 만 다시 촬영할 수 있게 됩니다."
+          }
+        }
+      }
+    },
+    "pair_card_alert_delete_after_title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete After photo?"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "After 사진을 삭제할까요?"
+          }
+        }
+      }
+    },
     "pair_card_desc_captured" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3878,6 +3912,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Before 만 촬영된 페어"
+          }
+        }
+      }
+    },
+    "pair_card_menu_delete_after" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete After"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "After 삭제"
           }
         }
       }
@@ -4014,23 +4065,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "페어 삭제에 실패했습니다"
-          }
-        }
-      }
-    },
-    "pair_preview_menu_recapture" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Recapture"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "재촬영"
           }
         }
       }

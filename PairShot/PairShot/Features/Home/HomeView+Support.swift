@@ -115,7 +115,35 @@ struct HomeViewSheetModifiers: ViewModifier {
             .modifier(HomeCameraCovers(viewModel: viewModel))
             .modifier(HomeSheets(viewModel: viewModel))
             .modifier(HomeDeleteDialogs(viewModel: viewModel))
+            .modifier(HomeAfterDeleteAlert(viewModel: viewModel))
             .paywallSheet(isPresented: $viewModel.showPaywall)
+    }
+}
+
+struct HomeAfterDeleteAlert: ViewModifier {
+    @Bindable var viewModel: HomeViewModel
+
+    func body(content: Content) -> some View {
+        content.alert(
+            String(localized: "pair_card_alert_delete_after_title"),
+            isPresented: Binding(
+                get: { viewModel.pendingAfterDelete != nil },
+                set: { if !$0 { viewModel.pendingAfterDelete = nil } },
+            ),
+            presenting: viewModel.pendingAfterDelete,
+        ) { request in
+            Button(String(localized: "common_button_cancel"), role: .cancel) {
+                viewModel.pendingAfterDelete = nil
+            }
+            Button(String(localized: "common_button_delete"), role: .destructive) {
+                Task {
+                    await viewModel.confirmAfterDeletion(request.pair)
+                    viewModel.pendingAfterDelete = nil
+                }
+            }
+        } message: { _ in
+            Text(String(localized: "pair_card_alert_delete_after_message"))
+        }
     }
 }
 
@@ -139,14 +167,6 @@ struct HomeCameraCovers: ViewModifier {
                         initialPairId: viewModel.afterCameraTargetPairId,
                         sortOrder: viewModel.sortOrder,
                     )
-                }
-                .environment(env)
-                .environment(env.tutorialCoordinator)
-                .environment(\.tutorialMode, env.tutorialCoordinator.mode)
-            }
-            .fullScreenCover(item: $viewModel.pendingRecaptureAfter) { request in
-                NavigationStack {
-                    AfterCameraView(recaptureTargetPair: request.pair)
                 }
                 .environment(env)
                 .environment(env.tutorialCoordinator)
