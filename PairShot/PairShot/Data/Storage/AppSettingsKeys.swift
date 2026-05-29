@@ -20,4 +20,6 @@ nonisolated enum AppSettingsKeys {
     static let hasCompletedFirstRunPaywall = "pairshot.hasCompletedFirstRunPaywall"
     static let appTextSize = "pairshot.appTextSize"
     static let tutorialCurrentStep = "pairshot.tutorialCurrentStep"
+    static let launchCount = "pairshot.launchCount"
+    static let didRequestReview = "pairshot.didRequestReview"
 }

@@ -1,3 +1,4 @@
+import StoreKit
 import SwiftUI
 
 struct HomeView: View {
@@ -7,7 +8,9 @@ struct HomeView: View {
 
     @Environment(AppEnvironment.self) private var env
     @Environment(Membership.self) private var membership
+    @Environment(\.requestReview) private var requestReview
     @State private var viewModel: HomeViewModel?
+    @State private var didCheckReviewThisSession = false
 
     var body: some View {
         PhotoPairQueryHost { domainPairs in
@@ -40,7 +43,10 @@ struct HomeView: View {
         .navigationBarBackButtonHidden(true)
         .toolbar { toolbar(domainPairs: domainPairs, domainAlbums: domainAlbums) }
         .task { ensureViewModel() }
-        .onAppear { consumePendingSettingsRedirectIfNeeded() }
+        .onAppear {
+            consumePendingSettingsRedirectIfNeeded()
+            requestReviewIfEligible()
+        }
         .onChange(of: env.settingsRedirectCoordinator.pendingPulse) { _, _ in
             consumePendingSettingsRedirectIfNeeded()
         }
@@ -159,6 +165,19 @@ extension HomeView {
             return
         }
         onPushSettings?()
+    }
+
+    private func requestReviewIfEligible() {
+        guard !didCheckReviewThisSession else { return }
+        didCheckReviewThisSession = true
+        let eligible = ReviewRequestGate.shouldRequest(
+            launchCount: env.appSettings.launchCount,
+            didRequest: env.appSettings.didRequestReview,
+            tutorialActive: env.tutorialCoordinator.isActive,
+        )
+        guard eligible else { return }
+        requestReview()
+        env.appSettings.didRequestReview = true
     }
 }
 

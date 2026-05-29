@@ -3,6 +3,7 @@ import SwiftUI
 struct SettingsHelpSection: View {
     @Binding var path: [Route]
     @Environment(AppEnvironment.self) private var env
+    @Environment(\.openURL) private var openURL
     @AppStorage("tutorial.completed") private var tutorialCompleted = false
     @State private var showTutorialRestartDialog = false
 
@@ -19,6 +20,24 @@ struct SettingsHelpSection: View {
                         .foregroundStyle(.primary)
                     Spacer()
                     Image(systemName: "chevron.right")
+                        .font(.caption.bold())
+                        .foregroundStyle(.tertiary)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            Button {
+                openURL(SettingsExternalLinks.appStoreReview)
+            } label: {
+                HStack(spacing: 12) {
+                    SettingsIconBadge(
+                        icon: SettingsRowIcon(systemImage: "star.bubble", color: .yellow),
+                    )
+                    Text(String(localized: "settings_item_app_review"))
+                        .foregroundStyle(.primary)
+                    Spacer()
+                    Image(systemName: "arrow.up.right.square")
                         .font(.caption.bold())
                         .foregroundStyle(.tertiary)
                 }

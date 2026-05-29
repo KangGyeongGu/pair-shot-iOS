@@ -65,6 +65,7 @@ struct PairShotApp: App {
         _showFallbackAlert = State(initialValue: containerBootstrap.fallbackActive)
         let environment = AppEnvironment(modelContainer: containerBootstrap.container)
         AppLanguageBundleSync.apply(environment.appSettings.language)
+        environment.appSettings.launchCount += 1
         _env = State(initialValue: environment)
     }
 
