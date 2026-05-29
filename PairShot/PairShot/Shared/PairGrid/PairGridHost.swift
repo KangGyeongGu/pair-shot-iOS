@@ -5,7 +5,6 @@ protocol PairGridHost: PairSharingHost {
     var isSelectionMode: Bool { get set }
     var selectedPairIds: Set<UUID> { get set }
     var pendingPreviewPair: PairPreviewRequest? { get set }
-    var pendingAfterDelete: PairAfterDeleteRequest? { get set }
     var beforeCameraTargetPairId: UUID? { get set }
     var afterCameraTargetPairId: UUID? { get set }
     var showBeforeCamera: Bool { get set }
@@ -65,13 +64,12 @@ extension PairGridHost {
     func requestAfterDeletion(_ pair: PhotoPair) {
         guard !isSelectionMode else { return }
         guard pair.afterPhotoLocalIdentifier != nil else { return }
-        pendingAfterDelete = PairAfterDeleteRequest(pair: pair)
-    }
-
-    func confirmAfterDeletion(_ pair: PhotoPair) async {
-        _ = try? await deleteAfterPhoto(pairId: pair.id)
-        if let afterId = pair.afterPhotoLocalIdentifier {
-            thumbnailCache.evict(localIdentifier: afterId)
+        let afterId = pair.afterPhotoLocalIdentifier
+        Task {
+            _ = try? await deleteAfterPhoto(pairId: pair.id)
+            if let afterId {
+                thumbnailCache.evict(localIdentifier: afterId)
+            }
         }
     }
 }

@@ -1,6 +1,5 @@
 import Foundation
 import Observation
-import SwiftUI
 
 enum SnackbarVariant: Equatable {
     case success

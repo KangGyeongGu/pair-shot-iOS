@@ -1,5 +1,3 @@
-import Foundation
-
 nonisolated enum TutorialPosture: Equatable {
     case portrait
     case leftLandscape

@@ -58,7 +58,6 @@ final class HomeViewModel {
     var afterCameraTargetPairId: UUID?
     var beforeCameraTargetPairId: UUID?
     var pendingPreviewPair: PairPreviewRequest?
-    var pendingAfterDelete: PairAfterDeleteRequest?
     var pendingPairDelete: HomePairDeleteRequest?
     var pendingAlbumDelete: HomeAlbumDeleteRequest?
     var pendingAlbumDestructive: HomeAlbumDeleteRequest?
