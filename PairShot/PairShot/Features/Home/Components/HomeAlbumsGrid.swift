@@ -13,7 +13,7 @@ struct HomeAlbumsGrid: View {
                         albumCell(album: album)
                     }
                 } header: {
-                    Text(HomeDateFormatter.base(for: group.date))
+                    Text(SectionDateFormatter.text(for: group.date))
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(Color.appOnSurfaceVariant)
                 }
