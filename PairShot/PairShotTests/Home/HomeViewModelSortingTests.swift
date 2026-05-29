@@ -64,42 +64,6 @@ struct HomeViewModelSortingTests {
     }
 
     @Test
-    func `groupedPairs 는 동일한 day 의 페어를 묶어 반환 (newest 정렬 시 group 도 내림차순)`() {
-        let viewModel = makeViewModel()
-        viewModel.setSortOrder(.newest)
-        let calendar = Calendar(identifier: .gregorian)
-        let day1 = Self.baseDate
-        let day2 = Self.baseDate.addingTimeInterval(60 * 60 * 24)
-        let day1AM = PhotoPair(createdAt: day1.addingTimeInterval(3600))
-        let day1PM = PhotoPair(createdAt: day1.addingTimeInterval(7200))
-        let day2AM = PhotoPair(createdAt: day2.addingTimeInterval(3600))
-
-        let groups = viewModel.groupedPairs(from: [day1AM, day1PM, day2AM], calendar: calendar)
-
-        #expect(groups.count == 2)
-        #expect(groups[0].pairs.contains(where: { $0.id == day2AM.id }))
-        #expect(Set(groups[1].pairs.map(\.id)) == Set([day1AM.id, day1PM.id]))
-    }
-
-    @Test
-    func `groupedPairs oldest 는 group 순서가 오름차순 + 그룹 내 정렬도 오름차순`() {
-        let viewModel = makeViewModel()
-        viewModel.setSortOrder(.oldest)
-        let calendar = Calendar(identifier: .gregorian)
-        let day1 = Self.baseDate
-        let day2 = Self.baseDate.addingTimeInterval(60 * 60 * 24)
-        let day1AM = PhotoPair(createdAt: day1.addingTimeInterval(3600))
-        let day1PM = PhotoPair(createdAt: day1.addingTimeInterval(7200))
-        let day2AM = PhotoPair(createdAt: day2.addingTimeInterval(3600))
-
-        let groups = viewModel.groupedPairs(from: [day2AM, day1PM, day1AM], calendar: calendar)
-
-        #expect(groups.count == 2)
-        #expect(groups[0].pairs.map(\.id) == [day1AM.id, day1PM.id])
-        #expect(groups[1].pairs.first?.id == day2AM.id)
-    }
-
-    @Test
     func `groupedAlbums 도 day 단위로 묶고 정렬에 맞춰 group 순서 결정`() {
         let viewModel = makeViewModel()
         viewModel.setSortOrder(.newest)

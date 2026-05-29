@@ -29,18 +29,6 @@ struct HomeTutorialResumeAfterCamera: ViewModifier {
     }
 }
 
-struct FirstPairCardAnchor: ViewModifier {
-    let isFirst: Bool
-
-    func body(content: Content) -> some View {
-        if isFirst {
-            content.tutorialAnchor(TutorialAnchorID.homeFirstPairCard)
-        } else {
-            content
-        }
-    }
-}
-
 struct HomeSelectionPruner: ViewModifier {
     let viewModel: HomeViewModel
     let pairIds: [UUID]
@@ -54,15 +42,5 @@ struct HomeSelectionPruner: ViewModifier {
             .onChange(of: albumIds) { _, newIds in
                 viewModel.pruneStaleAlbumSelections(currentIds: Set(newIds))
             }
-    }
-}
-
-enum HomeDateFormatter {
-    static func base(for date: Date, calendar: Calendar = .current) -> String {
-        let formatter = DateFormatter()
-        formatter.locale = Locale.current
-        formatter.calendar = calendar
-        formatter.setLocalizedDateFormatFromTemplate("yMd")
-        return formatter.string(from: date)
     }
 }

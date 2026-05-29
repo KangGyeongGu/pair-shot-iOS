@@ -68,7 +68,7 @@ struct PairGrid<Cell: View>: View {
         firstPairId: UUID?,
     ) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(HomeDateFormatter.base(for: date))
+            Text(SectionDateFormatter.text(for: date))
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(Color.appOnSurfaceVariant)
                 .padding(.horizontal, 12)
