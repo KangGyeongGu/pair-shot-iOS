@@ -16,7 +16,7 @@ struct AlbumDetailPairPreviewRequest: Identifiable {
     let pair: PhotoPair
 }
 
-struct AlbumDetailRecaptureAfterRequest: Identifiable {
+struct AlbumDetailAfterDeleteRequest: Identifiable {
     let id = UUID()
     let pair: PhotoPair
 }
@@ -45,7 +45,7 @@ final class AlbumDetailViewModel {
     var pendingPairDestructive: AlbumDetailPairDeleteRequest?
     var pendingSinglePairDestructive: AlbumDetailSinglePairDeleteRequest?
     var pendingPreviewPair: AlbumDetailPairPreviewRequest?
-    var pendingRecaptureAfter: AlbumDetailRecaptureAfterRequest?
+    var pendingAfterDelete: AlbumDetailAfterDeleteRequest?
     var pendingShareItems: ExportShareItems?
     var pendingZipExport: DocumentExporterItem?
     var isExporting: Bool = false
@@ -62,6 +62,7 @@ final class AlbumDetailViewModel {
     let pairRepo: PhotoPairRepository
     let albumRepo: AlbumRepository
     let deletePairs: DeletePairsUseCase
+    let deleteAfterPhoto: DeleteAfterPhotoUseCase
     let deleteCombinedExports: DeleteCombinedExportsUseCase
     let deletePairsKeepingCombined: DeletePairsKeepingCombinedUseCase
     let thumbnailCache: PhotoLibraryThumbnailCache
@@ -77,6 +78,7 @@ final class AlbumDetailViewModel {
         pairRepo: PhotoPairRepository,
         albumRepo: AlbumRepository,
         deletePairs: DeletePairsUseCase,
+        deleteAfterPhoto: DeleteAfterPhotoUseCase,
         immediateExport: ImmediateExportService,
         appSettings: AppSettings,
         thumbnailCache: PhotoLibraryThumbnailCache,
@@ -91,6 +93,7 @@ final class AlbumDetailViewModel {
         self.pairRepo = pairRepo
         self.albumRepo = albumRepo
         self.deletePairs = deletePairs
+        self.deleteAfterPhoto = deleteAfterPhoto
         self.deleteCombinedExports = deleteCombinedExports
         self.deletePairsKeepingCombined = deletePairsKeepingCombined
         self.immediateExport = immediateExport

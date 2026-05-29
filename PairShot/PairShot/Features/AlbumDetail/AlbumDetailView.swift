@@ -128,6 +128,7 @@ struct AlbumDetailView: View {
         .modifier(AlbumDeletePairsDialog(viewModel: viewModel))
         .modifier(AlbumDetailRenameAlert(viewModel: viewModel, album: album))
         .modifier(AlbumDetailDeleteAlbumAlert(viewModel: viewModel))
+        .modifier(AlbumDetailAfterDeleteAlert(viewModel: viewModel))
         .modifier(AlbumDetailShareSheet(viewModel: viewModel))
         .modifier(AlbumDetailPaywallSheet(viewModel: viewModel))
         .modifier(
@@ -188,11 +189,6 @@ struct AlbumDetailCameraCovers: ViewModifier {
                     )
                 }
             }
-            .fullScreenCover(item: $viewModel.pendingRecaptureAfter) { request in
-                NavigationStack {
-                    AfterCameraView(recaptureTargetPair: request.pair)
-                }
-            }
             .sheet(item: $viewModel.pendingPreviewPair) { request in
                 PairPreviewView(pair: request.pair)
                     .presentationDetents([.medium, .large])
@@ -232,6 +228,33 @@ struct AlbumDetailPaywallSheet: ViewModifier {
 
     func body(content: Content) -> some View {
         content.paywallSheet(isPresented: $viewModel.showPaywall)
+    }
+}
+
+struct AlbumDetailAfterDeleteAlert: ViewModifier {
+    @Bindable var viewModel: AlbumDetailViewModel
+
+    func body(content: Content) -> some View {
+        content.alert(
+            String(localized: "pair_card_alert_delete_after_title"),
+            isPresented: Binding(
+                get: { viewModel.pendingAfterDelete != nil },
+                set: { if !$0 { viewModel.pendingAfterDelete = nil } },
+            ),
+            presenting: viewModel.pendingAfterDelete,
+        ) { request in
+            Button(String(localized: "common_button_cancel"), role: .cancel) {
+                viewModel.pendingAfterDelete = nil
+            }
+            Button(String(localized: "common_button_delete"), role: .destructive) {
+                Task {
+                    await viewModel.confirmAfterDeletion(request.pair)
+                    viewModel.pendingAfterDelete = nil
+                }
+            }
+        } message: { _ in
+            Text(String(localized: "pair_card_alert_delete_after_message"))
+        }
     }
 }
 

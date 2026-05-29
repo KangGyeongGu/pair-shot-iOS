@@ -3,7 +3,7 @@ import SwiftUI
 struct PairCardActions {
     var onShare: (PhotoPair) -> Void
     var onExport: (PhotoPair) -> Void
-    var onRequestRecapture: (PhotoPair) -> Void
+    var onRequestAfterDeletion: (PhotoPair) -> Void
     var onRequestPairDeletion: (PhotoPair) -> Void
 }
 
@@ -16,16 +16,6 @@ struct PairCardContextMenu: ViewModifier {
         content
             .contextMenu {
                 if !isSelectionMode {
-                    if pair.afterPhotoLocalIdentifier != nil {
-                        Button {
-                            actions.onRequestRecapture(pair)
-                        } label: {
-                            Label(
-                                String(localized: "pair_preview_menu_recapture"),
-                                systemImage: "camera.rotate",
-                            )
-                        }
-                    }
                     Button {
                         actions.onShare(pair)
                     } label: {
@@ -41,6 +31,16 @@ struct PairCardContextMenu: ViewModifier {
                             String(localized: "common_button_save_to_device"),
                             systemImage: "square.and.arrow.down",
                         )
+                    }
+                    if pair.afterPhotoLocalIdentifier != nil {
+                        Button(role: .destructive) {
+                            actions.onRequestAfterDeletion(pair)
+                        } label: {
+                            Label(
+                                String(localized: "pair_card_menu_delete_after"),
+                                systemImage: "trash.slash",
+                            )
+                        }
                     }
                     Button(role: .destructive) {
                         actions.onRequestPairDeletion(pair)

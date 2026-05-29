@@ -17,7 +17,7 @@ final class AppEnvironment {
 
     let createPair: CreatePairUseCase
     let captureAfter: CaptureAfterUseCase
-    let recaptureAfter: RecaptureAfterUseCase
+    let deleteAfterPhoto: DeleteAfterPhotoUseCase
     let deletePairs: DeletePairsUseCase
     let deleteCombinedExports: DeleteCombinedExportsUseCase
     let deletePairsKeepingCombined: DeletePairsKeepingCombinedUseCase
@@ -154,7 +154,7 @@ final class AppEnvironment {
         let useCases = bundles.useCases
         createPair = useCases.createPair
         captureAfter = useCases.captureAfter
-        recaptureAfter = useCases.recaptureAfter
+        deleteAfterPhoto = useCases.deleteAfterPhoto
         deletePairs = useCases.deletePairs
         deleteCombinedExports = useCases.deleteCombinedExports
         deletePairsKeepingCombined = useCases.deletePairsKeepingCombined
@@ -193,12 +193,10 @@ final class AppEnvironment {
         albumId: UUID?,
         initialPairId: UUID? = nil,
         sortOrder: HomeSortOrder = .newest,
-        recaptureTargetPair: PhotoPair? = nil,
     ) -> AfterCameraViewModel {
         AfterCameraViewModel(
             albumId: albumId,
             captureAfter: captureAfter,
-            recaptureAfter: recaptureAfter,
             pairRepo: pairRepo,
             photoLibrary: photoLibrary,
             appSettings: appSettings,
@@ -207,7 +205,6 @@ final class AppEnvironment {
             tutorialCoordinator: tutorialCoordinator,
             initialPairId: initialPairId,
             sortOrder: sortOrder,
-            recaptureTargetPair: recaptureTargetPair,
             session: makeCameraSession(),
             permissionProbe: makeCameraPermissionProbe(),
         )
@@ -241,6 +238,7 @@ final class AppEnvironment {
             pairRepo: pairRepo,
             albumRepo: albumRepo,
             deletePairs: deletePairs,
+            deleteAfterPhoto: deleteAfterPhoto,
             immediateExport: immediateExport,
             appSettings: appSettings,
             thumbnailCache: thumbnailCache,
@@ -266,6 +264,7 @@ final class AppEnvironment {
             pairRepo: pairRepo,
             albumRepo: albumRepo,
             deletePairs: deletePairs,
+            deleteAfterPhoto: deleteAfterPhoto,
             location: location,
             immediateExport: immediateExport,
             appSettings: appSettings,

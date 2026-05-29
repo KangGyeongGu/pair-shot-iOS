@@ -14,11 +14,6 @@ final class AfterCameraViewModel {
     let albumId: UUID?
     let initialPairId: UUID?
     let sortOrder: HomeSortOrder
-    let recaptureTargetPair: PhotoPair?
-
-    var isRecaptureMode: Bool {
-        recaptureTargetPair != nil
-    }
 
     let session: CameraSession
 
@@ -81,7 +76,6 @@ final class AfterCameraViewModel {
     let zoomDragState: AfterCameraZoomDragState = .init()
 
     let captureAfter: CaptureAfterUseCase
-    let recaptureAfter: RecaptureAfterUseCase
     let pairRepo: PhotoPairRepository
     let photoLibrary: PhotoLibraryService
     let appSettings: AppSettings
@@ -104,7 +98,6 @@ final class AfterCameraViewModel {
     init(
         albumId: UUID?,
         captureAfter: CaptureAfterUseCase,
-        recaptureAfter: RecaptureAfterUseCase,
         pairRepo: PhotoPairRepository,
         photoLibrary: PhotoLibraryService,
         appSettings: AppSettings,
@@ -113,16 +106,13 @@ final class AfterCameraViewModel {
         tutorialCoordinator: TutorialCoordinator? = nil,
         initialPairId: UUID? = nil,
         sortOrder: HomeSortOrder = .newest,
-        recaptureTargetPair: PhotoPair? = nil,
         session: CameraSession? = nil,
         permissionProbe: @escaping @Sendable () async -> Bool = CameraPermissionProbe.resolve,
     ) {
         self.albumId = albumId
         self.initialPairId = initialPairId
         self.sortOrder = sortOrder
-        self.recaptureTargetPair = recaptureTargetPair
         self.captureAfter = captureAfter
-        self.recaptureAfter = recaptureAfter
         self.pairRepo = pairRepo
         self.photoLibrary = photoLibrary
         self.appSettings = appSettings
@@ -190,13 +180,6 @@ final class AfterCameraViewModel {
     }
 
     private func loadPendingScopeAndStart() async {
-        if let target = recaptureTargetPair {
-            pairs = [target]
-            pendingPairCount = 1
-            completedPairCount = 0
-            adopt(pair: target)
-            return
-        }
         await refreshPairs()
         guard
             let initialPair = AfterCameraInitialPairResolver.resolve(

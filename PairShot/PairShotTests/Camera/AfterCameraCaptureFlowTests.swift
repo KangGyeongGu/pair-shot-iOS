@@ -121,28 +121,6 @@ struct AfterCameraCaptureFlowTests {
     }
 
     @Test
-    func `contractPairsAndAdvance — isRecaptureMode 면 즉시 dismiss 이벤트 + allCompleted=true`() async {
-        let env = Self.makeEnv()
-        let target = FixturePhotoPair.make()
-        let viewModel = env.makeAfterCameraViewModel(
-            albumId: nil,
-            recaptureTargetPair: target,
-        )
-        viewModel.pairs = [target]
-        viewModel.currentPair = target
-        var iterator = viewModel.events.makeAsyncIterator()
-
-        viewModel.contractPairsAndAdvance(removing: target.id)
-
-        #expect(viewModel.allCompleted == true)
-        #expect(viewModel.currentPair == nil)
-        let event = await iterator.next()
-        if case .dismiss = event {} else {
-            Issue.record("expected dismiss, got \(String(describing: event))")
-        }
-    }
-
-    @Test
     func `persistAfter — non-recapture 모드는 captureAfter 호출 + pair 의 afterPhotoLocalIdentifier 갱신`() async throws {
         let env = Self.makeEnv()
         let tutorialPair = FixturePhotoPair.makeBeforeOnly(isTutorial: true)
@@ -162,35 +140,6 @@ struct AfterCameraCaptureFlowTests {
         #expect(updated.afterPhotoLocalIdentifier?.hasPrefix(TutorialPhotoStore.identifierPrefix) == true)
         let refetched = try await env.pairRepo.fetch(id: tutorialPair.id)
         #expect(refetched?.afterPhotoLocalIdentifier != nil)
-    }
-
-    @Test
-    func `persistAfter — recapture 모드는 recaptureAfter 호출 + afterPhotoLocalIdentifier 갱신`() async throws {
-        let env = Self.makeEnv()
-        let existingTutorialAfter = TutorialPhotoStore.identifierPrefix + "stale-\(UUID().uuidString).jpg"
-        let target = FixturePhotoPair.make(
-            beforePhotoLocalIdentifier: TutorialPhotoStore.identifierPrefix + "before.jpg",
-            afterPhotoLocalIdentifier: existingTutorialAfter,
-            isTutorial: true,
-        )
-        try await env.pairRepo.add(target)
-        let viewModel = env.makeAfterCameraViewModel(
-            albumId: nil,
-            recaptureTargetPair: target,
-        )
-        let data = Self.tinyImageData()
-
-        let updated = try await viewModel.persistAfter(
-            pairId: target.id,
-            afterData: data,
-            afterUTType: .jpeg,
-            aspectRatio: .default,
-            isDeferredProxy: false,
-        )
-
-        #expect(updated.afterPhotoLocalIdentifier != nil)
-        #expect(updated.afterPhotoLocalIdentifier != existingTutorialAfter)
-        #expect(updated.afterPhotoLocalIdentifier?.hasPrefix(TutorialPhotoStore.identifierPrefix) == true)
     }
 
     @Test

@@ -27,6 +27,13 @@ extension HomeViewModel {
         await deletionCoordinator.deleteSinglePairWithThumbnailEviction(pair)
     }
 
+    func confirmAfterDeletion(_ pair: PhotoPair) async {
+        _ = try? await deleteAfterPhoto(pairId: pair.id)
+        if let afterId = pair.afterPhotoLocalIdentifier {
+            thumbnailCache.evict(localIdentifier: afterId)
+        }
+    }
+
     func confirmSingleOriginalOnlyPairDeletion(_ pair: PhotoPair) async {
         await deletionCoordinator.deleteSingleOriginalKeepingCombined(pair)
     }

@@ -74,7 +74,7 @@ struct UseCasesDependencies {
 struct UseCasesBundle {
     let createPair: CreatePairUseCase
     let captureAfter: CaptureAfterUseCase
-    let recaptureAfter: RecaptureAfterUseCase
+    let deleteAfterPhoto: DeleteAfterPhotoUseCase
     let deletePairs: DeletePairsUseCase
     let deleteCombinedExports: DeleteCombinedExportsUseCase
     let deletePairsKeepingCombined: DeletePairsKeepingCombinedUseCase
@@ -268,10 +268,9 @@ extension AppEnvironment {
             tutorialPhotoStore: tutorialPhotoStore,
         )
         let exportPairs = ExportPairsUseCase(zipExporter: dependencies.zipExporter)
-        let recaptureAfter = RecaptureAfterUseCase(
+        let deleteAfterPhoto = DeleteAfterPhotoUseCase(
             pairRepo: pairRepo,
             photoLibrary: photoLibrary,
-            captureAfter: captureAfter,
         )
         let deletePairsKeepingCombined = DeletePairsKeepingCombinedUseCase(
             pairRepo: pairRepo,
@@ -285,7 +284,7 @@ extension AppEnvironment {
                 tutorialPhotoStore: tutorialPhotoStore,
             ),
             captureAfter: captureAfter,
-            recaptureAfter: recaptureAfter,
+            deleteAfterPhoto: deleteAfterPhoto,
             deletePairs: DeletePairsUseCase(pairRepo: pairRepo, photoLibrary: photoLibrary),
             deleteCombinedExports: DeleteCombinedExportsUseCase(pairRepo: pairRepo, photoLibrary: photoLibrary),
             deletePairsKeepingCombined: deletePairsKeepingCombined,
