@@ -10,19 +10,6 @@ extension AlbumDetailViewModel {
         pendingSinglePairDelete = AlbumDetailSinglePairDeleteRequest(pair: pair)
     }
 
-    func requestAfterDeletion(_ pair: PhotoPair) {
-        guard !isSelectionMode else { return }
-        guard pair.afterPhotoLocalIdentifier != nil else { return }
-        pendingAfterDelete = PairAfterDeleteRequest(pair: pair)
-    }
-
-    func confirmAfterDeletion(_ pair: PhotoPair) async {
-        _ = try? await deleteAfterPhoto(pairId: pair.id)
-        if let afterId = pair.afterPhotoLocalIdentifier {
-            thumbnailCache.evict(localIdentifier: afterId)
-        }
-    }
-
     func requestAlbumDeletion(album: Album) {
         pendingAlbumDelete = album
     }
