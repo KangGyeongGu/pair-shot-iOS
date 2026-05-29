@@ -1,16 +1,24 @@
 import SwiftUI
 
-struct HomePairContextMenu: ViewModifier {
-    let viewModel: HomeViewModel
+struct PairCardActions {
+    var onShare: (PhotoPair) -> Void
+    var onExport: (PhotoPair) -> Void
+    var onRequestRecapture: (PhotoPair) -> Void
+    var onRequestPairDeletion: (PhotoPair) -> Void
+}
+
+struct PairCardContextMenu: ViewModifier {
     let pair: PhotoPair
+    let isSelectionMode: Bool
+    let actions: PairCardActions
 
     func body(content: Content) -> some View {
         content
             .contextMenu {
-                if !viewModel.isSelectionMode {
+                if !isSelectionMode {
                     if pair.afterPhotoLocalIdentifier != nil {
                         Button {
-                            viewModel.requestRecaptureAfter(pair)
+                            actions.onRequestRecapture(pair)
                         } label: {
                             Label(
                                 String(localized: "pair_preview_menu_recapture"),
@@ -19,7 +27,7 @@ struct HomePairContextMenu: ViewModifier {
                         }
                     }
                     Button {
-                        Task { await viewModel.sharePair(pair) }
+                        actions.onShare(pair)
                     } label: {
                         Label(
                             String(localized: "common_button_share"),
@@ -27,7 +35,7 @@ struct HomePairContextMenu: ViewModifier {
                         )
                     }
                     Button {
-                        Task { await viewModel.exportPair(pair) }
+                        actions.onExport(pair)
                     } label: {
                         Label(
                             String(localized: "common_button_save_to_device"),
@@ -35,18 +43,24 @@ struct HomePairContextMenu: ViewModifier {
                         )
                     }
                     Button(role: .destructive) {
-                        viewModel.requestSinglePairDeletion(pair)
+                        actions.onRequestPairDeletion(pair)
                     } label: {
-                        Label(String(localized: "common_button_delete"), systemImage: "trash")
+                        Label(
+                            String(localized: "common_button_delete"),
+                            systemImage: "trash",
+                        )
                     }
                 }
             }
             .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                if !viewModel.isSelectionMode {
+                if !isSelectionMode {
                     Button(role: .destructive) {
-                        viewModel.requestSinglePairDeletion(pair)
+                        actions.onRequestPairDeletion(pair)
                     } label: {
-                        Label(String(localized: "common_button_delete"), systemImage: "trash")
+                        Label(
+                            String(localized: "common_button_delete"),
+                            systemImage: "trash",
+                        )
                     }
                 }
             }

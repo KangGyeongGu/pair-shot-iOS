@@ -8,11 +8,6 @@ struct PairPickerView: View {
 
     @State private var viewModel: PairPickerViewModel?
 
-    private let columns: [GridItem] = [
-        GridItem(.flexible(), spacing: 8),
-        GridItem(.flexible(), spacing: 8),
-    ]
-
     var body: some View {
         AlbumByIdQueryHost(id: albumId) { album in
             PhotoPairQueryHost { allPairs in
@@ -102,29 +97,23 @@ struct PairPickerView: View {
         if allPairs.isEmpty {
             PairPickerEmptyState()
         } else {
-            ScrollView {
-                LazyVGrid(columns: columns, spacing: 8) {
-                    ForEach(allPairs) { pair in
-                        let alreadyIn = membership.contains(pair.id)
-                        let isSelected = viewModel.selection.contains(pair.id)
+            PairGrid(pairs: allPairs) { pair in
+                let alreadyIn = membership.contains(pair.id)
+                let isSelected = viewModel.selection.contains(pair.id)
 
-                        PairPickerCardView(
-                            pair: pair,
-                            isAlreadyInAlbum: alreadyIn,
-                            isSelected: isSelected,
-                        )
-                        .contentShape(.rect)
-                        .onTapGesture {
-                            viewModel.toggleSelection(
-                                pair.id,
-                                isAlreadyInAlbum: alreadyIn,
-                            )
-                        }
-                        .disabled(alreadyIn)
-                    }
+                PairPickerCardView(
+                    pair: pair,
+                    isAlreadyInAlbum: alreadyIn,
+                    isSelected: isSelected,
+                )
+                .contentShape(.rect)
+                .onTapGesture {
+                    viewModel.toggleSelection(
+                        pair.id,
+                        isAlreadyInAlbum: alreadyIn,
+                    )
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 12)
+                .disabled(alreadyIn)
             }
         }
     }

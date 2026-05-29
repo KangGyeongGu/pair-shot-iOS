@@ -5,15 +5,9 @@ struct AlbumDetailView: View {
     let onPushExportSettings: (([UUID]) -> Void)?
 
     @Environment(AppEnvironment.self) private var env
-    @Environment(Membership.self) private var membership
     @Environment(\.dismiss) private var dismiss
 
     @State private var viewModel: AlbumDetailViewModel?
-
-    private let columns: [GridItem] = [
-        GridItem(.flexible(), spacing: 8),
-        GridItem(.flexible(), spacing: 8),
-    ]
 
     var body: some View {
         AlbumByIdQueryHost(id: albumId) { album in
@@ -149,91 +143,25 @@ struct AlbumDetailView: View {
         if pairs.isEmpty {
             AlbumDetailEmptyState()
         } else {
-            let chunks = PairListWithAdsBuilder.buildChunks(
+            PairGrid(
                 pairs: pairs,
-                adFree: AdSuppression.isSuppressed(
-                    membership: membership,
-                    tutorialCoordinator: env.tutorialCoordinator,
-                ),
-            ).chunks
-            ScrollView {
-                LazyVStack(spacing: 12) {
-                    ForEach(chunks) { chunk in
-                        LazyVGrid(columns: columns, spacing: 8) {
-                            ForEach(chunk.pairs) { pair in
-                                pairCell(viewModel: viewModel, pair: pair, allPairs: pairs)
-                            }
-                        }
-                        .padding(.horizontal, 12)
-
-                        if let adSlotIndex = chunk.adSlotIndex {
-                            NativeAdCard(slotIndex: adSlotIndex)
-                                .padding(.horizontal, 12)
-                        }
-                    }
-                }
-                .padding(.vertical, 8)
-            }
-            .refreshable { await viewModel.reload() }
-        }
-    }
-
-    private func pairCell(
-        viewModel: AlbumDetailViewModel,
-        pair: PhotoPair,
-        allPairs: [PhotoPair],
-    ) -> some View {
-        HomePairCardView(
-            pair: pair,
-            isSelectionMode: viewModel.isSelectionMode,
-            isSelected: viewModel.selectedPairIds.contains(pair.id),
-        )
-        .contentShape(.rect)
-        .onTapGesture { viewModel.tapPair(pair, allPairs: allPairs) }
-        .onLongPressGesture(minimumDuration: 0.4) { viewModel.longPressPair(pair) }
-        .contextMenu {
-            if !viewModel.isSelectionMode {
-                if pair.afterPhotoLocalIdentifier != nil {
-                    Button {
-                        viewModel.requestRecaptureAfter(pair)
-                    } label: {
-                        Label(
-                            String(localized: "pair_preview_menu_recapture"),
-                            systemImage: "camera.rotate",
-                        )
-                    }
-                }
-                Button {
-                    Task { await viewModel.sharePair(pair) }
-                } label: {
-                    Label(
-                        String(localized: "common_button_share"),
-                        systemImage: "square.and.arrow.up",
+                onRefresh: { await viewModel.reload() },
+                cell: { pair in
+                    HomePairCardView(
+                        pair: pair,
+                        isSelectionMode: viewModel.isSelectionMode,
+                        isSelected: viewModel.selectedPairIds.contains(pair.id),
                     )
-                }
-                Button {
-                    Task { await viewModel.exportPair(pair) }
-                } label: {
-                    Label(
-                        String(localized: "common_button_save_to_device"),
-                        systemImage: "square.and.arrow.down",
-                    )
-                }
-                Button(role: .destructive) {
-                    viewModel.requestSinglePairDeletion(pair)
-                } label: {
-                    Label(String(localized: "common_button_delete"), systemImage: "trash")
-                }
-            }
-        }
-        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-            if !viewModel.isSelectionMode {
-                Button(role: .destructive) {
-                    viewModel.requestSinglePairDeletion(pair)
-                } label: {
-                    Label(String(localized: "common_button_delete"), systemImage: "trash")
-                }
-            }
+                    .contentShape(.rect)
+                    .onTapGesture { viewModel.tapPair(pair, allPairs: pairs) }
+                    .onLongPressGesture(minimumDuration: 0.4) { viewModel.longPressPair(pair) }
+                    .modifier(PairCardContextMenu(
+                        pair: pair,
+                        isSelectionMode: viewModel.isSelectionMode,
+                        actions: viewModel.pairCardActions,
+                    ))
+                },
+            )
         }
     }
 }
