@@ -14,6 +14,9 @@ struct PairPreviewViewModelTests {
         #expect(viewModel.pair.id == pair.id)
         #expect(viewModel.zoomScale == 1.0)
         #expect(viewModel.pinchBaseScale == 1.0)
+        #expect(viewModel.panOffset == .zero)
+        #expect(viewModel.panBaseOffset == .zero)
+        #expect(viewModel.containerSize == .zero)
         #expect(viewModel.livePreviewImage == nil)
         #expect(viewModel.errorMessage == nil)
         #expect(!viewModel.isRendering)
@@ -83,15 +86,145 @@ struct PairPreviewViewModelTests {
     }
 
     @Test
-    func `resetZoom — zoom 양쪽을 1로 reset`() {
+    func `resetZoom — zoom + pan 양쪽 모두 reset`() {
         let viewModel = makeViewModel()
+        viewModel.updateContainerSize(CGSize(width: 200, height: 400))
         viewModel.pinchBaseScale = 3.0
         viewModel.zoomScale = 3.0
+        viewModel.panOffset = CGSize(width: 50, height: 100)
+        viewModel.panBaseOffset = CGSize(width: 50, height: 100)
 
         viewModel.resetZoom()
 
         #expect(viewModel.zoomScale == 1.0)
         #expect(viewModel.pinchBaseScale == 1.0)
+        #expect(viewModel.panOffset == .zero)
+        #expect(viewModel.panBaseOffset == .zero)
+    }
+
+    @Test
+    func `updateContainerSize — containerSize 갱신 + scale 1_0 에서 기존 offset 0 으로 clamp`() {
+        let viewModel = makeViewModel()
+        viewModel.panOffset = CGSize(width: 50, height: 30)
+        viewModel.panBaseOffset = CGSize(width: 50, height: 30)
+
+        viewModel.updateContainerSize(CGSize(width: 300, height: 400))
+
+        #expect(viewModel.containerSize == CGSize(width: 300, height: 400))
+        #expect(viewModel.panOffset == .zero)
+        #expect(viewModel.panBaseOffset == .zero)
+    }
+
+    @Test
+    func `onDragChanged — pan offset 가 base + translation (범위 내, base 는 불변)`() {
+        let viewModel = makeViewModel()
+        viewModel.updateContainerSize(CGSize(width: 300, height: 400))
+        viewModel.zoomScale = 3.0
+        viewModel.pinchBaseScale = 3.0
+        viewModel.panBaseOffset = CGSize(width: 10, height: 20)
+
+        viewModel.onDragChanged(translation: CGSize(width: 50, height: 40))
+
+        #expect(viewModel.panOffset == CGSize(width: 60, height: 60))
+        #expect(viewModel.panBaseOffset == CGSize(width: 10, height: 20))
+    }
+
+    @Test
+    func `onDragChanged — 범위 초과 시 maxX maxY 로 clamp`() {
+        let viewModel = makeViewModel()
+        viewModel.updateContainerSize(CGSize(width: 200, height: 400))
+        viewModel.zoomScale = 2.0
+        viewModel.pinchBaseScale = 2.0
+
+        viewModel.onDragChanged(translation: CGSize(width: 500, height: 500))
+
+        #expect(viewModel.panOffset == CGSize(width: 100, height: 200))
+    }
+
+    @Test
+    func `onDragChanged — scale 1_0 시 offset 0 으로 clamp (zoom out 상태 pan 무효)`() {
+        let viewModel = makeViewModel()
+        viewModel.updateContainerSize(CGSize(width: 300, height: 400))
+
+        viewModel.onDragChanged(translation: CGSize(width: 50, height: 50))
+
+        #expect(viewModel.panOffset == .zero)
+    }
+
+    @Test
+    func `onDragEnded — panBaseOffset 커밋 (다음 drag 의 시작점)`() {
+        let viewModel = makeViewModel()
+        viewModel.updateContainerSize(CGSize(width: 300, height: 400))
+        viewModel.zoomScale = 2.0
+        viewModel.pinchBaseScale = 2.0
+        viewModel.panBaseOffset = CGSize(width: 10, height: 0)
+
+        viewModel.onDragEnded(translation: CGSize(width: 20, height: 0))
+
+        #expect(viewModel.panBaseOffset == CGSize(width: 30, height: 0))
+        #expect(viewModel.panOffset == CGSize(width: 30, height: 0))
+    }
+
+    @Test
+    func `onPinchChanged — center anchor + panBaseOffset 0 이면 offset 0 유지`() {
+        let viewModel = makeViewModel()
+        viewModel.updateContainerSize(CGSize(width: 200, height: 400))
+        viewModel.pinchBaseScale = 1.0
+
+        viewModel.onPinchChanged(2.0, anchor: CGPoint(x: 0.5, y: 0.5))
+
+        #expect(viewModel.zoomScale == 2.0)
+        #expect(viewModel.panOffset == .zero)
+    }
+
+    @Test
+    func `onPinchChanged — top-left anchor 줌인 시 anchor 가 화면 고정되도록 offset 이동`() {
+        let viewModel = makeViewModel()
+        viewModel.updateContainerSize(CGSize(width: 200, height: 400))
+        viewModel.pinchBaseScale = 1.0
+
+        viewModel.onPinchChanged(2.0, anchor: CGPoint.zero)
+
+        #expect(viewModel.zoomScale == 2.0)
+        #expect(viewModel.panOffset == CGSize(width: 100, height: 200))
+    }
+
+    @Test
+    func `onPinchEnded — pinchBaseScale + panBaseOffset 모두 커밋`() {
+        let viewModel = makeViewModel()
+        viewModel.updateContainerSize(CGSize(width: 200, height: 400))
+        viewModel.pinchBaseScale = 1.0
+
+        viewModel.onPinchEnded(2.0, anchor: CGPoint.zero)
+
+        #expect(viewModel.pinchBaseScale == 2.0)
+        #expect(viewModel.panBaseOffset == CGSize(width: 100, height: 200))
+        #expect(viewModel.zoomScale == 2.0)
+        #expect(viewModel.panOffset == CGSize(width: 100, height: 200))
+    }
+
+    @Test
+    func `onPinchChanged — containerSize 0 일 때 NaN 없이 안전 (offset 0)`() {
+        let viewModel = makeViewModel()
+        viewModel.pinchBaseScale = 1.0
+
+        viewModel.onPinchChanged(2.0, anchor: CGPoint.zero)
+
+        #expect(viewModel.zoomScale == 2.0)
+        #expect(viewModel.panOffset == .zero)
+    }
+
+    @Test
+    func `onPinchChanged — minZoom 으로 clamp 되면 offset 도 0 으로 clamp`() {
+        let viewModel = makeViewModel()
+        viewModel.updateContainerSize(CGSize(width: 200, height: 400))
+        viewModel.pinchBaseScale = 2.0
+        viewModel.panBaseOffset = CGSize(width: 80, height: 100)
+
+        viewModel.onPinchChanged(0.1, anchor: CGPoint(x: 0.5, y: 0.5))
+
+        #expect(viewModel.zoomScale == 1.0)
+        #expect(viewModel.panOffset == .zero)
     }
 
     @Test

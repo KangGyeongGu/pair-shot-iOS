@@ -18,6 +18,9 @@ final class PairPreviewViewModel {
     var isRendering: Bool = false
     var zoomScale: CGFloat = 1.0
     var pinchBaseScale: CGFloat = 1.0
+    var panOffset: CGSize = .zero
+    var panBaseOffset: CGSize = .zero
+    var containerSize: CGSize = .zero
     var errorMessage: String?
 
     let events: AsyncStream<Event>
@@ -82,19 +85,46 @@ final class PairPreviewViewModel {
         eventsContinuation.yield(.dismiss)
     }
 
-    func onPinchChanged(_ value: CGFloat) {
-        let target = pinchBaseScale * value
-        zoomScale = clamp(target)
+    func updateContainerSize(_ size: CGSize) {
+        containerSize = size
+        panOffset = clampOffset(panOffset, scale: zoomScale)
+        panBaseOffset = clampOffset(panBaseOffset, scale: pinchBaseScale)
     }
 
-    func onPinchEnded(_ value: CGFloat) {
-        pinchBaseScale = clamp(pinchBaseScale * value)
-        zoomScale = pinchBaseScale
+    func onPinchChanged(_ value: CGFloat, anchor: CGPoint = CGPoint(x: 0.5, y: 0.5)) {
+        let oldScale = pinchBaseScale
+        let newScale = clamp(oldScale * value)
+        zoomScale = newScale
+        panOffset = clampOffset(
+            offsetAfterScaling(from: oldScale, to: newScale, anchor: anchor),
+            scale: newScale,
+        )
+    }
+
+    func onPinchEnded(_ value: CGFloat, anchor: CGPoint = CGPoint(x: 0.5, y: 0.5)) {
+        onPinchChanged(value, anchor: anchor)
+        pinchBaseScale = zoomScale
+        panBaseOffset = panOffset
+    }
+
+    func onDragChanged(translation: CGSize) {
+        let candidate = CGSize(
+            width: panBaseOffset.width + translation.width,
+            height: panBaseOffset.height + translation.height,
+        )
+        panOffset = clampOffset(candidate, scale: zoomScale)
+    }
+
+    func onDragEnded(translation: CGSize) {
+        onDragChanged(translation: translation)
+        panBaseOffset = panOffset
     }
 
     func resetZoom() {
         zoomScale = 1.0
         pinchBaseScale = 1.0
+        panOffset = .zero
+        panBaseOffset = .zero
     }
 
     func clearError() {
@@ -103,5 +133,40 @@ final class PairPreviewViewModel {
 
     private func clamp(_ value: CGFloat) -> CGFloat {
         max(Self.minZoom, min(Self.maxZoom, value))
+    }
+
+    private func clampOffset(_ offset: CGSize, scale: CGFloat) -> CGSize {
+        let maxX = max(0, (scale - 1) * containerSize.width / 2)
+        let maxY = max(0, (scale - 1) * containerSize.height / 2)
+        return CGSize(
+            width: min(max(offset.width, -maxX), maxX),
+            height: min(max(offset.height, -maxY), maxY),
+        )
+    }
+
+    private func offsetAfterScaling(
+        from oldScale: CGFloat,
+        to newScale: CGFloat,
+        anchor: CGPoint,
+    ) -> CGSize {
+        guard containerSize.width > 0, containerSize.height > 0, oldScale > 0 else {
+            return panBaseOffset
+        }
+        let anchorPoint = CGPoint(
+            x: anchor.x * containerSize.width,
+            y: anchor.y * containerSize.height,
+        )
+        let frameCenter = CGPoint(
+            x: containerSize.width / 2,
+            y: containerSize.height / 2,
+        )
+        let imagePoint = CGPoint(
+            x: (anchorPoint.x - frameCenter.x - panBaseOffset.width) / oldScale,
+            y: (anchorPoint.y - frameCenter.y - panBaseOffset.height) / oldScale,
+        )
+        return CGSize(
+            width: panBaseOffset.width + (oldScale - newScale) * imagePoint.x,
+            height: panBaseOffset.height + (oldScale - newScale) * imagePoint.y,
+        )
     }
 }
