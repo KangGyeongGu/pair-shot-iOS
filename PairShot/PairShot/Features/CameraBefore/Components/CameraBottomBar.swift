@@ -22,11 +22,11 @@ struct CameraBottomBar: View {
     }
 
     private var settingsIconSize: CGFloat {
-        max(0, zoneHeight * 0.241)
+        max(1, zoneHeight * 0.241)
     }
 
     private var homeIconSize: CGFloat {
-        max(0, zoneHeight * 0.276)
+        max(1, zoneHeight * 0.276)
     }
 
     var body: some View {
