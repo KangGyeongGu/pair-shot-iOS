@@ -78,6 +78,7 @@ nonisolated enum CompositeRenderer {
             layout: options.layout,
             combineSettings: options.combineSettings,
             watermark: options.watermarkEnabled ? options.watermark : nil,
+            watermarkLogoData: options.watermarkEnabled ? options.watermarkLogoData : nil,
         )
         guard let cgImage = composite.cgImage else {
             throw RenderError.encodeFailed
@@ -100,6 +101,7 @@ nonisolated enum CompositeRenderer {
         combineSettings: CombineSettings?,
         isBefore: Bool,
         watermark: WatermarkSettings? = nil,
+        watermarkLogoData: Data? = nil,
     ) -> UIImage {
         let imageWidth = max(image.size.width, 1)
         let scaleFactor = imageWidth / referenceImageWidth
@@ -147,7 +149,7 @@ nonisolated enum CompositeRenderer {
             )
             image.draw(in: imageRect)
             if let watermark {
-                WatermarkOverlay.draw(in: imageRect, settings: watermark)
+                WatermarkOverlay.draw(in: imageRect, settings: watermark, logoData: watermarkLogoData)
             }
             if
                 let settings = combineSettings,
@@ -180,6 +182,7 @@ nonisolated enum CompositeRenderer {
         layout: CompositeLayout,
         combineSettings: CombineSettings? = nil,
         watermark: WatermarkSettings? = nil,
+        watermarkLogoData: Data? = nil,
     ) -> UIImage {
         let imageMaxWidth = max(before.size.width, after.size.width, 1)
         let scaleFactor = imageMaxWidth / referenceImageWidth
@@ -212,8 +215,8 @@ nonisolated enum CompositeRenderer {
             before.draw(in: frames.beforeRect)
             after.draw(in: frames.afterRect)
             if let watermark {
-                WatermarkOverlay.draw(in: frames.beforeRect, settings: watermark)
-                WatermarkOverlay.draw(in: frames.afterRect, settings: watermark)
+                WatermarkOverlay.draw(in: frames.beforeRect, settings: watermark, logoData: watermarkLogoData)
+                WatermarkOverlay.draw(in: frames.afterRect, settings: watermark, logoData: watermarkLogoData)
             }
             if
                 let settings = combineSettings,

@@ -3,7 +3,7 @@ import Foundation
 import UIKit
 
 nonisolated enum WatermarkOverlay {
-    static func draw(in rect: CGRect, settings: WatermarkSettings) {
+    static func draw(in rect: CGRect, settings: WatermarkSettings, logoData: Data?) {
         guard rect.width > 0, rect.height > 0 else { return }
         guard let context = UIGraphicsGetCurrentContext() else { return }
         context.saveGState()
@@ -15,7 +15,7 @@ nonisolated enum WatermarkOverlay {
                 drawText(settings: settings, canvas: canvasSize)
 
             case .logo:
-                drawLogo(settings: settings, canvas: canvasSize)
+                drawLogo(settings: settings, logoData: logoData, canvas: canvasSize)
         }
         context.restoreGState()
     }
@@ -32,8 +32,8 @@ nonisolated enum WatermarkOverlay {
         )
     }
 
-    private static func drawLogo(settings: WatermarkSettings, canvas: CGSize) {
-        guard let data = settings.logoImageData,
+    private static func drawLogo(settings: WatermarkSettings, logoData: Data?, canvas: CGSize) {
+        guard let data = logoData,
               let logo = UIImage(data: data),
               logo.size.width > 0,
               logo.size.height > 0

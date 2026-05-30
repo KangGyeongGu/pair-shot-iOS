@@ -39,6 +39,7 @@ final class AppEnvironment {
     let immediateExport: ImmediateExportService
     let exportPreferences: ExportPreferences
     let exportPresetStore: ExportPresetStore
+    let logoStore: WatermarkLogoStore
     let settingsRedirectCoordinator: SettingsRedirectCoordinator
     let exportCompletionCoordinator: ExportCompletionCoordinator
     let permissionStatusService: PermissionStatusService
@@ -84,6 +85,9 @@ final class AppEnvironment {
     ) {
         let resolvedTutorialCoordinator = tutorialCoordinator ?? TutorialCoordinator()
         self.tutorialCoordinator = resolvedTutorialCoordinator
+        let sharedLogoStore = WatermarkLogoStore()
+        let resolvedAppSettingsRepo: AppSettingsRepository =
+            appSettingsRepo ?? UserDefaultsAppSettingsRepository(logoStore: sharedLogoStore)
         let bundles = Self.makeAllBundles(
             input: AppEnvironmentInitInput(
                 modelContainer: modelContainer,
@@ -91,7 +95,7 @@ final class AppEnvironment {
                 foundationOverrides: AppEnvironmentFoundationOverrides(
                     appSettings: appSettings,
                     snackbarQueue: snackbarQueue,
-                    appSettingsRepo: appSettingsRepo,
+                    appSettingsRepo: resolvedAppSettingsRepo,
                     promotionStore: promotionStore,
                     trackingService: trackingService,
                     settingsRedirectCoordinator: settingsRedirectCoordinator,
@@ -169,7 +173,12 @@ final class AppEnvironment {
         membership = bundles.membership
         let preferences = ExportPreferences()
         exportPreferences = preferences
-        exportPresetStore = ExportPresetStore(appSettings: foundation.appSettings, preferences: preferences)
+        logoStore = sharedLogoStore
+        exportPresetStore = ExportPresetStore(
+            appSettings: foundation.appSettings,
+            preferences: preferences,
+            logoStore: sharedLogoStore,
+        )
     }
 
     func makeBeforeCameraViewModel(
@@ -234,6 +243,7 @@ final class AppEnvironment {
             photoLibrary: photoLibrary,
             appSettings: appSettings,
             membership: membership,
+            logoStore: logoStore,
         )
     }
 
@@ -292,12 +302,15 @@ final class AppEnvironment {
         sharedSettingsViewModel = viewModel
         return viewModel
     }
+}
 
+extension AppEnvironment {
     func makeWatermarkSettingsViewModel() -> WatermarkSettingsViewModel {
         WatermarkSettingsViewModel(
             appSettingsRepo: appSettingsRepo,
             appSettings: appSettings,
             exportPresetStore: exportPresetStore,
+            logoStore: logoStore,
         )
     }
 
@@ -323,6 +336,17 @@ final class AppEnvironment {
             membership: membership,
             fullscreenAdCoordinator: fullscreenAdCoordinator,
             exportPresetStore: exportPresetStore,
+            logoStore: logoStore,
+        )
+    }
+}
+
+extension AppEnvironment {
+    func reconcileMembershipDowngrade() {
+        MembershipDowngradeReconciler.reconcile(
+            isPro: subscriptionStore.isPro,
+            presetStore: exportPresetStore,
+            preferences: exportPreferences,
         )
     }
 }

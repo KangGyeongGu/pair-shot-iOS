@@ -87,11 +87,13 @@ struct PairShotApp: App {
     }
 
     func bootstrapSubscription() async {
-        let store = env.subscriptionStore
+        let env = env
         env.transactionListener.start { _ in
-            await store.refresh()
+            await env.subscriptionStore.refresh()
+            await MainActor.run { env.reconcileMembershipDowngrade() }
         }
         await env.subscriptionStore.refresh()
+        env.reconcileMembershipDowngrade()
         try? await env.productsService.loadProducts()
     }
 

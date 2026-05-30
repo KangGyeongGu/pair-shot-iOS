@@ -11,6 +11,7 @@ nonisolated struct ExportJob {
     let layout: CompositeLayout
     let combineSettings: CombineSettings?
     let watermark: WatermarkSettings?
+    let watermarkLogoData: Data?
     let exportQuality: ExportQuality
     let includeGPS: Bool
     let now: Date
@@ -30,6 +31,7 @@ enum ExportJobBuilder {
         selection: ExportContents,
         appSettings: AppSettings,
         renderOptions: ExportRenderOptions,
+        logoStore: WatermarkLogoStore,
         now: Date,
     ) -> [ExportJob] {
         let prefix = appSettings.fileNamePrefix
@@ -45,6 +47,7 @@ enum ExportJobBuilder {
             appSettings.watermarkEnabled
                 ? appSettings.watermarkSettings.effective(isPro: renderOptions.isPro)
                 : nil
+        let watermarkLogoData: Data? = watermark?.loadLogoData(using: logoStore)
         let includeGPS = appSettings.embedGPSInPhoto
 
         return pairs.enumerated().flatMap { offset, pair in
@@ -66,6 +69,7 @@ enum ExportJobBuilder {
                     layout: layout,
                     combineSettings: combineSettings,
                     watermark: watermark,
+                    watermarkLogoData: watermarkLogoData,
                     exportQuality: quality,
                     includeGPS: includeGPS,
                     now: now,

@@ -9,6 +9,7 @@ struct ExportPresetStoreTests {
         let appSettings: AppSettings
         let preferences: ExportPreferences
         let store: ExportPresetStore
+        let logoStore: WatermarkLogoStore
     }
 
     @Test
@@ -197,21 +198,70 @@ struct ExportPresetStoreTests {
         #expect(reloaded.activeIndex == 1)
     }
 
+    @Test
+    func `delete — 삭제된 슬롯에만 있던 logo ref 파일은 정리`() throws {
+        let env = makeEnv()
+        env.store.seedDefaultIfNeeded(name: "A")
+        let logoBytes = Data([0x11, 0x22])
+        let ref = try env.logoStore.save(logoBytes)
+        env.appSettings.watermarkSettings = WatermarkSettings(type: .logo, logoImageRef: ref)
+        env.store.save(at: 1, name: "B")
+        env.appSettings.watermarkSettings = WatermarkSettings(type: .text)
+
+        env.store.delete(at: 1)
+
+        #expect(env.logoStore.load(ref: ref) == nil)
+    }
+
+    @Test
+    func `delete — 다른 슬롯이 동일 ref 사용 중이면 파일 보존`() throws {
+        let env = makeEnv()
+        let logoBytes = Data([0x33, 0x44])
+        let ref = try env.logoStore.save(logoBytes)
+        env.appSettings.watermarkSettings = WatermarkSettings(type: .logo, logoImageRef: ref)
+        env.store.seedDefaultIfNeeded(name: "A")
+        env.store.save(at: 1, name: "B")
+
+        env.store.delete(at: 1)
+
+        #expect(env.logoStore.load(ref: ref) == logoBytes)
+    }
+
+    @Test
+    func `save replace — 옛 슬롯의 logo ref 파일이 다른 곳에서 미사용이면 정리`() throws {
+        let env = makeEnv()
+        env.store.seedDefaultIfNeeded(name: "기본")
+        let oldBytes = Data([0x55, 0x66])
+        let oldRef = try env.logoStore.save(oldBytes)
+        env.appSettings.watermarkSettings = WatermarkSettings(type: .logo, logoImageRef: oldRef)
+        env.store.save(at: 1, name: "B")
+        env.appSettings.watermarkSettings = WatermarkSettings(type: .text)
+
+        env.store.save(at: 1, name: "B-replaced")
+
+        #expect(env.logoStore.load(ref: oldRef) == nil)
+    }
+
     private func makeEnv() -> TestEnv {
         let suite = "preset-store-\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suite) ?? .standard
         let appSettings = AppSettings(defaults: defaults)
         let preferences = ExportPreferences(defaults: defaults)
+        let tempDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ExportPresetStoreTest-\(UUID().uuidString)", isDirectory: true)
+        let logoStore = WatermarkLogoStore(baseDirectory: tempDir)
         let store = ExportPresetStore(
             appSettings: appSettings,
             preferences: preferences,
             defaults: defaults,
+            logoStore: logoStore,
         )
         return TestEnv(
             defaults: defaults,
             appSettings: appSettings,
             preferences: preferences,
             store: store,
+            logoStore: logoStore,
         )
     }
 }

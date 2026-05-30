@@ -1,5 +1,14 @@
 import Foundation
 
+extension CodingUserInfoKey {
+    nonisolated static let watermarkLogoStore: CodingUserInfoKey = {
+        guard let key = CodingUserInfoKey(rawValue: "pairshot.watermarkLogoStore") else {
+            preconditionFailure("CodingUserInfoKey rawValue init must not fail for static literal")
+        }
+        return key
+    }()
+}
+
 nonisolated enum LogoPosition: String, Codable, CaseIterable {
     case topLeft
     case topCenter
@@ -26,6 +35,7 @@ nonisolated struct WatermarkSettings: Codable, Equatable {
         case repeatCount
         case textSizeRatio
         case logoImageData
+        case logoImageRef
         case logoFileName
         case logoPosition
         case logoWidthRatio
@@ -47,11 +57,12 @@ nonisolated struct WatermarkSettings: Codable, Equatable {
     var lineCount: Int
     var repeatCount: Double
     var textSizeRatio: Double
-    var logoImageData: Data?
+    var logoImageRef: String?
     var logoFileName: String?
     var logoPosition: LogoPosition
     var logoWidthRatio: Double
     var logoAlpha: Double
+    var pendingLegacyLogoData: Data?
 
     var isBlank: Bool {
         switch type {
@@ -59,7 +70,7 @@ nonisolated struct WatermarkSettings: Codable, Equatable {
                 text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
 
             case .logo:
-                logoImageData == nil
+                logoImageRef == nil && pendingLegacyLogoData == nil
         }
     }
 
@@ -70,7 +81,7 @@ nonisolated struct WatermarkSettings: Codable, Equatable {
         lineCount: Int = 10,
         repeatCount: Double = 1.5,
         textSizeRatio: Double = 0.03,
-        logoImageData: Data? = nil,
+        logoImageRef: String? = nil,
         logoFileName: String? = nil,
         logoPosition: LogoPosition = .center,
         logoWidthRatio: Double = 0.5,
@@ -82,11 +93,12 @@ nonisolated struct WatermarkSettings: Codable, Equatable {
         self.lineCount = lineCount
         self.repeatCount = repeatCount
         self.textSizeRatio = textSizeRatio
-        self.logoImageData = logoImageData
+        self.logoImageRef = logoImageRef
         self.logoFileName = logoFileName
         self.logoPosition = logoPosition
         self.logoWidthRatio = logoWidthRatio
         self.logoAlpha = logoAlpha
+        pendingLegacyLogoData = nil
     }
 
     init(from decoder: Decoder) throws {
@@ -97,11 +109,46 @@ nonisolated struct WatermarkSettings: Codable, Equatable {
         lineCount = try container.decodeIfPresent(Int.self, forKey: .lineCount) ?? 10
         repeatCount = try container.decodeIfPresent(Double.self, forKey: .repeatCount) ?? 1.5
         textSizeRatio = try container.decodeIfPresent(Double.self, forKey: .textSizeRatio) ?? 0.03
-        logoImageData = try container.decodeIfPresent(Data.self, forKey: .logoImageData)
         logoFileName = try container.decodeIfPresent(String.self, forKey: .logoFileName)
         logoPosition = try container.decodeIfPresent(LogoPosition.self, forKey: .logoPosition) ?? .center
         logoWidthRatio = try container.decodeIfPresent(Double.self, forKey: .logoWidthRatio) ?? 0.5
         logoAlpha = try container.decodeIfPresent(Double.self, forKey: .logoAlpha) ?? 0.5
+
+        if let ref = try container.decodeIfPresent(String.self, forKey: .logoImageRef) {
+            logoImageRef = ref
+            pendingLegacyLogoData = nil
+        } else if let legacyData = try container.decodeIfPresent(Data.self, forKey: .logoImageData) {
+            if let store = decoder.userInfo[.watermarkLogoStore] as? WatermarkLogoStore,
+               let migratedRef = try? store.save(legacyData)
+            {
+                logoImageRef = migratedRef
+                pendingLegacyLogoData = nil
+            } else {
+                logoImageRef = nil
+                pendingLegacyLogoData = legacyData
+            }
+        } else {
+            logoImageRef = nil
+            pendingLegacyLogoData = nil
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(type, forKey: .type)
+        try container.encode(text, forKey: .text)
+        try container.encode(opacity, forKey: .opacity)
+        try container.encode(lineCount, forKey: .lineCount)
+        try container.encode(repeatCount, forKey: .repeatCount)
+        try container.encode(textSizeRatio, forKey: .textSizeRatio)
+        try container.encodeIfPresent(logoImageRef, forKey: .logoImageRef)
+        try container.encodeIfPresent(logoFileName, forKey: .logoFileName)
+        try container.encode(logoPosition, forKey: .logoPosition)
+        try container.encode(logoWidthRatio, forKey: .logoWidthRatio)
+        try container.encode(logoAlpha, forKey: .logoAlpha)
+        if logoImageRef == nil, let pending = pendingLegacyLogoData {
+            try container.encode(pending, forKey: .logoImageData)
+        }
     }
 
     func effective(isPro: Bool) -> Self {
@@ -109,5 +156,12 @@ nonisolated struct WatermarkSettings: Codable, Equatable {
         var copy = self
         copy.type = .text
         return copy
+    }
+
+    func loadLogoData(using store: WatermarkLogoStore) -> Data? {
+        if let ref = logoImageRef, let data = store.load(ref: ref) {
+            return data
+        }
+        return pendingLegacyLogoData
     }
 }

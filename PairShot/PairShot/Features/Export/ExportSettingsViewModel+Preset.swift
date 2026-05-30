@@ -1,17 +1,6 @@
 import Foundation
 
 extension ExportSettingsViewModel {
-    static let freeAccessibleSlotCount = 2
-
-    func refreshFromActivePreset() {
-        guard exportPresetStore?.active != nil else { return }
-        includeCombined = preferences.includeCombined
-        includeBefore = preferences.includeBefore
-        includeAfter = preferences.includeAfter
-        format = preferences.format
-        applyCombineSettings = preferences.applyCombineSettings
-    }
-
     func handleSlotTap(at index: Int) {
         guard let store = exportPresetStore else { return }
         if !canAccessSlot(index: index) {
@@ -25,7 +14,6 @@ extension ExportSettingsViewModel {
         }
         if index == store.activeIndex { return }
         store.switchActive(to: index)
-        refreshFromActivePreset()
     }
 
     func handleSlotLongPress(at index: Int) {
@@ -42,7 +30,6 @@ extension ExportSettingsViewModel {
         let name = clipped.isEmpty ? defaultPresetName(forSlot: index) : clipped
         exportPresetStore?.save(at: index, name: name)
         exportPresetStore?.switchActive(to: index)
-        refreshFromActivePreset()
         pendingPresetSaveSlotIndex = nil
         presetSaveNameInput = ""
     }
@@ -84,10 +71,8 @@ extension ExportSettingsViewModel {
 
     func confirmPresetDelete() {
         guard let index = pendingPresetDeleteSlotIndex else { return }
-        let wasActive = exportPresetStore?.activeIndex == index
         exportPresetStore?.delete(at: index)
         pendingPresetDeleteSlotIndex = nil
-        if wasActive { refreshFromActivePreset() }
     }
 
     func cancelPresetDelete() {
@@ -95,7 +80,7 @@ extension ExportSettingsViewModel {
     }
 
     func canAccessSlot(index: Int) -> Bool {
-        if index < Self.freeAccessibleSlotCount { return true }
+        if index < ExportPresetStore.freeAccessibleSlotCount { return true }
         return isProUser
     }
 

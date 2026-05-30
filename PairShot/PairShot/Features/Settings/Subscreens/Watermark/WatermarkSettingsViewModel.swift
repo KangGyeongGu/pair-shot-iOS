@@ -8,7 +8,22 @@ import UIKit
 @MainActor
 @Observable
 final class WatermarkSettingsViewModel {
-    var settings: WatermarkSettings
+    var settings: WatermarkSettings {
+        didSet {
+            if oldValue.logoImageRef != settings.logoImageRef
+                || oldValue.pendingLegacyLogoData != settings.pendingLegacyLogoData
+            {
+                cachedLogoData = settings.loadLogoData(using: logoStore)
+            }
+        }
+    }
+
+    private(set) var cachedLogoData: Data?
+
+    var hasLogo: Bool {
+        settings.logoImageRef != nil || settings.pendingLegacyLogoData != nil
+    }
+
     var logoPickerItem: PhotosPickerItem? {
         didSet {
             guard logoPickerItem != oldValue, logoPickerItem != nil else { return }
@@ -19,17 +34,31 @@ final class WatermarkSettingsViewModel {
     private let appSettingsRepo: AppSettingsRepository
     private let appSettings: AppSettings
     private let exportPresetStore: ExportPresetStore?
+    private let logoStore: WatermarkLogoStore
 
     init(
         appSettingsRepo: AppSettingsRepository,
         appSettings: AppSettings,
         exportPresetStore: ExportPresetStore? = nil,
+        logoStore: WatermarkLogoStore = WatermarkLogoStore(),
     ) {
         self.appSettingsRepo = appSettingsRepo
         self.appSettings = appSettings
         self.exportPresetStore = exportPresetStore
+        self.logoStore = logoStore
         let snapshot = appSettingsRepo.load()
-        settings = snapshot.watermark ?? .default
+        let initial = snapshot.watermark ?? .default
+        settings = initial
+        cachedLogoData = initial.loadLogoData(using: logoStore)
+    }
+
+    func clearLogo() {
+        if let oldRef = settings.logoImageRef {
+            logoStore.delete(ref: oldRef)
+        }
+        settings.logoImageRef = nil
+        settings.pendingLegacyLogoData = nil
+        settings.logoFileName = nil
     }
 
     func saveSettings() async {
@@ -46,10 +75,19 @@ final class WatermarkSettingsViewModel {
             guard let data = try await item.loadTransferable(type: Data.self) else { return }
             let normalized = normalizedPNG(from: data) ?? data
             let filename = await Self.fetchOriginalFilename(for: item)
-            settings.logoImageData = normalized
+            if let oldRef = settings.logoImageRef {
+                logoStore.delete(ref: oldRef)
+            }
+            let newRef = try logoStore.save(normalized)
+            settings.logoImageRef = newRef
+            settings.pendingLegacyLogoData = nil
             settings.logoFileName = filename
         } catch {
-            settings.logoImageData = nil
+            if let oldRef = settings.logoImageRef {
+                logoStore.delete(ref: oldRef)
+            }
+            settings.logoImageRef = nil
+            settings.pendingLegacyLogoData = nil
             settings.logoFileName = nil
         }
     }

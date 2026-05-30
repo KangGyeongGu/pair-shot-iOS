@@ -2,9 +2,14 @@ import Foundation
 
 final nonisolated class UserDefaultsAppSettingsRepository: AppSettingsRepository, @unchecked Sendable {
     private let defaults: UserDefaults
+    private let logoStore: WatermarkLogoStore
 
-    init(defaults: UserDefaults = .standard) {
+    init(
+        defaults: UserDefaults = .standard,
+        logoStore: WatermarkLogoStore = WatermarkLogoStore(),
+    ) {
         self.defaults = defaults
+        self.logoStore = logoStore
         defaults.register(defaults: AppSettingsDefaultsRegistration.registry)
     }
 
@@ -52,7 +57,16 @@ final nonisolated class UserDefaultsAppSettingsRepository: AppSettingsRepository
         else {
             return nil
         }
-        return try? JSONDecoder().decode(WatermarkSettings.self, from: data)
+        let decoder = JSONDecoder()
+        decoder.userInfo[.watermarkLogoStore] = logoStore
+        guard let decoded = try? decoder.decode(WatermarkSettings.self, from: data) else { return nil }
+        if let migrated = try? JSONEncoder().encode(decoded),
+           let migratedRaw = String(data: migrated, encoding: .utf8),
+           migratedRaw != raw
+        {
+            defaults.set(migratedRaw, forKey: AppSettingsKeys.watermarkSettings)
+        }
+        return decoded
     }
 
     private func encodeWatermark(_ watermark: WatermarkSettings?) {

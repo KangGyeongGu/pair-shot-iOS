@@ -119,23 +119,22 @@ enum ExportSaveEngine {
         pairs: [PhotoPair],
         selection: ExportContents,
         renderOptions: ExportRenderOptions,
-        tempDirectory: URL,
-        appSettings: AppSettings,
-        photoLibrary: PhotoLibraryService,
+        context: ExportSaveSourceContext,
         now: Date = Date(),
     ) async -> [URL] {
         let jobs = ExportJobBuilder.makeJobs(
             pairs: pairs,
             selection: selection,
-            appSettings: appSettings,
+            appSettings: context.appSettings,
             renderOptions: renderOptions,
+            logoStore: context.logoStore,
             now: now,
         )
         let payloads: [RenderedExportPayload]
         do {
             payloads = try await ExportEntryBatchRenderer.renderAll(
                 jobs: jobs,
-                photoLibrary: photoLibrary,
+                photoLibrary: context.photoLibrary,
                 counter: nil,
             )
         } catch is CancellationError {
@@ -149,11 +148,18 @@ enum ExportSaveEngine {
             if let url = ExportTempFileWriter.write(
                 data: payload.data,
                 fileName: fileName,
-                tempDirectory: tempDirectory,
+                tempDirectory: context.tempDirectory,
             ) {
                 urls.append(url)
             }
         }
         return urls
     }
+}
+
+nonisolated struct ExportSaveSourceContext {
+    let tempDirectory: URL
+    let appSettings: AppSettings
+    let photoLibrary: PhotoLibraryService
+    let logoStore: WatermarkLogoStore
 }

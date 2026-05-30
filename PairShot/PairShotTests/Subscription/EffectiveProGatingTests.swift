@@ -34,10 +34,9 @@ struct EffectiveProGatingTests {
 
     @Test
     func `Watermark Free user with logo type preserves logo-related fields`() {
-        let logoData = Data([0x01, 0x02, 0x03, 0x04])
         let settings = WatermarkSettings(
             type: .logo,
-            logoImageData: logoData,
+            logoImageRef: "ref-abc",
             logoFileName: "company.png",
             logoPosition: .bottomRight,
             logoWidthRatio: 0.7,
@@ -45,7 +44,7 @@ struct EffectiveProGatingTests {
         )
         let result = settings.effective(isPro: false)
         #expect(result.type == .text)
-        #expect(result.logoImageData == logoData)
+        #expect(result.logoImageRef == "ref-abc")
         #expect(result.logoFileName == "company.png")
         #expect(result.logoPosition == .bottomRight)
         #expect(result.logoWidthRatio == 0.7)
@@ -54,7 +53,6 @@ struct EffectiveProGatingTests {
 
     @Test
     func `Watermark Pro user with logo type preserves all fields including text fields`() {
-        let logoData = Data([0xFF, 0xEE])
         let settings = WatermarkSettings(
             type: .logo,
             text: "Sample",
@@ -62,7 +60,7 @@ struct EffectiveProGatingTests {
             lineCount: 5,
             repeatCount: 2.0,
             textSizeRatio: 0.04,
-            logoImageData: logoData,
+            logoImageRef: "ref-def",
             logoFileName: "brand.png",
             logoPosition: .topLeft,
             logoWidthRatio: 0.6,
