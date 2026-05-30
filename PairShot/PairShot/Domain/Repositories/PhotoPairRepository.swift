@@ -13,9 +13,3 @@ protocol PhotoPairRepository: Sendable {
     func allExportPhotoIdentifiers(forPairIds ids: Set<UUID>) async throws -> [String]
     func recordExportHistory(pairId: UUID, kind: ExportHistoryKind, photoLocalIdentifier: String) async throws
 }
-
-extension PhotoPairRepository {
-    func fetchAll() async throws -> [PhotoPair] {
-        try await fetchAll(tutorialOnly: false)
-    }
-}

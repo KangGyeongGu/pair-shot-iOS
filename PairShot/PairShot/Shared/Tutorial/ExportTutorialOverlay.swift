@@ -7,6 +7,7 @@ struct ExportTutorialOverlay: View {
 
     @Environment(ExportTutorialCoordinator.self) private var coord
     let anchors: [String: Anchor<CGRect>]
+    let slotZeroAnchor: Anchor<CGRect>?
 
     var body: some View {
         GeometryReader { proxy in
@@ -18,9 +19,7 @@ struct ExportTutorialOverlay: View {
 
     @ViewBuilder
     private func content(in proxy: GeometryProxy) -> some View {
-        if let step = coord.current,
-           let anchor = anchors[anchorID(for: step)]
-        {
+        if let step = coord.current, let anchor = resolveAnchor(for: step) {
             anchoredContent(
                 step: step,
                 rect: proxy[anchor],
@@ -34,6 +33,11 @@ struct ExportTutorialOverlay: View {
                 safeAreaInsets: proxy.safeAreaInsets,
             )
         }
+    }
+
+    private func resolveAnchor(for step: ExportTutorialStep) -> Anchor<CGRect>? {
+        if step == .presetsAutoSave { return slotZeroAnchor }
+        return anchors[anchorID(for: step)]
     }
 
     @ViewBuilder
@@ -112,15 +116,23 @@ struct ExportTutorialOverlay: View {
             case .format: ExportTutorialAnchorID.format
             case .watermark: ExportTutorialAnchorID.watermark
             case .combine: ExportTutorialAnchorID.combine
+            case .presets: ExportTutorialAnchorID.presets
+            case .presetsAutoSave: ExportTutorialAnchorID.presetsDefault
         }
     }
 }
 
 struct ExportTutorialOverlayModifier: ViewModifier {
+    @State private var slotZeroAnchor: Anchor<CGRect>?
+
     func body(content: Content) -> some View {
-        content.overlayPreferenceValue(SpotlightAnchorKey.self) { anchors in
-            ExportTutorialOverlay(anchors: anchors)
-        }
+        content
+            .onPreferenceChange(ExportPresetSlotZeroAnchorKey.self) { value in
+                slotZeroAnchor = value
+            }
+            .overlayPreferenceValue(SpotlightAnchorKey.self) { anchors in
+                ExportTutorialOverlay(anchors: anchors, slotZeroAnchor: slotZeroAnchor)
+            }
     }
 }
 

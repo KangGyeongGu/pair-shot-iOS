@@ -7,10 +7,16 @@ final class CombineSettingsViewModel {
 
     private let appSettingsRepo: AppSettingsRepository
     private let appSettings: AppSettings
+    private let exportPresetStore: ExportPresetStore?
 
-    init(appSettingsRepo: AppSettingsRepository, appSettings: AppSettings) {
+    init(
+        appSettingsRepo: AppSettingsRepository,
+        appSettings: AppSettings,
+        exportPresetStore: ExportPresetStore? = nil,
+    ) {
         self.appSettingsRepo = appSettingsRepo
         self.appSettings = appSettings
+        self.exportPresetStore = exportPresetStore
         let snapshot = appSettingsRepo.load()
         settings = snapshot.combine ?? .default
     }
@@ -20,5 +26,6 @@ final class CombineSettingsViewModel {
         var snapshot = appSettingsRepo.load()
         snapshot.combine = settings
         try? await appSettingsRepo.save(snapshot)
+        exportPresetStore?.syncFromGlobal()
     }
 }

@@ -66,6 +66,9 @@ struct PairShotApp: App {
         let environment = AppEnvironment(modelContainer: containerBootstrap.container)
         AppLanguageBundleSync.apply(environment.appSettings.language)
         environment.appSettings.launchCount += 1
+        environment.exportPresetStore.seedDefaultIfNeeded(
+            name: String(localized: "export_preset_default_name"),
+        )
         _env = State(initialValue: environment)
     }
 

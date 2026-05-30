@@ -3,4 +3,6 @@ nonisolated enum ExportTutorialStep: Int, CaseIterable {
     case format
     case watermark
     case combine
+    case presets
+    case presetsAutoSave
 }

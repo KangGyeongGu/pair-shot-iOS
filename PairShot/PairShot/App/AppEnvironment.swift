@@ -37,6 +37,8 @@ final class AppEnvironment {
 
     let snackbarQueue: SnackbarQueue
     let immediateExport: ImmediateExportService
+    let exportPreferences: ExportPreferences
+    let exportPresetStore: ExportPresetStore
     let settingsRedirectCoordinator: SettingsRedirectCoordinator
     let exportCompletionCoordinator: ExportCompletionCoordinator
     let permissionStatusService: PermissionStatusService
@@ -165,6 +167,9 @@ final class AppEnvironment {
         self.subscriptionStore = subscription.subscriptionStore
         self.transactionListener = subscription.transactionListener
         membership = bundles.membership
+        let preferences = ExportPreferences()
+        exportPreferences = preferences
+        exportPresetStore = ExportPresetStore(appSettings: foundation.appSettings, preferences: preferences)
     }
 
     func makeBeforeCameraViewModel(
@@ -289,11 +294,19 @@ final class AppEnvironment {
     }
 
     func makeWatermarkSettingsViewModel() -> WatermarkSettingsViewModel {
-        WatermarkSettingsViewModel(appSettingsRepo: appSettingsRepo, appSettings: appSettings)
+        WatermarkSettingsViewModel(
+            appSettingsRepo: appSettingsRepo,
+            appSettings: appSettings,
+            exportPresetStore: exportPresetStore,
+        )
     }
 
     func makeCombineSettingsViewModel() -> CombineSettingsViewModel {
-        CombineSettingsViewModel(appSettingsRepo: appSettingsRepo, appSettings: appSettings)
+        CombineSettingsViewModel(
+            appSettingsRepo: appSettingsRepo,
+            appSettings: appSettings,
+            exportPresetStore: exportPresetStore,
+        )
     }
 
     func makeExportSettingsViewModel(pairIds: [UUID]) -> ExportSettingsViewModel {
@@ -305,9 +318,11 @@ final class AppEnvironment {
             photoLibraryExporter: photoLibraryExporter,
             snackbarQueue: snackbarQueue,
             appSettings: appSettings,
+            preferences: exportPreferences,
             interstitialAdManager: interstitialAdManager,
             membership: membership,
             fullscreenAdCoordinator: fullscreenAdCoordinator,
+            exportPresetStore: exportPresetStore,
         )
     }
 }

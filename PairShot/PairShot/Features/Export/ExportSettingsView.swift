@@ -117,6 +117,7 @@ struct ExportSettingsView: View {
                     formatCard.id(ExportTutorialAnchorID.format)
                     watermarkCard.id(ExportTutorialAnchorID.watermark)
                     combineCard.id(ExportTutorialAnchorID.combine)
+                    presetsCard.id(ExportTutorialAnchorID.presets)
                 }
                 .padding(16)
             }
@@ -127,6 +128,23 @@ struct ExportSettingsView: View {
                     proxy.scrollTo(anchorID(for: newStep), anchor: .center)
                 }
             }
+        }
+    }
+
+    @ViewBuilder
+    private var presetsCard: some View {
+        if let store = viewModel.exportPresetStore {
+            ExportSettingsCard(header: "export_preset_section_title") {
+                ExportPresetSlotsRow(
+                    presets: store.presets,
+                    activeIndex: store.activeIndex,
+                    isProUser: viewModel.isProUser,
+                    onTap: { viewModel.handleSlotTap(at: $0) },
+                    onLongPress: { viewModel.handleSlotLongPress(at: $0) },
+                )
+            }
+            .tutorialAnchor(ExportTutorialAnchorID.presets)
+            .modifier(ExportPresetAlerts(viewModel: viewModel))
         }
     }
 
@@ -260,6 +278,8 @@ struct ExportSettingsView: View {
             case .format: ExportTutorialAnchorID.format
             case .watermark: ExportTutorialAnchorID.watermark
             case .combine: ExportTutorialAnchorID.combine
+            case .presets: ExportTutorialAnchorID.presets
+            case .presetsAutoSave: ExportTutorialAnchorID.presets
         }
     }
 

@@ -25,7 +25,7 @@ struct TutorialCleanupServiceTests {
         )
         try await service.deleteAllTutorialPairs()
 
-        let remaining = try await pairRepo.fetchAll()
+        let remaining = try await pairRepo.fetchAll(tutorialOnly: false)
         let remainingIds = Set(remaining.map(\.id))
         #expect(remainingIds == Set([normalA.id, normalB.id]))
 
@@ -47,7 +47,7 @@ struct TutorialCleanupServiceTests {
         )
         try await service.deleteAllTutorialPairs()
 
-        let remaining = try await pairRepo.fetchAll()
+        let remaining = try await pairRepo.fetchAll(tutorialOnly: false)
         #expect(remaining.map(\.id) == [normal.id])
     }
 
@@ -64,7 +64,7 @@ struct TutorialCleanupServiceTests {
         )
         try await service.deleteAllTutorialPairs()
 
-        let remaining = try await pairRepo.fetchAll()
+        let remaining = try await pairRepo.fetchAll(tutorialOnly: false)
         #expect(remaining.isEmpty)
         let allEntities = try fetchAllRaw(container: container)
         #expect(allEntities.isEmpty)
