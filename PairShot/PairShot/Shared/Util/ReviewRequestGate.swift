@@ -1,5 +1,3 @@
-import Foundation
-
 nonisolated enum ReviewRequestGate {
     static let triggerLaunchCount = 3
 

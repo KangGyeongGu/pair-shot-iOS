@@ -73,43 +73,6 @@ struct CompositeRendererTests {
         #expect(gps[kCGImagePropertyGPSLongitude as String] as? Double == 122.0)
     }
 
-    @MainActor
-    @Test
-    func `renderSingle for B-only entry produces non-empty JPEG`() {
-        let image = makeSolidUIImage(width: 400, height: 600, color: .green)
-        let data = CompositeRenderer.renderSingle(
-            image: image,
-            combineSettings: nil,
-            isBefore: true,
-            watermark: nil,
-            utType: .jpeg,
-            compressionQuality: 0.95,
-        )
-        #expect(data != nil)
-        #expect(data?.isEmpty == false)
-        let dims = decodePixelSize(jpeg: data ?? Data())
-        #expect(dims?.width == 400)
-        #expect(dims?.height == 600)
-    }
-
-    @MainActor
-    @Test
-    func `renderSingle for A-only entry produces non-empty JPEG`() {
-        let image = makeSolidUIImage(width: 600, height: 400, color: .blue)
-        let data = CompositeRenderer.renderSingle(
-            image: image,
-            combineSettings: nil,
-            isBefore: false,
-            watermark: nil,
-            utType: .jpeg,
-            compressionQuality: 0.95,
-        )
-        #expect(data != nil)
-        let dims = decodePixelSize(jpeg: data ?? Data())
-        #expect(dims?.width == 600)
-        #expect(dims?.height == 400)
-    }
-
     @Test
     func `composeImage with watermark disabled equals composeImage with watermark setting but flag off`() throws {
         let before = makeSolidJPEG(width: 400, height: 400, color: .red)
@@ -263,14 +226,6 @@ private func makeSolidJPEG(width: Int, height: Int, color: UIColor) -> Data {
         context.fill(CGRect(x: 0, y: 0, width: width, height: height))
     }
     return image.jpegData(compressionQuality: 0.95) ?? Data()
-}
-
-private func makeSolidUIImage(width: Int, height: Int, color: UIColor) -> UIImage {
-    let renderer = UIGraphicsImageRenderer(size: CGSize(width: width, height: height))
-    return renderer.image { context in
-        color.setFill()
-        context.fill(CGRect(x: 0, y: 0, width: width, height: height))
-    }
 }
 
 private func decodePixelSize(jpeg: Data) -> CGSize? {

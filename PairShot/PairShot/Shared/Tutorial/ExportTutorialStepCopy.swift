@@ -7,6 +7,8 @@ enum ExportTutorialStepCopy {
             case .format: "tutorial_msg_export_format"
             case .watermark: "tutorial_msg_export_watermark"
             case .combine: "tutorial_msg_export_combine"
+            case .presets: "tutorial_msg_export_presets"
+            case .presetsAutoSave: "tutorial_msg_export_presets_autosave"
         }
     }
 

@@ -95,32 +95,6 @@ nonisolated enum CompositeRenderer {
         return encoded
     }
 
-    @MainActor
-    static func renderSingle(
-        image: UIImage,
-        combineSettings: CombineSettings?,
-        isBefore: Bool,
-        watermark: WatermarkSettings?,
-        utType: UTType,
-        compressionQuality: CGFloat,
-    ) -> Data? {
-        let composed = renderSingleComposite(
-            image: image,
-            combineSettings: combineSettings,
-            isBefore: isBefore,
-            watermark: watermark,
-        )
-        guard let cgImage = composed.cgImage else { return nil }
-        return CompositeImageEncoder.encode(
-            cgImage: cgImage,
-            utType: utType,
-            quality: compressionQuality,
-            capturedAt: nil,
-            latitude: nil,
-            longitude: nil,
-        )
-    }
-
     nonisolated static func renderSingleComposite(
         image: UIImage,
         combineSettings: CombineSettings?,

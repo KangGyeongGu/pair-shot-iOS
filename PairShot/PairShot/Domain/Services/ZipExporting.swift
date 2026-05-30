@@ -4,7 +4,7 @@ nonisolated struct ExportContents: Equatable {
     let includeAfter: Bool
 }
 
-nonisolated enum ExportFormat: String, Equatable, CaseIterable {
+nonisolated enum ExportFormat: String, Codable, Equatable, CaseIterable {
     case zip = "ZIP"
     case individualImages = "INDIVIDUAL"
 }

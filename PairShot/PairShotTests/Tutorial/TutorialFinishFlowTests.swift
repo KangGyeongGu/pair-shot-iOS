@@ -26,7 +26,7 @@ struct TutorialFinishFlowTests {
         try await Task.sleep(nanoseconds: 50_000_000)
 
         #expect(coord.current == nil)
-        let remaining = try await pairRepo.fetchAll()
+        let remaining = try await pairRepo.fetchAll(tutorialOnly: false)
         #expect(remaining.isEmpty)
     }
 

@@ -2,9 +2,7 @@ import SwiftUI
 
 struct SettingsStorageInfoSection: View {
     @Bindable var viewModel: SettingsViewModel
-    let openURL: OpenURLAction
     @Binding var path: [Route]
-    @Environment(AppEnvironment.self) private var env
 
     var body: some View {
         Section {

@@ -2,7 +2,6 @@ import SwiftUI
 
 struct SettingsView: View {
     @Binding var path: [Route]
-    @Environment(\.openURL) private var openURL
     @Environment(AppEnvironment.self) private var env
     @State private var viewModel: SettingsViewModel?
 
@@ -44,7 +43,6 @@ struct SettingsView: View {
     private func form(for viewModel: SettingsViewModel) -> some View {
         SettingsFormBody(
             viewModel: viewModel,
-            openURL: openURL,
             path: $path,
         )
     }
@@ -52,7 +50,6 @@ struct SettingsView: View {
 
 private struct SettingsFormBody: View {
     @Bindable var viewModel: SettingsViewModel
-    let openURL: OpenURLAction
     @Binding var path: [Route]
     @State private var showPaywall: Bool = false
     @Environment(RewardedAdManager.self) private var rewardedManager
@@ -73,7 +70,7 @@ private struct SettingsFormBody: View {
             SettingsCombineSection(viewModel: viewModel, path: $path)
             SettingsGeneralSection(viewModel: viewModel, path: $path)
             SettingsHelpSection(path: $path)
-            SettingsStorageInfoSection(viewModel: viewModel, openURL: openURL, path: $path)
+            SettingsStorageInfoSection(viewModel: viewModel, path: $path)
         }
         .listStyle(.insetGrouped)
         .paywallSheet(isPresented: $showPaywall)

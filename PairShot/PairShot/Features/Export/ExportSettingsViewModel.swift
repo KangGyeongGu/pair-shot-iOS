@@ -16,32 +16,52 @@ final class ExportSettingsViewModel {
         case dismiss
     }
 
+    static let presetNameMaxLength = 12
+
     let pairIds: [UUID]
     let events: AsyncStream<Event>
 
     var includeCombined: Bool {
-        didSet { preferences.includeCombined = includeCombined }
+        didSet {
+            preferences.includeCombined = includeCombined
+            exportPresetStore?.syncFromGlobal()
+        }
     }
 
     var includeBefore: Bool {
-        didSet { preferences.includeBefore = includeBefore }
+        didSet {
+            preferences.includeBefore = includeBefore
+            exportPresetStore?.syncFromGlobal()
+        }
     }
 
     var includeAfter: Bool {
-        didSet { preferences.includeAfter = includeAfter }
+        didSet {
+            preferences.includeAfter = includeAfter
+            exportPresetStore?.syncFromGlobal()
+        }
     }
 
     var format: ExportFormat {
-        didSet { preferences.format = format }
+        didSet {
+            preferences.format = format
+            exportPresetStore?.syncFromGlobal()
+        }
     }
 
     var applyWatermark: Bool {
         get { appSettings.watermarkEnabled }
-        set { appSettings.watermarkEnabled = newValue }
+        set {
+            appSettings.watermarkEnabled = newValue
+            exportPresetStore?.syncFromGlobal()
+        }
     }
 
     var applyCombineSettings: Bool {
-        didSet { preferences.applyCombineSettings = applyCombineSettings }
+        didSet {
+            preferences.applyCombineSettings = applyCombineSettings
+            exportPresetStore?.syncFromGlobal()
+        }
     }
 
     var isExporting: Bool = false
@@ -88,6 +108,29 @@ final class ExportSettingsViewModel {
 
     var pendingZipURL: URL?
 
+    let exportPresetStore: ExportPresetStore?
+
+    var pendingPresetSaveSlotIndex: Int?
+    var presetSaveNameInput: String = "" {
+        didSet {
+            if presetSaveNameInput.count > Self.presetNameMaxLength {
+                presetSaveNameInput = String(presetSaveNameInput.prefix(Self.presetNameMaxLength))
+            }
+        }
+    }
+
+    var pendingPresetRenameSlotIndex: Int?
+    var presetRenameNameInput: String = "" {
+        didSet {
+            if presetRenameNameInput.count > Self.presetNameMaxLength {
+                presetRenameNameInput = String(presetRenameNameInput.prefix(Self.presetNameMaxLength))
+            }
+        }
+    }
+
+    var pendingPresetActionSheetSlotIndex: Int?
+    var pendingPresetDeleteSlotIndex: Int?
+
     init(
         pairIds: [UUID],
         pairRepo: PhotoPairRepository,
@@ -101,6 +144,7 @@ final class ExportSettingsViewModel {
         interstitialAdManager: InterstitialAdManager? = nil,
         membership: Membership? = nil,
         fullscreenAdCoordinator: FullscreenAdCoordinator? = nil,
+        exportPresetStore: ExportPresetStore? = nil,
     ) {
         self.pairIds = pairIds
         self.pairRepo = pairRepo
@@ -114,6 +158,7 @@ final class ExportSettingsViewModel {
         self.interstitialAdManager = interstitialAdManager
         self.membership = membership
         self.fullscreenAdCoordinator = fullscreenAdCoordinator
+        self.exportPresetStore = exportPresetStore
         includeCombined = preferences.includeCombined
         includeBefore = preferences.includeBefore
         includeAfter = preferences.includeAfter
