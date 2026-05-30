@@ -39,6 +39,7 @@ nonisolated enum ExportEntryRenderer {
             utType: job.exportQuality.utType,
             watermarkEnabled: job.watermark != nil,
             watermark: job.watermark,
+            watermarkLogoData: job.watermarkLogoData,
             combineSettings: job.combineSettings,
             includeGPS: job.includeGPS,
         )
@@ -75,6 +76,7 @@ nonisolated enum ExportEntryRenderer {
                 combineSettings: job.combineSettings,
                 isBefore: isBefore,
                 watermark: job.watermark,
+                watermarkLogoData: job.watermarkLogoData,
             )
             guard let cgImage = composed.cgImage else {
                 return RenderedExportEntry(data: raw, utType: job.exportQuality.utType)

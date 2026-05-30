@@ -47,9 +47,10 @@ struct WatermarkSettingsView: View {
     private var logoSection: some View {
         Section {
             WatermarkLogoPickerRow(
-                imageData: $viewModel.settings.logoImageData,
+                hasLogo: viewModel.hasLogo,
                 fileName: $viewModel.settings.logoFileName,
                 pickerItem: $viewModel.logoPickerItem,
+                onClear: { viewModel.clearLogo() },
             )
             WatermarkLogoAlphaSlider(value: $viewModel.settings.logoAlpha)
             WatermarkLogoSizeSlider(value: $viewModel.settings.logoWidthRatio)
@@ -67,7 +68,7 @@ struct WatermarkSettingsView: View {
                 .font(.footnote)
                 .foregroundStyle(.secondary)
                 .textCase(.uppercase)
-            WatermarkPreview(settings: viewModel.settings)
+            WatermarkPreview(settings: viewModel.settings, logoData: viewModel.cachedLogoData)
         }
         .padding(.top, 8)
         .padding(.horizontal, -16)

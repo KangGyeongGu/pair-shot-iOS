@@ -15,6 +15,7 @@ final class ImmediateExportService {
     let appSettings: AppSettings
     let pairRepo: PhotoPairRepository
     let membership: Membership?
+    let logoStore: WatermarkLogoStore
 
     private var hasAnyInclude: Bool {
         preferences.includeCombined || preferences.includeBefore || preferences.includeAfter
@@ -29,6 +30,7 @@ final class ImmediateExportService {
         pairRepo: PhotoPairRepository,
         membership: Membership? = nil,
         preferences: ExportPreferences = ExportPreferences(),
+        logoStore: WatermarkLogoStore = WatermarkLogoStore(),
         tempDirectoryProvider: @escaping @Sendable () -> URL = { FileManager.default.temporaryDirectory },
     ) {
         self.photoLibrary = photoLibrary
@@ -39,6 +41,7 @@ final class ImmediateExportService {
         self.pairRepo = pairRepo
         self.membership = membership
         self.preferences = preferences
+        self.logoStore = logoStore
         self.tempDirectoryProvider = tempDirectoryProvider
     }
 
@@ -71,9 +74,12 @@ final class ImmediateExportService {
                         pairs: pairs,
                         selection: selection,
                         renderOptions: currentRenderOptions(),
-                        tempDirectory: tempDirectoryProvider(),
-                        appSettings: appSettings,
-                        photoLibrary: photoLibrary,
+                        context: ExportSaveSourceContext(
+                            tempDirectory: tempDirectoryProvider(),
+                            appSettings: appSettings,
+                            photoLibrary: photoLibrary,
+                            logoStore: logoStore,
+                        ),
                     )
                     snackbarQueue.completeProgress(handle)
                     return ExportShareItems(values: urls)

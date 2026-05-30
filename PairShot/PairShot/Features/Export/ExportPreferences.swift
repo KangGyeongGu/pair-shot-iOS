@@ -1,5 +1,7 @@
 import Foundation
+import Observation
 
+@Observable
 final nonisolated class ExportPreferences: @unchecked Sendable {
     static let includeCombinedKey = "pairshot.exportIncludeCombined"
     static let includeBeforeKey = "pairshot.exportIncludeBefore"
@@ -7,34 +9,26 @@ final nonisolated class ExportPreferences: @unchecked Sendable {
     static let formatKey = "pairshot.exportFormat"
     static let applyCombineKey = "pairshot.exportApplyCombine"
 
-    private let defaults: UserDefaults
+    @ObservationIgnored private let defaults: UserDefaults
 
     var includeCombined: Bool {
-        get { defaults.bool(forKey: Self.includeCombinedKey) }
-        set { defaults.set(newValue, forKey: Self.includeCombinedKey) }
+        didSet { defaults.set(includeCombined, forKey: Self.includeCombinedKey) }
     }
 
     var includeBefore: Bool {
-        get { defaults.bool(forKey: Self.includeBeforeKey) }
-        set { defaults.set(newValue, forKey: Self.includeBeforeKey) }
+        didSet { defaults.set(includeBefore, forKey: Self.includeBeforeKey) }
     }
 
     var includeAfter: Bool {
-        get { defaults.bool(forKey: Self.includeAfterKey) }
-        set { defaults.set(newValue, forKey: Self.includeAfterKey) }
+        didSet { defaults.set(includeAfter, forKey: Self.includeAfterKey) }
     }
 
     var format: ExportFormat {
-        get {
-            let raw = defaults.string(forKey: Self.formatKey) ?? ExportFormat.individualImages.rawValue
-            return ExportFormat(rawValue: raw) ?? .individualImages
-        }
-        set { defaults.set(newValue.rawValue, forKey: Self.formatKey) }
+        didSet { defaults.set(format.rawValue, forKey: Self.formatKey) }
     }
 
     var applyCombineSettings: Bool {
-        get { defaults.bool(forKey: Self.applyCombineKey) }
-        set { defaults.set(newValue, forKey: Self.applyCombineKey) }
+        didSet { defaults.set(applyCombineSettings, forKey: Self.applyCombineKey) }
     }
 
     init(defaults: UserDefaults = .standard) {
@@ -46,5 +40,11 @@ final nonisolated class ExportPreferences: @unchecked Sendable {
             Self.formatKey: ExportFormat.individualImages.rawValue,
             Self.applyCombineKey: true,
         ])
+        includeCombined = defaults.bool(forKey: Self.includeCombinedKey)
+        includeBefore = defaults.bool(forKey: Self.includeBeforeKey)
+        includeAfter = defaults.bool(forKey: Self.includeAfterKey)
+        let rawFormat = defaults.string(forKey: Self.formatKey) ?? ExportFormat.individualImages.rawValue
+        format = ExportFormat(rawValue: rawFormat) ?? .individualImages
+        applyCombineSettings = defaults.bool(forKey: Self.applyCombineKey)
     }
 }

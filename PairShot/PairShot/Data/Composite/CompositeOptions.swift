@@ -30,6 +30,7 @@ nonisolated struct CompositeOptions: Equatable {
     var utType: UTType
     var watermarkEnabled: Bool
     var watermark: WatermarkSettings?
+    var watermarkLogoData: Data?
     var combineSettings: CombineSettings?
     var includeGPS: Bool
 }

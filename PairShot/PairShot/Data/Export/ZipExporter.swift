@@ -85,17 +85,20 @@ nonisolated struct ZipExporterAdapter {
     let photoLibrary: PhotoLibraryService
     let pairRepo: PhotoPairRepository
     let appSettings: AppSettings
+    let logoStore: WatermarkLogoStore
 
     init(
         photoLibrary: PhotoLibraryService,
         pairRepo: PhotoPairRepository,
         appSettings: AppSettings,
+        logoStore: WatermarkLogoStore = WatermarkLogoStore(),
         exporter: ZipExporter = ZipExporter(),
     ) {
         self.exporter = exporter
         self.photoLibrary = photoLibrary
         self.pairRepo = pairRepo
         self.appSettings = appSettings
+        self.logoStore = logoStore
     }
 
     func exportPairsToZip(
@@ -107,12 +110,14 @@ nonisolated struct ZipExporterAdapter {
         onProgress: (@Sendable (_ fraction: Double, _ processed: Int, _ total: Int) -> Void)? = nil,
     ) async throws -> URL {
         let resolved = try await pairRepo.fetch(ids: pairIds)
+        let logoStore = logoStore
         let jobs = await MainActor.run {
             ExportJobBuilder.makeJobs(
                 pairs: resolved,
                 selection: selection,
                 appSettings: appSettings,
                 renderOptions: renderOptions,
+                logoStore: logoStore,
                 now: now,
             )
         }

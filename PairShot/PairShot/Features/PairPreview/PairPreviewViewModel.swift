@@ -22,17 +22,20 @@ final class PairPreviewViewModel {
     private let photoLibrary: PhotoLibraryService
     private let appSettings: AppSettings
     private let membership: Membership?
+    private let logoStore: WatermarkLogoStore
 
     init(
         pair: PhotoPair,
         photoLibrary: PhotoLibraryService,
         appSettings: AppSettings,
         membership: Membership? = nil,
+        logoStore: WatermarkLogoStore = WatermarkLogoStore(),
     ) {
         self.pair = pair
         self.photoLibrary = photoLibrary
         self.appSettings = appSettings
         self.membership = membership
+        self.logoStore = logoStore
     }
 
     func loadPreview() async {
@@ -47,6 +50,7 @@ final class PairPreviewViewModel {
                 appSettings.watermarkEnabled
                     ? appSettings.watermarkSettings.effective(isPro: isPro)
                     : nil
+            let watermarkLogoData: Data? = watermark?.loadLogoData(using: logoStore)
             let combineSettings = appSettings.combineSettings.effective(isPro: isPro)
             let layout = CompositeLayoutResolver.layout(from: combineSettings)
             let quality = appSettings.exportQuality
@@ -56,6 +60,7 @@ final class PairPreviewViewModel {
                 utType: quality.utType,
                 watermarkEnabled: watermark != nil,
                 watermark: watermark,
+                watermarkLogoData: watermarkLogoData,
                 combineSettings: combineSettings,
                 includeGPS: appSettings.embedGPSInPhoto,
             )

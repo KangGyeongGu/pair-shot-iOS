@@ -18,7 +18,7 @@ struct ExportPresetSlotsRow: View {
 
     @ViewBuilder
     private func slotCell(at index: Int) -> some View {
-        let locked = !isProUser && index >= ExportSettingsViewModel.freeAccessibleSlotCount
+        let locked = !isProUser && index >= ExportPresetStore.freeAccessibleSlotCount
         let preset = presets[index]
         let active = index == activeIndex && preset != nil
 

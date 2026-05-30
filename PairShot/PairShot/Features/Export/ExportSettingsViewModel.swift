@@ -22,29 +22,33 @@ final class ExportSettingsViewModel {
     let events: AsyncStream<Event>
 
     var includeCombined: Bool {
-        didSet {
-            preferences.includeCombined = includeCombined
+        get { preferences.includeCombined }
+        set {
+            preferences.includeCombined = newValue
             exportPresetStore?.syncFromGlobal()
         }
     }
 
     var includeBefore: Bool {
-        didSet {
-            preferences.includeBefore = includeBefore
+        get { preferences.includeBefore }
+        set {
+            preferences.includeBefore = newValue
             exportPresetStore?.syncFromGlobal()
         }
     }
 
     var includeAfter: Bool {
-        didSet {
-            preferences.includeAfter = includeAfter
+        get { preferences.includeAfter }
+        set {
+            preferences.includeAfter = newValue
             exportPresetStore?.syncFromGlobal()
         }
     }
 
     var format: ExportFormat {
-        didSet {
-            preferences.format = format
+        get { preferences.format }
+        set {
+            preferences.format = newValue
             exportPresetStore?.syncFromGlobal()
         }
     }
@@ -58,8 +62,9 @@ final class ExportSettingsViewModel {
     }
 
     var applyCombineSettings: Bool {
-        didSet {
-            preferences.applyCombineSettings = applyCombineSettings
+        get { preferences.applyCombineSettings }
+        set {
+            preferences.applyCombineSettings = newValue
             exportPresetStore?.syncFromGlobal()
         }
     }
@@ -105,6 +110,7 @@ final class ExportSettingsViewModel {
     let interstitialAdManager: InterstitialAdManager?
     let membership: Membership?
     let fullscreenAdCoordinator: FullscreenAdCoordinator?
+    let logoStore: WatermarkLogoStore
 
     var pendingZipURL: URL?
 
@@ -145,6 +151,7 @@ final class ExportSettingsViewModel {
         membership: Membership? = nil,
         fullscreenAdCoordinator: FullscreenAdCoordinator? = nil,
         exportPresetStore: ExportPresetStore? = nil,
+        logoStore: WatermarkLogoStore = WatermarkLogoStore(),
     ) {
         self.pairIds = pairIds
         self.pairRepo = pairRepo
@@ -159,11 +166,7 @@ final class ExportSettingsViewModel {
         self.membership = membership
         self.fullscreenAdCoordinator = fullscreenAdCoordinator
         self.exportPresetStore = exportPresetStore
-        includeCombined = preferences.includeCombined
-        includeBefore = preferences.includeBefore
-        includeAfter = preferences.includeAfter
-        format = preferences.format
-        applyCombineSettings = preferences.applyCombineSettings
+        self.logoStore = logoStore
         let stream = AsyncStream<Event>.makeStream()
         events = stream.stream
         eventsContinuation = stream.continuation

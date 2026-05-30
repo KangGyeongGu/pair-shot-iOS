@@ -16,6 +16,7 @@ extension ImmediateExportService {
             selection: selection,
             appSettings: appSettings,
             renderOptions: renderOptions,
+            logoStore: logoStore,
             now: now,
         )
         let saved = await ExportSaveEngine.processJobs(

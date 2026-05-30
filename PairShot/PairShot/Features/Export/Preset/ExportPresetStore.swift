@@ -5,6 +5,7 @@ import Observation
 @Observable
 final class ExportPresetStore {
     static let maxSlots = 4
+    static let freeAccessibleSlotCount = 2
     static let storeKey = "pairshot.exportPresets"
     static let activeKey = "pairshot.exportPresetsActiveIndex"
 
@@ -14,6 +15,7 @@ final class ExportPresetStore {
     @ObservationIgnored private let defaults: UserDefaults
     @ObservationIgnored private let appSettings: AppSettings
     @ObservationIgnored private let preferences: ExportPreferences
+    @ObservationIgnored private let logoStore: WatermarkLogoStore
 
     var active: ExportPreset? {
         guard presets.indices.contains(activeIndex) else { return nil }
@@ -24,13 +26,19 @@ final class ExportPresetStore {
         appSettings: AppSettings,
         preferences: ExportPreferences,
         defaults: UserDefaults = .standard,
+        logoStore: WatermarkLogoStore = WatermarkLogoStore(),
     ) {
         self.defaults = defaults
         self.appSettings = appSettings
         self.preferences = preferences
-        presets = Self.loadPresets(defaults: defaults)
+        self.logoStore = logoStore
+        let loaded = Self.loadPresets(defaults: defaults, logoStore: logoStore)
+        presets = loaded.presets
         let storedActive = defaults.integer(forKey: Self.activeKey)
         activeIndex = (0 ..< Self.maxSlots).contains(storedActive) ? storedActive : 0
+        if loaded.migrated {
+            persist()
+        }
     }
 
     func seedDefaultIfNeeded(name: String) {
@@ -43,14 +51,17 @@ final class ExportPresetStore {
 
     func save(at index: Int, name: String) {
         guard presets.indices.contains(index) else { return }
+        let previousRef = presets[index]?.watermarkSettings.logoImageRef
         let preset = snapshotFromGlobal(name: name)
         presets[index] = preset
         persist()
+        cleanupOrphanedLogoRef(previousRef)
     }
 
     func delete(at index: Int) {
         guard index != 0 else { return }
         guard presets.indices.contains(index) else { return }
+        let removedRef = presets[index]?.watermarkSettings.logoImageRef
         let wasActive = activeIndex == index
         let activeShiftsLeft = activeIndex > index
         presets.remove(at: index)
@@ -64,6 +75,27 @@ final class ExportPresetStore {
             activeIndex -= 1
         }
         persist()
+        cleanupOrphanedLogoRef(removedRef)
+    }
+
+    private func cleanupOrphanedLogoRef(_ ref: String?) {
+        guard let ref else { return }
+        let inUse = currentlyUsedLogoRefs()
+        guard !inUse.contains(ref) else { return }
+        logoStore.delete(ref: ref)
+    }
+
+    private func currentlyUsedLogoRefs() -> Set<String> {
+        var refs: Set<String> = []
+        if let globalRef = appSettings.watermarkSettings.logoImageRef {
+            refs.insert(globalRef)
+        }
+        for preset in presets {
+            if let ref = preset?.watermarkSettings.logoImageRef {
+                refs.insert(ref)
+            }
+        }
+        return refs
     }
 
     func rename(at index: Int, to newName: String) {
@@ -128,13 +160,22 @@ final class ExportPresetStore {
         defaults.set(activeIndex, forKey: Self.activeKey)
     }
 
-    private static func loadPresets(defaults: UserDefaults) -> [ExportPreset?] {
-        guard let data = defaults.data(forKey: storeKey),
-              let decoded = try? JSONDecoder().decode([ExportPreset?].self, from: data),
+    private static func loadPresets(
+        defaults: UserDefaults,
+        logoStore: WatermarkLogoStore,
+    ) -> (presets: [ExportPreset?], migrated: Bool) {
+        guard let data = defaults.data(forKey: storeKey) else {
+            return (presets: [ExportPreset?](repeating: nil, count: maxSlots), migrated: false)
+        }
+        let decoder = JSONDecoder()
+        decoder.userInfo[.watermarkLogoStore] = logoStore
+        guard let decoded = try? decoder.decode([ExportPreset?].self, from: data),
               decoded.count == Self.maxSlots
         else {
-            return [ExportPreset?](repeating: nil, count: maxSlots)
+            return (presets: [ExportPreset?](repeating: nil, count: maxSlots), migrated: false)
         }
-        return decoded
+        let reEncoded = try? JSONEncoder().encode(decoded)
+        let migrated = reEncoded.map { $0 != data } ?? false
+        return (presets: decoded, migrated: migrated)
     }
 }

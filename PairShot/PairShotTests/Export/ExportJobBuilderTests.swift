@@ -21,6 +21,7 @@ struct ExportJobBuilderTests {
             selection: ExportContents(includeCombined: true, includeBefore: false, includeAfter: false),
             appSettings: appSettings,
             renderOptions: ExportRenderOptions(applyCombineSettings: false, isPro: true),
+            logoStore: WatermarkLogoStore(),
             now: Self.fixedDate,
         )
 
@@ -47,6 +48,7 @@ struct ExportJobBuilderTests {
             selection: ExportContents(includeCombined: true, includeBefore: false, includeAfter: false),
             appSettings: appSettings,
             renderOptions: ExportRenderOptions(applyCombineSettings: true, isPro: true),
+            logoStore: WatermarkLogoStore(),
             now: Self.fixedDate,
         )
 
@@ -75,6 +77,7 @@ struct ExportJobBuilderTests {
             selection: selection,
             appSettings: appSettings,
             renderOptions: ExportRenderOptions(applyCombineSettings: false, isPro: true),
+            logoStore: WatermarkLogoStore(),
             now: Self.fixedDate,
         )
         #expect(!withWatermark.isEmpty)
@@ -89,10 +92,42 @@ struct ExportJobBuilderTests {
             selection: selection,
             appSettings: appSettings,
             renderOptions: ExportRenderOptions(applyCombineSettings: false, isPro: true),
+            logoStore: WatermarkLogoStore(),
             now: Self.fixedDate,
         )
         for job in withoutWatermark {
             #expect(job.watermark == nil)
+        }
+    }
+
+    @Test
+    func `logo watermark — watermarkLogoData 가 ref 기반 파일 내용으로 채워짐`() throws {
+        let appSettings = Self.makeAppSettings()
+        appSettings.watermarkEnabled = true
+        let tempDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ExportJobLogoTest-\(UUID().uuidString)", isDirectory: true)
+        let store = WatermarkLogoStore(baseDirectory: tempDir)
+        let logoBytes = Data([0xAA, 0xBB, 0xCC])
+        let ref = try store.save(logoBytes)
+        appSettings.watermarkSettings = WatermarkSettings(type: .logo, logoImageRef: ref)
+        let pair = FixturePhotoPair.make(
+            beforePhotoLocalIdentifier: "before-id",
+            afterPhotoLocalIdentifier: "after-id",
+        )
+
+        let jobs = ExportJobBuilder.makeJobs(
+            pairs: [pair],
+            selection: ExportContents(includeCombined: false, includeBefore: true, includeAfter: true),
+            appSettings: appSettings,
+            renderOptions: ExportRenderOptions(applyCombineSettings: false, isPro: true),
+            logoStore: store,
+            now: Self.fixedDate,
+        )
+
+        #expect(!jobs.isEmpty)
+        for job in jobs {
+            #expect(job.watermark?.logoImageRef == ref)
+            #expect(job.watermarkLogoData == logoBytes)
         }
     }
 
@@ -113,6 +148,7 @@ struct ExportJobBuilderTests {
             selection: ExportContents(includeCombined: true, includeBefore: true, includeAfter: true),
             appSettings: appSettings,
             renderOptions: ExportRenderOptions(applyCombineSettings: false, isPro: true),
+            logoStore: WatermarkLogoStore(),
             now: Self.fixedDate,
         )
 
@@ -129,6 +165,7 @@ struct ExportJobBuilderTests {
             selection: ExportContents(includeCombined: false, includeBefore: true, includeAfter: false),
             appSettings: appSettings,
             renderOptions: ExportRenderOptions(applyCombineSettings: false, isPro: true),
+            logoStore: WatermarkLogoStore(),
             now: Self.fixedDate,
         )
         #expect(beforeOnly.count == 2)

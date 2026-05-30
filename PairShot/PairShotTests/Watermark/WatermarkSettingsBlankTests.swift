@@ -23,15 +23,14 @@ struct WatermarkSettingsBlankTests {
     }
 
     @Test
-    func `Logo type with nil image data is blank`() {
-        let settings = WatermarkSettings(type: .logo, logoImageData: nil)
+    func `Logo type with nil ref is blank`() {
+        let settings = WatermarkSettings(type: .logo, logoImageRef: nil)
         #expect(settings.isBlank == true)
     }
 
     @Test
-    func `Logo type with image data is not blank`() {
-        let bytes = Data([0x01, 0x02, 0x03])
-        let settings = WatermarkSettings(type: .logo, logoImageData: bytes)
+    func `Logo type with ref is not blank`() {
+        let settings = WatermarkSettings(type: .logo, logoImageRef: "ref-xyz")
         #expect(settings.isBlank == false)
     }
 }

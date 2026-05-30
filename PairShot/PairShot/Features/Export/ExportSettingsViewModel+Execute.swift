@@ -82,6 +82,7 @@ extension ExportSettingsViewModel {
                 selection: selection,
                 appSettings: appSettings,
                 renderOptions: renderOptions,
+                logoStore: logoStore,
                 now: now,
             )
             saved = await ExportSaveEngine.processJobs(
@@ -151,9 +152,12 @@ extension ExportSettingsViewModel {
             pairs: pairs,
             selection: makeSelection(),
             renderOptions: makeRenderOptions(),
-            tempDirectory: tempDirectoryProvider(),
-            appSettings: appSettings,
-            photoLibrary: photoLibrary,
+            context: ExportSaveSourceContext(
+                tempDirectory: tempDirectoryProvider(),
+                appSettings: appSettings,
+                photoLibrary: photoLibrary,
+                logoStore: logoStore,
+            ),
         )
     }
 

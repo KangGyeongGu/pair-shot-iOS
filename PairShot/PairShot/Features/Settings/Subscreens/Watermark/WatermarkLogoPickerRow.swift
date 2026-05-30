@@ -2,21 +2,22 @@ import PhotosUI
 import SwiftUI
 
 struct WatermarkLogoPickerRow: View {
-    @Binding var imageData: Data?
+    let hasLogo: Bool
     @Binding var fileName: String?
     @Binding var pickerItem: PhotosPickerItem?
+    let onClear: () -> Void
 
     var body: some View {
         let pickerTitle =
-            imageData == nil
-                ? String(localized: "watermark_logo_pick_action")
-                : String(localized: "watermark_logo_replace_action")
+            hasLogo
+                ? String(localized: "watermark_logo_replace_action")
+                : String(localized: "watermark_logo_pick_action")
         HStack(spacing: 12) {
             Image(systemName: "photo.on.rectangle")
                 .foregroundStyle(.secondary)
             Text(logoStateText)
                 .font(.body)
-                .foregroundStyle(imageData == nil ? .secondary : .primary)
+                .foregroundStyle(hasLogo ? .primary : .secondary)
                 .lineLimit(1)
                 .truncationMode(.middle)
             Spacer()
@@ -29,10 +30,9 @@ struct WatermarkLogoPickerRow: View {
                     .font(.footnote)
             }
             .buttonStyle(.borderless)
-            if imageData != nil {
+            if hasLogo {
                 Button(role: .destructive) {
-                    imageData = nil
-                    fileName = nil
+                    onClear()
                     pickerItem = nil
                 } label: {
                     Text(String(localized: "watermark_logo_clear_action"))
@@ -44,7 +44,7 @@ struct WatermarkLogoPickerRow: View {
     }
 
     private var logoStateText: String {
-        if imageData == nil {
+        if !hasLogo {
             return String(localized: "watermark_logo_state_empty")
         }
         return fileName ?? String(localized: "watermark_logo_state_set")

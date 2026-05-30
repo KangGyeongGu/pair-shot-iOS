@@ -3,6 +3,7 @@ import UIKit
 
 struct WatermarkPreview: View {
     let settings: WatermarkSettings
+    let logoData: Data?
 
     var body: some View {
         ZStack {
@@ -49,7 +50,7 @@ struct WatermarkPreview: View {
                 }
 
             case .logo:
-                WatermarkLogoPreview(settings: settings)
+                WatermarkLogoPreview(settings: settings, logoData: logoData)
         }
     }
 }
@@ -108,12 +109,13 @@ private struct WatermarkTextPreviewCanvas: View {
 
 private struct WatermarkLogoPreview: View {
     let settings: WatermarkSettings
+    let logoData: Data?
 
     var body: some View {
         GeometryReader { geometry in
             ZStack(alignment: .topLeading) {
                 Color.clear
-                if let data = settings.logoImageData,
+                if let data = logoData,
                    let uiImage = UIImage(data: data)
                 {
                     let ratio = clampedRatio(settings.logoWidthRatio)
