@@ -4348,13 +4348,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Full access to compositing & watermark"
+            "value" : "Full access to compositing, watermark & export"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "합성·워터마크 모든 기능 액세스"
+            "value" : "합성·워터마크·내보내기 전체 기능 액세스"
           }
         }
       }

@@ -50,8 +50,8 @@
           "billingPlans" : [
             {
               "billingPlanType" : "BILLED_UPFRONT",
-              "commitmentDisplayPrice" : "5500",
-              "displayPrice" : "5500",
+              "commitmentDisplayPrice" : "3300",
+              "displayPrice" : "3300",
               "internalID" : "15239A81",
               "isEnabled" : true
             }
@@ -59,7 +59,7 @@
           "codeOffers" : [
 
           ],
-          "displayPrice" : "5500",
+          "displayPrice" : "3300",
           "familyShareable" : false,
           "groupNumber" : 1,
           "internalID" : "C7E5A2B1",
@@ -81,13 +81,13 @@
           ],
           "localizations" : [
             {
-              "description" : "2-week free, then ₩4,500/mo · cancel anytime\nFull access · Ad-free",
-              "displayName" : "Monthly Subscription",
+              "description" : "2-week free trial · unlimited Pair · ad remove · Full access",
+              "displayName" : "Pro Monthly",
               "locale" : "en_US"
             },
             {
-              "description" : "2주 무료, 이후 ₩4,500/월 · 언제든 취소 가능\n모든 기능 접근 · 광고 제거",
-              "displayName" : "월간 구독",
+              "description" : "2주 무료 체험 · 페어 카드 무제한 · 전체 광고 제거 · 전체 기능 액세스",
+              "displayName" : "Pro 월간",
               "locale" : "ko"
             }
           ],
@@ -107,8 +107,8 @@
           "billingPlans" : [
             {
               "billingPlanType" : "BILLED_UPFRONT",
-              "commitmentDisplayPrice" : "55000",
-              "displayPrice" : "55000",
+              "commitmentDisplayPrice" : "33000",
+              "displayPrice" : "33000",
               "internalID" : "CB83C41D",
               "isEnabled" : true
             }
@@ -116,35 +116,23 @@
           "codeOffers" : [
 
           ],
-          "displayPrice" : "55000",
+          "displayPrice" : "33000",
           "familyShareable" : false,
           "groupNumber" : 2,
           "internalID" : "E9F7C4D3",
-          "introductoryOffer" : {
-            "billingPlanType" : "BILLED_UPFRONT",
-            "internalID" : "A8C5D6E7",
-            "numberOfPeriods" : 1,
-            "paymentMode" : "free",
-            "subscriptionPeriod" : "P2W"
-          },
+          "introductoryOffer" : null,
           "introductoryOffers" : [
-            {
-              "billingPlanType" : "BILLED_UPFRONT",
-              "internalID" : "A8C5D6E7",
-              "numberOfPeriods" : 1,
-              "paymentMode" : "free",
-              "subscriptionPeriod" : "P2W"
-            }
+
           ],
           "localizations" : [
             {
-              "description" : "2-week free, then ₩43,200/yr\nFull access · Ad-free · ₩3,600/mo",
-              "displayName" : "Annual Subscription · 20% OFF",
+              "description" : "17% discount · unlimited Pair · ad remove · Full access",
+              "displayName" : "Pro Annual",
               "locale" : "en_US"
             },
             {
-              "description" : "2주 무료, 이후 ₩43,200/년\n모든 기능 접근 · 광고 제거 · ₩3,600/월",
-              "displayName" : "연간 구독 · 20% 할인",
+              "description" : "17% 할인 가격 · 페어 카드 무제한 · 전체 광고 제거 · 전체 기능 액세스",
+              "displayName" : "Pro 연간",
               "locale" : "ko"
             }
           ],

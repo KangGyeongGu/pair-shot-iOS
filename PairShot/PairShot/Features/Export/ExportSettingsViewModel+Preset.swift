@@ -1,6 +1,8 @@
 import Foundation
 
 extension ExportSettingsViewModel {
+    static let freeAccessibleSlotCount = 2
+
     func refreshFromActivePreset() {
         guard exportPresetStore?.active != nil else { return }
         includeCombined = preferences.includeCombined
@@ -93,7 +95,7 @@ extension ExportSettingsViewModel {
     }
 
     func canAccessSlot(index: Int) -> Bool {
-        if index == 0 { return true }
+        if index < Self.freeAccessibleSlotCount { return true }
         return isProUser
     }
 
