@@ -125,6 +125,7 @@ struct RootView: View {
             case .settings: SettingsView(path: $path)
             case .watermarkSettings: WatermarkSettingsView(viewModel: env.makeWatermarkSettingsViewModel())
             case .combineSettings: CombineSettingsView(viewModel: env.makeCombineSettingsViewModel())
+            case .info: InfoView()
             case .license: LicenseView()
             case .businessInfo: BusinessInfoView()
             case .languagePicker: LanguagePickerView(viewModel: env.makeSettingsViewModel())

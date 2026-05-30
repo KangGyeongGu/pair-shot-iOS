@@ -7,6 +7,7 @@ enum Route: Hashable, Codable {
     case settings
     case watermarkSettings
     case combineSettings
+    case info
     case license
     case businessInfo
     case exportSettings(pairIds: [UUID])

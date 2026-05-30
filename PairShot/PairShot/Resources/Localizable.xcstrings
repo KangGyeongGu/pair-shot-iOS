@@ -570,13 +570,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nomad Labs"
+            "value" : "nomadLabs"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "노마드랩스"
+            "value" : "nomadLabs"
           }
         }
       }
@@ -5107,6 +5107,40 @@
         }
       }
     },
+    "settings_item_info" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Info"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "정보"
+          }
+        }
+      }
+    },
+    "settings_info_title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Info"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "정보"
+          }
+        }
+      }
+    },
     "settings_item_language" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5821,19 +5855,19 @@
         }
       }
     },
-    "settings_section_storage_and_info" : {
+    "settings_section_info" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Storage and app info"
+            "value" : "Info"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "저장공간 및 앱 정보"
+            "value" : "정보"
           }
         }
       }
