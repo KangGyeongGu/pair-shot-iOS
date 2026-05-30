@@ -5,8 +5,6 @@ import Testing
 @MainActor
 struct MembershipDowngradeReconcilerTests {
     private struct TestEnv {
-        let defaults: UserDefaults
-        let appSettings: AppSettings
         let preferences: ExportPreferences
         let store: ExportPresetStore
     }
@@ -106,8 +104,6 @@ struct MembershipDowngradeReconcilerTests {
             defaults: defaults,
         )
         return TestEnv(
-            defaults: defaults,
-            appSettings: appSettings,
             preferences: preferences,
             store: store,
         )
