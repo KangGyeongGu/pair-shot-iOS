@@ -45,24 +45,24 @@ struct PaywallView: View {
         }
         .safeAreaInset(edge: .bottom) {
             VStack(spacing: 8) {
-                Text(String(localized: "paywall_korea_refund_notice"))
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal)
-                    .padding(.vertical, 4)
-
                 if mode == .firstRun {
                     Button {
                         onCompletion()
                     } label: {
                         Text(String(localized: "paywall_continue_free"))
                             .font(.footnote)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(.primary)
                             .padding(.vertical, 8)
                     }
                     .buttonStyle(.plain)
                 }
+
+                Text(String(localized: "paywall_korea_refund_notice"))
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+                    .padding(.vertical, 4)
             }
         }
         .interactiveDismissDisabled(mode == .firstRun)
