@@ -1,5 +1,6 @@
 import SwiftData
 import SwiftUI
+import UIKit
 #if canImport(GoogleMobileAds)
     import GoogleMobileAds
 #endif
@@ -45,7 +46,11 @@ struct PairShotApp: App {
                 .preferredColorScheme(env.appSettings.resolvedColorScheme)
                 .dynamicTypeSize(env.appSettings.appTextSize.dynamicTypeSize)
                 .task {
+                    applyContentSizeCategoryToConnectedScenes()
                     await tryInitializeBootstrap()
+                }
+                .onChange(of: env.appSettings.appTextSize) { _, _ in
+                    applyContentSizeCategoryToConnectedScenes()
                 }
                 .onChange(of: env.consentManager.canRequestAds) { _, canRequest in
                     guard canRequest, !hasBootstrappedAds else { return }
@@ -70,6 +75,14 @@ struct PairShotApp: App {
             name: String(localized: "export_preset_default_name"),
         )
         _env = State(initialValue: environment)
+    }
+
+    private func applyContentSizeCategoryToConnectedScenes() {
+        let category = env.appSettings.appTextSize.preferredContentSizeCategory
+        for scene in UIApplication.shared.connectedScenes {
+            guard let windowScene = scene as? UIWindowScene else { continue }
+            windowScene.traitOverrides.preferredContentSizeCategory = category
+        }
     }
 
     private func tryInitializeBootstrap() async {
