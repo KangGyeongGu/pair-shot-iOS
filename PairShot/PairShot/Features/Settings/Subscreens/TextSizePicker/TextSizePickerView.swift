@@ -2,7 +2,6 @@ import SwiftUI
 
 struct TextSizePickerView: View {
     @Bindable var viewModel: SettingsViewModel
-    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         List {
@@ -13,7 +12,6 @@ struct TextSizePickerView: View {
                         isSelected: viewModel.appSettings.appTextSize == size,
                     ) {
                         viewModel.setAppTextSize(size)
-                        dismiss()
                     }
                 }
             } footer: {

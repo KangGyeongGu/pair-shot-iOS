@@ -81,19 +81,15 @@ final class AppSettings {
     }
 
     var theme: AppTheme {
-        get {
-            let raw = defaults.string(forKey: AppSettingsKeys.theme) ?? AppTheme.system.rawValue
-            return AppTheme(rawValue: raw) ?? .system
+        didSet {
+            defaults.set(theme.rawValue, forKey: AppSettingsKeys.theme)
         }
-        set { defaults.set(newValue.rawValue, forKey: AppSettingsKeys.theme) }
     }
 
     var appTextSize: AppTextSize {
-        get {
-            let raw = defaults.string(forKey: AppSettingsKeys.appTextSize) ?? AppTextSize.default.rawValue
-            return AppTextSize(rawValue: raw) ?? .default
+        didSet {
+            defaults.set(appTextSize.rawValue, forKey: AppSettingsKeys.appTextSize)
         }
-        set { defaults.set(newValue.rawValue, forKey: AppSettingsKeys.appTextSize) }
     }
 
     var tutorialCurrentStepRawValue: Int? {
@@ -208,6 +204,12 @@ final class AppSettings {
         defaults.register(defaults: AppSettingsDefaultsRegistration.registry)
         watermarkEnabled = defaults.bool(forKey: AppSettingsKeys.watermarkEnabled)
         hasCompletedFirstRunPaywall = defaults.bool(forKey: AppSettingsKeys.hasCompletedFirstRunPaywall)
+        let storedTheme =
+            defaults.string(forKey: AppSettingsKeys.theme) ?? AppTheme.system.rawValue
+        theme = AppTheme(rawValue: storedTheme) ?? .system
+        let storedTextSize =
+            defaults.string(forKey: AppSettingsKeys.appTextSize) ?? AppTextSize.default.rawValue
+        appTextSize = AppTextSize(rawValue: storedTextSize) ?? .default
         let storedHome =
             defaults.string(forKey: AppSettingsKeys.homeSortOrder)
                 ?? SortOrderPersistence.defaultRawValue
