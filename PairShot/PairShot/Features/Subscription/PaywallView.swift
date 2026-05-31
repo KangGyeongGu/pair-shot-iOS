@@ -66,6 +66,9 @@ struct PaywallView: View {
             }
         }
         .interactiveDismissDisabled(mode == .firstRun)
+        .onInAppPurchaseCompletion { _, result in
+            await handleInAppPurchaseCompletion(result: result)
+        }
         .onAppear {
             if !didCaptureInitial {
                 wasInitiallyPro = store.isPro
@@ -77,6 +80,21 @@ struct PaywallView: View {
             onCompletion()
         }
         .snackbarOverlay(env.snackbarQueue)
+    }
+
+    private func handleInAppPurchaseCompletion(
+        result: Result<Product.PurchaseResult, Error>,
+    ) async {
+        guard case let .success(.success(verification)) = result else { return }
+        switch verification {
+            case let .verified(transaction):
+                await transaction.finish()
+                await store.refresh()
+                env.reconcileMembershipDowngrade()
+
+            case let .unverified(transaction, _):
+                await transaction.finish()
+        }
     }
 }
 
